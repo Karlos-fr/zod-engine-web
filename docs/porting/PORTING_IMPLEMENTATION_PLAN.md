@@ -6,6 +6,21 @@ technique et une CLI capables de maintenir un référentiel Markdown atomique,
 d'extraire un contexte réduit depuis les sources C++ et de guider Codex sans
 relire les gros fichiers à chaque tâche.
 
+## Suivi d'avancement
+
+| Phase | Tâche | Statut | Livrables |
+|---|---|---|---|
+| 1 | Normaliser les chemins et la configuration | done | `tools/zport/config.ts`, `docs/porting/PORTING_CONTEXT_RULES.md` |
+| 2 | Créer le référentiel Markdown | done | `docs/porting/PORTING_LEDGER.md` |
+| 3 | Construire la moulinette de scan | done | `tools/zport/scan-upstream.ts`, `tools/zport/symbol-extractor.ts` |
+| 4 | Politique gros fichiers | done | `tools/zport/large-file-policy.ts` |
+| 5 | Construire la CLI `zport` | done | `tools/zport/cli.ts` |
+| 6 | Graphe de dépendances et tri par lots indicatifs | done | `tools/zport/dependency-graph.ts`, `tools/zport/task-selector.ts`, `docs/porting/UPSTREAM_MODULES.md` |
+| 7 | Socle TypeScript/Vite/Three.js | done | `package.json`, `tsconfig.json`, `vite.config.ts`, `src/` |
+| 8 | Tranche verticale de validation | done | modules minimaux carte/rendu/entité/input, `docs/porting/VERTICAL_SLICE.md` |
+| 9 | Cycle de travail Codex | done | commandes `zport context`, `start`, `done`, `block`, `ignore` |
+| 10 | Ordre d'exécution recommandé | done | validation build/tests/CLI |
+
 ## Objectifs
 
 - Conserver le snapshot upstream dans `download/` comme référence immuable.
@@ -115,7 +130,7 @@ Colonnes obligatoires :
 | Décision | `PORTER`, `ADAPT`, `REPLACE`, `IGNORE`, `DEFER` |
 | Domaine cible | `world`, `simulation`, `rendering`, `input`, `assets`, `audio`, `ui`, `network`, `data`, `tooling` |
 | Statut | `todo`, `qualified`, `in_progress`, `ported`, `verified`, `blocked`, `ignored` |
-| Lot | Identifiant optionnel de lot cohérent |
+| Lot | Regroupement indicatif pour le tri ; ne permet pas de porter plusieurs symboles à la fois |
 | Cible TS | Fichier ou module TypeScript cible |
 | Notes | Justification courte, obligatoire pour `IGNORE`, `REPLACE`, `DEFER`, `blocked` |
 
@@ -133,7 +148,8 @@ Règles :
 - Une ligne supprimée du C++ upstream ne doit pas être effacée du ledger sans
   note ; elle passe en `ignored` ou `blocked`.
 - `zport scan` peut ajouter ou mettre à jour les métadonnées, mais doit
-  préserver les statuts, décisions, lots, cibles TS et notes existants.
+  préserver les statuts, décisions, lots indicatifs, cibles TS et notes
+  existants.
 - Le Markdown est la source de vérité lisible ; la CLI peut générer un cache
   JSON temporaire, mais il ne remplace pas le ledger.
 
@@ -241,6 +257,7 @@ npm run zport -- list
 npm run zport -- status
 npm run zport -- show ZOBJ-0001
 npm run zport -- context ZOBJ-0001
+npm run zport -- deps ZOBJ-0001
 npm run zport -- next
 npm run zport -- start ZOBJ-0001
 npm run zport -- done ZOBJ-0001 --target src/simulation/entities/GameEntity.ts
@@ -250,7 +267,7 @@ npm run zport -- ignore ZSDL-0001 --note "SDL rendering replaced by Three.js"
 
 Comportement attendu :
 
-- `list` filtre par statut, décision, domaine, fichier et lot.
+- `list` filtre par statut, décision, domaine, fichier et lot indicatif.
 - `show` affiche le symbole et son extrait exact.
 - `context` produit un Markdown compact utilisable directement par Codex.
 - `next` choisit une tâche compatible avec la phase en cours.
@@ -283,10 +300,10 @@ Format de `context` :
 ...
 
 ## Required action
-Port only this symbol or lot. Update tests and ledger.
+Port only this symbol. The batch field is informational only. Update tests and ledger.
 ```
 
-## Phase 6 - Graphe de dépendances et sélection des lots
+## Phase 6 - Graphe de dépendances et tri par lots indicatifs
 
 Créer :
 
@@ -311,7 +328,7 @@ La CLI construit un graphe local pour un symbole :
 - classe propriétaire ;
 - appels directs ;
 - constantes/enums référencées ;
-- symboles du même lot.
+- nom du lot indicatif, seulement pour comprendre le voisinage fonctionnel.
 
 `zport next` doit favoriser cet ordre :
 
@@ -384,7 +401,7 @@ Périmètre :
 9. Déplacer le robot avec un pas fixe.
 10. Synchroniser rendu et simulation.
 
-Lots probables dans le ledger :
+Lots indicatifs probables dans le ledger :
 
 - `map-format`
 - `map-core`
@@ -409,7 +426,7 @@ Cycle obligatoire pour chaque tâche :
 1. `npm run zport -- next`
 2. `npm run zport -- context <id>`
 3. Lire uniquement les fichiers mentionnés par le contexte.
-4. Porter le symbole ou le lot indiqué.
+4. Porter uniquement le symbole indiqué.
 5. Ajouter ou adapter les tests.
 6. Lancer build/tests ciblés.
 7. `npm run zport -- done <id> --target <path>` ou `block/ignore`.
@@ -419,7 +436,7 @@ Cycle obligatoire pour chaque tâche :
 Consigne permanente :
 
 ```text
-Porter uniquement le symbole ou lot demandé.
+Porter uniquement le symbole demandé.
 Respecter l'architecture cible.
 Ne pas traduire mécaniquement le C++.
 Remplacer les dépendances SDL/Windows/OpenGL natives par les modules web.
@@ -439,7 +456,8 @@ Terminer par tests + mise à jour du ledger.
 8. Implémenter `zport context`.
 9. Créer les fichiers d'architecture `src/`.
 10. Implémenter build/test minimal.
-11. Qualifier les premiers lots `map-format`, `entity-core`, `rendering-basic`.
+11. Qualifier les premiers symboles des lots indicatifs `map-format`,
+    `entity-core`, `rendering-basic`.
 12. Démarrer la tranche verticale.
 
 ## Risques et garde-fous
