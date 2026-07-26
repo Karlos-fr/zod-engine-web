@@ -1,15 +1,8 @@
-# Zod Engine upstream downloads
+# Zod Engine upstream source
 
-This directory is reserved for the most recent artifacts published in the
-`Windows`, `Other`, `Zod_engine`, and `Assets` directories of the
-[Zod SourceForge project](https://sourceforge.net/projects/zod/files/).
+This directory contains a SourceForge Mercurial snapshot from the
+`Zod Engine Hg Repo` at branch `default`, revision
+`6f2d1f82a95c7e2bcbb8338770d03e2b70b3e0b5`.
 
-Run the importer from the repository root:
-
-```sh
-python3 download/fetch_latest.py
-```
-
-The importer selects the newest dated file in every category, downloads it
-without unpacking it, and records its category and upstream URL in
+The downloaded files and their upstream URLs are recorded in
 `download/manifest.json`.
