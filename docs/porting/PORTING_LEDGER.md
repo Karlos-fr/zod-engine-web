@@ -5,13 +5,13 @@ symbole upstream ou une décision explicite de portage.
 
 ## Statistiques
 
-Avancement du portage : 317/2913 (10.88%).
+Avancement du portage : 493/2913 (16.92%).
 
 | Statut | Nombre | Pourcentage |
 |---|---:|---:|
 | ignored | 1 | 0.03% |
-| ported | 317 | 10.88% |
-| todo | 2595 | 89.08% |
+| ported | 493 | 16.92% |
+| todo | 2419 | 83.04% |
 | total | 2913 | 100.00% |
 
 | ID | Type | Symbole | Fichier | Lignes | Décision | Domaine cible | Statut | Lot | Cible TS | Notes | Depends On | Blocked By |
@@ -226,23 +226,23 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-013F22 | constant | `x_seconds_shift` | zhud.cpp | 1077-1077 | PORTER | ui | todo |  |  |  | CON-90EFB2 | CON-90EFB2 |
 | CON-035582 | constant | `unit_x` | cgatling.cpp | 91-91 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Ported CGatling unit_x as GATLING_CANNON_UNIT_X_PIXELS. |  |  |
 | CON-035582 | constant | `unit_x` | cgatling.cpp | 202-202 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Reused GATLING_CANNON_UNIT_X_PIXELS for duplicate CGatling unit_x occurrence. |  |  |
-| CON-055B1A | constant | `bullet_speed` | emomissilerockets.cpp | 12-12 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-055B1A | constant | `bullet_speed` | emomissilerockets.cpp | 153-153 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-055B1A | constant | `bullet_speed` | emomissilerockets.cpp | 12-12 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Ported emomissilerockets.cpp bullet_speed as a mobile missile launcher settings resolver. |  |  |
+| CON-055B1A | constant | `bullet_speed` | emomissilerockets.cpp | 153-153 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Covered emomissilerockets.cpp PlaceSmoke bullet_speed with the same mobile missile launcher settings resolver. |  |  |
 | CON-06EC4C | constant | `enemy_heat_tile_dist` | zgun_placement_heatmap.cpp | 564-564 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported enemy_heat_tile_dist as a named gun placement heatmap tile-distance constant. |  |  |
-| CON-0890AC | constant | `max_rows` | gmm_manage_bots.cpp | 16-16 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-08BA01 | constant | `max_news_history` | zplayer.cpp | 2070-2070 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-0890AC | constant | `max_rows` | gmm_manage_bots.cpp | 16-16 | PORTER | simulation | ported |  | src/ui/MainMenuManageBots.ts | Ported gmm_manage_bots.cpp max_rows as the manage-bots row limit. |  |  |
+| CON-08BA01 | constant | `max_news_history` | zplayer.cpp | 2070-2070 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp max_news_history as PLAYER_MAX_NEWS_HISTORY. |  |  |
 | CON-08F69F | constant | `turrent_time_int` | vheavy.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the heavy vehicle turret animation interval as a named vehicle timing constant. |  |  |
 | CON-0BE3FB | constant | `affiliate_table` | zmysql.cpp | 5-5 | DEFER | simulation | todo |  |  |  |  |  |
-| CON-0C67B8 | constant | `max_wait` | socket_handler.cpp | 394-394 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-0C67B8 | constant | `max_wait` | socket_handler.cpp | 394-394 | PORTER | simulation | ported |  | src/network/SocketHandler.ts | Ported socket_handler.cpp max_wait as the socket send wait timeout; target kept in network module despite ledger simulation domain. |  |  |
 | CON-0DF011 | constant | `front_light_x` | brepair.cpp | 208-208 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair front_light_x as REPAIR_FRONT_LIGHT_X_PIXELS. |  |  |
-| CON-0E5519 | constant | `shift_tick` | zplayer.cpp | 1378-1378 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-0E5519 | constant | `shift_tick` | zplayer.cpp | 1378-1378 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp shift_tick as PLAYER_SELECTION_SHIFT_TICK_SECONDS. |  |  |
 | CON-0EFFBA | constant | `unit_y` | cgun.cpp | 85-85 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Ported CGun unit_y as GUN_CANNON_UNIT_Y_PIXELS. |  |  |
 | CON-10421E | constant | `max_entries` | zmysql.cpp | 570-570 | DEFER | simulation | todo |  |  |  |  |  |
-| CON-10EDC3 | constant | `max_vert` | ogrenades.cpp | 61-61 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-11D8DB | constant | `shift_speed` | zplayer.cpp | 1932-1932 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-10EDC3 | constant | `max_vert` | ogrenades.cpp | 61-61 | PORTER | simulation | ported |  | src/simulation/GrenadesObject.ts | Ported ogrenades.cpp max_vert as the grenade missile vertical spread limit. |  |  |
+| CON-11D8DB | constant | `shift_speed` | zplayer.cpp | 1932-1932 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp shift_speed as PLAYER_SCROLL_SPEED_PIXELS_PER_SECOND. |  |  |
 | CON-126B41 | constant | `port_y` | zhud.cpp | 327-327 | PORTER | ui | todo |  |  |  |  |  |
 | CON-1329A3 | constant | `bulb_y` | brepair.cpp | 213-213 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair bulb_y as REPAIR_BULB_Y_PIXELS. |  |  |
-| CON-15FF90 | constant | `max_left` | edeathsparks.cpp | 12-12 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-15FF90 | constant | `max_left` | edeathsparks.cpp | 12-12 | PORTER | simulation | ported |  | src/simulation/DeathSparksEffect.ts | Ported max_left as death sparks leftward spread limit. |  |  |
 | CON-16143C | constant | `hook_time_int` | vcrane.cpp | 6-6 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vcrane hook_time_int as CRANE_HOOK_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-169286 | constant | `max_units_in_type` | zobject.cpp | 496-496 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported max_units_in_type as MAX_UNITS_PER_TYPE. |  |  |
 | CON-170FAF | constant | `turrent_time_int` | vapc.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vapc turrent_time_int as APC_TURRET_FRAME_INTERVAL_SECONDS. |  |  |
@@ -256,7 +256,7 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-223BBB | constant | `min_stamina` | zobject.cpp | 2095-2095 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported min_stamina as MIN_STAMINA. |  |  |
 | CON-22DE38 | constant | `PI_shift` | zobject.cpp | 716-716 | PORTER | simulation | todo | entity-core |  |  | CON-A3B238,MAC-7602DF | MAC-7602DF |
 | CON-22DE38 | constant | `PI_shift` | zobject.cpp | 1040-1040 | PORTER | simulation | todo | entity-core |  |  | CON-A3B238,MAC-7602DF | MAC-7602DF |
-| CON-2330D6 | constant | `cx` | gmmw_radio.cpp | 98-98 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-2330D6 | constant | `cx` | gmmw_radio.cpp | 98-98 | PORTER | simulation | ported |  | src/ui/MainMenuRadio.ts | Ported gmmw_radio.cpp cx as the middle radio selector x-offset. |  |  |
 | CON-243565 | constant | `double_light_x` | brobot.cpp | 221-221 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot double_light_x as ROBOT_FACTORY_DOUBLE_LIGHT_X_PIXELS. |  |  |
 | CON-24B563 | constant | `buf_size` | zserver_events.cpp | 120-120 | DEFER | network | todo |  |  |  |  |  |
 | CON-25DB3E | constant | `side_light_x` | bradar.cpp | 196-196 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported side_light_x as RADAR_SIDE_LIGHT_X_PIXELS. |  |  |
@@ -265,13 +265,13 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-2636E0 | constant | `level_y` | bvehicle.cpp | 229-229 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Reused VEHICLE_FACTORY_LEVEL_Y_PIXELS for duplicate BVehicle level_y occurrence. |  |  |
 | CON-2E6074 | constant | `time_d` | etoughrocket.cpp | 118-118 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-2E8243 | constant | `front_light_y` | brepair.cpp | 209-209 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair front_light_y as REPAIR_FRONT_LIGHT_Y_PIXELS. |  |  |
-| CON-2F6D96 | constant | `int_time` | oflag.cpp | 39-39 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-2F6D96 | constant | `int_time` | oflag.cpp | 39-39 | PORTER | simulation | ported |  | src/simulation/FlagObject.ts | Ported oflag.cpp int_time as the flag animation frame interval. |  |  |
 | CON-30AB1E | constant | `dish_x` | bradar.cpp | 200-200 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported dish_x as RADAR_DISH_X_PIXELS. |  |  |
 | CON-30B5A0 | constant | `spin_x` | bvehicle.cpp | 220-220 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle spin_x as VEHICLE_FACTORY_SPINNER_X_PIXELS. |  |  |
-| CON-314F14 | constant | `lx` | gmmw_radio.cpp | 97-97 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-314F14 | constant | `lx` | gmmw_radio.cpp | 97-97 | PORTER | simulation | ported |  | src/ui/MainMenuRadio.ts | Ported gmmw_radio.cpp lx as the first radio selector x-offset. |  |  |
 | CON-31DD6E | constant | `turrent_time_int` | vmissilelauncher.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the missile launcher turret animation interval as a named vehicle timing constant. |  |  |
-| CON-3224D8 | constant | `bullet_speed` | emissilecrockets.cpp | 12-12 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-3224D8 | constant | `bullet_speed` | emissilecrockets.cpp | 144-144 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-3224D8 | constant | `bullet_speed` | emissilecrockets.cpp | 12-12 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Ported emissilecrockets.cpp bullet_speed as a missile cannon rocket settings resolver. |  |  |
+| CON-3224D8 | constant | `bullet_speed` | emissilecrockets.cpp | 144-144 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Covered emissilecrockets.cpp PlaceSmoke bullet_speed with the same missile cannon rocket settings resolver. |  |  |
 | CON-34142A | constant | `bulb_x` | brepair.cpp | 212-212 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair bulb_x as REPAIR_BULB_X_PIXELS. |  |  |
 | CON-369A89 | constant | `time_d2` | emissilecrockets.cpp | 146-146 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-37D778 | constant | `green_box_y` | brobot.cpp | 228-228 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot green_box_y as ROBOT_FACTORY_GREEN_BOX_Y_PIXELS. |  |  |
@@ -286,29 +286,29 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-3965FB | constant | `clear_threshold` | zgun_placement_heatmap.cpp | 498-498 | PORTER | world | todo |  |  |  | CON-7BF996,CON-B7423E,CON-DC7963 | CON-7BF996,CON-B7423E,CON-DC7963 |
 | CON-3C2846 | constant | `smoke_stack_x` | brepair.cpp | 214-214 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair smoke_stack_x as REPAIR_SMOKE_STACK_X_PIXELS. |  |  |
 | CON-3CBE11 | constant | `spin_x` | brobot.cpp | 217-217 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot spin_x as ROBOT_FACTORY_SPINNER_X_PIXELS. |  |  |
-| CON-3EA12F | constant | `lasting_time` | zplayer.cpp | 600-600 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-3EA12F | constant | `lasting_time` | zplayer.cpp | 600-600 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp lasting_time as PLAYER_NEWS_ACTIVE_DURATION_SECONDS. |  |  |
 | CON-3EF127 | constant | `the_len` | zsdl.cpp | 183-183 | REPLACE | rendering | ported | rendering-basic | src/rendering/SelectionBoxRendering.ts | Replaced draw_selection_box the_len with a named TypeScript selection-box corner length constant. |  |  |
 | CON-3FE461 | constant | `side_light_x` | brepair.cpp | 210-210 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair side_light_x as REPAIR_SIDE_LIGHT_X_PIXELS. |  |  |
-| CON-400452 | constant | `max_down` | edeathsparks.cpp | 11-11 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-41D8B4 | constant | `button_h` | gwproduction.cpp | 190-190 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-42F57C | constant | `percent_guns_building_max` | zbot.cpp | 1799-1799 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-430E92 | constant | `rx` | gmmw_radio.cpp | 99-99 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-400452 | constant | `max_down` | edeathsparks.cpp | 11-11 | PORTER | simulation | ported |  | src/simulation/DeathSparksEffect.ts | Ported max_down as death sparks downward spread limit. |  |  |
+| CON-41D8B4 | constant | `button_h` | gwproduction.cpp | 190-190 | PORTER | simulation | ported |  | src/ui/ProductionWindow.ts | Ported gwproduction.cpp button_h as the production queue button height. |  |  |
+| CON-42F57C | constant | `percent_guns_building_max` | zbot.cpp | 1799-1799 | PORTER | simulation | ported |  | src/simulation/BotAI.ts | Ported zbot.cpp percent_guns_building_max as the cannon-production building ratio cap. |  |  |
+| CON-430E92 | constant | `rx` | gmmw_radio.cpp | 99-99 | PORTER | simulation | ported |  | src/ui/MainMenuRadio.ts | Ported gmmw_radio.cpp rx as the last radio selector x-offset. |  |  |
 | CON-442B90 | constant | `spin_y` | bvehicle.cpp | 221-221 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle spin_y as VEHICLE_FACTORY_SPINNER_Y_PIXELS. |  |  |
-| CON-45BACE | constant | `bullet_speed` | ebullet.cpp | 7-7 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-45BACE | constant | `bullet_speed` | ebullet.cpp | 7-7 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Ported bullet_speed as the bullet projectile speed constant. |  |  |
 | CON-4640CD | constant | `turrent_time_int` | vlight.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the light vehicle turret animation interval as a named vehicle timing constant. |  |  |
 | CON-47DB2D | constant | `time_d` | emomissilerockets.cpp | 154-154 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-480525 | constant | `vent_y` | bvehicle.cpp | 223-223 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle vent_y as VEHICLE_FACTORY_VENT_Y_PIXELS. |  |  |
 | CON-498465 | constant | `online_history_table` | zmysql.cpp | 4-4 | DEFER | simulation | todo |  |  |  |  |  |
 | CON-4A3C30 | constant | `vent_x` | bvehicle.cpp | 222-222 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle vent_x as VEHICLE_FACTORY_VENT_X_PIXELS. |  |  |
-| CON-500A93 | constant | `max_description_len` | zvote.cpp | 59-59 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-500A93 | constant | `max_description_len` | zvote.cpp | 59-59 | PORTER | simulation | ported |  | src/simulation/VotePresentation.ts | Ported zvote.cpp max_description_len as VOTE_DESCRIPTION_MAX_WIDTH_PIXELS. |  |  |
 | CON-51596A | constant | `bulb_x` | bvehicle.cpp | 224-224 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle bulb_x as VEHICLE_FACTORY_BULB_X_PIXELS. |  |  |
 | CON-522E47 | constant | `turrent_time_int` | vjeep.cpp | 6-6 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the jeep turret animation interval as a named vehicle timing constant. |  |  |
 | CON-550D5E | constant | `green_box_x` | brobot.cpp | 227-227 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot green_box_x as ROBOT_FACTORY_GREEN_BOX_X_PIXELS. |  |  |
 | CON-56E525 | constant | `buf_size` | zclient.cpp | 840-840 | DEFER | network | todo |  |  |  |  |  |
-| CON-5C1C35 | constant | `stop_width` | gmm_manage_bots.cpp | 19-19 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-5D684E | constant | `lasting_time` | zplayer_events.cpp | 683-683 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-5F25C2 | constant | `ih` | gmmw_list.cpp | 235-235 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-5F25C2 | constant | `ih` | gmmw_list.cpp | 252-252 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-5C1C35 | constant | `stop_width` | gmm_manage_bots.cpp | 19-19 | PORTER | simulation | ported |  | src/ui/MainMenuManageBots.ts | Ported gmm_manage_bots.cpp stop_width as the manage-bots stop button width. |  |  |
+| CON-5D684E | constant | `lasting_time` | zplayer_events.cpp | 683-683 | PORTER | simulation | ported |  | src/simulation/PlayerEvents.ts | Ported zplayer_events.cpp lasting_time as PLAYER_NEWS_ENTRY_DURATION_SECONDS. |  |  |
+| CON-5F25C2 | constant | `ih` | gmmw_list.cpp | 235-235 | PORTER | simulation | ported |  | src/ui/MainMenuListWidget.ts | Ported gmmw_list.cpp ih as the list arrow button hit-test height. |  |  |
+| CON-5F25C2 | constant | `ih` | gmmw_list.cpp | 252-252 | PORTER | simulation | ported |  | src/ui/MainMenuListWidget.ts | Covered gmmw_list.cpp second ih occurrence with the shared list arrow button height constant. |  |  |
 | CON-5F6CA0 | constant | `base_time_int` | vjeep.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the jeep base animation interval as a named vehicle timing constant. |  |  |
 | CON-5F7D01 | constant | `exhaust_y` | brobot.cpp | 230-230 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot exhaust_y as ROBOT_FACTORY_EXHAUST_Y_PIXELS. |  |  |
 | CON-626CD9 | constant | `robot_x` | brobot.cpp | 219-219 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot robot_x as ROBOT_FACTORY_ROBOT_X_PIXELS. |  |  |
@@ -316,50 +316,50 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-633D10 | constant | `bar_y_shift` | zobject.cpp | 628-628 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported bar_y_shift as BAR_Y_SHIFT. |  |  |
 | CON-65484C | constant | `x_hours_shift` | zhud.cpp | 1075-1075 | PORTER | ui | todo |  |  |  |  |  |
 | CON-681B9D | constant | `unit_x` | cmissilecannon.cpp | 98-98 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Ported CMissileCannon unit_x as MISSILE_CANNON_UNIT_X_PIXELS. |  |  |
-| CON-6A7A05 | constant | `dist_from_entrance_box` | ecraneconco.cpp | 178-178 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-6FAD49 | constant | `duration_multi` | zportrait.cpp | 555-555 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-6A7A05 | constant | `dist_from_entrance_box` | ecraneconco.cpp | 178-178 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported dist_from_entrance_box as crane construction entrance box offset. |  |  |
+| CON-6FAD49 | constant | `duration_multi` | zportrait.cpp | 555-555 | PORTER | simulation | ported |  | src/simulation/PortraitAnimation.ts | Ported zportrait.cpp duration_multi as PORTRAIT_FRAME_DURATION_MULTIPLIER_SECONDS. |  |  |
 | CON-6FAE47 | constant | `b_r` | zobject.cpp | 623-623 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported b_r as BAR_RED. |  |  |
-| CON-7196C6 | constant | `bullet_speed` | eflame.cpp | 10-10 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-7196C6 | constant | `bullet_speed` | eflame.cpp | 10-10 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Ported eflame.cpp bullet_speed as flame projectile speed constant. |  |  |
 | CON-758EA1 | constant | `time_d2` | etoughrocket.cpp | 119-119 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-77BBB1 | constant | `y_plus` | bradar.cpp | 277-277 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported y_plus as RADAR_EFFECT_Y_OFFSET_PIXELS. |  |  |
-| CON-77DECD | constant | `cone_dist_from_center` | ecraneconco.cpp | 94-94 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-77DECD | constant | `cone_dist_from_center` | ecraneconco.cpp | 94-94 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported cone_dist_from_center as crane construction cone center offset. |  |  |
 | CON-7BB0C5 | constant | `front_light_y` | bradar.cpp | 195-195 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported front_light_y as RADAR_FRONT_LIGHT_Y_PIXELS. |  |  |
-| CON-7BE48C | constant | `max_horz` | ogrenades.cpp | 60-60 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-7BE48C | constant | `max_horz` | ogrenades.cpp | 60-60 | PORTER | simulation | ported |  | src/simulation/GrenadesObject.ts | Ported ogrenades.cpp max_horz as the grenade missile horizontal spread limit. |  |  |
 | CON-7BF996 | constant | `time_inc` | zgun_placement_heatmap.cpp | 496-496 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported time_inc as a named unit history heatmap time increment constant. |  |  |
 | CON-7C6665 | constant | `side_light_y` | brepair.cpp | 211-211 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair side_light_y as REPAIR_SIDE_LIGHT_Y_PIXELS. |  |  |
 | CON-816F9A | constant | `exhaust_y` | bvehicle.cpp | 233-233 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle exhaust_y as VEHICLE_FACTORY_EXHAUST_Y_PIXELS. |  |  |
-| CON-834886 | constant | `bullet_speed` | elaser.cpp | 9-9 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-834886 | constant | `bullet_speed` | elaser.cpp | 9-9 | PORTER | simulation | ported |  | src/simulation/ProjectileConstants.ts | Ported elaser.cpp bullet_speed as laser projectile speed constant. |  |  |
 | CON-841EC3 | constant | `lid_shift_x` | vmedium.cpp | 156-156 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the medium vehicle lid horizontal render offset as a named vehicle rendering constant. |  |  |
 | CON-8430F1 | constant | `port_x` | zhud.cpp | 326-326 | PORTER | ui | todo |  |  |  |  |  |
 | CON-853627 | constant | `box_spinner_x` | bradar.cpp | 198-198 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported box_spinner_x as RADAR_BOX_SPINNER_X_PIXELS. |  |  |
 | CON-853D91 | constant | `shift_speed` | map_editor.cpp | 635-635 | PORTER | world | ported |  | src/world/WorldConstants.ts | Ported the map editor view shift speed as a typed world constant. |  |  |
-| CON-8619AD | constant | `start_fade_time` | zplayer.cpp | 2069-2069 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-880C94 | constant | `iw` | gmmw_list.cpp | 234-234 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-880C94 | constant | `iw` | gmmw_list.cpp | 251-251 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-8619AD | constant | `start_fade_time` | zplayer.cpp | 2069-2069 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp start_fade_time as PLAYER_NEWS_FADE_START_SECONDS. |  |  |
+| CON-880C94 | constant | `iw` | gmmw_list.cpp | 234-234 | PORTER | simulation | ported |  | src/ui/MainMenuListWidget.ts | Ported gmmw_list.cpp iw as the list arrow button hit-test width. |  |  |
+| CON-880C94 | constant | `iw` | gmmw_list.cpp | 251-251 | PORTER | simulation | ported |  | src/ui/MainMenuListWidget.ts | Covered gmmw_list.cpp second iw occurrence with the shared list arrow button width constant. |  |  |
 | CON-8910F3 | constant | `y_plus` | bvehicle.cpp | 362-362 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle y_plus as VEHICLE_FACTORY_EFFECT_Y_OFFSET_PIXELS. |  |  |
 | CON-895F4C | constant | `sq_tile_per_bird` | zplayer.cpp | 575-575 | PORTER | world | ported |  | src/world/BirdMap.ts | Ported sq_tile_per_bird as AMBIENT_BIRD_SQUARE_TILES_PER_BIRD. |  |  |
 | CON-896ADD | constant | `min_interval_time` | brobot.cpp | 138-138 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot min_interval_time as ROBOT_FACTORY_MIN_PROCESS_INTERVAL_SECONDS. |  |  |
-| CON-8A3DCA | constant | `max_total_dist` | zbot.cpp | 483-483 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-8B3D98 | constant | `button_spacer` | gmm_manage_bots.cpp | 20-20 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-8A3DCA | constant | `max_total_dist` | zbot.cpp | 483-483 | PORTER | simulation | ported |  | src/simulation/BotAI.ts | Ported zbot.cpp max_total_dist as the crane target total-distance limit. |  |  |
+| CON-8B3D98 | constant | `button_spacer` | gmm_manage_bots.cpp | 20-20 | PORTER | simulation | ported |  | src/ui/MainMenuManageBots.ts | Ported gmm_manage_bots.cpp button_spacer as the manage-bots control spacing. |  |  |
 | CON-8E48FD | constant | `unit_y` | cgatling.cpp | 92-92 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Ported CGatling unit_y as GATLING_CANNON_UNIT_Y_PIXELS. |  |  |
 | CON-8E48FD | constant | `unit_y` | cgatling.cpp | 203-203 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Reused GATLING_CANNON_UNIT_Y_PIXELS for duplicate CGatling unit_y occurrence. |  |  |
-| CON-8F3C4C | constant | `button_margin` | gwproduction.cpp | 191-191 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-8F3C4C | constant | `button_margin` | gwproduction.cpp | 191-191 | PORTER | simulation | ported |  | src/ui/ProductionWindow.ts | Ported gwproduction.cpp button_margin as the production queue button vertical gap. |  |  |
 | CON-90EFB2 | constant | `x_minutes_shift` | zhud.cpp | 1076-1076 | PORTER | ui | todo |  |  |  | CON-65484C | CON-65484C |
-| CON-910E76 | constant | `label_width` | gmm_manage_bots.cpp | 17-17 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-910E76 | constant | `label_width` | gmm_manage_bots.cpp | 17-17 | PORTER | simulation | ported |  | src/ui/MainMenuManageBots.ts | Ported gmm_manage_bots.cpp label_width as the manage-bots team label width. |  |  |
 | CON-91192A | constant | `min_interval_time` | brepair.cpp | 125-125 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair min_interval_time as REPAIR_MIN_PROCESS_INTERVAL_SECONDS. |  |  |
 | CON-95202A | constant | `tank_x` | bvehicle.cpp | 226-226 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle tank_x as VEHICLE_FACTORY_TANK_X_PIXELS. |  |  |
-| CON-970474 | constant | `max_right` | edeathsparks.cpp | 13-13 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-970474 | constant | `max_right` | edeathsparks.cpp | 13-13 | PORTER | simulation | ported |  | src/simulation/DeathSparksEffect.ts | Ported max_right as death sparks rightward spread limit. |  |  |
 | CON-9762E8 | constant | `run_past_radius` | zsettings.cpp | 16-16 | PORTER | data | ported |  | src/data/ZSettingsData.ts | Ported the run past radius as a typed gameplay settings constant. |  |  |
 | CON-98106E | constant | `hover_name_y_shift` | zobject.cpp | 563-563 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported hover_name_y_shift as HOVER_NAME_Y_SHIFT. |  |  |
 | CON-9B2756 | constant | `level_x` | bvehicle.cpp | 176-176 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle level_x as VEHICLE_FACTORY_LEVEL_X_PIXELS. |  |  |
 | CON-9B2756 | constant | `level_x` | bvehicle.cpp | 228-228 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Reused VEHICLE_FACTORY_LEVEL_X_PIXELS for duplicate BVehicle level_x occurrence. |  |  |
 | CON-A3B238 | constant | `dots` | zobject.cpp | 715-715 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused DOT_COUNT for the second identical dots declaration. |  |  |
 | CON-A3B238 | constant | `dots` | zobject.cpp | 1039-1039 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused DOT_COUNT for the second identical dots declaration. |  |  |
-| CON-A48EED | constant | `games_per_vp` | zcore.h | 110-110 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-A48EED | constant | `games_per_vp` | zcore.h | 110-110 | PORTER | simulation | ported |  | src/simulation/GameCore.ts | Ported zcore.h games_per_vp as the games-per-voting-power interval. |  |  |
 | CON-A4D9DE | constant | `buf_size` | zmap.cpp | 986-986 | PORTER | world | ported | map-core | src/world/MapFormat.ts | Ported zmap.cpp buf_size as MAP_FILE_READ_BUFFER_SIZE. |  |  |
 | CON-A5E131 | constant | `min_interval_time` | bradar.cpp | 118-118 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported min_interval_time as RADAR_MIN_PROCESS_INTERVAL_SECONDS. |  |  |
-| CON-A8B807 | constant | `start_width` | gmm_manage_bots.cpp | 18-18 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-AD53D0 | constant | `fade_per_second` | zplayer.cpp | 2413-2413 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-A8B807 | constant | `start_width` | gmm_manage_bots.cpp | 18-18 | PORTER | simulation | ported |  | src/ui/MainMenuManageBots.ts | Ported gmm_manage_bots.cpp start_width as the manage-bots start button width. |  |  |
+| CON-AD53D0 | constant | `fade_per_second` | zplayer.cpp | 2413-2413 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp fade_per_second as PLAYER_SPLASH_FADE_PER_SECOND. |  |  |
 | CON-AE2BF0 | constant | `unit_x` | cgun.cpp | 84-84 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Ported CGun unit_x as GUN_CANNON_UNIT_X_PIXELS. |  |  |
 | CON-B1CEFD | constant | `users_table` | zmysql.cpp | 3-3 | DEFER | simulation | todo |  |  |  |  |  |
 | CON-B31A58 | constant | `max_values` | zserver_commands.cpp | 212-212 | DEFER | network | todo |  |  |  |  |  |
@@ -371,18 +371,18 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-B31A58 | constant | `max_values` | zserver_commands.cpp | 596-596 | DEFER | network | todo |  |  |  |  |  |
 | CON-B35129 | constant | `text_box_x` | brepair.cpp | 216-216 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair text_box_x as REPAIR_TEXT_BOX_X_PIXELS. |  |  |
 | CON-B414E6 | constant | `time_d` | emissilecrockets.cpp | 145-145 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
-| CON-B63D15 | constant | `conco_dist_from_entrace` | ecraneconco.cpp | 92-92 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-B63D15 | constant | `conco_dist_from_entrace` | ecraneconco.cpp | 92-92 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported conco_dist_from_entrace as crane construction concrete entrance offset. |  |  |
 | CON-B6F0A4 | constant | `spin_y` | brobot.cpp | 218-218 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot spin_y as ROBOT_FACTORY_SPINNER_Y_PIXELS. |  |  |
 | CON-B7423E | constant | `time_dec` | zgun_placement_heatmap.cpp | 497-497 | PORTER | world | todo |  |  |  | CON-7BF996,CON-DC7963 | CON-7BF996,CON-DC7963 |
-| CON-B7E178 | constant | `max_items` | zplayer.cpp | 476-476 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-B9244F | constant | `max_combo_check` | zbot.cpp | 1946-1946 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-B7E178 | constant | `max_items` | zplayer.cpp | 476-476 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp max_items as PLAYER_GRAPHICS_LOAD_ITEM_COUNT. |  |  |
+| CON-B9244F | constant | `max_combo_check` | zbot.cpp | 1946-1946 | PORTER | simulation | ported |  | src/simulation/BotAI.ts | Ported zbot.cpp max_combo_check as the build-combination list cap. |  |  |
 | CON-BABD0B | constant | `time_d2` | emomissilerockets.cpp | 155-155 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-BE1C5B | constant | `max_dist` | zobject.cpp | 629-629 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported max_dist as MAX_BAR_DISTANCE while retaining the upstream 30 + 6 expression. |  |  |
 | CON-BEDC34 | constant | `robot_y` | brobot.cpp | 220-220 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot robot_y as ROBOT_FACTORY_ROBOT_Y_PIXELS. |  |  |
 | CON-C105A3 | constant | `y_r` | zobject.cpp | 622-622 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported y_r as BAR_YELLOW_RED. |  |  |
 | CON-C4B75F | constant | `heat_tile_dist` | zgun_placement_heatmap.cpp | 464-464 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported heat_tile_dist at zgun_placement_heatmap.cpp:464 as a named flag heat tile-distance constant. |  |  |
 | CON-C4B75F | constant | `heat_tile_dist` | zgun_placement_heatmap.cpp | 495-495 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported heat_tile_dist at zgun_placement_heatmap.cpp:495 as a named unit-history heat tile-distance constant. |  |  |
-| CON-C60554 | constant | `dist_from_entrance` | ecraneconco.cpp | 177-177 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-C60554 | constant | `dist_from_entrance` | ecraneconco.cpp | 177-177 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported dist_from_entrance as crane construction entrance offset. |  |  |
 | CON-C73102 | constant | `crawl_dist` | zpath_finding.cpp | 905-905 | PORTER | world | ported | navigation-basic | src/world/navigation/NavigationConstants.ts | Ported crawl_dist as CRAWL_DISTANCE. |  |  |
 | CON-C75954 | constant | `y_plus` | brobot.cpp | 361-361 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot y_plus as ROBOT_FACTORY_EFFECT_Y_OFFSET_PIXELS. |  |  |
 | CON-C7751F | constant | `bar_x_shift` | zobject.cpp | 627-627 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported bar_x_shift as BAR_X_SHIFT. |  |  |
@@ -391,7 +391,7 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-D08D4C | constant | `unit_x` | chowitzer.cpp | 90-90 | PORTER | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Ported CHowitzer unit_x as HOWITZER_CANNON_UNIT_X_PIXELS. |  |  |
 | CON-D1A073 | constant | `x_plus` | bradar.cpp | 276-276 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported x_plus as RADAR_EFFECT_X_OFFSET_PIXELS. |  |  |
 | CON-D21333 | constant | `buf_size` | zpsettings.cpp | 46-46 | PORTER | data | ported |  | src/data/ZPSettingsData.ts | Ported the player settings parser buffer size as a typed data constant. |  |  |
-| CON-D2486C | constant | `travel_time_width` | ecraneconco.h | 125-125 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-D2486C | constant | `travel_time_width` | ecraneconco.h | 125-125 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported travel_time_width as crane construction travel animation window. |  |  |
 | CON-D2A8A6 | constant | `front_light_x` | bradar.cpp | 194-194 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported front_light_x as RADAR_FRONT_LIGHT_X_PIXELS. |  |  |
 | CON-D3A379 | constant | `process_time_inc` | zgun_placement_heatmap.cpp | 32-32 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported process_time_inc as a named gun placement heatmap processing time increment constant. |  |  |
 | CON-DB7A41 | constant | `ticks_until_pause` | zpath_finding_astar.cpp | 263-263 | PORTER | world | ported | navigation-basic | src/world/navigation/NavigationConstants.ts | Ported ticks_until_pause as TICKS_UNTIL_PATHFINDING_PAUSE. |  |  |
@@ -400,15 +400,15 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-DC3B3A | constant | `tank_y` | bvehicle.cpp | 227-227 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle tank_y as VEHICLE_FACTORY_TANK_Y_PIXELS. |  |  |
 | CON-DC7963 | constant | `time_inc` | cursor.cpp | 206-206 | PORTER | input | ported | selection-orders | src/input/CursorTiming.ts | Ported cursor Process time_inc as CURSOR_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-DE02B1 | constant | `smoke_stack_y` | brepair.cpp | 215-215 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair smoke_stack_y as REPAIR_SMOKE_STACK_Y_PIXELS. |  |  |
-| CON-DF4F42 | constant | `cone_dist_from_entrace` | ecraneconco.cpp | 93-93 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-DF4F42 | constant | `cone_dist_from_entrace` | ecraneconco.cpp | 93-93 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported cone_dist_from_entrace as crane construction cone entrance offset. |  |  |
 | CON-E23243 | constant | `level_x` | brobot.cpp | 225-225 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot level_x as ROBOT_FACTORY_LEVEL_X_PIXELS. |  |  |
 | CON-E3F731 | constant | `level_y` | brobot.cpp | 226-226 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot level_y as ROBOT_FACTORY_LEVEL_Y_PIXELS. |  |  |
 | CON-E4554F | constant | `double_light_y` | brobot.cpp | 222-222 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot double_light_y as ROBOT_FACTORY_DOUBLE_LIGHT_Y_PIXELS. |  |  |
 | CON-E501C6 | constant | `side_light_y` | bradar.cpp | 197-197 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported side_light_y as RADAR_SIDE_LIGHT_Y_PIXELS. |  |  |
-| CON-E677B5 | constant | `max_line_dist` | zbot.cpp | 482-482 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-E677B5 | constant | `max_line_dist` | zbot.cpp | 482-482 | PORTER | simulation | ported |  | src/simulation/BotAI.ts | Ported zbot.cpp max_line_dist as the crane target line-distance limit. |  |  |
 | CON-EAA140 | constant | `g_r` | zobject.cpp | 621-621 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported g_r as BAR_GREEN_RED. |  |  |
-| CON-EB06A3 | constant | `button_width` | gmm_change_teams.cpp | 144-144 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-EB611A | constant | `clicks_per_second` | gmmw_list.cpp | 70-70 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-EB06A3 | constant | `button_width` | gmm_change_teams.cpp | 144-144 | PORTER | simulation | ported |  | src/ui/MainMenuChangeTeams.ts | Ported gmm_change_teams.cpp button_width as the change-team join button width UI constant. |  |  |
+| CON-EB611A | constant | `clicks_per_second` | gmmw_list.cpp | 70-70 | PORTER | simulation | ported |  | src/ui/MainMenuListWidget.ts | Ported gmmw_list.cpp clicks_per_second as the held-scroll repeat rate. |  |  |
 | CON-EBA752 | constant | `box_spinner_y` | bradar.cpp | 199-199 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported box_spinner_y as RADAR_BOX_SPINNER_Y_PIXELS. |  |  |
 | CON-ECB893 | constant | `max_dist` | zhud.cpp | 1013-1013 | PORTER | ui | todo |  |  |  |  |  |
 | CON-ECF527 | constant | `padding` | zsdl.cpp | 182-182 | REPLACE | rendering | ported | rendering-basic | src/rendering/SelectionBoxRendering.ts | Replaced draw_selection_box padding with a named TypeScript selection-box padding constant. |  |  |
@@ -417,11 +417,11 @@ Avancement du portage : 317/2913 (10.88%).
 | CON-F1F093 | constant | `min_interval_time` | bvehicle.cpp | 139-139 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle min_interval_time as VEHICLE_FACTORY_MIN_PROCESS_INTERVAL_SECONDS. |  |  |
 | CON-F303B7 | constant | `single_light_y` | brobot.cpp | 224-224 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot single_light_y as ROBOT_FACTORY_SINGLE_LIGHT_Y_PIXELS. |  |  |
 | CON-F3CA14 | constant | `lid_shift_y` | vmedium.cpp | 157-157 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the medium vehicle lid vertical render offset as a named vehicle rendering constant. |  |  |
-| CON-F6E57A | constant | `sign_dist_from_conco` | ecraneconco.cpp | 95-95 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-F769B2 | constant | `max_up` | edeathsparks.cpp | 10-10 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-F6E57A | constant | `sign_dist_from_conco` | ecraneconco.cpp | 95-95 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported sign_dist_from_conco as crane construction sign concrete offset. |  |  |
+| CON-F769B2 | constant | `max_up` | edeathsparks.cpp | 10-10 | PORTER | simulation | ported |  | src/simulation/DeathSparksEffect.ts | Ported max_up as death sparks upward spread limit. |  |  |
 | CON-F8A190 | constant | `x_plus` | bvehicle.cpp | 361-361 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle x_plus as VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS. |  |  |
 | CON-F8EF0D | constant | `text_box_y` | brepair.cpp | 217-217 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair text_box_y as REPAIR_TEXT_BOX_Y_PIXELS. |  |  |
-| CON-F94FC5 | constant | `y_int` | zplayer.cpp | 2068-2068 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-F94FC5 | constant | `y_int` | zplayer.cpp | 2068-2068 | PORTER | simulation | ported |  | src/simulation/PlayerPresentation.ts | Ported zplayer.cpp y_int as PLAYER_NEWS_ROW_SPACING_PIXELS. |  |  |
 | CON-FC26A8 | constant | `turrent_time_int` | vcrane.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vcrane turrent_time_int as CRANE_TURRET_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-FC9E8D | constant | `lights_y` | bvehicle.cpp | 231-231 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle lights_y as VEHICLE_FACTORY_LIGHTS_Y_PIXELS. |  |  |
 | CON-FEF53C | constant | `bulb_y` | bvehicle.cpp | 225-225 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BVehicle bulb_y as VEHICLE_FACTORY_BULB_Y_PIXELS. |  |  |
@@ -471,7 +471,7 @@ Avancement du portage : 317/2913 (10.88%).
 | ENU-C03D91 | enum | `mmlabel_justify_type` | zgui_main_menu_widgets.h | 143-146 | PORTER | ui | todo |  |  |  |  |  |
 | ENU-C635D4 | enum | `gui_button_state` | zgui_window.h | 71-74 | IGNORE | ui | todo |  |  |  |  |  |
 | ENU-CC08D5 | enum | `comp_message` | zcomp_message_engine.h | 11-15 | PORTER | simulation | todo |  |  |  |  |  |
-| ENU-CC3996 | enum | `ecannondeath_objects` | ecannondeath.h | 7-10 | PORTER | simulation | todo |  |  |  |  |  |
+| ENU-CC3996 | enum | `ecannondeath_objects` | ecannondeath.h | 7-10 | PORTER | simulation | ported |  | src/simulation/CannonDeathEffect.ts | Ported ecannondeath_objects as CannonDeathObject enum. |  |  |
 | ENU-CCA299 | enum | `cursor_type` | constants.h | 183-189 | PORTER | input | todo |  |  |  |  |  |
 | ENU-D27422 | enum | `gmm_main_menu_button` | gmm_main_menu.h | 6-12 | PORTER | ui | todo |  |  |  |  |  |
 | ENU-DC722F | enum | `other_event` | event_handler.h | 285-288 | PORTER | simulation | todo |  |  |  |  |  |
@@ -566,7 +566,7 @@ Avancement du portage : 317/2913 (10.88%).
 | FUN-321544 | function | `GetRefID` | zgui_main_menu_widgets.h | 53-53 | PORTER | ui | todo |  |  |  | FUN-963124,FUN-CE05A5,MET-EB5F62 | FUN-963124,FUN-CE05A5,MET-EB5F62 |
 | FUN-3283CE | function | `DoPlusButton` | gwproduction.h | 234-234 | PORTER | simulation | todo |  |  |  | FUN-C97F70 | FUN-C97F70 |
 | FUN-344A4F | function | `SetZoneOwnage` | zbuilding.h | 69-69 | PORTER | simulation | todo |  |  |  | FUN-DC45C9 | FUN-DC45C9 |
-| FUN-3474CE | function | `MoveToDest` | ecraneconco.h | 61-65 | PORTER | simulation | todo |  |  |  |  |  |
+| FUN-3474CE | function | `MoveToDest` | ecraneconco.h | 61-65 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported MoveToDest as a standalone crane construction destination snap helper. |  |  |
 | FUN-34A4A5 | function | `CanPickupGrenades` | zrobot.h | 16-16 | PORTER | simulation | todo | robot-basic |  |  | FUN-A8F96B,FUN-E3A404 | FUN-A8F96B,FUN-E3A404 |
 | FUN-34DB10 | function | `xy_to_i` | common.h | 66-66 | PORTER | simulation | ported |  | src/simulation/Common.ts | Ported xy_to_i as xyToIndex column-major coordinate indexing. |  |  |
 | FUN-351F82 | function | `process_event` | map_editor.cpp | 1079-1432 | PORTER | world | todo |  |  |  | CLS-04F10C,CLS-42FA24,CLS-49AC56,CLS-A7314F,CLS-B5DD9B,CLS-BBD7E7,CLS-DE1D99,FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-4398CF,FUN-597A74,FUN-7AB871,FUN-7C34A3,FUN-7DC476,FUN-AB8D64,FUN-ACAEB0,FUN-C57527,FUN-CAB49E,FUN-CF7ACB,FUN-D8858E,FUN-F15DA4,MET-580739,MET-5C3AF2,MET-66F7D8,MET-787F50,MET-C0A0F0,MET-C7338E,MET-FB1B7E,STR-0F5E6C,STR-12C865,STR-143915,STR-A8124B | CLS-04F10C,CLS-42FA24,CLS-49AC56,CLS-A7314F,CLS-B5DD9B,CLS-BBD7E7,CLS-DE1D99,FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-4398CF,FUN-597A74,FUN-7AB871,FUN-7C34A3,FUN-AB8D64,FUN-ACAEB0,FUN-C57527,FUN-CAB49E,FUN-CF7ACB,FUN-D8858E,MET-580739,MET-5C3AF2,MET-66F7D8,MET-787F50,MET-C0A0F0,MET-C7338E,MET-FB1B7E,STR-12C865 |
@@ -676,7 +676,7 @@ Avancement du portage : 317/2913 (10.88%).
 | FUN-781513 | function | `GetCoords` | gwproduction.h | 123-123 | PORTER | simulation | todo |  |  |  | FUN-A894A9 | FUN-A894A9 |
 | FUN-78D82F | function | `Show` | zgui_window.h | 208-208 | IGNORE | ui | todo |  |  |  |  |  |
 | FUN-7A08D1 | function | `AttemptStartRun` | zobject.h | 555-555 | PORTER | simulation | todo | entity-core |  |  | MET-A4400E,MET-EA157B | MET-A4400E,MET-EA157B |
-| FUN-7A3CE6 | function | `SetTravelDistances` | ecraneconco.h | 49-53 | PORTER | simulation | todo |  |  |  |  |  |
+| FUN-7A3CE6 | function | `SetTravelDistances` | ecraneconco.h | 49-53 | PORTER | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Ported SetTravelDistances as a standalone crane construction travel delta helper. |  |  |
 | FUN-7A5619 | function | `GetARefID` | zhud.h | 122-122 | PORTER | ui | todo |  |  |  |  |  |
 | FUN-7A56DE | function | `IsGoingHome` | ahutanimal.h | 58-58 | PORTER | simulation | ported |  | src/simulation/entities/HutAnimalTypes.ts | Ported IsGoingHome as isHutAnimalGoingHome over explicit HutAnimalHomeState. |  |  |
 | FUN-7AB871 | function | `clear` | zbuildlist.h | 18-22 | PORTER | simulation | todo |  |  |  | FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-AB8D64,FUN-CAB49E,FUN-CF7ACB | FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-AB8D64,FUN-CAB49E,FUN-CF7ACB |
@@ -853,49 +853,49 @@ Avancement du portage : 317/2913 (10.88%).
 | FUN-FDA9D1 | function | `IsDestroyableImpass` | orock.h | 31-31 | PORTER | simulation | todo |  |  |  | FUN-2B23DB,FUN-F7E01E,FUN-FE970F | FUN-2B23DB,FUN-F7E01E,FUN-FE970F |
 | FUN-FE970F | function | `IsDestroyableImpass` | ohut.h | 25-25 | PORTER | simulation | todo |  |  |  | FUN-2B23DB,FUN-F7E01E,FUN-FDA9D1 | FUN-2B23DB,FUN-F7E01E,FUN-FDA9D1 |
 | FUN-FEC912 | function | `zoomSurfaceY` | SDL_rotozoom.cpp | 396-492 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced zoomSurfaceY with resizeGrayscaleSurfaceNearest, including horizontal and vertical flipping over browser buffers. |  |  |
-| MAC-002491 | macro | `LEGAL_COPYRIGHT` | zod_engine_private.h | 17-17 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-0318EC | macro | `MAX_DATA_STORED` | socket_handler.h | 19-19 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-002491 | macro | `LEGAL_COPYRIGHT` | zod_engine_private.h | 17-17 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h LEGAL_COPYRIGHT as product metadata. |  |  |
+| MAC-0318EC | macro | `MAX_DATA_STORED` | socket_handler.h | 19-19 | ADAPT | simulation | ported |  | src/network/SocketHandler.ts | Adapted socket_handler.h MAX_DATA_STORED as the socket stored data capacity. |  |  |
 | MAC-03B1C6 | macro | `_ZGUIMAINMENUBASE_H_` | zgui_main_menu_base.h | 2-2 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-04F8EA | macro | `_SDL_rotozoom_h` | SDL_rotozoom.h | 11-11 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced the SDL_rotozoom.h include guard with the ImageScaling ES module boundary. |  |  |
-| MAC-05D842 | macro | `_ZSOUND_ENGINE_H_` | zsound_engine.h | 2-2 | ADAPT | audio | todo |  |  |  |  |  |
-| MAC-05F94B | macro | `_ZDAMGEMISSILE_H_` | zdamagemissile.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-07456B | macro | `_ZBUILDING_H_` | zbuilding.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-05D842 | macro | `_ZSOUND_ENGINE_H_` | zsound_engine.h | 2-2 | ADAPT | audio | ported |  | src/audio/AudioService.ts | Adapted zsound_engine.h include guard as a TypeScript module boundary marker for sound audio. |  |  |
+| MAC-05F94B | macro | `_ZDAMGEMISSILE_H_` | zdamagemissile.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ProjectileConstants.ts | Adapted zdamagemissile.h include guard as a TypeScript module boundary marker for damage missiles. |  |  |
+| MAC-07456B | macro | `_ZBUILDING_H_` | zbuilding.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted zbuilding.h include guard as a TypeScript module boundary marker for buildings. |  |  |
 | MAC-09DFD1 | macro | `_BBRIDGE_H_` | bbridge.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted bbridge.h include guard as BBRIDGE_HEADER_GUARD_PORTED. |  |  |
-| MAC-0A4225 | macro | `VER_RELEASE` | zod_engine_private.h | 11-11 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-0A4225 | macro | `VER_RELEASE` | zod_engine_private.h | 11-11 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h VER_RELEASE as the release version component. |  |  |
 | MAC-0A4EFD | macro | `MAP_SHIFT_X` | map_editor.cpp | 63-63 | ADAPT | world | todo |  |  |  | MAC-60B442,MAC-89DEB3 | MAC-60B442,MAC-89DEB3 |
 | MAC-0ACAEE | macro | `MINIMAP_H_MAX` | zmini_map.h | 12-12 | ADAPT | world | ported |  | src/world/MiniMap.ts | Adapted MINIMAP_H_MAX as MINIMAP_MAX_HEIGHT_PIXELS. |  |  |
-| MAC-0AE2BD | macro | `_ZGWCREATEUSER_H_` | gwcreateuser.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-0AE2BD | macro | `_ZGWCREATEUSER_H_` | gwcreateuser.h | 2-2 | ADAPT | simulation | ported |  | src/ui/CreateUserWindow.ts | Adapted gwcreateuser.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-0CDBBE | macro | `LIFE_AFTER_DEATH_TIME` | constants.h | 28-28 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted LIFE_AFTER_DEATH_TIME as LIFE_AFTER_DEATH_SECONDS. |  |  |
-| MAC-0D36CD | macro | `ORIGINAL_FILENAME` | zod_engine_private.h | 19-19 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-0E2872 | macro | `_OGRENADES_H_` | ogrenades.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-0D36CD | macro | `ORIGINAL_FILENAME` | zod_engine_private.h | 19-19 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h ORIGINAL_FILENAME as product metadata. |  |  |
+| MAC-0E2872 | macro | `_OGRENADES_H_` | ogrenades.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/GrenadesObject.ts | Adapted ogrenades.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-121301 | macro | `MAX_BUILDING_LEVELS` | constants.h | 12-12 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_BUILDING_LEVELS as a typed simulation limit constant. |  |  |
 | MAC-1287A5 | macro | `_CONSTANTS_H_` | constants.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted constants.h include guard as CONSTANTS_HEADER_GUARD_PORTED module marker. |  |  |
-| MAC-129E35 | macro | `_ETOUGHMUSHROOM_H_` | etoughmushroom.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-129E35 | macro | `_ETOUGHMUSHROOM_H_` | etoughmushroom.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ToughMushroomEffect.ts | Adapted etoughmushroom.h include guard as a TypeScript module boundary. |  |  |
 | MAC-12AD06 | macro | `MMLIST_UP_BUTTON_FROM_TOP` | zgui_main_menu_widgets.h | 172-172 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-132963 | macro | `_ETURRENTMISSILE_H_` | eturrentmissile.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-133A59 | macro | `ZPORTRAIT_BASE_HEIGHT` | zportrait.h | 17-17 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-137C87 | macro | `_ESIDEEXPLOSION_H_` | esideexplosion.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-132963 | macro | `_ETURRENTMISSILE_H_` | eturrentmissile.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TurretMissileEffect.ts | Adapted eturrentmissile.h include guard as a TypeScript module boundary. |  |  |
+| MAC-133A59 | macro | `ZPORTRAIT_BASE_HEIGHT` | zportrait.h | 17-17 | ADAPT | simulation | ported |  | src/simulation/PortraitAnimation.ts | Adapted zportrait.h ZPORTRAIT_BASE_HEIGHT as PORTRAIT_BASE_HEIGHT_PIXELS. |  |  |
+| MAC-137C87 | macro | `_ESIDEEXPLOSION_H_` | esideexplosion.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/SideExplosionEffect.ts | Adapted esideexplosion.h include guard as a TypeScript module boundary. |  |  |
 | MAC-154053 | macro | `MAX_RENDERABLE_STORED_GUNS` | zcomp_message_engine.h | 9-9 | REPLACE | rendering | ported | rendering-basic | src/rendering/ComponentMessageRendering.ts | Replaced MAX_RENDERABLE_STORED_GUNS with a named TypeScript rendering constant. |  |  |
-| MAC-16A9AF | macro | `MAX_EVENT_TYPES` | event_handler.h | 304-304 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-18754C | macro | `_ETOUGHSMOKE_H_` | etoughsmoke.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-16A9AF | macro | `MAX_EVENT_TYPES` | event_handler.h | 304-304 | ADAPT | simulation | ported |  | src/simulation/EventHandler.ts | Ported MAX_EVENT_TYPES as the event category dispatch height. |  |  |
+| MAC-18754C | macro | `_ETOUGHSMOKE_H_` | etoughsmoke.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ToughSmokeEffect.ts | Adapted etoughsmoke.h include guard as a TypeScript module boundary. |  |  |
 | MAC-189091 | macro | `_BFORT_H_` | bfort.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted bfort.h include guard as BFORT_HEADER_GUARD_PORTED. |  |  |
 | MAC-198B3B | macro | `MAX_PLANET_TILES` | constants.h | 14-14 | ADAPT | world | ported |  | src/world/WorldConstants.ts | Adapted the maximum planet tiles macro as a typed world constant. |  |  |
 | MAC-1AE735 | macro | `MMTEXT_BOX_HEIGHT` | zgui_main_menu_widgets.h | 335-335 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-1B23C5 | macro | `ZPORTRAIT_BASE_WIDTH` | zportrait.h | 16-16 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-1FE002 | macro | `_ETRACK_H_` | etrack.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-1B23C5 | macro | `ZPORTRAIT_BASE_WIDTH` | zportrait.h | 16-16 | ADAPT | simulation | ported |  | src/simulation/PortraitAnimation.ts | Adapted zportrait.h ZPORTRAIT_BASE_WIDTH as PORTRAIT_BASE_WIDTH_PIXELS. |  |  |
+| MAC-1FE002 | macro | `_ETRACK_H_` | etrack.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TrackEffect.ts | Adapted etrack.h include guard as a TypeScript module boundary. |  |  |
 | MAC-200167 | macro | `_ZHUD_H_` | zhud.h | 2-2 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-20188A | macro | `_EROCKPARTICLE_H_` | erockparticle.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-24468D | macro | `_ZFONT_H_` | zfont.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-250FF9 | macro | `_ZBUILDLIST_H_` | zbuildlist.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-275440 | macro | `VER_STRING` | zod_engine_private.h | 8-8 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-2A803A | macro | `GWPFUS_OBJW` | gwproduction_fus.cpp | 28-28 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-20188A | macro | `_EROCKPARTICLE_H_` | erockparticle.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/RockParticleEffect.ts | Adapted erockparticle.h include guard as a TypeScript module boundary. |  |  |
+| MAC-24468D | macro | `_ZFONT_H_` | zfont.h | 2-2 | ADAPT | simulation | ported |  | src/rendering/FontEngine.ts | Adapted zfont.h include guard as a TypeScript module boundary marker for font rendering. |  |  |
+| MAC-250FF9 | macro | `_ZBUILDLIST_H_` | zbuildlist.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildList.ts | Adapted zbuildlist.h include guard as a TypeScript module boundary marker for build lists. |  |  |
+| MAC-275440 | macro | `VER_STRING` | zod_engine_private.h | 8-8 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h VER_STRING as the full version string. |  |  |
+| MAC-2A803A | macro | `GWPFUS_OBJW` | gwproduction_fus.cpp | 28-28 | ADAPT | simulation | ported |  | src/ui/ProductionFullUnitSelector.ts | Adapted gwproduction_fus.cpp GWPFUS_OBJW as the production unit button width. |  |  |
 | MAC-2AAD55 | macro | `_ZPSETTINGS_H_` | zpsettings.h | 2-2 | ADAPT | data | ported |  | src/data/ZPSettingsData.ts | Adapted the zpsettings.h include guard to ZPSettingsData ES module boundaries. |  |  |
-| MAC-2BEE1A | macro | `XGETOPT_H` | xgetopt.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-2D309A | macro | `_ZGMM_MANAGE_BOTS_H_` | gmm_manage_bots.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-2BEE1A | macro | `XGETOPT_H` | xgetopt.h | 20-20 | ADAPT | simulation | ported |  | src/app/MainOptions.ts | Adapted xgetopt.h include guard as a TypeScript module boundary marker for startup option parsing. |  |  |
+| MAC-2D309A | macro | `_ZGMM_MANAGE_BOTS_H_` | gmm_manage_bots.h | 2-2 | ADAPT | simulation | ported |  | src/ui/MainMenuManageBots.ts | Adapted gmm_manage_bots.h include guard as a TypeScript module boundary for the manage-bots menu. |  |  |
 | MAC-2DAAF5 | macro | `_COMMON_H_` | common.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/Common.ts | Adapted common.h include guard as COMMON_HEADER_GUARD_PORTED module marker. |  |  |
 | MAC-2E4A0F | macro | `MINIMAP_W_MAX` | zmini_map.h | 11-11 | ADAPT | world | ported |  | src/world/MiniMap.ts | Adapted MINIMAP_W_MAX as MINIMAP_MAX_WIDTH_PIXELS. |  |  |
-| MAC-2FAA3D | macro | `_OFLAG_H_` | oflag.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-30BB14 | macro | `_SOCKETHANDLER_H_` | socket_handler.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-2FAA3D | macro | `_OFLAG_H_` | oflag.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/FlagObject.ts | Adapted oflag.h include guard as a TypeScript module boundary marker. |  |  |
+| MAC-30BB14 | macro | `_SOCKETHANDLER_H_` | socket_handler.h | 2-2 | ADAPT | simulation | ported |  | src/network/SocketHandler.ts | Adapted socket_handler.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-326648 | macro | `_RLASER_H_` | rlaser.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rlaser.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-3395CD | macro | `_ZMAP_H_` | zmap.h | 2-2 | IGNORE | world | ignored | map-core |  | Header guard replaced by TypeScript ES module boundaries. |  |  |
 | MAC-342124 | macro | `USE_TEAM_COLORS` | constants.h | 36-36 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted USE_TEAM_COLORS as active colored-team configuration constants. |  |  |
@@ -905,197 +905,197 @@ Avancement du portage : 317/2913 (10.88%).
 | MAC-360A73 | macro | `GRENADE_TIME_INT` | zrobot.cpp | 5-5 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted GRENADE_TIME_INT as ROBOT_GRENADE_TIME_INTERVAL_SECONDS. |  |  |
 | MAC-38509D | macro | `M_PI` | SDL_rotozoom.h | 21-21 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced M_PI with ROTOZOOM_PI and used the upstream precision in rotozoom bounds. |  |  |
 | MAC-38DEEB | macro | `MMRADIO_CENTER_WIDTH` | zgui_main_menu_widgets.h | 281-281 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-39CEAE | macro | `_EUNITPARTICLE_H_` | eunitparticle.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-39CEAE | macro | `_EUNITPARTICLE_H_` | eunitparticle.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/UnitParticleEffect.ts | Adapted eunitparticle.h include guard as a TypeScript module boundary. |  |  |
 | MAC-3A1C6F | macro | `MAX_KNOWN_CRATER_TYPES` | zmap_crater_graphics.h | 8-8 | ADAPT | world | ported | map-core | src/world/CraterGraphics.ts | Adapted MAX_KNOWN_CRATER_TYPES as a TypeScript constant. |  |  |
 | MAC-3ABC2E | macro | `_CMISSILECANNON_H_` | cmissilecannon.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted CMissileCannon header guard as CMISSILECANNON_HEADER_GUARD_PORTED. |  |  |
 | MAC-3B5684 | macro | `MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET` | constants.h | 31-31 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET as a typed bot bypass sizing constant. |  |  |
 | MAC-3BA9BD | macro | `_VJEEP_H_` | vjeep.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vjeep.h include guard to VehicleTypes ES module boundaries. |  |  |
-| MAC-3E31BD | macro | `_ZVOTE_H_` | zvote.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-3E31BD | macro | `_ZVOTE_H_` | zvote.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/VotePresentation.ts | Adapted zvote.h include guard as a TypeScript module boundary marker for vote presentation. |  |  |
 | MAC-3EB2BE | macro | `GMM_TITLE_HEIGHT` | zgui_main_menu_base.h | 21-21 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-3FA769 | macro | `_ZOBJECT_H_` | zobject.h | 2-2 | ADAPT | simulation | ported | entity-core | src/simulation/entities/GameEntity.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
 | MAC-415C0D | macro | `_ZGMM_SELECT_MAP_H_` | gmm_select_map.h | 2-2 | ADAPT | world | ported |  | src/world/MapSelection.ts | Adapted the gmm_select_map.h include guard to MapSelection ES module boundaries. |  |  |
 | MAC-41B1C6 | macro | `GMM_TOP_MARGIN` | zgui_main_menu_base.h | 19-19 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-43D82C | macro | `GMM_TITLE_MARGIN` | zgui_main_menu_base.h | 22-22 | ADAPT | ui | todo |  |  |  | MAC-3EB2BE,MAC-41B1C6 | MAC-3EB2BE,MAC-41B1C6 |
-| MAC-451A6A | macro | `_EMOMISSILEROCKETS_H_` | emomissilerockets.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-46123B | macro | `MAX_BUF_SIZE` | socket_handler.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-472D7E | macro | `_EBRIDGETURRENT_H_` | ebridgeturrent.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-451A6A | macro | `_EMOMISSILEROCKETS_H_` | emomissilerockets.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/MobileMissileRocketsEffect.ts | Adapted emomissilerockets.h include guard as a TypeScript module boundary. |  |  |
+| MAC-46123B | macro | `MAX_BUF_SIZE` | socket_handler.h | 20-20 | ADAPT | simulation | ported |  | src/network/SocketHandler.ts | Adapted socket_handler.h MAX_BUF_SIZE as the socket packet buffer limit. |  |  |
+| MAC-472D7E | macro | `_EBRIDGETURRENT_H_` | ebridgeturrent.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/BridgeTurretEffect.ts | Adapted ebridgeturrent.h include guard as a bridge turret effect module marker. |  |  |
 | MAC-47BF98 | macro | `MAP_ITEMS_AMOUNT` | constants.h | 125-125 | ADAPT | world | ported |  | src/world/WorldConstants.ts | Adapted the map item amount macro as a typed world constant. |  |  |
 | MAC-492AEA | macro | `MMLIST_UP_BUTTON_FROM_RIGHT` | zgui_main_menu_widgets.h | 173-173 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-49E8EA | macro | `GWPFUS_SIDE_SIZE` | gwproduction_fus.cpp | 27-27 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-49E8EA | macro | `GWPFUS_SIDE_SIZE` | gwproduction_fus.cpp | 27-27 | ADAPT | simulation | ported |  | src/ui/ProductionFullUnitSelector.ts | Adapted gwproduction_fus.cpp GWPFUS_SIDE_SIZE as the production selector side frame size. |  |  |
 | MAC-4B1E30 | macro | `MAX_BOT_BYPASS_SIZE` | constants.h | 30-30 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_BOT_BYPASS_SIZE as a typed bot bypass sizing constant. |  |  |
-| MAC-4B483B | macro | `_ZBOT_H_` | zbot.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-4C77B8 | macro | `_ECANNONDEATH_H_` | ecannondeath.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-4B483B | macro | `_ZBOT_H_` | zbot.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/BotAI.ts | Adapted zbot.h include guard as a TypeScript module boundary marker for bot AI. |  |  |
+| MAC-4C77B8 | macro | `_ECANNONDEATH_H_` | ecannondeath.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/CannonDeathEffect.ts | Adapted ecannondeath.h include guard as a cannon death effect module marker. |  |  |
 | MAC-4CCBA9 | macro | `MMLIST_MIN_ENTRIES` | zgui_main_menu_widgets.h | 170-170 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-4D6EEA | macro | `_VLIGHT_H_` | vlight.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vlight.h include guard to VehicleTypes ES module boundaries. |  |  |
-| MAC-4E6AF1 | macro | `MAX_VOTE_TIME` | zvote.h | 11-11 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-4EB9DD | macro | `_EDEATHSPARKS_H_` | edeathsparks.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-50DDC6 | macro | `_ZTEAM_H_` | zteam.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-4E6AF1 | macro | `MAX_VOTE_TIME` | zvote.h | 11-11 | ADAPT | simulation | ported |  | src/simulation/VotePresentation.ts | Adapted zvote.h MAX_VOTE_TIME as MAX_VOTE_TIME_SECONDS. |  |  |
+| MAC-4EB9DD | macro | `_EDEATHSPARKS_H_` | edeathsparks.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/DeathSparksEffect.ts | Adapted edeathsparks.h include guard as a death sparks effect module marker. |  |  |
+| MAC-50DDC6 | macro | `_ZTEAM_H_` | zteam.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TeamRendering.ts | Adapted zteam.h include guard as a TypeScript module boundary marker for team rendering. |  |  |
 | MAC-516EE8 | macro | `_ZMAP_CRATER_GRAPHICS_H_` | zmap_crater_graphics.h | 2-2 | ADAPT | world | ported | map-core | src/world/CraterGraphics.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
 | MAC-523C93 | macro | `MINIMAP_Y` | map_editor.cpp | 65-65 | ADAPT | world | ported |  | src/world/MapEditorRendering.ts | Adapted MINIMAP_Y as a named map editor minimap pixel coordinate. |  |  |
 | MAC-529D0E | macro | `_ZSERVER_H_` | zserver.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
-| MAC-540F6C | macro | `_ZGMM_OPTIONS_H_` | gmm_options.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-540F6C | macro | `_ZGMM_OPTIONS_H_` | gmm_options.h | 2-2 | ADAPT | simulation | ported |  | src/ui/MainMenuOptions.ts | Adapted gmm_options.h include guard as a TypeScript module boundary for the options menu. |  |  |
 | MAC-557462 | macro | `_ZCLIENT_H_` | zclient.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
-| MAC-563E02 | macro | `_ZUNITRATING_H_` | zunitrating.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-563E02 | macro | `_ZUNITRATING_H_` | zunitrating.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/UnitRating.ts | Adapted zunitrating.h include guard as a TypeScript module boundary marker for unit rating. |  |  |
 | MAC-56C8DF | macro | `_OMAPOBJECT_H_` | omapobject.h | 2-2 | ADAPT | world | ported |  | src/world/OMapObject.ts | Adapted the omapobject.h include guard to OMapObject ES module boundaries. |  |  |
 | MAC-581266 | macro | `_VAPC_H_` | vapc.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vapc.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-584A6A | macro | `_ZTRAY_H_` | ztray.h | 2-2 | IGNORE | simulation | todo |  |  |  |  |  |
-| MAC-58E0D5 | macro | `_ELASER_H_` | elaser.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-59DE03 | macro | `HUD_WIDTH` | constants.h | 17-17 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-5CA3BE | macro | `MAX_CHARACTERS` | zfont.h | 6-6 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-5CC8F1 | macro | `PRODUCT_VERSION` | zod_engine_private.h | 21-21 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-6036C3 | macro | `_ETANKSPARK_H_` | etankspark.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-58E0D5 | macro | `_ELASER_H_` | elaser.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ProjectileConstants.ts | Adapted elaser.h include guard as a projectile module marker. |  |  |
+| MAC-59DE03 | macro | `HUD_WIDTH` | constants.h | 17-17 | ADAPT | ui | ported |  | src/ui/HudLayout.ts | Adapted constants.h HUD_WIDTH as HUD_WIDTH_PIXELS. |  |  |
+| MAC-5CA3BE | macro | `MAX_CHARACTERS` | zfont.h | 6-6 | ADAPT | simulation | ported |  | src/rendering/FontEngine.ts | Adapted zfont.h MAX_CHARACTERS as FONT_MAX_CHARACTERS for font character slots. |  |  |
+| MAC-5CC8F1 | macro | `PRODUCT_VERSION` | zod_engine_private.h | 21-21 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h PRODUCT_VERSION as product metadata. |  |  |
+| MAC-6036C3 | macro | `_ETANKSPARK_H_` | etankspark.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TankSparkEffect.ts | Adapted etankspark.h include guard as a TypeScript module boundary. |  |  |
 | MAC-60B442 | macro | `SEP_WIDTH` | map_editor.cpp | 62-62 | ADAPT | world | ported |  | src/world/MapEditorRendering.ts | Adapted SEP_WIDTH as a named map editor separator pixel width. |  |  |
 | MAC-615B4E | macro | `_RPSYCHO_H_` | rpsycho.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rpsycho.h include guard to RobotTypes ES module boundaries. |  |  |
-| MAC-61D4D1 | macro | `HUD_HEIGHT` | constants.h | 18-18 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-62A0D4 | macro | `_ECRANECONCO_H_` | ecraneconco.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-61D4D1 | macro | `HUD_HEIGHT` | constants.h | 18-18 | ADAPT | ui | ported |  | src/ui/HudLayout.ts | Adapted constants.h HUD_HEIGHT as HUD_HEIGHT_PIXELS. |  |  |
+| MAC-62A0D4 | macro | `_ECRANECONCO_H_` | ecraneconco.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/CraneConstructionEffect.ts | Adapted ecraneconco.h include guard as a crane construction effect module marker. |  |  |
 | MAC-640E13 | macro | `_ZGUIWINDOW_H_` | zgui_window.h | 2-2 | IGNORE | ui | todo |  |  |  |  |  |
 | MAC-64B8AE | macro | `MMLABEL_HEIGHT` | zgui_main_menu_widgets.h | 141-141 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-66DBF2 | macro | `Multiply` | zencrypt_aes.cpp | 12-12 | ADAPT | simulation | todo |  |  |  | MAC-C132EF | MAC-C132EF |
 | MAC-67A624 | macro | `_ZSDL_OPENGL_H_` | zsdl_opengl.h | 2-2 | REPLACE | rendering | ported | rendering-basic | src/rendering/OpenGLInitialization.ts | Replaced the zsdl_opengl.h include guard with OpenGLInitialization ES module boundaries. |  |  |
-| MAC-687F12 | macro | `_ELIGHTINITFIRE_H_` | elightinitfire.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-687F12 | macro | `_ELIGHTINITFIRE_H_` | elightinitfire.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/LightInitFireEffect.ts | Adapted elightinitfire.h include guard as a light init fire effect module marker. |  |  |
 | MAC-68DE05 | macro | `MMRADIO_RIGHT_WIDTH` | zgui_main_menu_widgets.h | 282-282 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-692DF8 | macro | `_SERVERSOCKET_H_` | server_socket.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
 | MAC-69B679 | macro | `MMRADIO_LEFT_WIDTH` | zgui_main_menu_widgets.h | 280-280 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-6A8542 | macro | `ASCII_DOWN_MAX` | zplayer.h | 152-152 | ADAPT | simulation | todo |  |  |  | CON-39029D |  |
-| MAC-6BE21F | macro | `_ZGFILE_H_` | zgfile.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-6BE21F | macro | `_ZGFILE_H_` | zgfile.h | 2-2 | ADAPT | simulation | ported |  | src/assets/GraphicsArchive.ts | Adapted zgfile.h include guard as a TypeScript module boundary marker for the graphics archive. |  |  |
 | MAC-6C4569 | macro | `_ZMINIMAP_H_` | zmini_map.h | 2-2 | ADAPT | world | ported |  | src/world/MiniMap.ts | Adapted zmini_map.h include guard as ZMINIMAP_HEADER_GUARD_PORTED. |  |  |
 | MAC-6CD6B8 | macro | `_RSNIPER_H_` | rsniper.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rsniper.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-6DE558 | macro | `_VCRANE_H_` | vcrane.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vcrane.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-6DE912 | macro | `SHIFT_CLICK_STREAM` | zmap.h | 18-18 | ADAPT | world | ported | map-core | src/world/MapFormat.ts | Ported as SHIFT_CLICK_STREAM_SECONDS constant for viewport shift timing. |  |  |
 | MAC-6EC2A3 | macro | `GMM_BOTTOM_MARGIN` | zgui_main_menu_base.h | 20-20 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-6F190E | macro | `_ZGMM_PLAYER_LIST_H_` | gmm_player_list.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-6FF2C3 | macro | `MAX_FUNCTIONS` | event_handler.h | 305-305 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-6F190E | macro | `_ZGMM_PLAYER_LIST_H_` | gmm_player_list.h | 2-2 | ADAPT | simulation | ported |  | src/ui/MainMenuPlayerList.ts | Adapted gmm_player_list.h include guard as a TypeScript module boundary for the player-list menu. |  |  |
+| MAC-6FF2C3 | macro | `MAX_FUNCTIONS` | event_handler.h | 305-305 | ADAPT | simulation | ported |  | src/simulation/EventHandler.ts | Ported MAX_FUNCTIONS as the event function dispatch width. |  |  |
 | MAC-701CFD | macro | `WM_TRAYMESSAGE` | win_tray.cpp | 10-10 | IGNORE | simulation | todo |  |  |  |  |  |
 | MAC-70EFAF | macro | `_ABIRD_H_` | abird.h | 2-2 | ADAPT | simulation | ported |  | src/world/BirdMap.ts | Adapted abird.h include guard as ABIRD_HEADER_GUARD_PORTED. |  |  |
 | MAC-732E6A | macro | `MAX_GMMOPTIONS_SPEED_SETTINGS` | gmm_options.h | 6-6 | ADAPT | data | ported |  | src/data/GmmOptionsData.ts | Adapted the maximum graphical main menu speed settings macro as a typed data constant. |  |  |
 | MAC-737D40 | macro | `SHIFT_CLICK_S` | zmap.h | 17-17 | ADAPT | world | ported | map-core | src/world/MapFormat.ts | Ported as SHIFT_CLICK_SPEED_PIXELS_PER_SECOND for viewport shift timing. |  |  |
-| MAC-7447D2 | macro | `GWPFUS_TOPH` | gwproduction_fus.cpp | 26-26 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-7447D2 | macro | `GWPFUS_TOPH` | gwproduction_fus.cpp | 26-26 | ADAPT | simulation | ported |  | src/ui/ProductionFullUnitSelector.ts | Adapted gwproduction_fus.cpp GWPFUS_TOPH as the production selector top frame height. |  |  |
 | MAC-747B8F | macro | `_ZGUIMAINMENUWIDGETS_H_` | zgui_main_menu_widgets.h | 2-2 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-753812 | macro | `FILE_DESCRIPTION` | zod_engine_private.h | 15-15 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-75F0F6 | macro | `_EFLAME_H_` | eflame.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-753812 | macro | `FILE_DESCRIPTION` | zod_engine_private.h | 15-15 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h FILE_DESCRIPTION as executable metadata. |  |  |
+| MAC-75F0F6 | macro | `_EFLAME_H_` | eflame.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ProjectileConstants.ts | Adapted eflame.h include guard as a projectile module marker. |  |  |
 | MAC-7602DF | macro | `PI` | constants.h | 46-46 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted PI as upstream approximation constant. |  |  |
-| MAC-76482F | macro | `_ZPORTRAIT_H_` | zportrait.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-76482F | macro | `_ZPORTRAIT_H_` | zportrait.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/PortraitAnimation.ts | Adapted zportrait.h include guard as a TypeScript module boundary marker for portrait animation. |  |  |
 | MAC-769434 | macro | `GMMWBUTTON_HEIGHT` | zgui_main_menu_widgets.h | 95-95 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-7732A2 | macro | `_ZSETTINGS_H_` | zsettings.h | 2-2 | ADAPT | data | ported |  | src/data/ZSettingsData.ts | Adapted the zsettings.h include guard to ZSettingsData ES module boundaries. |  |  |
 | MAC-78DBD4 | macro | `SMOOTHING_OFF` | SDL_rotozoom.h | 28-28 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced SMOOTHING_OFF with the ROTOZOOM_SMOOTHING_OFF TypeScript constant. |  |  |
 | MAC-7B1DAE | macro | `GMM_SIDE_MARGIN` | zgui_main_menu_base.h | 18-18 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-8004D5 | macro | `MAX_HANDS` | zportrait.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-804C34 | macro | `_ZGMM_CHANGE_TEAMS_H_` | gmm_change_teams.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-8004D5 | macro | `MAX_HANDS` | zportrait.h | 20-20 | ADAPT | simulation | ported |  | src/simulation/PortraitAnimation.ts | Adapted zportrait.h MAX_HANDS as PORTRAIT_MAX_HANDS. |  |  |
+| MAC-804C34 | macro | `_ZGMM_CHANGE_TEAMS_H_` | gmm_change_teams.h | 2-2 | ADAPT | simulation | ported |  | src/ui/MainMenuChangeTeams.ts | Adapted gmm_change_teams.h include guard as a TypeScript module boundary for the change-teams menu. |  |  |
 | MAC-80E85C | macro | `MAX_KNOWN_CRATER_N` | zmap_crater_graphics.h | 9-9 | ADAPT | world | ported | map-core | src/world/CraterGraphics.ts | Adapted MAX_KNOWN_CRATER_N as MAX_KNOWN_CRATERS_PER_TYPE. |  |  |
-| MAC-818F48 | macro | `ETANKDIRT_TIME` | etankdirt.cpp | 33-33 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-83E500 | macro | `COMPANY_NAME` | zod_engine_private.h | 13-13 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-818F48 | macro | `ETANKDIRT_TIME` | etankdirt.cpp | 33-33 | ADAPT | simulation | ported |  | src/simulation/TankDirtEffect.ts | Ported ETANKDIRT_TIME as the tank dirt frame interval constant. |  |  |
+| MAC-83E500 | macro | `COMPANY_NAME` | zod_engine_private.h | 13-13 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h COMPANY_NAME as product metadata. |  |  |
 | MAC-83E82D | macro | `_RGRUNT_H_` | rgrunt.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rgrunt.h include guard to RobotTypes ES module boundaries. |  |  |
-| MAC-854B90 | macro | `ETANKSPARK_TIME` | etankspark.cpp | 6-6 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-854B90 | macro | `ETANKSPARK_TIME` | etankspark.cpp | 6-6 | ADAPT | simulation | ported |  | src/simulation/TankSparkEffect.ts | Ported ETANKSPARK_TIME as the tank spark frame interval constant. |  |  |
 | MAC-8579DB | macro | `MAX_UNIT_HEALTH` | constants.h | 42-42 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_UNIT_HEALTH as the unit health ceiling constant. |  |  |
-| MAC-858FED | macro | `MAX_STORED_SPACE_BAR_EVENTS` | zplayer.h | 106-106 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-860937 | macro | `_ZCORE_H_` | zcore.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-858FED | macro | `MAX_STORED_SPACE_BAR_EVENTS` | zplayer.h | 106-106 | ADAPT | simulation | ported |  | src/simulation/PlayerPresentation.ts | Adapted zplayer.h MAX_STORED_SPACE_BAR_EVENTS as PLAYER_MAX_STORED_SPACE_BAR_EVENTS. |  |  |
+| MAC-860937 | macro | `_ZCORE_H_` | zcore.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/GameCore.ts | Adapted zcore.h include guard as a TypeScript module boundary marker for game core. |  |  |
 | MAC-88D410 | macro | `MMLIST_DOWN_BUTTON_FROM_RIGHT` | zgui_main_menu_widgets.h | 175-175 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-897021 | macro | `_CHOWITZER_H_` | chowitzer.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted CHowitzer header guard as CHOWITZER_HEADER_GUARD_PORTED. |  |  |
-| MAC-89A114 | macro | `FILE_VERSION` | zod_engine_private.h | 14-14 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-89A114 | macro | `FILE_VERSION` | zod_engine_private.h | 14-14 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h FILE_VERSION as file metadata. |  |  |
 | MAC-89DEB3 | macro | `SEP_SHIFT_X` | map_editor.cpp | 61-61 | ADAPT | world | ported |  | src/world/MapEditorRendering.ts | Adapted SEP_SHIFT_X as a named map editor separator horizontal pixel offset. |  |  |
 | MAC-8A1322 | macro | `_VMISSILELAUNCHER_H_` | vmissilelauncher.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vmissilelauncher.h include guard to VehicleTypes ES module boundaries. |  |  |
-| MAC-8B0799 | macro | `_OHUT_H_` | ohut.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-8B0799 | macro | `_OHUT_H_` | ohut.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/HutObject.ts | Adapted ohut.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-8B80D8 | macro | `_RTOUGH_H_` | rtough.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rtough.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-8BA7CA | macro | `_CLIENTSOCKET_H_` | client_socket.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
-| MAC-8E4254 | macro | `_AES_ENCRYPT_H_` | zencrypt_aes.h | 7-7 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-8E4254 | macro | `_AES_ENCRYPT_H_` | zencrypt_aes.h | 7-7 | ADAPT | simulation | ported |  | src/simulation/EncryptionAES.ts | Adapted zencrypt_aes.h include guard as an AES module boundary marker. |  |  |
 | MAC-8F2CDF | macro | `MAX` | SDL_rotozoom.cpp | 18-18 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced the C MAX macro with the native JavaScript Math.max operation; no custom runtime symbol is required. |  |  |
-| MAC-904CC6 | macro | `SPACE_BAR_EVENT_LIFETIME` | zplayer.h | 107-107 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-904CC6 | macro | `SPACE_BAR_EVENT_LIFETIME` | zplayer.h | 107-107 | ADAPT | simulation | ported |  | src/simulation/PlayerPresentation.ts | Adapted zplayer.h SPACE_BAR_EVENT_LIFETIME as PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS. |  |  |
 | MAC-90D390 | macro | `_BVEHICLE_H_` | bvehicle.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted BVehicle header guard as BVEHICLE_HEADER_GUARD_PORTED. |  |  |
-| MAC-911051 | macro | `_ZGMM_MULTIPLAYER_H_` | gmm_multiplayer.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-92052D | macro | `MAX_MOUTHS` | zportrait.h | 21-21 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-911051 | macro | `_ZGMM_MULTIPLAYER_H_` | gmm_multiplayer.h | 2-2 | ADAPT | simulation | ported |  | src/ui/MainMenuMultiplayer.ts | Adapted gmm_multiplayer.h include guard as a TypeScript module boundary for the multiplayer menu. |  |  |
+| MAC-92052D | macro | `MAX_MOUTHS` | zportrait.h | 21-21 | ADAPT | simulation | ported |  | src/simulation/PortraitAnimation.ts | Adapted zportrait.h MAX_MOUTHS as PORTRAIT_MAX_MOUTHS. |  |  |
 | MAC-9232B4 | macro | `REGISTRATION_COST` | constants.h | 33-33 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted REGISTRATION_COST as the registration cost constant. |  |  |
-| MAC-94160E | macro | `_EROBOTDEATH_H_` | erobotdeath.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-96C7EA | macro | `_EVENTHANDLER_H_` | event_handler.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-94160E | macro | `_EROBOTDEATH_H_` | erobotdeath.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/RobotDeathEffect.ts | Adapted erobotdeath.h include guard as a TypeScript module boundary. |  |  |
+| MAC-96C7EA | macro | `_EVENTHANDLER_H_` | event_handler.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/EventHandler.ts | Adapted event_handler.h include guard as a TypeScript module boundary. |  |  |
 | MAC-9A9BA4 | macro | `_EMAPOBJECTTURRENT_H_` | emapobjectturrent.h | 2-2 | ADAPT | world | ported |  | src/world/MapObjectTurretEffect.ts | Adapted the emapobjectturrent.h include guard to MapObjectTurretEffect ES module boundaries. |  |  |
-| MAC-9BBFC3 | macro | `VER_MINOR` | zod_engine_private.h | 10-10 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-9BBFC3 | macro | `VER_MINOR` | zod_engine_private.h | 10-10 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h VER_MINOR as the minor version component. |  |  |
 | MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 49-49 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced SDL_ROTOZOOM_SCOPE with ImageScaling named ES module exports. |  |  |
 | MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 52-52 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ImageScaling named ES exports for the SDL_ROTOZOOM_SCOPE dllimport branch. |  |  |
 | MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 57-57 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ImageScaling named ES exports for the SDL_ROTOZOOM_SCOPE extern branch. |  |  |
 | MAC-9E35F6 | macro | `MMRADIO_HEIGHT` | zgui_main_menu_widgets.h | 279-279 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-9E687B | macro | `DEFAULT_MAX_UNITS_PER_TEAM` | constants.h | 21-21 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted DEFAULT_MAX_UNITS_PER_TEAM as the default team unit cap constant. |  |  |
-| MAC-9FAF42 | macro | `_EROBOTTURRENT_H_` | erobotturrent.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-A1C505 | macro | `ZTEAM_BASE_TEAM` | zteam.h | 12-12 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-A749BD | macro | `_OROCK_H_` | orock.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-A79FD1 | macro | `MAX_COMP_LOSING_MESSAGES` | zsound_engine.h | 9-9 | ADAPT | audio | todo |  |  |  |  |  |
+| MAC-9FAF42 | macro | `_EROBOTTURRENT_H_` | erobotturrent.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/RobotTurretEffect.ts | Adapted erobotturrent.h include guard as a TypeScript module boundary. |  |  |
+| MAC-A1C505 | macro | `ZTEAM_BASE_TEAM` | zteam.h | 12-12 | ADAPT | simulation | ported |  | src/simulation/TeamRendering.ts | Adapted zteam.h ZTEAM_BASE_TEAM as TEAM_RENDERING_BASE_TEAM using TeamType.Red. |  |  |
+| MAC-A749BD | macro | `_OROCK_H_` | orock.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/RockObject.ts | Adapted orock.h include guard as a TypeScript module boundary marker. |  |  |
+| MAC-A79FD1 | macro | `MAX_COMP_LOSING_MESSAGES` | zsound_engine.h | 9-9 | ADAPT | audio | ported |  | src/audio/AudioService.ts | Adapted zsound_engine.h MAX_COMP_LOSING_MESSAGES as SOUND_ENGINE_MAX_COMP_LOSING_MESSAGES. |  |  |
 | MAC-A837E6 | macro | `_ZPATH_FINDING_H_` | zpath_finding.h | 2-2 | ADAPT | world | ported | navigation-basic | src/world/navigation/NavigationTypes.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
 | MAC-A85B9D | macro | `WATER_SPEED` | constants.h | 24-24 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted WATER_SPEED as the water traversal speed factor. |  |  |
 | MAC-A866D1 | macro | `_ZPATH_FINDING_ASTAR_H_` | zpath_finding_astar.h | 2-2 | ADAPT | world | ported | navigation-basic | src/world/navigation/AStar.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
 | MAC-AFC09B | macro | `_ZROBOT_H_` | zrobot.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the zrobot.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-B132A7 | macro | `MMRADIO_MIN_SELECTIONS` | zgui_main_menu_widgets.h | 283-283 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-B23CBF | macro | `_ZGUN_PLACEMENT_HEATMAP_H_` | zgun_placement_heatmap.h | 2-2 | ADAPT | world | ported |  | src/world/GunPlacementHeatMap.ts | Adapted the zgun_placement_heatmap.h include guard to GunPlacementHeatMap ES module boundaries. |  |  |
-| MAC-B5CB35 | macro | `_ZEFFECT_H_` | zeffect.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-B6CD4F | macro | `_EMISSILECROCKETS_H_` | emissilecrockets.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-B5CB35 | macro | `_ZEFFECT_H_` | zeffect.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/SimulationEffect.ts | Adapted zeffect.h include guard as a TypeScript module boundary marker for simulation effects. |  |  |
+| MAC-B6CD4F | macro | `_EMISSILECROCKETS_H_` | emissilecrockets.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/MissileCannonRocketsEffect.ts | Adapted emissilecrockets.h include guard as a TypeScript module boundary. |  |  |
 | MAC-B78A07 | macro | `GAME_VERSION` | constants.h | 9-9 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted GAME_VERSION as the upstream version string. |  |  |
-| MAC-B78B02 | macro | `_OROCKETS_H_` | orockets.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-B7ED75 | macro | `_ZGMM_WARNING_H_` | gmm_warning.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-B78B02 | macro | `_OROCKETS_H_` | orockets.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/RocketsObject.ts | Adapted orockets.h include guard as a TypeScript module boundary marker. |  |  |
+| MAC-B7ED75 | macro | `_ZGMM_WARNING_H_` | gmm_warning.h | 2-2 | ADAPT | simulation | ported |  | src/ui/MainMenuWarning.ts | Adapted gmm_warning.h include guard as a TypeScript module boundary for the warning menu. |  |  |
 | MAC-BBC4DD | macro | `_BRADAR_H_` | bradar.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted bradar.h include guard as BRADAR_HEADER_GUARD_PORTED. |  |  |
-| MAC-BC9043 | macro | `ETANKSMOKE_TIME` | etanksmoke.cpp | 7-7 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-BD2F8B | macro | `_EROCKTURRENT_H_` | erockturrent.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-BD45DB | macro | `GWPFUS_OBJH` | gwproduction_fus.cpp | 29-29 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-BC9043 | macro | `ETANKSMOKE_TIME` | etanksmoke.cpp | 7-7 | ADAPT | simulation | ported |  | src/simulation/TankSmokeEffect.ts | Ported ETANKSMOKE_TIME as the tank smoke frame interval constant. |  |  |
+| MAC-BD2F8B | macro | `_EROCKTURRENT_H_` | erockturrent.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/RockTurretEffect.ts | Adapted erockturrent.h include guard as a TypeScript module boundary. |  |  |
+| MAC-BD45DB | macro | `GWPFUS_OBJH` | gwproduction_fus.cpp | 29-29 | ADAPT | simulation | ported |  | src/ui/ProductionFullUnitSelector.ts | Adapted gwproduction_fus.cpp GWPFUS_OBJH as the production unit button row height. |  |  |
 | MAC-BDB6B9 | macro | `_ZMYSQL_H_` | zmysql.h | 2-2 | DEFER | simulation | todo |  |  |  |  |  |
 | MAC-BDECE3 | macro | `MAX_STORED_CANNONS` | constants.h | 20-20 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_STORED_CANNONS as the cannon storage limit constant. |  |  |
 | MAC-BF5A5F | macro | `BIRD_MAP_PADDING` | abird.cpp | 3-3 | ADAPT | world | ported |  | src/world/BirdMap.ts | Adapted the bird map padding macro as a typed world constant. |  |  |
-| MAC-BFD033 | macro | `LEGAL_TRADEMARKS` | zod_engine_private.h | 18-18 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-BFE2E7 | macro | `_ETANKOIL_H_` | etankoil.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-C05542 | macro | `VER_BUILD` | zod_engine_private.h | 12-12 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-BFD033 | macro | `LEGAL_TRADEMARKS` | zod_engine_private.h | 18-18 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h LEGAL_TRADEMARKS as product metadata. |  |  |
+| MAC-BFE2E7 | macro | `_ETANKOIL_H_` | etankoil.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TankOilEffect.ts | Adapted etankoil.h include guard as a TypeScript module boundary. |  |  |
+| MAC-C05542 | macro | `VER_BUILD` | zod_engine_private.h | 12-12 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h VER_BUILD as the build version component. |  |  |
 | MAC-C0D0D9 | macro | `_ZVEHICLE_H_` | zvehicle.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the zvehicle.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-C132EF | macro | `xtime` | zencrypt_aes.cpp | 10-10 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-C33314 | macro | `_ETANKDIRT_H_` | etankdirt.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-C595B0 | macro | `GWP_SELECTOR_CENTER_Y` | gwproduction.h | 103-103 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-C33314 | macro | `_ETANKDIRT_H_` | etankdirt.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TankDirtEffect.ts | Adapted etankdirt.h include guard as a TypeScript module boundary. |  |  |
+| MAC-C595B0 | macro | `GWP_SELECTOR_CENTER_Y` | gwproduction.h | 103-103 | ADAPT | simulation | ported |  | src/ui/ProductionWindow.ts | Adapted gwproduction.h GWP_SELECTOR_CENTER_Y as the evaluated full selector y-offset. |  |  |
 | MAC-C5E798 | macro | `_AHUTANIMAL_H_` | ahutanimal.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/HutAnimalTypes.ts | Adapted ahutanimal.h include guard as AHUTANIMAL_HEADER_GUARD_PORTED. |  |  |
 | MAC-C7392C | macro | `_CURSOR_H_` | cursor.h | 2-2 | ADAPT | input | ported | selection-orders | src/input/CursorTiming.ts | Adapted the cursor.h include guard to CursorTiming ES module boundaries. |  |  |
 | MAC-CBCAA9 | macro | `_RPYRO_H_` | rpyro.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rpyro.h include guard to RobotTypes ES module boundaries. |  |  |
-| MAC-CCEF75 | macro | `_ZPLAYER_H_` | zplayer.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-CDA7D7 | macro | `GWPFUS_MARGIN` | gwproduction_fus.cpp | 25-25 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-CE13A1 | macro | `_EPYROFIRE_H_` | epyrofire.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-CE6227 | macro | `Nb` | zencrypt_aes.cpp | 7-7 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-CFFCBD | macro | `_ZFONT_ENGINE_H_` | zfont_engine.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-CCEF75 | macro | `_ZPLAYER_H_` | zplayer.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/PlayerPresentation.ts | Adapted zplayer.h include guard as a TypeScript module boundary marker for player presentation. |  |  |
+| MAC-CDA7D7 | macro | `GWPFUS_MARGIN` | gwproduction_fus.cpp | 25-25 | ADAPT | simulation | ported |  | src/ui/ProductionFullUnitSelector.ts | Adapted gwproduction_fus.cpp GWPFUS_MARGIN as the production selector inner spacing. |  |  |
+| MAC-CE13A1 | macro | `_EPYROFIRE_H_` | epyrofire.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/PyroFireEffect.ts | Adapted epyrofire.h include guard as a TypeScript module boundary. |  |  |
+| MAC-CE6227 | macro | `Nb` | zencrypt_aes.cpp | 7-7 | ADAPT | simulation | ported |  | src/simulation/EncryptionAES.ts | Adapted zencrypt_aes.cpp Nb as the AES state column count. |  |  |
+| MAC-CFFCBD | macro | `_ZFONT_ENGINE_H_` | zfont_engine.h | 2-2 | ADAPT | simulation | ported |  | src/rendering/FontEngine.ts | Adapted zfont_engine.h include guard as a TypeScript module boundary marker for font rendering. |  |  |
 | MAC-D07409 | macro | `ROAD_SPEED` | constants.h | 23-23 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted ROAD_SPEED as the road traversal speed factor. |  |  |
-| MAC-D08EAE | macro | `MAX_EYES` | zportrait.h | 19-19 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-D09B3B | macro | `_ELIGHTROCKET_H_` | elightrocket.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-D08EAE | macro | `MAX_EYES` | zportrait.h | 19-19 | ADAPT | simulation | ported |  | src/simulation/PortraitAnimation.ts | Adapted zportrait.h MAX_EYES as PORTRAIT_MAX_EYES. |  |  |
+| MAC-D09B3B | macro | `_ELIGHTROCKET_H_` | elightrocket.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/LightRocketEffect.ts | Adapted elightrocket.h include guard as a TypeScript module boundary. |  |  |
 | MAC-D13C6B | macro | `_VMEDIUM_H_` | vmedium.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vmedium.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-D1B09A | macro | `MMLIST_DOWN_BUTTON_FROM_BOTTOM` | zgui_main_menu_widgets.h | 174-174 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-D23627 | macro | `VALUE_LIMIT` | SDL_rotozoom.cpp | 772-772 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced VALUE_LIMIT with the ROTOZOOM_VALUE_LIMIT TypeScript constant. |  |  |
 | MAC-D23627 | macro | `VALUE_LIMIT` | SDL_rotozoom.cpp | 1095-1095 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ROTOZOOM_VALUE_LIMIT for the duplicate VALUE_LIMIT macro declaration. |  |  |
 | MAC-D25A25 | macro | `MINIMAP_X` | map_editor.cpp | 64-64 | ADAPT | world | ported |  | src/world/MapEditorRendering.ts | Adapted MINIMAP_X as a named map editor minimap horizontal pixel coordinate. |  |  |
-| MAC-D3520A | macro | `_ZOLISTS_H_` | zolists.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-D6050B | macro | `_ZMUSIC_ENGINE_H_` | zmusic_engine.h | 2-2 | ADAPT | audio | todo |  |  |  |  |  |
-| MAC-D63C99 | macro | `_ETANKSMOKE_H_` | etanksmoke.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-D64F26 | macro | `MAX_QUEUE_ITEMS` | zbuilding.h | 8-8 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-D6C6EC | macro | `_ZTIME_H_` | ztime.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-D3520A | macro | `_ZOLISTS_H_` | zolists.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ObjectLists.ts | Adapted zolists.h include guard as a TypeScript module boundary marker for object lists. |  |  |
+| MAC-D6050B | macro | `_ZMUSIC_ENGINE_H_` | zmusic_engine.h | 2-2 | ADAPT | audio | ported |  | src/audio/AudioService.ts | Adapted zmusic_engine.h include guard as a TypeScript module boundary marker for music audio. |  |  |
+| MAC-D63C99 | macro | `_ETANKSMOKE_H_` | etanksmoke.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/TankSmokeEffect.ts | Adapted etanksmoke.h include guard as a TypeScript module boundary. |  |  |
+| MAC-D64F26 | macro | `MAX_QUEUE_ITEMS` | zbuilding.h | 8-8 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted zbuilding.h MAX_QUEUE_ITEMS as the building production queue limit. |  |  |
+| MAC-D6C6EC | macro | `_ZTIME_H_` | ztime.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/SimulationTime.ts | Adapted ztime.h include guard as a TypeScript module boundary marker for simulation time. |  |  |
 | MAC-D755B4 | macro | `MAX_SHIFT_CLICK` | zmap.h | 16-16 | ADAPT | world | ported | map-core | src/world/MapFormat.ts | Ported as MAX_SHIFT_CLICK_PIXELS for viewport shift clamping. |  |  |
-| MAC-D800E9 | macro | `ZTEAM_PALETTE_MAX` | zteam.h | 16-16 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-D80FA3 | macro | `PRODUCT_NAME` | zod_engine_private.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-D800E9 | macro | `ZTEAM_PALETTE_MAX` | zteam.h | 16-16 | ADAPT | simulation | ported |  | src/simulation/TeamRendering.ts | Adapted zteam.h ZTEAM_PALETTE_MAX as TEAM_RENDERING_PALETTE_MAX. |  |  |
+| MAC-D80FA3 | macro | `PRODUCT_NAME` | zod_engine_private.h | 20-20 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h PRODUCT_NAME as product metadata. |  |  |
 | MAC-D8F2C2 | macro | `_VHEAVY_H_` | vheavy.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vheavy.h include guard to VehicleTypes ES module boundaries. |  |  |
-| MAC-D9FEDE | macro | `ZOD_ENGINE_PRIVATE_H` | zod_engine_private.h | 5-5 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-D9FEDE | macro | `ZOD_ENGINE_PRIVATE_H` | zod_engine_private.h | 5-5 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-DAF679 | macro | `TAN1` | constants.h | 26-26 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted TAN1 as the upstream tangent approximation constant. |  |  |
-| MAC-DB695F | macro | `ETANKOIL_TIME` | etankoil.cpp | 6-6 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-DBAF13 | macro | `_ZGWLOGIN_H_` | gwlogin.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-DB695F | macro | `ETANKOIL_TIME` | etankoil.cpp | 6-6 | ADAPT | simulation | ported |  | src/simulation/TankOilEffect.ts | Ported ETANKOIL_TIME as the tank oil lifetime constant. |  |  |
+| MAC-DBAF13 | macro | `_ZGWLOGIN_H_` | gwlogin.h | 2-2 | ADAPT | simulation | ported |  | src/ui/LoginWindow.ts | Adapted gwlogin.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-DBCCD7 | macro | `_CGUN_H_` | cgun.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted CGun header guard as CGUN_HEADER_GUARD_PORTED. |  |  |
-| MAC-DD84CF | macro | `_MAIN_H_` | main.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-DE6F98 | macro | `_ZCOMP_MESSAGE_ENGINE_H_` | zcomp_message_engine.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-E10446 | macro | `INTERNAL_NAME` | zod_engine_private.h | 16-16 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-E11730 | macro | `GWP_SELECTOR_CENTER_X` | gwproduction.h | 102-102 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-E27ABD | macro | `ZGFILE_NAME` | zgfile.h | 9-9 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-DD84CF | macro | `_MAIN_H_` | main.h | 2-2 | ADAPT | simulation | ported |  | src/app/MainOptions.ts | Adapted main.h include guard as a TypeScript module boundary marker for startup options. |  |  |
+| MAC-DE6F98 | macro | `_ZCOMP_MESSAGE_ENGINE_H_` | zcomp_message_engine.h | 2-2 | ADAPT | simulation | ported |  | src/rendering/ComponentMessageRendering.ts | Adapted zcomp_message_engine.h include guard as a TypeScript module boundary marker for component messages. |  |  |
+| MAC-E10446 | macro | `INTERNAL_NAME` | zod_engine_private.h | 16-16 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h INTERNAL_NAME as product metadata. |  |  |
+| MAC-E11730 | macro | `GWP_SELECTOR_CENTER_X` | gwproduction.h | 102-102 | ADAPT | simulation | ported |  | src/ui/ProductionWindow.ts | Adapted gwproduction.h GWP_SELECTOR_CENTER_X as the evaluated full selector x-offset. |  |  |
+| MAC-E27ABD | macro | `ZGFILE_NAME` | zgfile.h | 9-9 | ADAPT | simulation | ported |  | src/assets/GraphicsArchive.ts | Adapted zgfile.h ZGFILE_NAME as GRAPHICS_ARCHIVE_PATH for the sprite archive. |  |  |
 | MAC-E3682A | macro | `MMLIST_SCROLLER_FROM_RIGHT` | zgui_main_menu_widgets.h | 176-176 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-E436C3 | macro | `ZSOUND_MIX_CHANNELS` | zsound_engine.h | 7-7 | ADAPT | audio | todo |  |  |  |  |  |
-| MAC-E5E713 | macro | `_ZGWPRODUCTION_H_` | gwproduction.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-E7DC43 | macro | `_EDEATH_H_` | edeath.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-E81588 | macro | `_ZCANNON_H_` | zcannon.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-E436C3 | macro | `ZSOUND_MIX_CHANNELS` | zsound_engine.h | 7-7 | ADAPT | audio | ported |  | src/audio/AudioService.ts | Adapted zsound_engine.h ZSOUND_MIX_CHANNELS as SOUND_ENGINE_MIX_CHANNELS. |  |  |
+| MAC-E5E713 | macro | `_ZGWPRODUCTION_H_` | gwproduction.h | 2-2 | ADAPT | simulation | ported |  | src/ui/ProductionWindow.ts | Adapted gwproduction.h include guard as a TypeScript module boundary marker. |  |  |
+| MAC-E7DC43 | macro | `_EDEATH_H_` | edeath.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/DeathEffect.ts | Adapted edeath.h include guard as a generic death effect module marker. |  |  |
+| MAC-E81588 | macro | `_ZCANNON_H_` | zcannon.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted zcannon.h include guard as a TypeScript module boundary marker for cannons. |  |  |
 | MAC-E8E547 | macro | `SMOOTHING_ON` | SDL_rotozoom.h | 29-29 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced SMOOTHING_ON with the ROTOZOOM_SMOOTHING_ON TypeScript constant. |  |  |
-| MAC-E8EBB4 | macro | `MAX_VERSION_PACKET_CHARS` | event_handler.h | 231-231 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-E8EBB4 | macro | `MAX_VERSION_PACKET_CHARS` | event_handler.h | 231-231 | ADAPT | simulation | ported |  | src/simulation/EventHandler.ts | Ported MAX_VERSION_PACKET_CHARS as the version packet capacity constant. |  |  |
 | MAC-EBD11A | macro | `_BROBOT_H_` | brobot.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted BRobot header guard as BROBOT_HEADER_GUARD_PORTED. |  |  |
-| MAC-EDC56A | macro | `_ZGWFACTORY_LIST_H_` | gwfactory_list.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-EDC56A | macro | `_ZGWFACTORY_LIST_H_` | gwfactory_list.h | 2-2 | ADAPT | simulation | ported |  | src/ui/FactoryListWindow.ts | Adapted gwfactory_list.h include guard as a TypeScript module boundary marker. |  |  |
 | MAC-EDD456 | macro | `_CGATLING_H_` | cgatling.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted CGatling header guard as CGATLING_HEADER_GUARD_PORTED. |  |  |
 | MAC-F05645 | macro | `MAX_PLAYER_NAME_SIZE` | constants.h | 11-11 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_PLAYER_NAME_SIZE as the player name field limit constant. |  |  |
-| MAC-F13D4D | macro | `_EBULLET_H_` | ebullet.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-F13D4D | macro | `_EBULLET_H_` | ebullet.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ProjectileConstants.ts | Adapted ebullet.h include guard as a projectile module marker. |  |  |
 | MAC-F5FC59 | macro | `_BREPAIR_H_` | brepair.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted brepair.h header guard as BREPAIR_HEADER_GUARD_PORTED. |  |  |
-| MAC-F62E20 | macro | `VER_MAJOR` | zod_engine_private.h | 9-9 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-F62E20 | macro | `VER_MAJOR` | zod_engine_private.h | 9-9 | ADAPT | simulation | ported |  | src/app/ZodEngineMetadata.ts | Adapted zod_engine_private.h VER_MAJOR as the major version component. |  |  |
 | MAC-F686A6 | macro | `MMLIST_ENTRY_HEIGHT` | zgui_main_menu_widgets.h | 169-169 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-F72C27 | macro | `_ZGMM_MAIN_MENU_H_` | gmm_main_menu.h | 2-2 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-F872D0 | macro | `_ESTANDARD_H_` | estandard.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-FD108C | macro | `MAX_ANGLE_TYPES` | constants.h | 15-15 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-FD9DDA | macro | `_ETOUGHROCKET_H_` | etoughrocket.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-F872D0 | macro | `_ESTANDARD_H_` | estandard.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/StandardEffect.ts | Adapted estandard.h include guard as a TypeScript module boundary. |  |  |
+| MAC-FD108C | macro | `MAX_ANGLE_TYPES` | constants.h | 15-15 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_ANGLE_TYPES as the rotation bucket count constant. |  |  |
+| MAC-FD9DDA | macro | `_ETOUGHROCKET_H_` | etoughrocket.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/ToughRocketEffect.ts | Adapted etoughrocket.h include guard as a TypeScript module boundary. |  |  |
 | MAC-FFF5DC | macro | `MMTEAM_COLOR_WIDTH` | zgui_main_menu_widgets.h | 315-315 | ADAPT | ui | todo |  |  |  |  |  |
 | MET-004E95 | method | `ZBot::nothing_event` | zbot_events.cpp | 69-72 | PORTER | simulation | todo |  |  |  | CLS-33F9B5 | CLS-33F9B5 |
 | MET-007F92 | method | `ZPlayer::MainMenuWheelUp` | zplayer.cpp | 3160-3167 | PORTER | ui | todo |  |  |  | CLS-91C245,CLS-D122A1,FUN-43EE0A,FUN-EFB97D,MET-6F4F06,MET-A86BD0,MET-BA2BCD,MET-CC3CE2 | CLS-91C245,CLS-D122A1,FUN-43EE0A,FUN-EFB97D,MET-6F4F06,MET-A86BD0,MET-BA2BCD,MET-CC3CE2 |

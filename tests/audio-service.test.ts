@@ -1,7 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { AudioService, SoundSetting } from "../src/audio/AudioService";
+import {
+  AudioService,
+  SoundSetting,
+  SOUND_ENGINE_MAX_COMP_LOSING_MESSAGES,
+  SOUND_ENGINE_MIX_CHANNELS,
+  ZMUSIC_ENGINE_HEADER_GUARD_PORTED,
+  ZSOUND_ENGINE_HEADER_GUARD_PORTED,
+} from "../src/audio/AudioService";
 
 describe("audio service", () => {
+  it("adapts the zmusic_engine.h include guard to an ES module marker", async () => {
+    const firstImport = await import("../src/audio/AudioService");
+    const secondImport = await import("../src/audio/AudioService");
+
+    expect(ZMUSIC_ENGINE_HEADER_GUARD_PORTED).toBe(true);
+    expect(secondImport.ZMUSIC_ENGINE_HEADER_GUARD_PORTED).toBe(
+      firstImport.ZMUSIC_ENGINE_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("adapts the zsound_engine.h include guard to an ES module marker", async () => {
+    const firstImport = await import("../src/audio/AudioService");
+    const secondImport = await import("../src/audio/AudioService");
+
+    expect(ZSOUND_ENGINE_HEADER_GUARD_PORTED).toBe(true);
+    expect(secondImport.ZSOUND_ENGINE_HEADER_GUARD_PORTED).toBe(
+      firstImport.ZSOUND_ENGINE_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("adapts the sound engine channel and voice-line limits", () => {
+    expect(SOUND_ENGINE_MIX_CHANNELS).toBe(32);
+    expect(SOUND_ENGINE_MAX_COMP_LOSING_MESSAGES).toBe(10);
+  });
+
   it("replaces sound_setting volume preset identifiers", () => {
     expect(SoundSetting.Sound0).toBe(0);
     expect(SoundSetting.Sound25).toBe(1);

@@ -6,6 +6,7 @@ import {
   BROBOT_HEADER_GUARD_PORTED,
   BREPAIR_HEADER_GUARD_PORTED,
   BVEHICLE_HEADER_GUARD_PORTED,
+  BUILDING_MAX_QUEUE_ITEMS,
   RADAR_BOX_SPINNER_X_PIXELS,
   RADAR_BOX_SPINNER_Y_PIXELS,
   RADAR_DISH_X_PIXELS,
@@ -61,6 +62,7 @@ import {
   VEHICLE_FACTORY_TANK_Y_PIXELS,
   VEHICLE_FACTORY_VENT_X_PIXELS,
   VEHICLE_FACTORY_VENT_Y_PIXELS,
+  ZBUILDING_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/BuildingTypes";
 
 describe("building types", () => {
@@ -146,6 +148,24 @@ describe("building types", () => {
     expect(secondImport.BVEHICLE_HEADER_GUARD_PORTED).toBe(
       firstImport.BVEHICLE_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("adapts the zbuilding header guard to module boundaries", async () => {
+    const firstImport = await import(
+      "../src/simulation/entities/BuildingTypes"
+    );
+    const secondImport = await import(
+      "../src/simulation/entities/BuildingTypes"
+    );
+
+    expect(ZBUILDING_HEADER_GUARD_PORTED).toBe(true);
+    expect(secondImport.ZBUILDING_HEADER_GUARD_PORTED).toBe(
+      firstImport.ZBUILDING_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("ports the building production queue limit", () => {
+    expect(BUILDING_MAX_QUEUE_ITEMS).toBe(5);
   });
 
   it("ports the vehicle factory exhaust x offset", () => {

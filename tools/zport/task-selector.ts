@@ -34,6 +34,38 @@ export function selectNext(rows: LedgerRow[]): LedgerRow | undefined {
     .sort(compareRows)[0];
 }
 
+export type ConstantBatchOptions = {
+  limit?: number;
+  file?: string;
+  domain?: string;
+  getSourceLine?: (row: LedgerRow) => string | undefined;
+};
+
+export function selectConstantBatch(
+  rows: LedgerRow[],
+  options: ConstantBatchOptions = {},
+): LedgerRow[] {
+  const limit = options.limit ?? 10;
+  const candidates = uniqueById(
+    rows
+      .filter((row) => isBatchableConstant(row, options))
+      .filter(isDependencyClear)
+      .filter((row) => !options.file || row.file === options.file)
+      .filter((row) => !options.domain || row.targetDomain === options.domain)
+      .sort(compareRows),
+  );
+
+  const first = candidates[0];
+  if (!first) {
+    return [];
+  }
+
+  return candidates
+    .filter((row) => row.file === first.file)
+    .filter((row) => row.targetDomain === first.targetDomain)
+    .slice(0, limit);
+}
+
 function compareRows(a: LedgerRow, b: LedgerRow): number {
   return (
     scoreMapFormat(a) - scoreMapFormat(b) ||
@@ -62,4 +94,49 @@ function scoreDomain(domain: string): number {
 function scoreBatch(batch: string): number {
   const index = batchOrder.indexOf(batch);
   return index === -1 ? 999 : index;
+}
+
+function isBatchableConstant(row: LedgerRow, options: ConstantBatchOptions = {}): boolean {
+  return (
+    ["todo", "qualified"].includes(row.status) &&
+    ["constant", "macro"].includes(row.type) &&
+    !["IGNORE", "DEFER"].includes(row.decision) &&
+    isSingleLine(row.lines) &&
+    !stripTicks(row.symbol).includes("(") &&
+    !isMacroFunctionSource(row, options.getSourceLine?.(row))
+  );
+}
+
+function isMacroFunctionSource(row: LedgerRow, sourceLine: string | undefined): boolean {
+  if (row.type !== "macro" || !sourceLine) {
+    return false;
+  }
+  const symbol = escapeRegExp(stripTicks(row.symbol));
+  return new RegExp(`^\\s*#\\s*define\\s+${symbol}\\s*\\(`).test(sourceLine);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isSingleLine(lines: string): boolean {
+  const [start, end = start] = lines.split("-");
+  return start === end;
+}
+
+function stripTicks(value: string): string {
+  return value.replace(/^`|`$/g, "");
+}
+
+function uniqueById(rows: LedgerRow[]): LedgerRow[] {
+  const seen = new Set<string>();
+  const uniqueRows: LedgerRow[] = [];
+  for (const row of rows) {
+    if (seen.has(row.id)) {
+      continue;
+    }
+    seen.add(row.id);
+    uniqueRows.push(row);
+  }
+  return uniqueRows;
 }

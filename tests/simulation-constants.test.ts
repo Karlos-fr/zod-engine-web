@@ -8,6 +8,7 @@ import {
   GAME_VERSION,
   ItemType,
   LIFE_AFTER_DEATH_SECONDS,
+  MAX_ANGLE_TYPES,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   MAX_BUILDING_LEVELS,
@@ -81,6 +82,11 @@ describe("simulation constants", () => {
 
   it("adapts REGISTRATION_COST as a simulation cost", () => {
     expect(REGISTRATION_COST).toBe(1);
+  });
+
+  it("adapts MAX_ANGLE_TYPES as the rotation bucket count", () => {
+    expect(MAX_ANGLE_TYPES).toBe(8);
+    expect(MAX_ANGLE_TYPES).toBe(Rotation.R315 + 1);
   });
 
   it("adapts PI with the upstream approximation", () => {

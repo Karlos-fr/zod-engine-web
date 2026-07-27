@@ -42,6 +42,7 @@ CLI de portage :
 npm run zport -- scan
 npm run zport -- status
 npm run zport -- next
+npm run zport -- batch constants --limit 10
 npm run zport -- deps <id>
 npm run zport -- context <id>
 npm run zport -- show <id>
@@ -53,7 +54,7 @@ npm run zport -- ignore <id> --note "reason"
 
 ## Workflow de portage
 
-Le portage se fait strictement **un symbole à la fois**.
+Par défaut, le portage se fait strictement **un symbole à la fois**.
 
 1. Trouver le prochain symbole portable :
    ```sh
@@ -84,60 +85,119 @@ Le portage se fait strictement **un symbole à la fois**.
 Le champ `Lot` du référentiel est seulement un indicateur de tri. Il ne donne
 jamais l'autorisation de porter plusieurs symboles dans une même tâche.
 
+### Lots de constantes simples
+
+Exception : les constantes et macros scalaires indépendantes peuvent être
+portées par petits lots homogènes pour réduire le coût du cycle de portage.
+
+Un lot est autorisé uniquement si tous les symboles respectent ces règles :
+
+- type `constant` ou `macro` ;
+- extrait upstream sur une seule ligne ;
+- pas de macro-fonction ;
+- même fichier upstream ;
+- même domaine cible ;
+- `blocked_by` vide pour chaque ID ;
+- même fichier TypeScript cible ;
+- test de parité ajouté pour chaque constante ;
+- commentaire d'entité ajouté pour chaque constante.
+
+Taille recommandée : 5 à 15 constantes maximum. Utiliser une taille plus
+petite si les constantes sont conditionnelles, calculées, renommées fortement ou
+liées à des règles métier sensibles.
+
+La CLI peut proposer un lot sûr :
+
+```sh
+npm run zport -- batch constants --limit 10
+```
+
+Options utiles :
+
+```sh
+npm run zport -- batch constants --limit 8 --file constants.h --domain simulation
+```
+
+Workflow pour un lot de constantes :
+
+1. Proposer le lot :
+   ```sh
+   npm run zport -- batch constants --limit 10
+   ```
+2. Vérifier chaque ID du lot :
+   ```sh
+   npm run zport -- deps <id>
+   npm run zport -- context <id>
+   ```
+3. Porter uniquement ces constantes dans le même fichier cible.
+4. Ajouter les commentaires d'entité et les tests de parité.
+5. Valider :
+   ```sh
+   npm run lint
+   npm test
+   npm run build
+   ```
+6. Marquer chaque ID individuellement :
+   ```sh
+   npm run zport -- done <id> --target <path>
+   ```
+
+Les enums, structures, classes, fonctions et méthodes restent à porter un
+symbole à la fois. Les macros conditionnelles, calculées ou dépendantes doivent
+être traitées comme des éléments sensibles, donc hors lot sauf justification
+explicite dans les notes du ledger.
+
 ## Norme de commentaires de portage
 
-Chaque fichier contenant du code porté doit commencer par un en-tête indiquant
-l'origine upstream, les symboles concernés et les adaptations principales.
+Les commentaires dans le code porté doivent rester utiles au lecteur du code.
+Ils ne doivent pas recopier le contexte de portage déjà disponible dans le
+référentiel : dépendances, includes upstream, liste d'appels, statut, décision,
+blocages ou justification de sélection restent dans `PORTING_LEDGER.md` et dans
+la CLI.
+
+Chaque fichier contenant du code porté doit commencer par un en-tête court qui
+donne seulement la traçabilité minimale. Pour un fichier avec un ou deux
+symboles, l'en-tête peut nommer les symboles et IDs. Pour un fichier avec de
+nombreuses entités portées, utiliser `voir commentaires d'entité` et laisser les
+IDs précis sur chaque entité. L'en-tête ne doit pas contenir de dépendances.
 
 ```ts
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: zmap.h / zmap.cpp
- * - Symbols: ZMap, map_tile
- * - Ledger: CLS-XXXXXX, STR-XXXXXX
- *
- * Porting notes:
- * - SDL/OpenGL dependencies removed.
- * - Runtime behavior preserved where relevant to browser simulation.
+ * Ported from Zod Engine.
+ * Upstream: zmap.h / zmap.cpp
+ * Symbols: voir commentaires d'entité
+ * Ledger: voir commentaires d'entité
  */
 ```
 
 Chaque entité portée doit aussi avoir son propre en-tête : classe, structure,
 type, interface, enum, fonction, méthode, constante, macro adaptée ou variable
-globale. Le rôle fonctionnel est obligatoire.
+globale. Le rôle fonctionnel est obligatoire, mais il doit rester concis.
 
 Format minimal :
 
 ```ts
 /**
  * Port of upstream `<symbol>`.
- *
- * Role:
- * - <short description of the entity and its responsibility in the game>
- *
+ * Role: <short description of the entity and its responsibility in the game>.
  * Ledger: <ID>
  * Upstream: <file>:<lines>
  */
 ```
 
-Ajouter une section `Notes` ou `Adaptation` dès qu'il y a renommage, changement
-de type, suppression de dépendance native ou comportement volontairement
-différent.
+Ajouter une ligne `Adaptation` uniquement quand le port change réellement la
+forme ou le comportement upstream : renommage non évident, expression C++
+évaluée, changement de type ou comportement volontairement différent. Les
+dépendances elles-mêmes ne doivent jamais être listées dans le code, même pour
+expliquer une adaptation.
 
 ```ts
 /**
  * Port of upstream `pf_point`.
- *
- * Role:
- * - Represents a tile-space coordinate used by the A* pathfinding queue.
- *
+ * Role: Tile-space coordinate used by the A* pathfinding queue.
  * Ledger: CLS-XXXXXX
  * Upstream: zpath_finding_astar.h:18-27
- *
- * Notes:
- * - Ported as immutable coordinate data.
+ * Adaptation: Immutable TypeScript data shape.
  */
 export type PathfindingPoint = {
   x: number;

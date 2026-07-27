@@ -1,35 +1,15 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - Files: SDL_rotozoom.cpp, SDL_rotozoom.h
- * - Symbols: shrinkSurfaceRGBA, shrinkSurfaceY, zoomSurfaceY,
- *   rotateSurface90Degrees, rotozoomSurfaceSizeXY, rotozoomSurfaceSize, MAX,
- *   VALUE_LIMIT, _SDL_rotozoom_h, M_PI, SMOOTHING_OFF, SMOOTHING_ON,
- *   SDL_ROTOZOOM_SCOPE
- * - Ledger: FUN-0743BB, FUN-9C99EE, FUN-AB50C1, FUN-B81617,
- *   FUN-E7CB44, FUN-FEC912, MAC-04F8EA, MAC-38509D, MAC-78DBD4,
- *   MAC-8F2CDF, MAC-9E34B7, MAC-D23627, MAC-E8E547
- *
- * Porting notes:
- * - SDL surfaces are replaced with browser-compatible typed pixel buffers.
- * - The C `MAX` macro is replaced by native `Math.max` where needed.
- * - The C `_SDL_rotozoom_h` header guard is replaced by ES module boundaries.
- * - The C `SDL_ROTOZOOM_SCOPE` export/import macro variants are replaced by
- *   named ES exports.
+ * Ported from Zod Engine.
+ * Upstream: SDL_rotozoom.cpp, SDL_rotozoom.h
+ * Symbols: see entity comments
+ * Ledger: see entity comments
  */
 
 /**
  * Browser replacement for SDL RGBA surface storage.
- *
- * Role:
- * - Carries dimensions and packed RGBA pixels for Web image transforms.
- *
+ * Role: Carries dimensions and packed RGBA pixels for Web image transforms.
  * Ledger: FUN-0743BB, FUN-9C99EE
  * Upstream: SDL_rotozoom.cpp
- *
- * Adaptation:
- * - Uses `Uint8ClampedArray` instead of SDL surface memory.
  */
 export type RgbaSurface = {
   width: number;
@@ -39,15 +19,9 @@ export type RgbaSurface = {
 
 /**
  * Browser replacement for single-channel SDL surface storage.
- *
- * Role:
- * - Carries dimensions and grayscale pixels for Web image transforms.
- *
+ * Role: Carries dimensions and grayscale pixels for Web image transforms.
  * Ledger: FUN-E7CB44, FUN-FEC912
  * Upstream: SDL_rotozoom.cpp
- *
- * Adaptation:
- * - Uses `Uint8ClampedArray` instead of SDL surface memory.
  */
 export type GrayscaleSurface = {
   width: number;
@@ -57,73 +31,43 @@ export type GrayscaleSurface = {
 
 /**
  * Replacement for upstream `VALUE_LIMIT`.
- *
- * Role:
- * - Defines the lower bound used to avoid near-zero transform instability.
- *
+ * Role: Defines the lower bound used to avoid near-zero transform instability.
  * Ledger: MAC-D23627
  * Upstream: SDL_rotozoom.cpp:772, SDL_rotozoom.cpp:1095
- *
- * Adaptation:
- * - Replaces both duplicate C preprocessor macro declarations with one named
- *   TypeScript constant.
+ * Adaptation: Replaces both duplicate C preprocessor macro declarations with one named TypeScript constant.
  */
 export const ROTOZOOM_VALUE_LIMIT = 0.001;
 
 /**
  * Replacement for upstream `M_PI`.
- *
- * Role:
- * - Provides the pi constant used when converting rotozoom degrees to radians.
- *
+ * Role: Provides the pi constant used when converting rotozoom degrees to radians.
  * Ledger: MAC-38509D
  * Upstream: SDL_rotozoom.h:21
- *
- * Adaptation:
- * - Replaces the C preprocessor macro with a named TypeScript constant while
- *   preserving the upstream numeric precision.
+ * Adaptation: Replaces the C preprocessor macro with a named TypeScript constant while preserving the upstream numeric precision.
  */
 export const ROTOZOOM_PI = 3.141592654;
 
 /**
  * Replacement for upstream `SMOOTHING_OFF`.
- *
- * Role:
- * - Identifies nearest-neighbor rotozoom sampling when smoothing is disabled.
- *
+ * Role: Identifies nearest-neighbor rotozoom sampling when smoothing is disabled.
  * Ledger: MAC-78DBD4
  * Upstream: SDL_rotozoom.h:28
- *
- * Adaptation:
- * - Replaces the C preprocessor macro with a named TypeScript constant.
  */
 export const ROTOZOOM_SMOOTHING_OFF = 0;
 
 /**
  * Replacement for upstream `SMOOTHING_ON`.
- *
- * Role:
- * - Identifies interpolated rotozoom sampling when smoothing is enabled.
- *
+ * Role: Identifies interpolated rotozoom sampling when smoothing is enabled.
  * Ledger: MAC-E8E547
  * Upstream: SDL_rotozoom.h:29
- *
- * Adaptation:
- * - Replaces the C preprocessor macro with a named TypeScript constant.
  */
 export const ROTOZOOM_SMOOTHING_ON = 1;
 
 /**
  * Replacement for upstream `shrinkSurfaceRGBA`.
- *
- * Role:
- * - Downscales an RGBA surface by averaging integer-sized pixel blocks.
- *
+ * Role: Downscales an RGBA surface by averaging integer-sized pixel blocks.
  * Ledger: FUN-0743BB
  * Upstream: SDL_rotozoom.cpp:29-101
- *
- * Adaptation:
- * - Operates on browser-compatible RGBA buffers instead of SDL surfaces.
  */
 export function shrinkRgbaSurface(
   source: RgbaSurface,
@@ -172,15 +116,9 @@ export function shrinkRgbaSurface(
 
 /**
  * Replacement for upstream `rotateSurface90Degrees`.
- *
- * Role:
- * - Rotates an RGBA surface by quarter-turn increments.
- *
+ * Role: Rotates an RGBA surface by quarter-turn increments.
  * Ledger: FUN-9C99EE
  * Upstream: SDL_rotozoom.cpp:663-759
- *
- * Adaptation:
- * - Operates on browser-compatible RGBA buffers instead of SDL surfaces.
  */
 export function rotateRgbaSurface90Degrees(
   source: RgbaSurface,
@@ -217,15 +155,9 @@ export function rotateRgbaSurface90Degrees(
 
 /**
  * Replacement for upstream `rotozoomSurfaceSizeXY`.
- *
- * Role:
- * - Calculates the destination bounds for non-uniform rotozoom transforms.
- *
+ * Role: Calculates the destination bounds for non-uniform rotozoom transforms.
  * Ledger: FUN-AB50C1
  * Upstream: SDL_rotozoom.cpp:809-814
- *
- * Adaptation:
- * - Returns a dimension object instead of writing output reference arguments.
  */
 export function calculateRotozoomSurfaceSize(
   width: number,
@@ -250,15 +182,9 @@ export function calculateRotozoomSurfaceSize(
 
 /**
  * Replacement for upstream `rotozoomSurfaceSize`.
- *
- * Role:
- * - Calculates the destination bounds for uniform rotozoom transforms.
- *
+ * Role: Calculates the destination bounds for uniform rotozoom transforms.
  * Ledger: FUN-B81617
  * Upstream: SDL_rotozoom.cpp:818-823
- *
- * Adaptation:
- * - Delegates to the non-uniform Web calculation with equal zoom axes.
  */
 export function calculateUniformRotozoomSurfaceSize(
   width: number,
@@ -277,15 +203,9 @@ export function calculateUniformRotozoomSurfaceSize(
 
 /**
  * Replacement for upstream `shrinkSurfaceY`.
- *
- * Role:
- * - Downscales a grayscale surface by averaging integer-sized pixel blocks.
- *
+ * Role: Downscales a grayscale surface by averaging integer-sized pixel blocks.
  * Ledger: FUN-E7CB44
  * Upstream: SDL_rotozoom.cpp:111-178
- *
- * Adaptation:
- * - Operates on browser-compatible single-channel buffers.
  */
 export function shrinkGrayscaleSurface(
   source: GrayscaleSurface,
@@ -327,15 +247,9 @@ export function shrinkGrayscaleSurface(
 
 /**
  * Replacement for upstream `zoomSurfaceY`.
- *
- * Role:
- * - Resizes a grayscale surface using nearest-neighbor sampling.
- *
+ * Role: Resizes a grayscale surface using nearest-neighbor sampling.
  * Ledger: FUN-FEC912
  * Upstream: SDL_rotozoom.cpp:396-492
- *
- * Adaptation:
- * - Includes horizontal and vertical flipping over browser buffers.
  */
 export function resizeGrayscaleSurfaceNearest(
   source: GrayscaleSurface,

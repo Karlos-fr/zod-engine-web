@@ -1,25 +1,14 @@
 import type { RgbaSurface } from "./ImageScaling";
 
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - Files: zsdl.cpp, zsdl.h
- * - Symbols: put32pixel, get32pixel, ZSDL_ModifyBlack, ZSDL_BlitSurface,
- *   _ZSDL_H_
- * - Ledger: FUN-9356C2, FUN-F75CC8, FUN-A35BBA, FUN-A5A250, MAC-358971
- *
- * Porting notes:
- * - SDL 32-bit surface writes are replaced by writes into RGBA Web buffers.
- * - The C `_ZSDL_H_` header guard is replaced by ES module boundaries.
+ * Ported from Zod Engine.
+ * Upstream: zsdl.cpp, zsdl.h
+ * Symbols: see entity comments
  */
 
 /**
  * Browser-side replacement for `SDL_Color`.
- *
- * Role:
- * - Carries 8-bit color channels for a direct pixel write.
- *
+ * Role: Carries 8-bit color channels for a direct pixel write.
  * Ledger: FUN-9356C2
  * Upstream: zsdl.cpp:675-701
  */
@@ -32,10 +21,7 @@ export type SurfacePixelColor = {
 
 /**
  * Browser-side replacement for the SDL source/destination rectangle pair.
- *
- * Role:
- * - Carries the copied region dimensions and destination position for blits.
- *
+ * Role: Carries the copied region dimensions and destination position for blits.
  * Ledger: FUN-A5A250
  * Upstream: zsdl.cpp:551-566
  */
@@ -50,18 +36,10 @@ export type SurfaceBlitRegion = {
 
 /**
  * Replacement for upstream `put32pixel`.
- *
- * Role:
- * - Writes one pixel into a 32-bit surface when the target coordinate is inside
- *   bounds.
- *
+ * Role: Writes one pixel into a 32-bit surface when the target coordinate is inside bounds.
  * Ledger: FUN-9356C2
  * Upstream: zsdl.cpp:675-701
- *
- * Adaptation:
- * - Converts SDL's BGRA byte write pattern to the RGBA byte order used by Web
- *   image buffers.
- * - Keeps the upstream no-op behavior for out-of-bounds coordinates.
+ * Adaptation: Converts SDL's BGRA byte write pattern to the RGBA byte order used by Web image buffers. - Keeps the upstream no-op behavior for out-of-bounds coordinates.
  */
 export function putRgbaSurfacePixel(
   surface: RgbaSurface,
@@ -82,17 +60,10 @@ export function putRgbaSurfacePixel(
 
 /**
  * Replacement for upstream `get32pixel`.
- *
- * Role:
- * - Reads one 32-bit pixel from a surface and returns its color channels.
- *
+ * Role: Reads one 32-bit pixel from a surface and returns its color channels.
  * Ledger: FUN-F75CC8
  * Upstream: zsdl.cpp:703-747
- *
- * Adaptation:
- * - Replaces SDL pixel-format masks with direct RGBA byte reads from the Web
- *   buffer format.
- * - Makes the upstream in-bounds precondition explicit with `RangeError`.
+ * Adaptation: Replaces SDL pixel-format masks with direct RGBA byte reads from the Web buffer format. - Makes the upstream in-bounds precondition explicit with `RangeError`.
  */
 export function getRgbaSurfacePixel(
   surface: RgbaSurface,
@@ -115,17 +86,10 @@ export function getRgbaSurfacePixel(
 
 /**
  * Replacement for upstream `ZSDL_ModifyBlack`.
- *
- * Role:
- * - Recolors fully black visible pixels so they remain distinguishable from
- *   transparent black in later SDL-style operations.
- *
+ * Role: Recolors fully black visible pixels so they remain distinguishable from transparent black in later SDL-style operations.
  * Ledger: FUN-A35BBA
  * Upstream: zsdl.cpp:523-549
- *
- * Adaptation:
- * - Replaces `SDL_GetRGBA`, `SDL_MapRGB`, and one-pixel `SDL_FillRect` calls
- *   with direct RGBA buffer mutation.
+ * Adaptation: Replaces `SDL_GetRGBA`, `SDL_MapRGB`, and one-pixel `SDL_FillRect` calls with direct RGBA buffer mutation.
  */
 export function replaceOpaqueBlackPixels(surface: RgbaSurface): void {
   for (let offset = 0; offset < surface.data.length; offset += 4) {
@@ -144,17 +108,10 @@ export function replaceOpaqueBlackPixels(surface: RgbaSurface): void {
 
 /**
  * Replacement for upstream `ZSDL_BlitSurface`.
- *
- * Role:
- * - Copies a rectangular RGBA region from one surface into another.
- *
+ * Role: Copies a rectangular RGBA region from one surface into another.
  * Ledger: FUN-A5A250
  * Upstream: zsdl.cpp:551-566
- *
- * Adaptation:
- * - Replaces `SDL_Rect` construction and `SDL_BlitSurface` with direct RGBA
- *   buffer copying.
- * - Clips source and destination bounds to preserve SDL-style safe blitting.
+ * Adaptation: Replaces `SDL_Rect` construction and `SDL_BlitSurface` with direct RGBA buffer copying. - Clips source and destination bounds to preserve SDL-style safe blitting.
  */
 export function blitRgbaSurface(
   source: RgbaSurface,

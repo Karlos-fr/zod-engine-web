@@ -1,58 +1,26 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: common.cpp / common.h
- * - Symbols: _COMMON_H_, clean_newline, create_folder, data_to_hex_string,
- *   distance, dirent, file_can_be_written, frand, good_user_char, is1, isz,
- *   lcase, point_distance_from_line, points_within_area,
- *   points_within_distance, print_dump, sort_string_func, split, swap, timeval,
- *   uni_pause, xy_struct, xy_to_i
- * - Ledger: MAC-2DAAF5, FUN-1BE126, FUN-B95428, FUN-5F1997, FUN-ABEA7C,
- *   STR-1D8775, FUN-1C4E95, FUN-3667DC, FUN-F3E417, FUN-BFB321, FUN-43910E,
- *   FUN-016B43, FUN-370236, STR-037FF7, FUN-72F8C3, FUN-7CC24F, FUN-9FDD49,
- *   CLS-B0EADD, FUN-1AE16E, FUN-34DB10, FUN-352386, FUN-5D72BB, FUN-BCA1D9
- *
- * Porting notes:
- * - Native filesystem probes are represented with injectable browser-safe
- *   adapters.
- * - Mutable C string buffers are represented as returned JavaScript strings.
- * - Mutable C cursor pointers are represented as returned cursor values.
- * - Native C string comparison is represented with deterministic UTF-8 byte
- *   ordering for browser and Node runtimes.
- * - Native `printf` debug output is represented as returned text.
- * - Native blocking sleeps are represented as asynchronous waits.
+ * Ported from Zod Engine.
+ * Upstream: common.cpp / common.h
+ * Symbols: see entity comments
+ * Ledger: see entity comments
  */
 
 const utf8Encoder = new TextEncoder();
 
 /**
  * Adaptation of upstream `_COMMON_H_`.
- *
- * Role:
- * - Records that the C++ `common.h` include guard is represented by the
- *   TypeScript module boundary.
- *
+ * Role: Marks the TypeScript module boundary for upstream `common.h`.
  * Ledger: MAC-2DAAF5
  * Upstream: common.h:2-2
- *
- * Adaptation:
- * - ES modules already prevent repeated declaration; this exported marker keeps
- *   the ledger traceable without runtime behavior.
+ * Adaptation: ES modules already prevent repeated declaration; this exported marker keeps the ledger traceable without runtime behavior.
  */
 export const COMMON_HEADER_GUARD_PORTED = true;
 
 /**
  * Port of upstream `dirent`.
- *
- * Role:
- * - Represents a directory entry returned by platform directory iteration.
- *
+ * Role: Represents a directory entry returned by platform directory iteration.
  * Ledger: STR-1D8775
  * Upstream: common.cpp:344-356
- *
- * Adaptation:
- * - Represents the POSIX `d_name` and `d_type` fields as browser-safe data.
  */
 export type DirectoryEntry = {
   name: string;
@@ -61,16 +29,10 @@ export type DirectoryEntry = {
 
 /**
  * Port of upstream `xy_struct`.
- *
- * Role:
- * - Stores an integer coordinate pair used by common simulation helpers.
- *
+ * Role: Stores an integer coordinate pair used by common simulation helpers.
  * Ledger: CLS-B0EADD
  * Upstream: common.h:13-20
- *
- * Adaptation:
- * - Preserves the default zero coordinate constructor and parameterized
- *   constructor in a TypeScript class.
+ * Adaptation: Preserves the default zero coordinate constructor and parameterized constructor in a TypeScript class.
  */
 export class XyStruct {
   x: number;
@@ -84,11 +46,7 @@ export class XyStruct {
 
 /**
  * Port of upstream `xy_to_i`.
- *
- * Role:
- * - Converts an x/y coordinate into the linear index used by column-major
- *   common arrays.
- *
+ * Role: Converts an x/y coordinate into the linear index used by column-major common arrays.
  * Ledger: FUN-34DB10
  * Upstream: common.h:66-66
  */
@@ -98,16 +56,9 @@ export function xyToIndex(x: number, y: number, height: number): number {
 
 /**
  * Result shape for the TypeScript adaptation of upstream `split`.
- *
- * Role:
- * - Carries the extracted token and replacement cursor for the mutated C
- *   destination buffer and `initial` pointer.
- *
+ * Role: Carries the extracted token and replacement cursor for the mutated C destination buffer and `initial` pointer.
  * Ledger: FUN-370236
  * Upstream: common.cpp:93-124
- *
- * Adaptation:
- * - Added as TypeScript support data for the ported function.
  */
 export type SplitResult = {
   value: string;
@@ -116,16 +67,10 @@ export type SplitResult = {
 
 /**
  * Port of upstream `timeval`.
- *
- * Role:
- * - Stores wall-clock seconds and microseconds returned by `gettimeofday`.
- *
+ * Role: Stores wall-clock seconds and microseconds returned by `gettimeofday`.
  * Ledger: STR-037FF7
  * Upstream: common.cpp:77-87
- *
- * Adaptation:
- * - Represents the POSIX `tv_sec` and `tv_usec` fields as camelCase numeric
- *   properties.
+ * Adaptation: Represents the POSIX `tv_sec` and `tv_usec` fields as camelCase numeric properties.
  */
 export type Timeval = {
   tvSec: number;
@@ -134,17 +79,10 @@ export type Timeval = {
 
 /**
  * Port of upstream `frand`.
- *
- * Role:
- * - Produces a discrete random fraction in the inclusive range from zero to
- *   one for common simulation calculations.
- *
+ * Role: Produces a discrete random fraction in the inclusive range from zero to one for common simulation calculations.
  * Ledger: FUN-BCA1D9
  * Upstream: common.h:64-64
- *
- * Adaptation:
- * - Replaces C `rand()` with an injectable integer source backed by
- *   `Math.random` by default.
+ * Adaptation: Replaces C `rand()` with an injectable integer source backed by `Math.random` by default.
  */
 export function frand(
   randomInt: () => number = () => Math.floor(Math.random() * 10001),
@@ -154,11 +92,7 @@ export function frand(
 
 /**
  * Port of upstream `isz`.
- *
- * Role:
- * - Tests whether a floating-point value is close enough to zero for common
- *   math comparisons.
- *
+ * Role: Tests whether a floating-point value is close enough to zero for common math comparisons.
  * Ledger: FUN-5D72BB
  * Upstream: common.h:49-50
  */
@@ -168,11 +102,7 @@ export function isZero(num: number): boolean {
 
 /**
  * Port of upstream `is1`.
- *
- * Role:
- * - Tests whether a floating-point value is close enough to one for common
- *   math comparisons.
- *
+ * Role: Tests whether a floating-point value is close enough to one for common math comparisons.
  * Ledger: FUN-352386
  * Upstream: common.h:52-52
  */
@@ -182,15 +112,9 @@ export function isOne(num: number): boolean {
 
 /**
  * Port of upstream `swap`.
- *
- * Role:
- * - Exchanges two integer values used by common utility code.
- *
+ * Role: Exchanges two integer values used by common utility code.
  * Ledger: FUN-1AE16E
  * Upstream: common.h:55-62
- *
- * Adaptation:
- * - Replaces C++ reference mutation with a returned tuple.
  */
 export function swap(a: number, b: number): [number, number] {
   return [b, a];
@@ -198,16 +122,9 @@ export function swap(a: number, b: number): [number, number] {
 
 /**
  * Port of upstream `clean_newline`.
- *
- * Role:
- * - Truncates a line buffer at the first newline, carriage return, or null
- *   terminator observed within the inspected size.
- *
+ * Role: Truncates a line buffer at the first newline, carriage return, or null terminator observed within the inspected size.
  * Ledger: FUN-1BE126
  * Upstream: common.cpp:126-145
- *
- * Adaptation:
- * - Replaces in-place `char *` mutation with a returned string prefix.
  */
 export function cleanNewline(message: string, size = message.length): string {
   const limit = Math.min(Math.max(size, 0), message.length);
@@ -225,16 +142,10 @@ export function cleanNewline(message: string, size = message.length): string {
 
 /**
  * Port of upstream `create_folder`.
- *
- * Role:
- * - Requests creation of a folder path through the platform filesystem.
- *
+ * Role: Requests creation of a folder path through the platform filesystem.
  * Ledger: FUN-B95428
  * Upstream: common.cpp:46-53
- *
- * Adaptation:
- * - Replaces direct `mkdir` access with an injectable adapter so browser code
- *   can provide storage-specific directory creation.
+ * Adaptation: Replaces direct `mkdir` access with an injectable adapter so browser code can provide storage-specific directory creation.
  */
 export function createFolder(
   folderName: string,
@@ -252,15 +163,9 @@ export function createFolder(
 
 /**
  * Port of upstream `data_to_hex_string`.
- *
- * Role:
- * - Converts a byte buffer into a continuous lowercase hexadecimal string.
- *
+ * Role: Converts a byte buffer into a continuous lowercase hexadecimal string.
  * Ledger: FUN-5F1997
  * Upstream: common.cpp:289-303
- *
- * Notes:
- * - Each byte is formatted with two hex digits, matching upstream `%02x`.
  */
 export function dataToHexString(data: readonly number[], size = data.length): string {
   const limit = Math.min(Math.max(size, 0), data.length);
@@ -275,15 +180,9 @@ export function dataToHexString(data: readonly number[], size = data.length): st
 
 /**
  * Port of upstream `distance`.
- *
- * Role:
- * - Computes Euclidean distance between two integer coordinate points.
- *
+ * Role: Computes Euclidean distance between two integer coordinate points.
  * Ledger: FUN-ABEA7C
  * Upstream: common.cpp:178-184
- *
- * Notes:
- * - Preserves upstream `sqrt((dx * dx) + (dy * dy))` behavior.
  */
 export function distance(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x1 - x2;
@@ -294,16 +193,10 @@ export function distance(x1: number, y1: number, x2: number, y2: number): number
 
 /**
  * Port of upstream `file_can_be_written`.
- *
- * Role:
- * - Reports whether a target path can be opened for append-style writing.
- *
+ * Role: Reports whether a target path can be opened for append-style writing.
  * Ledger: FUN-1C4E95
  * Upstream: common.cpp:305-316
- *
- * Adaptation:
- * - Replaces direct `fopen(filename, "a")` access with an injectable probe so
- *   browser code can provide storage-specific write checks.
+ * Adaptation: Replaces direct `fopen(filename, "a")` access with an injectable probe so browser code can provide storage-specific write checks.
  */
 export function fileCanBeWritten(
   filename: string,
@@ -321,16 +214,10 @@ export function fileCanBeWritten(
 
 /**
  * Port of upstream `good_user_char`.
- *
- * Role:
- * - Checks whether a character is allowed in upstream user-facing text fields.
- *
+ * Role: Checks whether a character is allowed in upstream user-facing text fields.
  * Ledger: FUN-7CC24F
  * Upstream: common.cpp:233-243
- *
- * Notes:
- * - Mirrors C `isalnum` for ASCII alphanumeric characters and preserves the
- *   explicit punctuation allow-list.
+ * Notes: Mirrors C `isalnum` for ASCII alphanumeric characters and preserves the explicit punctuation allow-list.
  */
 export function goodUserChar(character: string): boolean {
   if (character.length !== 1) {
@@ -342,17 +229,10 @@ export function goodUserChar(character: string): boolean {
 
 /**
  * Port of upstream `lcase`.
- *
- * Role:
- * - Lowercases a message buffer until the inspected size or null terminator.
- *
+ * Role: Lowercases a message buffer until the inspected size or null terminator.
  * Ledger: FUN-9FDD49
  * Upstream: common.cpp:147-151, common.cpp:153-157
- *
- * Adaptation:
- * - Replaces in-place `char *` mutation with a returned string.
- * - Also covers the upstream `string &` overload by defaulting `messageSize`
- *   to the full string length.
+ * Adaptation: Replaces in-place `char *` mutation with a returned string. * - Also covers the upstream `string &` overload by defaulting `messageSize` to the full string length.
  */
 export function lcase(message: string, messageSize = message.length): string {
   const limit = Math.min(Math.max(messageSize, 0), message.length);
@@ -374,16 +254,9 @@ export function lcase(message: string, messageSize = message.length): string {
 
 /**
  * Port of upstream `point_distance_from_line`.
- *
- * Role:
- * - Computes the perpendicular distance from a point to the infinite line
- *   passing through two reference points.
- *
+ * Role: Computes the perpendicular distance from a point to the infinite line passing through two reference points.
  * Ledger: FUN-3667DC
  * Upstream: common.cpp:186-201
- *
- * Notes:
- * - Uses the same `|A*x + B*y + C| / sqrt(A^2 + B^2)` formula as upstream.
  */
 export function pointDistanceFromLine(
   x1: number,
@@ -403,16 +276,9 @@ export function pointDistanceFromLine(
 
 /**
  * Port of upstream `points_within_area`.
- *
- * Role:
- * - Determines whether a point lies inside or on the inclusive bounds of a
- *   rectangular area.
- *
+ * Role: Determines whether a point lies inside or on the inclusive bounds of a rectangular area.
  * Ledger: FUN-F3E417
  * Upstream: common.cpp:223-231
- *
- * Notes:
- * - Preserves upstream inclusive `ax + aw` and `ay + ah` edge checks.
  */
 export function pointsWithinArea(
   px: number,
@@ -432,16 +298,9 @@ export function pointsWithinArea(
 
 /**
  * Port of upstream `points_within_distance`.
- *
- * Role:
- * - Determines whether two coordinate points are within a circular distance
- *   threshold using the upstream quick-reject and quick-accept checks.
- *
+ * Role: Determines whether two coordinate points are within a circular distance threshold using the upstream quick-reject and quick-accept checks.
  * Ledger: FUN-BFB321
  * Upstream: common.cpp:203-221
- *
- * Notes:
- * - Preserves the upstream integer truncation of `distance * sin(45)`.
  */
 export function pointsWithinDistance(
   x1: number,
@@ -472,15 +331,9 @@ export function pointsWithinDistance(
 
 /**
  * Port of upstream `print_dump`.
- *
- * Role:
- * - Formats a raw byte dump for debugging message buffers.
- *
+ * Role: Formats a raw byte dump for debugging message buffers.
  * Ledger: FUN-43910E
  * Upstream: common.cpp:168-176
- *
- * Adaptation:
- * - Replaces direct `printf` output with a returned string.
  */
 export function printDump(message: string, size: number, name: string): string {
   const limit = Math.min(Math.max(size, 0), message.length);
@@ -495,17 +348,10 @@ export function printDump(message: string, size: number, name: string): string {
 
 /**
  * Port of upstream `split`.
- *
- * Role:
- * - Extracts one delimited token from a message while returning the cursor used
- *   to continue scanning.
- *
+ * Role: Extracts one delimited token from a message while returning the cursor used to continue scanning.
  * Ledger: FUN-370236
  * Upstream: common.cpp:93-124
- *
- * Adaptation:
- * - Replaces destination-buffer mutation and `int *initial` mutation with a
- *   returned token and next cursor.
+ * Adaptation: Replaces destination-buffer mutation and `int *initial` mutation with a returned token and next cursor.
  */
 export function split(
   message: string,
@@ -543,17 +389,10 @@ export function split(
 
 /**
  * Port of upstream `sort_string_func`.
- *
- * Role:
- * - Provides the lexicographic string ordering predicate used by upstream list
- *   sorting helpers.
- *
+ * Role: Provides the lexicographic string ordering predicate used by upstream list sorting helpers.
  * Ledger: FUN-016B43
  * Upstream: common.cpp:391-394
- *
- * Adaptation:
- * - Replaces `strcmp(a.c_str(), b.c_str()) < 0` with equivalent byte-wise
- *   comparison of UTF-8 encoded JavaScript strings.
+ * Adaptation: Replaces `strcmp(a.c_str(), b.c_str()) < 0` with equivalent byte-wise comparison of UTF-8 encoded JavaScript strings.
  */
 export function sortStringFunc(a: string, b: string): boolean {
   const aBytes = utf8Encoder.encode(a);
@@ -573,15 +412,9 @@ export function sortStringFunc(a: string, b: string): boolean {
 
 /**
  * Port of upstream `uni_pause`.
- *
- * Role:
- * - Pauses execution for a requested number of milliseconds.
- *
+ * Role: Pauses execution for a requested number of milliseconds.
  * Ledger: FUN-72F8C3
  * Upstream: common.cpp:159-166
- *
- * Adaptation:
- * - Replaces blocking `Sleep` / `usleep` calls with an asynchronous scheduler.
  */
 export function uniPause(
   milliseconds: number,

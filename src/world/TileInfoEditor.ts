@@ -1,22 +1,12 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: tile_info_editor.cpp
- * - Symbols: editor_mode
- * - Ledger: ENU-9DED72
- *
- * Porting notes:
- * - SDL editor runtime state is represented as typed browser/editor data.
+ * Ported from Zod Engine.
+ * Upstream: tile_info_editor.cpp
+ * Symbols: editor_mode
  */
 
 /**
  * Port of upstream `editor_mode`.
- *
- * Role:
- * - Identifies the active tile information editing mode for terrain map,
- *   usability, passability, tank-track, and crater-type metadata.
- *
+ * Role: Identifies the active tile information editing mode for terrain map, usability, passability, tank-track, and crater-type metadata.
  * Ledger: ENU-9DED72
  * Upstream: tile_info_editor.cpp:14-18
  */

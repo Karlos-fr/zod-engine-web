@@ -1,27 +1,15 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: map_editor.cpp
- * - Symbols: display_proper_init
- * - Ledger: FUN-B2CCDC
- *
- * Porting notes:
- * - Console printing is represented as a deterministic help-text builder.
+ * Ported from Zod Engine.
+ * Upstream: map_editor.cpp
+ * Symbols: display_proper_init
  */
 
 /**
  * Port of upstream `display_proper_init`.
- *
- * Role:
- * - Builds the startup usage text shown by the standalone Zod map editor.
- *
+ * Role: Builds the startup usage text shown by the standalone Zod map editor.
  * Ledger: FUN-B2CCDC
  * Upstream: map_editor.cpp:550-565
- *
- * Adaptation:
- * - Returns text instead of writing directly to stdout with `printf`.
- * - Preserves upstream wording, including the `Eample usage` typo.
+ * Adaptation: Returns text instead of writing directly to stdout with `printf`. * - Preserves upstream wording, including the `Eample usage` typo.
  */
 export function displayProperInit(execCommand: string): string {
   return [

@@ -10,7 +10,7 @@ import {
 } from "./ledger.ts";
 import { buildContext } from "./context-builder.ts";
 import { scanUpstream } from "./scan-upstream.ts";
-import { selectNext } from "./task-selector.ts";
+import { selectConstantBatch, selectNext } from "./task-selector.ts";
 import { upstreamSourceRoot } from "./config.ts";
 import { extractRange } from "./symbol-extractor.ts";
 import { resolveDependencies } from "./dependencies.ts";
@@ -38,6 +38,8 @@ function run(commandName = "help", argsList: string[]): void {
       return console.log(buildContext(requiredArg(argsList, 0, "id")));
     case "deps":
       return deps(requiredArg(argsList, 0, "id"));
+    case "batch":
+      return batch(argsList);
     case "inspect-file":
       return inspect(argsList);
     case "next":
@@ -133,6 +135,42 @@ function next(): void {
   }
 }
 
+function batch(argsList: string[]): void {
+  const kind = requiredArg(argsList, 0, "kind");
+  const options = parseOptions(argsList.slice(1));
+  if (kind !== "constants") {
+    throw new Error("batch supports only: constants");
+  }
+
+  const rows = selectConstantBatch(readLedger(), {
+    limit: parseLimit(options.limit),
+    file: options.file,
+    domain: options.domain,
+    getSourceLine,
+  });
+
+  if (!rows.length) {
+    console.log("No batchable constants found.");
+    return;
+  }
+
+  for (const row of rows) {
+    console.log(`${row.id} ${row.decision} ${row.targetDomain} ${row.file} ${row.symbol}`);
+  }
+}
+
+function getSourceLine(row: LedgerRow): string | undefined {
+  const lineNumber = Number(row.lines.split("-")[0]);
+  if (!Number.isInteger(lineNumber) || lineNumber < 1) {
+    return undefined;
+  }
+  const fullPath = path.join(upstreamSourceRoot, row.file);
+  if (!fs.existsSync(fullPath)) {
+    return undefined;
+  }
+  return fs.readFileSync(fullPath, "utf8").split(/\r?\n/)[lineNumber - 1];
+}
+
 function done(argsList: string[]): void {
   const id = requiredArg(argsList, 0, "id");
   const options = parseOptions(argsList.slice(1));
@@ -190,6 +228,17 @@ function parseOptions(argsList: string[]): Record<string, string> {
   return options;
 }
 
+function parseLimit(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const limit = Number(value);
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new Error("--limit must be a positive integer");
+  }
+  return limit;
+}
+
 function countBy(rows: LedgerRow[], getKey: (row: LedgerRow) => string): Map<string, number> {
   const counts = new Map<string, number>();
   for (const row of rows) {
@@ -230,6 +279,9 @@ function help(): void {
   show <id>
   context <id>
   deps <id>
+  batch constants [--limit 10] [--file relative-upstream-file] [--domain value]
+      Propose a homogeneous batch of unblocked one-line constants/macros.
+      Functions, methods, classes, structs and enums remain one-symbol tasks.
   inspect-file <relative-upstream-file>
   next
   start <id>

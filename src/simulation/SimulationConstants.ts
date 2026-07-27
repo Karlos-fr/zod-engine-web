@@ -1,50 +1,22 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: constants.h
- * - Symbols: _CONSTANTS_H_, DEFAULT_MAX_UNITS_PER_TEAM, GAME_VERSION,
- *   LIFE_AFTER_DEATH_TIME, MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
- *   MAX_BOT_BYPASS_SIZE, MAX_BUILDING_LEVELS, MAX_PLAYER_NAME_SIZE,
- *   MAX_STORED_CANNONS, MAX_UNIT_HEALTH,
- *   REGISTRATION_COST, ROAD_SPEED, TAN1, USE_TEAM_COLORS, WATER_SPEED, PI,
- *   VEHICLE_MOVE_ANIM_SPEED, building_type, cannon_type, item_type,
- *   planet_type, player_mode, robot_type, rotation_enum, team_type,
- *   vehicle_type
- * - Ledger: MAC-1287A5, MAC-9E687B, MAC-B78A07, MAC-F05645,
- *   MAC-0CDBBE, MAC-3B5684, MAC-4B1E30, MAC-121301, MAC-BDECE3,
- *   MAC-342124, MAC-7602DF, MAC-8579DB, MAC-9232B4, MAC-D07409,
- *   MAC-DAF679, MAC-A85B9D, MAC-34B895, ENU-6CCCD3, ENU-6A6D22,
- *   ENU-523167, ENU-E6E6A8, ENU-786D8C, ENU-6E67A8, ENU-68E0FB,
- *   ENU-A1AE9F, ENU-E29FE5
- *
- * Porting notes:
- * - C++ enums are preserved as numeric TypeScript enums for data parity.
+ * Ported from Zod Engine.
+ * Upstream: constants.h
+ * Symbols: see entity comments
+ * Ledger: see entity comments
  */
 
 /**
  * Adaptation of upstream `_CONSTANTS_H_`.
- *
- * Role:
- * - Records that the C++ `constants.h` include guard is represented by the
- *   TypeScript module boundary.
- *
+ * Role: Marks the TypeScript module boundary for upstream `constants.h`.
  * Ledger: MAC-1287A5
  * Upstream: constants.h:2
- *
- * Adaptation:
- * - ES modules already prevent repeated declaration; this exported marker keeps
- *   the ledger traceable without runtime behavior.
+ * Adaptation: ES modules already prevent repeated declaration; this exported marker keeps the ledger traceable without runtime behavior.
  */
 export const CONSTANTS_HEADER_GUARD_PORTED = true;
 
 /**
  * Adaptation of upstream `GAME_VERSION`.
- *
- * Role:
- * - Identifies the upstream game data and protocol version carried by this
- *   port.
- *
+ * Role: Identifies the upstream game data and protocol version carried by this port.
  * Ledger: MAC-B78A07
  * Upstream: constants.h:9
  */
@@ -52,11 +24,7 @@ export const GAME_VERSION = "2018-01-14";
 
 /**
  * Adaptation of upstream `MAX_PLAYER_NAME_SIZE`.
- *
- * Role:
- * - Defines the maximum player-name field size accepted by simulation and
- *   network-facing data.
- *
+ * Role: Defines the maximum player-name field size accepted by simulation and network-facing data.
  * Ledger: MAC-F05645
  * Upstream: constants.h:11
  */
@@ -64,11 +32,7 @@ export const MAX_PLAYER_NAME_SIZE = 30;
 
 /**
  * Adaptation of upstream `MAX_STORED_CANNONS`.
- *
- * Role:
- * - Defines how many cannon placements or selections can be stored by
- *   simulation systems.
- *
+ * Role: Defines how many cannon placements or selections can be stored by simulation systems.
  * Ledger: MAC-BDECE3
  * Upstream: constants.h:20
  */
@@ -76,10 +40,7 @@ export const MAX_STORED_CANNONS = 4;
 
 /**
  * Adaptation of upstream `DEFAULT_MAX_UNITS_PER_TEAM`.
- *
- * Role:
- * - Defines the default per-team unit cap used by simulation setup.
- *
+ * Role: Defines the default per-team unit cap used by simulation setup.
  * Ledger: MAC-9E687B
  * Upstream: constants.h:21
  */
@@ -87,10 +48,7 @@ export const DEFAULT_MAX_UNITS_PER_TEAM = 70;
 
 /**
  * Adaptation of upstream `ROAD_SPEED`.
- *
- * Role:
- * - Defines the movement speed factor applied to road traversal.
- *
+ * Role: Defines the movement speed factor applied to road traversal.
  * Ledger: MAC-D07409
  * Upstream: constants.h:23
  */
@@ -98,10 +56,7 @@ export const ROAD_SPEED = 1.689;
 
 /**
  * Adaptation of upstream `WATER_SPEED`.
- *
- * Role:
- * - Defines the movement speed factor applied to water traversal.
- *
+ * Role: Defines the movement speed factor applied to water traversal.
  * Ledger: MAC-A85B9D
  * Upstream: constants.h:24
  */
@@ -109,24 +64,15 @@ export const WATER_SPEED = 0.7;
 
 /**
  * Adaptation of upstream `LIFE_AFTER_DEATH_TIME`.
- *
- * Role:
- * - Defines how long an object remains active after death before removal.
- *
+ * Role: Defines how long an object remains active after death before removal.
  * Ledger: MAC-0CDBBE
  * Upstream: constants.h:28
- *
- * Adaptation:
- * - Adds a seconds suffix to make the implicit upstream time unit explicit.
  */
 export const LIFE_AFTER_DEATH_SECONDS = 0;
 
 /**
  * Adaptation of upstream `MAX_BOT_BYPASS_SIZE`.
- *
- * Role:
- * - Defines the base maximum bot bypass sizing used by bot pathing behavior.
- *
+ * Role: Defines the base maximum bot bypass sizing used by bot pathing behavior.
  * Ledger: MAC-4B1E30
  * Upstream: constants.h:30
  */
@@ -134,10 +80,7 @@ export const MAX_BOT_BYPASS_SIZE = 512;
 
 /**
  * Adaptation of upstream `MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET`.
- *
- * Role:
- * - Defines the maximum random offset added to bot bypass sizing.
- *
+ * Role: Defines the maximum random offset added to bot bypass sizing.
  * Ledger: MAC-3B5684
  * Upstream: constants.h:31
  */
@@ -145,10 +88,7 @@ export const MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET = 64;
 
 /**
  * Adaptation of upstream `MAX_BUILDING_LEVELS`.
- *
- * Role:
- * - Defines how many building upgrade levels the simulation can represent.
- *
+ * Role: Defines how many building upgrade levels the simulation can represent.
  * Ledger: MAC-121301
  * Upstream: constants.h:12
  */
@@ -156,11 +96,7 @@ export const MAX_BUILDING_LEVELS = 6;
 
 /**
  * Adaptation of upstream `MAX_UNIT_HEALTH`.
- *
- * Role:
- * - Defines the maximum health value available to unit-like simulation
- *   objects.
- *
+ * Role: Defines the maximum health value available to unit-like simulation objects.
  * Ledger: MAC-8579DB
  * Upstream: constants.h:42
  */
@@ -168,52 +104,41 @@ export const MAX_UNIT_HEALTH = 10000;
 
 /**
  * Adaptation of upstream `REGISTRATION_COST`.
- *
- * Role:
- * - Defines the cost charged by registration-related simulation behavior.
- *
+ * Role: Defines the cost charged by registration-related simulation behavior.
  * Ledger: MAC-9232B4
  * Upstream: constants.h:33
  */
 export const REGISTRATION_COST = 1;
 
 /**
+ * Adaptation of upstream `MAX_ANGLE_TYPES`.
+ * Role: Defines the number of discrete angle buckets used by rotation-aware simulation objects.
+ * Ledger: MAC-FD108C
+ * Upstream: constants.h:15
+ */
+export const MAX_ANGLE_TYPES = 8;
+
+/**
  * Adaptation of upstream `TAN1`.
- *
- * Role:
- * - Provides the upstream tangent-of-one-radian approximation used by
- *   simulation angle math.
- *
+ * Role: Provides the upstream tangent-of-one-radian approximation used by simulation angle math.
  * Ledger: MAC-DAF679
  * Upstream: constants.h:26
- *
- * Notes:
- * - Preserves the upstream approximation instead of recalculating it at
- *   runtime.
+ * Notes: Preserves the upstream approximation instead of recalculating it at runtime.
  */
 export const TAN1 = 1.55740772;
 
 /**
  * Adaptation of upstream `PI`.
- *
- * Role:
- * - Provides the upstream pi approximation used by simulation angle math.
- *
+ * Role: Provides the upstream pi approximation used by simulation angle math.
  * Ledger: MAC-7602DF
  * Upstream: constants.h:46
- *
- * Notes:
- * - Preserves the upstream approximation instead of replacing it with
- *   `Math.PI`.
+ * Notes: Preserves the upstream approximation instead of replacing it with `Math.PI`.
  */
 export const PI = 3.14159;
 
 /**
  * Adaptation of upstream `VEHICLE_MOVE_ANIM_SPEED`.
- *
- * Role:
- * - Defines the movement animation speed factor for vehicle simulation.
- *
+ * Role: Defines the movement animation speed factor for vehicle simulation.
  * Ledger: MAC-34B895
  * Upstream: constants.h:44
  */
@@ -221,10 +146,7 @@ export const VEHICLE_MOVE_ANIMATION_SPEED = 0.1;
 
 /**
  * Port of upstream `building_type`.
- *
- * Role:
- * - Identifies the building variant used by simulation objects and map data.
- *
+ * Role: Identifies the building variant used by simulation objects and map data.
  * Ledger: ENU-6CCCD3
  * Upstream: constants.h:103-107
  */
@@ -242,10 +164,7 @@ export enum BuildingType {
 
 /**
  * Port of upstream `cannon_type`.
- *
- * Role:
- * - Identifies the cannon variant used by simulation objects and map data.
- *
+ * Role: Identifies the cannon variant used by simulation objects and map data.
  * Ledger: ENU-6A6D22
  * Upstream: constants.h:73-76
  */
@@ -259,16 +178,10 @@ export enum CannonType {
 
 /**
  * Port of upstream `item_type`.
- *
- * Role:
- * - Identifies collectible and map item slots used by simulation gameplay.
- *
+ * Role: Identifies collectible and map item slots used by simulation gameplay.
  * Ledger: ENU-523167
  * Upstream: constants.h:115-123
- *
- * Notes:
- * - Preserves the upstream `MA11_ITEM` spelling as `Ma11` for numeric parity
- *   and traceability.
+ * Notes: Preserves the upstream `MA11_ITEM` spelling as `Ma11` for numeric parity and traceability.
  */
 export enum ItemType {
   Flag = 0,
@@ -303,16 +216,9 @@ export enum ItemType {
 
 /**
  * Port of upstream `player_mode`.
- *
- * Role:
- * - Identifies whether a participant is absent, a human player, a bot, a
- *   spectator, or the system tray client.
- *
+ * Role: Identifies whether a participant is absent, a human player, a bot, a spectator, or the system tray client.
  * Ledger: ENU-786D8C
  * Upstream: constants.h:173-176
- *
- * Notes:
- * - Named `PlayerConnectionMode` to distinguish it from entity/object modes.
  */
 export enum PlayerConnectionMode {
   Nobody = 0,
@@ -325,10 +231,7 @@ export enum PlayerConnectionMode {
 
 /**
  * Port of upstream `planet_type`.
- *
- * Role:
- * - Identifies the terrain tileset and planet theme used by maps.
- *
+ * Role: Identifies the terrain tileset and planet theme used by maps.
  * Ledger: ENU-E6E6A8
  * Upstream: constants.h:48-51
  */
@@ -343,11 +246,7 @@ export enum PlanetType {
 
 /**
  * Port of upstream `rotation_enum`.
- *
- * Role:
- * - Identifies the eight cardinal and diagonal sprite rotations used by
- *   simulation objects.
- *
+ * Role: Identifies the eight cardinal and diagonal sprite rotations used by simulation objects.
  * Ledger: ENU-68E0FB
  * Upstream: constants.h:200-203
  */
@@ -364,10 +263,7 @@ export enum Rotation {
 
 /**
  * Port of upstream `robot_type`.
- *
- * Role:
- * - Identifies the robot variant used by simulation objects and map data.
- *
+ * Role: Identifies the robot variant used by simulation objects and map data.
  * Ledger: ENU-6E67A8
  * Upstream: constants.h:58-61
  */
@@ -383,17 +279,10 @@ export enum RobotType {
 
 /**
  * Port of upstream `team_type`.
- *
- * Role:
- * - Identifies the owning team for players, bots, objects, and packets.
- *
+ * Role: Identifies the owning team for players, bots, objects, and packets.
  * Ledger: ENU-A1AE9F
  * Upstream: constants.h:133-163
- *
- * Adaptation:
- * - Unifies the upstream `ONLY_TWO_TEAMS`, default, and `USE_TEAM_COLORS`
- *   preprocessor variants into one enum while preserving each variant's
- *   `MAX_TEAM_TYPES` sentinel.
+ * Adaptation: Unifies the upstream `ONLY_TWO_TEAMS`, default, and `USE_TEAM_COLORS` preprocessor variants into one enum while preserving each variant's `MAX_TEAM_TYPES` sentinel.
  */
 export enum TeamType {
   Null = 0,
@@ -409,16 +298,9 @@ export enum TeamType {
 
 /**
  * Adaptation of upstream `MAX_TEAM_TYPES` conditional enum sentinels.
- *
- * Role:
- * - Records how many team values exist under each upstream `team_type`
- *   preprocessor branch.
- *
+ * Role: Records how many team values exist under each upstream `team_type` preprocessor branch.
  * Ledger: ENU-A1AE9F
  * Upstream: constants.h:133-163
- *
- * Adaptation:
- * - Split from the enum to avoid duplicate numeric enum members in TypeScript.
  */
 export const TEAM_TYPE_MAX_COUNTS = {
   onlyTwoTeams: 3,
@@ -428,38 +310,23 @@ export const TEAM_TYPE_MAX_COUNTS = {
 
 /**
  * Adaptation of upstream `USE_TEAM_COLORS`.
- *
- * Role:
- * - Selects the extended colored-team branch of upstream team configuration.
- *
+ * Role: Selects the extended colored-team branch of upstream team configuration.
  * Ledger: MAC-342124
  * Upstream: constants.h:36
- *
- * Adaptation:
- * - Replaces the C preprocessor flag with an explicit runtime-visible constant.
  */
 export const USE_TEAM_COLORS = true;
 
 /**
  * Adaptation of upstream active `MAX_TEAM_TYPES`.
- *
- * Role:
- * - Defines the active number of teams for the web simulation build.
- *
+ * Role: Defines the active number of teams for the web simulation build.
  * Ledger: MAC-342124
  * Upstream: constants.h:36, constants.h:145-149
- *
- * Adaptation:
- * - Uses the `USE_TEAM_COLORS` branch because the upstream macro is defined.
  */
 export const ACTIVE_TEAM_TYPE_COUNT = TEAM_TYPE_MAX_COUNTS.teamColors;
 
 /**
  * Port of upstream `vehicle_type`.
- *
- * Role:
- * - Identifies the vehicle variant used by simulation objects and map data.
- *
+ * Role: Identifies the vehicle variant used by simulation objects and map data.
  * Ledger: ENU-E29FE5
  * Upstream: constants.h:88-91
  */

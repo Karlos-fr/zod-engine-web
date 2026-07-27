@@ -1,34 +1,18 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: zobject.h
- * - Symbols: _ZOBJECT_H_, GetLastSetAIBuildTime, SetLastSetAIBuildTime,
- *   GetInitialHealthPercent, GetCords, GetAttackRadius, SetJustLeftCannon,
- *   GetDimensionsPixel
- * - Ledger: FUN-242A7B, FUN-3A4749, FUN-764999, FUN-7DC476,
- *   FUN-A5B907, FUN-F14D8F, FUN-F15DA4, MAC-3FA769
- *
- * Porting notes:
- * - The C++ header guard is represented by native ES module scoping.
- * - C++ getter output references are represented with copied value objects.
+ * Ported from Zod Engine.
+ * Upstream: zobject.h
+ * Symbols: see entity comments
+ * Ledger: see entity comments
  */
 
 import type { Vector2 } from "../../world/Vector2";
 
 /**
  * Browser simulation entity containing the subset of `ZObject` behavior already ported.
- *
- * Role:
- * - Owns mutable runtime state for an object in the simulation world.
- *
- * Ledger: FUN-242A7B, FUN-3A4749, FUN-764999, FUN-7DC476, FUN-A5B907,
- *   FUN-F14D8F, FUN-F15DA4, MAC-3FA769
+ * Role: Owns mutable runtime state for an object in the simulation world.
+ * Ledger: see accessor entity comments and PORTING_LEDGER.md
  * Upstream: zobject.h
- *
- * Notes:
- * - This is not a full `ZObject` port yet; it gathers the accessor symbols
- *   currently represented in the browser simulation.
+ * Notes: Partial `ZObject` representation for browser simulation.
  */
 export class GameEntity {
   readonly id: string;

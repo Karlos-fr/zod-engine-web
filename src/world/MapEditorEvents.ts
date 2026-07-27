@@ -1,28 +1,14 @@
 /**
- * Ported from Zod Engine upstream.
- *
- * Upstream:
- * - File: map_editor.cpp
- * - Symbols: map_event
- * - Ledger: STR-12C865
- *
- * Porting notes:
- * - The C++ editor event record is modeled as typed data for browser-side map
- *   editing workflows.
+ * Ported from Zod Engine.
+ * Upstream: map_editor.cpp
+ * Symbols: map_event
  */
 
 /**
  * Port of upstream `map_event`.
- *
- * Role:
- * - Stores one map editor operation with its mode, tile rectangle, palette
- *   tile values, object metadata, and reference id.
- *
+ * Role: Stores one map editor operation with its mode, tile rectangle, palette tile values, object metadata, and reference id.
  * Ledger: STR-12C865
  * Upstream: map_editor.cpp:90-103
- *
- * Adaptation:
- * - Renames C++ fields to descriptive camelCase names.
  */
 export type MapEditorEvent = {
   /** Upstream `mode`: editor operation mode that produced the event. */

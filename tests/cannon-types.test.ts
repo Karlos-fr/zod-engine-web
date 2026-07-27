@@ -12,6 +12,7 @@ import {
   HOWITZER_CANNON_UNIT_Y_PIXELS,
   MISSILE_CANNON_UNIT_X_PIXELS,
   MISSILE_CANNON_UNIT_Y_PIXELS,
+  ZCANNON_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/CannonTypes";
 
 describe("cannon types", () => {
@@ -52,6 +53,16 @@ describe("cannon types", () => {
     expect(CMISSILECANNON_HEADER_GUARD_PORTED).toBe(true);
     expect(secondImport.CMISSILECANNON_HEADER_GUARD_PORTED).toBe(
       firstImport.CMISSILECANNON_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("adapts the zcannon header guard to module boundaries", async () => {
+    const firstImport = await import("../src/simulation/entities/CannonTypes");
+    const secondImport = await import("../src/simulation/entities/CannonTypes");
+
+    expect(ZCANNON_HEADER_GUARD_PORTED).toBe(true);
+    expect(secondImport.ZCANNON_HEADER_GUARD_PORTED).toBe(
+      firstImport.ZCANNON_HEADER_GUARD_PORTED,
     );
   });
 
