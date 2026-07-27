@@ -84,6 +84,70 @@ Le portage se fait strictement **un symbole à la fois**.
 Le champ `Lot` du référentiel est seulement un indicateur de tri. Il ne donne
 jamais l'autorisation de porter plusieurs symboles dans une même tâche.
 
+## Norme de commentaires de portage
+
+Chaque fichier contenant du code porté doit commencer par un en-tête indiquant
+l'origine upstream, les symboles concernés et les adaptations principales.
+
+```ts
+/**
+ * Ported from Zod Engine upstream.
+ *
+ * Upstream:
+ * - File: zmap.h / zmap.cpp
+ * - Symbols: ZMap, map_tile
+ * - Ledger: CLS-XXXXXX, STR-XXXXXX
+ *
+ * Porting notes:
+ * - SDL/OpenGL dependencies removed.
+ * - Runtime behavior preserved where relevant to browser simulation.
+ */
+```
+
+Chaque entité portée doit aussi avoir son propre en-tête : classe, structure,
+type, interface, enum, fonction, méthode, constante, macro adaptée ou variable
+globale. Le rôle fonctionnel est obligatoire.
+
+Format minimal :
+
+```ts
+/**
+ * Port of upstream `<symbol>`.
+ *
+ * Role:
+ * - <short description of the entity and its responsibility in the game>
+ *
+ * Ledger: <ID>
+ * Upstream: <file>:<lines>
+ */
+```
+
+Ajouter une section `Notes` ou `Adaptation` dès qu'il y a renommage, changement
+de type, suppression de dépendance native ou comportement volontairement
+différent.
+
+```ts
+/**
+ * Port of upstream `pf_point`.
+ *
+ * Role:
+ * - Represents a tile-space coordinate used by the A* pathfinding queue.
+ *
+ * Ledger: CLS-XXXXXX
+ * Upstream: zpath_finding_astar.h:18-27
+ *
+ * Notes:
+ * - Ported as immutable coordinate data.
+ */
+export type PathfindingPoint = {
+  x: number;
+  y: number;
+};
+```
+
+Les commentaires en ligne sont réservés aux écarts importants avec l'upstream ou
+aux points de parité comportementale. Ils ne doivent pas paraphraser le code.
+
 ## Référentiel de portage
 
 Le fichier principal est :
