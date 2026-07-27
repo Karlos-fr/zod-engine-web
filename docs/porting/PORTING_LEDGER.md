@@ -5,13 +5,13 @@ symbole upstream ou une décision explicite de portage.
 
 ## Statistiques
 
-Avancement du portage : 79/2913 (2.71%).
+Avancement du portage : 120/2913 (4.12%).
 
 | Statut | Nombre | Pourcentage |
 |---|---:|---:|
 | ignored | 1 | 0.03% |
-| ported | 79 | 2.71% |
-| todo | 2833 | 97.25% |
+| ported | 120 | 4.12% |
+| todo | 2792 | 95.85% |
 | total | 2913 | 100.00% |
 
 | ID | Type | Symbole | Fichier | Lignes | Décision | Domaine cible | Statut | Lot | Cible TS | Notes | Depends On | Blocked By |
@@ -243,9 +243,9 @@ Avancement du portage : 79/2913 (2.71%).
 | CON-126B41 | constant | `port_y` | zhud.cpp | 327-327 | PORTER | ui | todo |  |  |  |  |  |
 | CON-1329A3 | constant | `bulb_y` | brepair.cpp | 213-213 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-15FF90 | constant | `max_left` | edeathsparks.cpp | 12-12 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-16143C | constant | `hook_time_int` | vcrane.cpp | 6-6 | PORTER | simulation | todo | vehicle-basic |  |  |  |  |
+| CON-16143C | constant | `hook_time_int` | vcrane.cpp | 6-6 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vcrane hook_time_int as CRANE_HOOK_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-169286 | constant | `max_units_in_type` | zobject.cpp | 496-496 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported max_units_in_type as MAX_UNITS_PER_TYPE. |  |  |
-| CON-170FAF | constant | `turrent_time_int` | vapc.cpp | 5-5 | PORTER | simulation | todo | vehicle-basic |  |  |  |  |
+| CON-170FAF | constant | `turrent_time_int` | vapc.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vapc turrent_time_int as APC_TURRET_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-177CE6 | constant | `exhaust_x` | bvehicle.cpp | 232-232 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-18C48E | constant | `glvl` | zobject.cpp | 1122-1122 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused the shared GLVL constant for the second identical local declaration. |  |  |
 | CON-18C48E | constant | `glvl` | zobject.cpp | 1370-1370 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused the shared GLVL constant for the second identical local declaration. |  |  |
@@ -287,7 +287,7 @@ Avancement du portage : 79/2913 (2.71%).
 | CON-3C2846 | constant | `smoke_stack_x` | brepair.cpp | 214-214 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-3CBE11 | constant | `spin_x` | brobot.cpp | 217-217 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-3EA12F | constant | `lasting_time` | zplayer.cpp | 600-600 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-3EF127 | constant | `the_len` | zsdl.cpp | 183-183 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| CON-3EF127 | constant | `the_len` | zsdl.cpp | 183-183 | REPLACE | rendering | ported | rendering-basic | src/rendering/SelectionBoxRendering.ts | Replaced draw_selection_box the_len with a named TypeScript selection-box corner length constant. |  |  |
 | CON-3FE461 | constant | `side_light_x` | brepair.cpp | 210-210 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-400452 | constant | `max_down` | edeathsparks.cpp | 11-11 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-41D8B4 | constant | `button_h` | gwproduction.cpp | 190-190 | PORTER | simulation | todo |  |  |  |  |  |
@@ -398,7 +398,7 @@ Avancement du portage : 79/2913 (2.71%).
 | CON-DBE040 | constant | `buf_size` | zsettings.cpp | 404-404 | PORTER | data | todo |  |  |  |  |  |
 | CON-DC32BD | constant | `fort_heat_tile_dist` | zgun_placement_heatmap.cpp | 565-565 | PORTER | world | todo |  |  |  |  |  |
 | CON-DC3B3A | constant | `tank_y` | bvehicle.cpp | 227-227 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-DC7963 | constant | `time_inc` | cursor.cpp | 206-206 | PORTER | input | todo | selection-orders |  |  |  |  |
+| CON-DC7963 | constant | `time_inc` | cursor.cpp | 206-206 | PORTER | input | ported | selection-orders | src/input/CursorTiming.ts | Ported cursor Process time_inc as CURSOR_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-DE02B1 | constant | `smoke_stack_y` | brepair.cpp | 215-215 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-DF4F42 | constant | `cone_dist_from_entrace` | ecraneconco.cpp | 93-93 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-E23243 | constant | `level_x` | brobot.cpp | 225-225 | PORTER | simulation | todo |  |  |  |  |  |
@@ -411,7 +411,7 @@ Avancement du portage : 79/2913 (2.71%).
 | CON-EB611A | constant | `clicks_per_second` | gmmw_list.cpp | 70-70 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-EBA752 | constant | `box_spinner_y` | bradar.cpp | 199-199 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-ECB893 | constant | `max_dist` | zhud.cpp | 1013-1013 | PORTER | ui | todo |  |  |  |  |  |
-| CON-ECF527 | constant | `padding` | zsdl.cpp | 182-182 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| CON-ECF527 | constant | `padding` | zsdl.cpp | 182-182 | REPLACE | rendering | ported | rendering-basic | src/rendering/SelectionBoxRendering.ts | Replaced draw_selection_box padding with a named TypeScript selection-box padding constant. |  |  |
 | CON-F0AC7E | constant | `y_plus` | brepair.cpp | 240-240 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F0AC7E | constant | `y_plus` | brepair.cpp | 358-358 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F1F093 | constant | `min_interval_time` | bvehicle.cpp | 139-139 | PORTER | simulation | todo |  |  |  |  |  |
@@ -422,7 +422,7 @@ Avancement du portage : 79/2913 (2.71%).
 | CON-F8A190 | constant | `x_plus` | bvehicle.cpp | 361-361 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F8EF0D | constant | `text_box_y` | brepair.cpp | 217-217 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F94FC5 | constant | `y_int` | zplayer.cpp | 2068-2068 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-FC26A8 | constant | `turrent_time_int` | vcrane.cpp | 5-5 | PORTER | simulation | todo | vehicle-basic |  |  |  |  |
+| CON-FC26A8 | constant | `turrent_time_int` | vcrane.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vcrane turrent_time_int as CRANE_TURRET_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-FC9E8D | constant | `lights_y` | bvehicle.cpp | 231-231 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-FEF53C | constant | `bulb_y` | bvehicle.cpp | 225-225 | PORTER | simulation | todo |  |  |  |  |  |
 | ENU-021003 | enum | `menu_type` | zgui_main_menu_base.h | 24-30 | PORTER | ui | todo |  |  |  |  |  |
@@ -466,7 +466,7 @@ Avancement du portage : 79/2913 (2.71%).
 | ENU-A4B8CB | enum | `map_editor_mode` | map_editor.cpp | 71-77 | PORTER | world | todo |  |  |  |  |  |
 | ENU-A5B4CE | enum | `crane_repair_wp_stage` | zobject.h | 84-87 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityTypes.ts | Ported crane_repair_wp_stage as numeric CraneRepairWaypointStage. |  |  |
 | ENU-A79789 | enum | `hud_button_state` | zhud.h | 25-28 | PORTER | ui | todo |  |  |  |  |  |
-| ENU-ACA136 | enum | `sound_setting` | zsdl.h | 15-18 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| ENU-ACA136 | enum | `sound_setting` | zsdl.h | 15-18 | REPLACE | rendering | ported | rendering-basic | src/audio/AudioService.ts | Replaced sound_setting with the SoundSetting TypeScript enum. |  |  |
 | ENU-B8605B | enum | `music_danger_level` | zmusic_engine.h | 13-16 | PORTER | audio | todo |  |  |  |  |  |
 | ENU-C03D91 | enum | `mmlabel_justify_type` | zgui_main_menu_widgets.h | 143-146 | PORTER | ui | todo |  |  |  |  |  |
 | ENU-C635D4 | enum | `gui_button_state` | zgui_window.h | 71-74 | IGNORE | ui | todo |  |  |  |  |  |
@@ -513,7 +513,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-0E8FEC | function | `Process` | zgun_placement_heatmap.h | 22-22 | PORTER | world | todo |  |  |  | CLS-4E258C,CLS-8A9BED,CLS-CEE35A,CLS-D332A4,FUN-901A45,MET-01F522,MET-0608EB,MET-069783,MET-06A08F,MET-0BA58B,MET-0DEE18,MET-1C21E9,MET-20417A,MET-23BE6C,MET-277BD2,MET-27DD7E,MET-2B473B,MET-2C98C9,MET-30B11B,MET-31F663,MET-3229CD,MET-34F344,MET-361166,MET-39A4A8,MET-3A7D87,MET-3B2BC5,MET-3B32FE,MET-3B4B31,MET-3E4DE4,MET-3E8C65,MET-40EA2B,MET-40F181,MET-45C0A2,MET-57FD1A,MET-58B61F,MET-59EED0,MET-5ED9C5,MET-5FC4BC,MET-60EDEC,MET-62BF6C,MET-630F86,MET-64D1B1,MET-693727,MET-6C3550,MET-6CE263,MET-6CE2E8,MET-7397EC,MET-755E8A,MET-7CE160,MET-7D2B20,MET-7DBD87,MET-805F09,MET-84DC60,MET-85FECC,MET-8A24BA,MET-8B4558,MET-944915,MET-997826,MET-9DB387,MET-9F44CA,MET-A1A118,MET-A5B3C4,MET-A79557,MET-AD5FB8,MET-ADC013,MET-AF40EE,MET-B14559,MET-B16384,MET-B324C9,MET-B35173,MET-C0DA7B,MET-C186F8,MET-C74214,MET-CAD4BF,MET-CCA549,MET-D09BD8,MET-D14E47,MET-D21A9D,MET-D351CD,MET-D43501,MET-D5CED4,MET-D62073,MET-DC204A,MET-DC5C62,MET-E21797,MET-E425B8,MET-EA1514,MET-EED0D0,MET-F0B416,MET-F15843,MET-F1ECBA,MET-F202B7,MET-F6CD3E | CLS-4E258C,CLS-8A9BED,CLS-CEE35A,CLS-D332A4,FUN-901A45,MET-01F522,MET-0608EB,MET-069783,MET-06A08F,MET-0BA58B,MET-0DEE18,MET-1C21E9,MET-20417A,MET-23BE6C,MET-277BD2,MET-27DD7E,MET-2B473B,MET-2C98C9,MET-30B11B,MET-31F663,MET-3229CD,MET-34F344,MET-361166,MET-39A4A8,MET-3A7D87,MET-3B2BC5,MET-3B32FE,MET-3B4B31,MET-3E4DE4,MET-3E8C65,MET-40EA2B,MET-40F181,MET-45C0A2,MET-57FD1A,MET-58B61F,MET-59EED0,MET-5ED9C5,MET-5FC4BC,MET-60EDEC,MET-62BF6C,MET-630F86,MET-64D1B1,MET-693727,MET-6C3550,MET-6CE263,MET-6CE2E8,MET-7397EC,MET-755E8A,MET-7CE160,MET-7D2B20,MET-7DBD87,MET-805F09,MET-84DC60,MET-85FECC,MET-8A24BA,MET-8B4558,MET-944915,MET-997826,MET-9DB387,MET-9F44CA,MET-A1A118,MET-A5B3C4,MET-A79557,MET-AD5FB8,MET-ADC013,MET-AF40EE,MET-B14559,MET-B16384,MET-B324C9,MET-B35173,MET-C0DA7B,MET-C186F8,MET-C74214,MET-CAD4BF,MET-CCA549,MET-D09BD8,MET-D14E47,MET-D21A9D,MET-D351CD,MET-D43501,MET-D5CED4,MET-D62073,MET-DC204A,MET-DC5C62,MET-E21797,MET-E425B8,MET-EA1514,MET-EED0D0,MET-F0B416,MET-F15843,MET-F1ECBA,MET-F202B7,MET-F6CD3E |
 | FUN-0F5B60 | function | `SetIsOnlySelector` | gwproduction.h | 128-128 | PORTER | simulation | todo |  |  |  |  |  |
 | FUN-0FF08B | function | `SetUnitSelectorRefID` | gwproduction.h | 51-51 | PORTER | simulation | todo |  |  |  |  |  |
-| FUN-103D30 | function | `InitOpenGL` | zsdl_opengl.cpp | 8-28 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-103D30 | function | `InitOpenGL` | zsdl_opengl.cpp | 8-28 | REPLACE | rendering | ported | rendering-basic | src/rendering/OpenGLInitialization.ts | Replaced InitOpenGL with renderer-local Three.js initialization defaults used by ThreeRenderer. |  |  |
 | FUN-104707 | function | `SetGoodCharsOnly` | zgui_main_menu_widgets.h | 354-354 | PORTER | ui | todo |  |  |  |  |  |
 | FUN-10B8D4 | function | `ShowDamaged` | zobject.h | 553-553 | PORTER | simulation | todo | entity-core |  |  | MET-1A5A85 | MET-1A5A85 |
 | FUN-11911B | function | `draw_palette` | map_editor.cpp | 1756-1767 | PORTER | world | todo |  |  |  | CLS-4E258C,CLS-8A9BED,ENU-E6E6A8,FUN-4C4F97,FUN-D70AAA,FUN-EB6333,MET-61726B | CLS-4E258C,CLS-8A9BED,ENU-E6E6A8,FUN-4C4F97,FUN-D70AAA,FUN-EB6333,MET-61726B |
@@ -521,7 +521,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-125A52 | function | `GetSelected` | gwproduction.h | 54-54 | PORTER | simulation | todo |  |  |  | FUN-7BA606 | FUN-7BA606 |
 | FUN-1289C4 | function | `CreateBuildingQueueData` | zobject.h | 523-523 | PORTER | simulation | todo | entity-core |  |  | MET-C6FAE2 | MET-C6FAE2 |
 | FUN-1317DB | function | `SetDamageMissileList` | zobject.h | 298-298 | PORTER | simulation | todo | entity-core |  |  | CLS-348D65 | CLS-348D65 |
-| FUN-1371A6 | function | `ZSDL_FreeSurface` | zsdl.cpp | 749-756 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-1371A6 | function | `ZSDL_FreeSurface` | zsdl.cpp | 749-756 | REPLACE | rendering | ported | rendering-basic | src/rendering/SurfaceLifecycle.ts | Replaced ZSDL_FreeSurface with a nullable surface reference helper that disposes and clears current. |  |  |
 | FUN-14BA32 | function | `IsActive` | zgui_main_menu_widgets.h | 52-52 | PORTER | ui | todo |  |  |  | FUN-405AC1,MET-8679C9,MET-C3AB7D | FUN-405AC1,MET-8679C9,MET-C3AB7D |
 | FUN-153E7E | function | `GetOwner` | zobject.h | 304-304 | PORTER | simulation | todo | entity-core |  |  | ENU-A1AE9F | ENU-A1AE9F |
 | FUN-16EC2A | function | `SetCoords` | zgui_main_menu_widgets.h | 60-60 | PORTER | ui | todo |  |  |  | FUN-410AC9,MET-5386DE,MET-740117,MET-DC8792 | FUN-410AC9,MET-5386DE,MET-740117,MET-DC8792 |
@@ -576,7 +576,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-35962E | function | `display_tile_info_map` | tile_info_editor.cpp | 392-415 | PORTER | world | todo |  |  |  | CLS-4E258C,CLS-8A9BED,CLS-A062FC,ENU-E6E6A8,FUN-27D16D,FUN-575845,STR-981FBC | CLS-4E258C,CLS-8A9BED,CLS-A062FC,ENU-E6E6A8,FUN-27D16D,FUN-575845 |
 | FUN-35CEF6 | function | `draw_map_ruler` | map_editor.cpp | 1775-1886 | PORTER | world | todo |  |  |  | FUN-27D16D,FUN-575845,MAC-0A4EFD,MET-1DC059,MET-C1E41B | FUN-27D16D,FUN-575845,MAC-0A4EFD,MET-1DC059,MET-C1E41B |
 | FUN-361804 | function | `do_undo` | map_editor.cpp | 977-989 | PORTER | world | todo |  |  |  | FUN-351F82,FUN-4398CF,FUN-D8858E,MET-787F50,MET-FB1B7E,STR-12C865 | FUN-351F82,FUN-4398CF,FUN-D8858E,MET-787F50,MET-FB1B7E,STR-12C865 |
-| FUN-365BFD | function | `ResetOpenGLViewPort` | zsdl_opengl.cpp | 30-43 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-365BFD | function | `ResetOpenGLViewPort` | zsdl_opengl.cpp | 30-43 | REPLACE | rendering | ported | rendering-basic | src/rendering/OpenGLInitialization.ts | Replaced ResetOpenGLViewPort with WebGLRenderer viewport sizing used by ThreeRenderer resize. |  |  |
 | FUN-3667DC | function | `point_distance_from_line` | common.cpp | 186-201 | PORTER | simulation | todo |  |  |  |  |  |
 | FUN-370236 | function | `split` | common.cpp | 93-124 | PORTER | simulation | todo |  |  |  |  |  |
 | FUN-377B75 | function | `GetWidgetType` | zgui_main_menu_widgets.h | 54-54 | PORTER | ui | todo |  |  |  |  |  |
@@ -610,7 +610,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-4429C1 | function | `transformSurfaceRGBA` | SDL_rotozoom.cpp | 502-598 | REPLACE | rendering | todo | rendering-basic |  |  | CON-2330D6 | CON-2330D6 |
 | FUN-446F04 | function | `tile_ok` | zpath_finding_astar.cpp | 98-157 | PORTER | world | todo | navigation-basic |  |  | CLS-6AC321,CLS-B8FA8A,STR-AA96D0,STR-BD17E8 | CLS-6AC321,CLS-B8FA8A,STR-AA96D0 |
 | FUN-450DB4 | function | `SpeedOffsetPercentInv` | zobject.h | 480-480 | PORTER | simulation | todo | entity-core |  |  | MET-E8AE6D | MET-E8AE6D |
-| FUN-480910 | function | `ZSDL_SetMusicOn` | zsdl.cpp | 406-409 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-480910 | function | `ZSDL_SetMusicOn` | zsdl.cpp | 406-409 | REPLACE | rendering | ported | rendering-basic | src/audio/AudioService.ts | Replaced ZSDL_SetMusicOn with AudioService music enablement state. |  |  |
 | FUN-4816D3 | function | `SetZTime` | gwproduction.h | 44-44 | PORTER | simulation | todo |  |  |  | CLS-00B628,FUN-6126EA,FUN-928E05,MET-CEBD78,MET-D7DDCF | CLS-00B628,FUN-6126EA,FUN-928E05,MET-CEBD78,MET-D7DDCF |
 | FUN-4816D3 | function | `SetZTime` | gwproduction.h | 121-121 | PORTER | simulation | todo |  |  |  | CLS-00B628,FUN-6126EA,FUN-928E05,MET-CEBD78,MET-D7DDCF | CLS-00B628,FUN-6126EA,FUN-928E05,MET-CEBD78,MET-D7DDCF |
 | FUN-485613 | function | `VoteInProgress` | zvote.h | 35-35 | PORTER | simulation | todo |  |  |  |  |  |
@@ -634,7 +634,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-5737B0 | function | `ZSDL_BlitHitSurface` | zsdl.cpp | 573-659 | REPLACE | rendering | todo | rendering-basic |  |  | FUN-DFC842,MET-DF5AF5 | FUN-DFC842,MET-DF5AF5 |
 | FUN-575845 | function | `blit_message` | tile_info_editor.cpp | 487-504 | PORTER | world | todo |  |  |  | FUN-27D16D | FUN-27D16D |
 | FUN-5768C1 | function | `run_bot_thread` | main.cpp | 123-140 | PORTER | simulation | todo |  |  |  | CLS-33F9B5,ENU-A1AE9F,MET-2913A0,MET-5833C7,MET-60B02D,MET-6794CF,MET-90B553,MET-9ACA42,MET-B39942,MET-BC6A3C,MET-C6487C,MET-CBB51D,MET-DCF6BF,MET-E941CE,MET-F53B59,MET-FFC664 | CLS-33F9B5,ENU-A1AE9F,MET-2913A0,MET-5833C7,MET-60B02D,MET-6794CF,MET-90B553,MET-9ACA42,MET-B39942,MET-BC6A3C,MET-C6487C,MET-CBB51D,MET-DCF6BF,MET-E941CE,MET-F53B59,MET-FFC664 |
-| FUN-5843FA | function | `ZSDL_Quit` | zsdl.cpp | 758-762 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-5843FA | function | `ZSDL_Quit` | zsdl.cpp | 758-762 | REPLACE | rendering | ported | rendering-basic | src/app/ZsdlLifecycle.ts | Replaced ZSDL_Quit with ordered browser lifecycle shutdown hooks. |  |  |
 | FUN-58B033 | function | `CanHaveGrenades` | zrobot.h | 17-17 | PORTER | simulation | todo | robot-basic |  |  | FUN-2105EA,FUN-4351B0 | FUN-2105EA,FUN-4351B0 |
 | FUN-597A74 | function | `place_object` | map_editor.cpp | 2565-2579 | PORTER | world | todo |  |  |  | CLS-04F10C,FUN-A5739D,FUN-B91D24,MET-580739,MET-9D30B6,STR-0F5E6C | CLS-04F10C,FUN-A5739D,FUN-B91D24,MET-580739,MET-9D30B6 |
 | FUN-5AFC37 | function | `ctrl_down` | map_editor.cpp | 231-231 | PORTER | world | todo |  |  |  |  |  |
@@ -668,7 +668,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-714970 | function | `draw_box` | zsdl.cpp | 337-404 | REPLACE | rendering | todo | rendering-basic |  |  | FUN-9356C2,FUN-DFC842,MET-DF5AF5 | FUN-9356C2,FUN-DFC842,MET-DF5AF5 |
 | FUN-717C6B | function | `update_callback` | win_tray.cpp | 136-151 | IGNORE | simulation | todo |  |  |  | CLS-49662D,CLS-A062FC | CLS-49662D,CLS-A062FC |
 | FUN-719E82 | function | `ToggleActive` | zgui_main_menu_widgets.h | 51-51 | PORTER | ui | todo |  |  |  |  |  |
-| FUN-721511 | function | `ZSDL_PlayMusic` | zsdl.cpp | 411-417 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-721511 | function | `ZSDL_PlayMusic` | zsdl.cpp | 411-417 | REPLACE | rendering | ported | rendering-basic | src/audio/AudioService.ts | Replaced ZSDL_PlayMusic with guarded AudioService music playback delegation. |  |  |
 | FUN-72F8C3 | function | `uni_pause` | common.cpp | 159-166 | PORTER | simulation | todo |  |  |  |  |  |
 | FUN-764999 | function | `GetInitialHealthPercent` | zobject.h | 433-433 | PORTER | simulation | ported | entity-core | src/simulation/entities/GameEntity.ts | Ported GetInitialHealthPercent as GameEntity.getInitialHealthPercent. |  |  |
 | FUN-773911 | function | `Init` | zolists.h | 15-15 | PORTER | simulation | todo |  |  |  | CLS-42FA24,CLS-49AC56,CLS-A7314F,CLS-B5DD9B,CLS-BBD7E7,CLS-DE1D99,FUN-09E052,MET-028CA0,MET-02F7F8,MET-03A837,MET-04DDDE,MET-062407,MET-0F43DF,MET-0F9EF0,MET-117986,MET-11A149,MET-13B979,MET-146AD5,MET-1DB757,MET-22C49F,MET-23655C,MET-23C017,MET-26E31B,MET-28A88E,MET-2C278A,MET-2C8764,MET-2D2FC5,MET-31DA1C,MET-35FF85,MET-3A0FBF,MET-3E8E9E,MET-411585,MET-480968,MET-4870EF,MET-48A458,MET-49F8CF,MET-4B07E9,MET-4B5327,MET-4C18D9,MET-4CEDB0,MET-4D6E3E,MET-4FD828,MET-537D85,MET-5B45AD,MET-5BF569,MET-5F8C00,MET-5FB094,MET-643F1C,MET-65B746,MET-67D4CE,MET-698BD3,MET-7001D2,MET-733F31,MET-748B4F,MET-75EA35,MET-77BE52,MET-78207F,MET-7D28B1,MET-7EA6B8,MET-819681,MET-8203C1,MET-83F8E1,MET-90AF0E,MET-95D7DA,MET-9E88B5,MET-A108F8,MET-A4B22B,MET-A8260F,MET-A8A39E,MET-AA8D8F,MET-AE3652,MET-B68B23,MET-B8B693,MET-BB53AC,MET-BC925A,MET-BFA4BC,MET-C0A680,MET-C3148B,MET-C3AA4D,MET-C8DD00,MET-C93093,MET-C9B293,MET-CA597D,MET-CDA5FE,MET-CE0770,MET-D52A34,MET-D787EE,MET-D8B6F5,MET-DE482E,MET-E0DD29,MET-E53F82,MET-E87929,MET-EA0D02,MET-EAAF8B,MET-EBCE5F,MET-ED479A,MET-F03EBE,MET-F3F397,MET-F4268C,MET-F58B79,MET-F6C262,MET-F81364,MET-F835C4,MET-FA0C15 | CLS-42FA24,CLS-49AC56,CLS-A7314F,CLS-B5DD9B,CLS-BBD7E7,CLS-DE1D99,FUN-09E052,MET-028CA0,MET-02F7F8,MET-03A837,MET-04DDDE,MET-062407,MET-0F43DF,MET-0F9EF0,MET-117986,MET-11A149,MET-13B979,MET-146AD5,MET-1DB757,MET-22C49F,MET-23655C,MET-23C017,MET-26E31B,MET-28A88E,MET-2C278A,MET-2C8764,MET-2D2FC5,MET-31DA1C,MET-35FF85,MET-3A0FBF,MET-3E8E9E,MET-411585,MET-480968,MET-4870EF,MET-48A458,MET-49F8CF,MET-4B07E9,MET-4B5327,MET-4C18D9,MET-4CEDB0,MET-4D6E3E,MET-4FD828,MET-537D85,MET-5B45AD,MET-5BF569,MET-5F8C00,MET-5FB094,MET-643F1C,MET-65B746,MET-67D4CE,MET-698BD3,MET-7001D2,MET-733F31,MET-748B4F,MET-75EA35,MET-77BE52,MET-78207F,MET-7D28B1,MET-7EA6B8,MET-819681,MET-8203C1,MET-83F8E1,MET-90AF0E,MET-95D7DA,MET-9E88B5,MET-A108F8,MET-A4B22B,MET-A8260F,MET-A8A39E,MET-AA8D8F,MET-AE3652,MET-B68B23,MET-B8B693,MET-BB53AC,MET-BC925A,MET-BFA4BC,MET-C0A680,MET-C3148B,MET-C3AA4D,MET-C8DD00,MET-C93093,MET-C9B293,MET-CA597D,MET-CDA5FE,MET-CE0770,MET-D52A34,MET-D787EE,MET-D8B6F5,MET-DE482E,MET-E0DD29,MET-E53F82,MET-E87929,MET-EA0D02,MET-EAAF8B,MET-EBCE5F,MET-ED479A,MET-F03EBE,MET-F3F397,MET-F4268C,MET-F58B79,MET-F6C262,MET-F81364,MET-F835C4,MET-FA0C15 |
@@ -686,7 +686,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-7CC24F | function | `good_user_char` | common.cpp | 233-243 | PORTER | simulation | todo |  |  |  |  |  |
 | FUN-7D1C3F | function | `redraw_all` | tile_info_editor.cpp | 417-463 | PORTER | world | todo |  |  |  | CLS-4E258C,CLS-8A9BED,ENU-E6E6A8,FUN-35962E,FUN-9356C2,FUN-BA380A,FUN-EF6AB9,MET-61726B,MET-7ACF9A | CLS-4E258C,CLS-8A9BED,ENU-E6E6A8,FUN-35962E,FUN-9356C2,FUN-BA380A,FUN-EF6AB9,MET-61726B,MET-7ACF9A |
 | FUN-7DC476 | function | `GetCords` | zobject.h | 407-407 | PORTER | simulation | ported | entity-core | src/simulation/entities/GameEntity.ts | Ported GetCords as GameEntity.getCoordinates returning a copy instead of mutating output references. |  |  |
-| FUN-7E19BF | function | `ZMix_PlayChannel` | zsdl.cpp | 419-429 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-7E19BF | function | `ZMix_PlayChannel` | zsdl.cpp | 419-429 | REPLACE | rendering | ported | rendering-basic | src/audio/AudioService.ts | Replaced ZMix_PlayChannel with guarded AudioService channel playback delegation. |  |  |
 | FUN-7EC968 | function | `good_user_string` | common.cpp | 245-267 | PORTER | simulation | todo |  |  |  | FUN-7CC24F | FUN-7CC24F |
 | FUN-7F1CE6 | function | `CanThrowGrenades` | rtough.h | 22-22 | PORTER | simulation | todo | robot-basic |  |  | FUN-1F7B44,MET-75FCD1 | FUN-1F7B44,MET-75FCD1 |
 | FUN-7F7D1F | function | `Clear` | zplayer.h | 55-65 | PORTER | simulation | todo |  |  |  | FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-605AD2,FUN-7AB871,FUN-AB8D64,FUN-C023B2,FUN-CAB49E,FUN-CF7ACB,FUN-F7E6EA | FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-605AD2,FUN-7AB871,FUN-AB8D64,FUN-C023B2,FUN-CAB49E,FUN-CF7ACB,FUN-F7E6EA |
@@ -716,7 +716,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-9162A0 | function | `ProducesUnits` | brobot.h | 21-21 | PORTER | simulation | todo |  |  |  | FUN-3BEE58,FUN-AC066B,FUN-FC29D6 | FUN-3BEE58,FUN-AC066B,FUN-FC29D6 |
 | FUN-928E05 | function | `SetZTime` | zgui_main_menu_base.h | 146-146 | PORTER | ui | todo |  |  |  | CLS-00B628,FUN-4816D3,FUN-6126EA,MET-CEBD78,MET-D7DDCF | CLS-00B628,FUN-4816D3,FUN-6126EA,MET-CEBD78,MET-D7DDCF |
 | FUN-9322B5 | function | `FreePointIndex` | zpath_finding_astar.h | 59-63 | PORTER | world | ported | navigation-basic | src/world/navigation/AStar.ts | Ported FreePointIndex as freePointIndex; JavaScript releases references for garbage collection instead of calling free. |  |  |
-| FUN-9356C2 | function | `put32pixel` | zsdl.cpp | 675-701 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-9356C2 | function | `put32pixel` | zsdl.cpp | 675-701 | REPLACE | rendering | ported | rendering-basic | src/rendering/SurfacePixels.ts | Replaced put32pixel with bounded RGBA surface pixel writes for Web buffers. |  |  |
 | FUN-94134A | function | `ToggleShowTerrain` | zmini_map.h | 24-24 | PORTER | world | todo |  |  |  |  |  |
 | FUN-945340 | function | `SetMap` | gwproduction.h | 45-45 | PORTER | world | todo |  |  |  | CLS-4E258C,CLS-8A9BED,FUN-277E90,FUN-DA5DC8,MET-671F45 | CLS-4E258C,CLS-8A9BED,FUN-277E90,FUN-DA5DC8,MET-671F45 |
 | FUN-95674C | function | `draw_seperator` | map_editor.cpp | 1769-1773 | PORTER | world | todo |  |  |  |  |  |
@@ -733,10 +733,10 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-9FDD49 | function | `lcase` | common.cpp | 153-157 | PORTER | simulation | todo |  |  |  |  |  |
 | FUN-A028A6 | function | `InitPointIndex` | zpath_finding_astar.h | 40-57 | PORTER | world | ported | navigation-basic | src/world/navigation/AStar.ts | Ported InitPointIndex as initPointIndex using JavaScript arrays initialized to the -1 sentinel. |  |  |
 | FUN-A27FC4 | function | `SetSoundSetting` | zgui_main_menu_base.h | 145-145 | PORTER | audio | todo |  |  |  | ENU-ACA136,MET-8846C1 | ENU-ACA136,MET-8846C1 |
-| FUN-A35BBA | function | `ZSDL_ModifyBlack` | zsdl.cpp | 523-549 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-A35BBA | function | `ZSDL_ModifyBlack` | zsdl.cpp | 523-549 | REPLACE | rendering | ported | rendering-basic | src/rendering/SurfacePixels.ts | Replaced ZSDL_ModifyBlack with direct RGBA mutation of opaque black pixels. |  |  |
 | FUN-A4BFD3 | function | `logout` | zcore.h | 95-106 | PORTER | simulation | todo |  |  |  | FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-7AB871,FUN-AB8D64,FUN-CAB49E,FUN-CF7ACB | FUN-0387EA,FUN-1BFF68,FUN-1D43ED,FUN-25F026,FUN-3143F1,FUN-39D775,FUN-7AB871,FUN-AB8D64,FUN-CAB49E,FUN-CF7ACB |
 | FUN-A5739D | function | `object_exists_at` | map_editor.cpp | 2556-2563 | PORTER | world | todo |  |  |  | STR-0F5E6C |  |
-| FUN-A5A250 | function | `ZSDL_BlitSurface` | zsdl.cpp | 551-566 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-A5A250 | function | `ZSDL_BlitSurface` | zsdl.cpp | 551-566 | REPLACE | rendering | ported | rendering-basic | src/rendering/SurfacePixels.ts | Replaced ZSDL_BlitSurface with clipped RGBA rectangle copying between Web buffers. |  |  |
 | FUN-A5B907 | function | `GetAttackRadius` | zobject.h | 446-446 | PORTER | simulation | ported | entity-core | src/simulation/entities/GameEntity.ts | Ported GetAttackRadius as GameEntity.getAttackRadius. |  |  |
 | FUN-A775AE | function | `CausesImpassAtCoord` | zobject.h | 549-549 | PORTER | simulation | todo | entity-core |  |  | MET-2EB5C9,MET-70AEE6,MET-71C3B3 | MET-2EB5C9,MET-70AEE6,MET-71C3B3 |
 | FUN-A894A9 | function | `GetCoords` | zgui_main_menu_base.h | 139-139 | PORTER | ui | todo |  |  |  | FUN-781513 | FUN-781513 |
@@ -753,7 +753,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-B2CCDC | function | `display_proper_init` | map_editor.cpp | 550-565 | PORTER | world | todo |  |  |  |  |  |
 | FUN-B2E396 | function | `gf` | zpath_finding_astar.cpp | 17-23 | PORTER | world | todo | navigation-basic |  |  | CLS-6AC321,CLS-B8FA8A,CON-2330D6,STR-AA96D0,STR-BD17E8 | CLS-6AC321,CLS-B8FA8A,CON-2330D6,STR-AA96D0 |
 | FUN-B4F0F2 | function | `StopBuildingProduction` | zobject.h | 525-525 | PORTER | simulation | todo | entity-core |  |  | MET-EB31B9 | MET-EB31B9 |
-| FUN-B68917 | function | `GetScreenDimensions` | zsdl_opengl.h | 30-30 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-B68917 | function | `GetScreenDimensions` | zsdl_opengl.h | 30-30 | REPLACE | rendering | ported | rendering-basic | src/rendering/OpenGLInitialization.ts | Replaced GetScreenDimensions with a structured browser dimension query used by ThreeRenderer resize. |  |  |
 | FUN-B6F670 | function | `CanSetWaypoints` | zrobot.h | 15-15 | PORTER | simulation | todo | robot-basic |  |  | FUN-2585B2,FUN-FC8035,MET-C4F187 | FUN-2585B2,FUN-FC8035,MET-C4F187 |
 | FUN-B6FED4 | function | `SetGrenadeAmount` | zobject.h | 395-395 | PORTER | simulation | todo | entity-core |  |  | FUN-C67F56,MET-C2EC91 | FUN-C67F56,MET-C2EC91 |
 | FUN-B76A12 | function | `format` | zmysql.h | 68-74 | DEFER | simulation | todo |  |  |  | MAC-F05645 | MAC-F05645 |
@@ -840,7 +840,7 @@ Avancement du portage : 79/2913 (2.71%).
 | FUN-F3FF0B | function | `getargs` | map_editor.cpp | 587-631 | PORTER | world | todo |  |  |  | ENU-E6E6A8,FUN-7B9FA4 | ENU-E6E6A8,FUN-7B9FA4 |
 | FUN-F472FE | function | `process_tile_normal` | tile_info_editor.cpp | 220-286 | PORTER | world | todo |  |  |  | CLS-4E258C,CLS-8A9BED,CLS-A062FC,ENU-E6E6A8,STR-981FBC | CLS-4E258C,CLS-8A9BED,CLS-A062FC,ENU-E6E6A8 |
 | FUN-F48842 | function | `parse_filelist` | common.cpp | 367-389 | PORTER | simulation | todo |  |  |  | FUN-9FDD49 | FUN-9FDD49 |
-| FUN-F75CC8 | function | `get32pixel` | zsdl.cpp | 703-747 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| FUN-F75CC8 | function | `get32pixel` | zsdl.cpp | 703-747 | REPLACE | rendering | ported | rendering-basic | src/rendering/SurfacePixels.ts | Replaced get32pixel with RGBA surface pixel reads from Web buffers. |  |  |
 | FUN-F7AF7E | function | `RemovePoint` | zpath_finding_astar.h | 84-97 | PORTER | world | ported | navigation-basic | src/world/navigation/AStar.ts | Ported RemovePoint as removePoint, preserving the constant-time tail-swap and point-index update. |  |  |
 | FUN-F7E01E | function | `IsDestroyableImpass` | omapobject.h | 26-26 | PORTER | world | todo |  |  |  | FUN-2B23DB,FUN-FDA9D1,FUN-FE970F | FUN-2B23DB,FUN-FDA9D1,FUN-FE970F |
 | FUN-F7E6EA | function | `Clear` | zcomp_message_engine.h | 24-30 | PORTER | simulation | todo |  |  |  | FUN-605AD2,FUN-7F7D1F,FUN-C023B2 | FUN-605AD2,FUN-7F7D1F,FUN-C023B2 |
@@ -856,7 +856,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-002491 | macro | `LEGAL_COPYRIGHT` | zod_engine_private.h | 17-17 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-0318EC | macro | `MAX_DATA_STORED` | socket_handler.h | 19-19 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-03B1C6 | macro | `_ZGUIMAINMENUBASE_H_` | zgui_main_menu_base.h | 2-2 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-04F8EA | macro | `_SDL_rotozoom_h` | SDL_rotozoom.h | 11-11 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-04F8EA | macro | `_SDL_rotozoom_h` | SDL_rotozoom.h | 11-11 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced the SDL_rotozoom.h include guard with the ImageScaling ES module boundary. |  |  |
 | MAC-05D842 | macro | `_ZSOUND_ENGINE_H_` | zsound_engine.h | 2-2 | ADAPT | audio | todo |  |  |  |  |  |
 | MAC-05F94B | macro | `_ZDAMGEMISSILE_H_` | zdamagemissile.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-07456B | macro | `_ZBUILDING_H_` | zbuilding.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -875,7 +875,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-132963 | macro | `_ETURRENTMISSILE_H_` | eturrentmissile.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-133A59 | macro | `ZPORTRAIT_BASE_HEIGHT` | zportrait.h | 17-17 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-137C87 | macro | `_ESIDEEXPLOSION_H_` | esideexplosion.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-154053 | macro | `MAX_RENDERABLE_STORED_GUNS` | zcomp_message_engine.h | 9-9 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-154053 | macro | `MAX_RENDERABLE_STORED_GUNS` | zcomp_message_engine.h | 9-9 | REPLACE | rendering | ported | rendering-basic | src/rendering/ComponentMessageRendering.ts | Replaced MAX_RENDERABLE_STORED_GUNS with a named TypeScript rendering constant. |  |  |
 | MAC-16A9AF | macro | `MAX_EVENT_TYPES` | event_handler.h | 304-304 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-18754C | macro | `_ETOUGHSMOKE_H_` | etoughsmoke.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-189091 | macro | `_BFORT_H_` | bfort.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -896,14 +896,14 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-2E4A0F | macro | `MINIMAP_W_MAX` | zmini_map.h | 11-11 | ADAPT | world | todo |  |  |  |  |  |
 | MAC-2FAA3D | macro | `_OFLAG_H_` | oflag.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-30BB14 | macro | `_SOCKETHANDLER_H_` | socket_handler.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-326648 | macro | `_RLASER_H_` | rlaser.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
+| MAC-326648 | macro | `_RLASER_H_` | rlaser.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rlaser.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-3395CD | macro | `_ZMAP_H_` | zmap.h | 2-2 | IGNORE | world | ignored | map-core |  | Header guard replaced by TypeScript ES module boundaries. |  |  |
 | MAC-342124 | macro | `USE_TEAM_COLORS` | constants.h | 36-36 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-34B895 | macro | `VEHICLE_MOVE_ANIM_SPEED` | constants.h | 44-44 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-356C8F | macro | `MMTEAM_COLOR_HEIGHT` | zgui_main_menu_widgets.h | 314-314 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-358971 | macro | `_ZSDL_H_` | zsdl.h | 2-2 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
-| MAC-360A73 | macro | `GRENADE_TIME_INT` | zrobot.cpp | 5-5 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
-| MAC-38509D | macro | `M_PI` | SDL_rotozoom.h | 21-21 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-358971 | macro | `_ZSDL_H_` | zsdl.h | 2-2 | REPLACE | rendering | ported | rendering-basic | src/rendering/SurfacePixels.ts | Replaced the zsdl.h include guard with SurfacePixels ES module boundaries. |  |  |
+| MAC-360A73 | macro | `GRENADE_TIME_INT` | zrobot.cpp | 5-5 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted GRENADE_TIME_INT as ROBOT_GRENADE_TIME_INTERVAL_SECONDS. |  |  |
+| MAC-38509D | macro | `M_PI` | SDL_rotozoom.h | 21-21 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced M_PI with ROTOZOOM_PI and used the upstream precision in rotozoom bounds. |  |  |
 | MAC-38DEEB | macro | `MMRADIO_CENTER_WIDTH` | zgui_main_menu_widgets.h | 281-281 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-39CEAE | macro | `_EUNITPARTICLE_H_` | eunitparticle.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-3A1C6F | macro | `MAX_KNOWN_CRATER_TYPES` | zmap_crater_graphics.h | 8-8 | ADAPT | world | ported | map-core | src/world/CraterGraphics.ts | Adapted MAX_KNOWN_CRATER_TYPES as a TypeScript constant. |  |  |
@@ -937,7 +937,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-557462 | macro | `_ZCLIENT_H_` | zclient.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
 | MAC-563E02 | macro | `_ZUNITRATING_H_` | zunitrating.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-56C8DF | macro | `_OMAPOBJECT_H_` | omapobject.h | 2-2 | ADAPT | world | todo |  |  |  |  |  |
-| MAC-581266 | macro | `_VAPC_H_` | vapc.h | 2-2 | ADAPT | simulation | todo | vehicle-basic |  |  |  |  |
+| MAC-581266 | macro | `_VAPC_H_` | vapc.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vapc.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-584A6A | macro | `_ZTRAY_H_` | ztray.h | 2-2 | IGNORE | simulation | todo |  |  |  |  |  |
 | MAC-58E0D5 | macro | `_ELASER_H_` | elaser.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-59DE03 | macro | `HUD_WIDTH` | constants.h | 17-17 | ADAPT | ui | todo |  |  |  |  |  |
@@ -945,13 +945,13 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-5CC8F1 | macro | `PRODUCT_VERSION` | zod_engine_private.h | 21-21 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-6036C3 | macro | `_ETANKSPARK_H_` | etankspark.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-60B442 | macro | `SEP_WIDTH` | map_editor.cpp | 62-62 | ADAPT | world | todo |  |  |  |  |  |
-| MAC-615B4E | macro | `_RPSYCHO_H_` | rpsycho.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
+| MAC-615B4E | macro | `_RPSYCHO_H_` | rpsycho.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rpsycho.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-61D4D1 | macro | `HUD_HEIGHT` | constants.h | 18-18 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-62A0D4 | macro | `_ECRANECONCO_H_` | ecraneconco.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-640E13 | macro | `_ZGUIWINDOW_H_` | zgui_window.h | 2-2 | IGNORE | ui | todo |  |  |  |  |  |
 | MAC-64B8AE | macro | `MMLABEL_HEIGHT` | zgui_main_menu_widgets.h | 141-141 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-66DBF2 | macro | `Multiply` | zencrypt_aes.cpp | 12-12 | ADAPT | simulation | todo |  |  |  | MAC-C132EF | MAC-C132EF |
-| MAC-67A624 | macro | `_ZSDL_OPENGL_H_` | zsdl_opengl.h | 2-2 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-67A624 | macro | `_ZSDL_OPENGL_H_` | zsdl_opengl.h | 2-2 | REPLACE | rendering | ported | rendering-basic | src/rendering/OpenGLInitialization.ts | Replaced the zsdl_opengl.h include guard with OpenGLInitialization ES module boundaries. |  |  |
 | MAC-687F12 | macro | `_ELIGHTINITFIRE_H_` | elightinitfire.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-68DE05 | macro | `MMRADIO_RIGHT_WIDTH` | zgui_main_menu_widgets.h | 282-282 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-692DF8 | macro | `_SERVERSOCKET_H_` | server_socket.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
@@ -959,8 +959,8 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-6A8542 | macro | `ASCII_DOWN_MAX` | zplayer.h | 152-152 | ADAPT | simulation | todo |  |  |  | CON-39029D |  |
 | MAC-6BE21F | macro | `_ZGFILE_H_` | zgfile.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-6C4569 | macro | `_ZMINIMAP_H_` | zmini_map.h | 2-2 | ADAPT | world | todo |  |  |  |  |  |
-| MAC-6CD6B8 | macro | `_RSNIPER_H_` | rsniper.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
-| MAC-6DE558 | macro | `_VCRANE_H_` | vcrane.h | 2-2 | ADAPT | simulation | todo | vehicle-basic |  |  |  |  |
+| MAC-6CD6B8 | macro | `_RSNIPER_H_` | rsniper.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rsniper.h include guard to RobotTypes ES module boundaries. |  |  |
+| MAC-6DE558 | macro | `_VCRANE_H_` | vcrane.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vcrane.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-6DE912 | macro | `SHIFT_CLICK_STREAM` | zmap.h | 18-18 | ADAPT | world | ported | map-core | src/world/MapFormat.ts | Ported as SHIFT_CLICK_STREAM_SECONDS constant for viewport shift timing. |  |  |
 | MAC-6EC2A3 | macro | `GMM_BOTTOM_MARGIN` | zgui_main_menu_base.h | 20-20 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-6F190E | macro | `_ZGMM_PLAYER_LIST_H_` | gmm_player_list.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -977,14 +977,14 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-76482F | macro | `_ZPORTRAIT_H_` | zportrait.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-769434 | macro | `GMMWBUTTON_HEIGHT` | zgui_main_menu_widgets.h | 95-95 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-7732A2 | macro | `_ZSETTINGS_H_` | zsettings.h | 2-2 | ADAPT | data | todo |  |  |  |  |  |
-| MAC-78DBD4 | macro | `SMOOTHING_OFF` | SDL_rotozoom.h | 28-28 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-78DBD4 | macro | `SMOOTHING_OFF` | SDL_rotozoom.h | 28-28 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced SMOOTHING_OFF with the ROTOZOOM_SMOOTHING_OFF TypeScript constant. |  |  |
 | MAC-7B1DAE | macro | `GMM_SIDE_MARGIN` | zgui_main_menu_base.h | 18-18 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-8004D5 | macro | `MAX_HANDS` | zportrait.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-804C34 | macro | `_ZGMM_CHANGE_TEAMS_H_` | gmm_change_teams.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-80E85C | macro | `MAX_KNOWN_CRATER_N` | zmap_crater_graphics.h | 9-9 | ADAPT | world | ported | map-core | src/world/CraterGraphics.ts | Adapted MAX_KNOWN_CRATER_N as MAX_KNOWN_CRATERS_PER_TYPE. |  |  |
 | MAC-818F48 | macro | `ETANKDIRT_TIME` | etankdirt.cpp | 33-33 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-83E500 | macro | `COMPANY_NAME` | zod_engine_private.h | 13-13 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-83E82D | macro | `_RGRUNT_H_` | rgrunt.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
+| MAC-83E82D | macro | `_RGRUNT_H_` | rgrunt.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rgrunt.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-854B90 | macro | `ETANKSPARK_TIME` | etankspark.cpp | 6-6 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-8579DB | macro | `MAX_UNIT_HEALTH` | constants.h | 42-42 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-858FED | macro | `MAX_STORED_SPACE_BAR_EVENTS` | zplayer.h | 106-106 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -995,7 +995,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-89DEB3 | macro | `SEP_SHIFT_X` | map_editor.cpp | 61-61 | ADAPT | world | todo |  |  |  |  |  |
 | MAC-8A1322 | macro | `_VMISSILELAUNCHER_H_` | vmissilelauncher.h | 2-2 | ADAPT | simulation | todo | vehicle-basic |  |  |  |  |
 | MAC-8B0799 | macro | `_OHUT_H_` | ohut.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-8B80D8 | macro | `_RTOUGH_H_` | rtough.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
+| MAC-8B80D8 | macro | `_RTOUGH_H_` | rtough.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rtough.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-8BA7CA | macro | `_CLIENTSOCKET_H_` | client_socket.h | 2-2 | DEFER | network | todo |  |  |  |  |  |
 | MAC-8E4254 | macro | `_AES_ENCRYPT_H_` | zencrypt_aes.h | 7-7 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-8F2CDF | macro | `MAX` | SDL_rotozoom.cpp | 18-18 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced the C MAX macro with the native JavaScript Math.max operation; no custom runtime symbol is required. |  |  |
@@ -1008,9 +1008,9 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-96C7EA | macro | `_EVENTHANDLER_H_` | event_handler.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-9A9BA4 | macro | `_EMAPOBJECTTURRENT_H_` | emapobjectturrent.h | 2-2 | ADAPT | world | todo |  |  |  |  |  |
 | MAC-9BBFC3 | macro | `VER_MINOR` | zod_engine_private.h | 10-10 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 49-49 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
-| MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 52-52 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
-| MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 57-57 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 49-49 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced SDL_ROTOZOOM_SCOPE with ImageScaling named ES module exports. |  |  |
+| MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 52-52 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ImageScaling named ES exports for the SDL_ROTOZOOM_SCOPE dllimport branch. |  |  |
+| MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 57-57 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ImageScaling named ES exports for the SDL_ROTOZOOM_SCOPE extern branch. |  |  |
 | MAC-9E35F6 | macro | `MMRADIO_HEIGHT` | zgui_main_menu_widgets.h | 279-279 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-9E687B | macro | `DEFAULT_MAX_UNITS_PER_TEAM` | constants.h | 21-21 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-9FAF42 | macro | `_EROBOTTURRENT_H_` | erobotturrent.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -1020,7 +1020,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-A837E6 | macro | `_ZPATH_FINDING_H_` | zpath_finding.h | 2-2 | ADAPT | world | ported | navigation-basic | src/world/navigation/NavigationTypes.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
 | MAC-A85B9D | macro | `WATER_SPEED` | constants.h | 24-24 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-A866D1 | macro | `_ZPATH_FINDING_ASTAR_H_` | zpath_finding_astar.h | 2-2 | ADAPT | world | ported | navigation-basic | src/world/navigation/AStar.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
-| MAC-AFC09B | macro | `_ZROBOT_H_` | zrobot.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
+| MAC-AFC09B | macro | `_ZROBOT_H_` | zrobot.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the zrobot.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-B132A7 | macro | `MMRADIO_MIN_SELECTIONS` | zgui_main_menu_widgets.h | 283-283 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-B23CBF | macro | `_ZGUN_PLACEMENT_HEATMAP_H_` | zgun_placement_heatmap.h | 2-2 | ADAPT | world | todo |  |  |  |  |  |
 | MAC-B5CB35 | macro | `_ZEFFECT_H_` | zeffect.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -1043,8 +1043,8 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-C33314 | macro | `_ETANKDIRT_H_` | etankdirt.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-C595B0 | macro | `GWP_SELECTOR_CENTER_Y` | gwproduction.h | 103-103 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-C5E798 | macro | `_AHUTANIMAL_H_` | ahutanimal.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-C7392C | macro | `_CURSOR_H_` | cursor.h | 2-2 | ADAPT | input | todo | selection-orders |  |  |  |  |
-| MAC-CBCAA9 | macro | `_RPYRO_H_` | rpyro.h | 2-2 | ADAPT | simulation | todo | robot-basic |  |  |  |  |
+| MAC-C7392C | macro | `_CURSOR_H_` | cursor.h | 2-2 | ADAPT | input | ported | selection-orders | src/input/CursorTiming.ts | Adapted the cursor.h include guard to CursorTiming ES module boundaries. |  |  |
+| MAC-CBCAA9 | macro | `_RPYRO_H_` | rpyro.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rpyro.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-CCEF75 | macro | `_ZPLAYER_H_` | zplayer.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-CDA7D7 | macro | `GWPFUS_MARGIN` | gwproduction_fus.cpp | 25-25 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-CE13A1 | macro | `_EPYROFIRE_H_` | epyrofire.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -1056,7 +1056,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-D13C6B | macro | `_VMEDIUM_H_` | vmedium.h | 2-2 | ADAPT | simulation | todo | vehicle-basic |  |  |  |  |
 | MAC-D1B09A | macro | `MMLIST_DOWN_BUTTON_FROM_BOTTOM` | zgui_main_menu_widgets.h | 174-174 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-D23627 | macro | `VALUE_LIMIT` | SDL_rotozoom.cpp | 772-772 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced VALUE_LIMIT with the ROTOZOOM_VALUE_LIMIT TypeScript constant. |  |  |
-| MAC-D23627 | macro | `VALUE_LIMIT` | SDL_rotozoom.cpp | 1095-1095 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-D23627 | macro | `VALUE_LIMIT` | SDL_rotozoom.cpp | 1095-1095 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ROTOZOOM_VALUE_LIMIT for the duplicate VALUE_LIMIT macro declaration. |  |  |
 | MAC-D25A25 | macro | `MINIMAP_X` | map_editor.cpp | 64-64 | ADAPT | world | todo |  |  |  |  |  |
 | MAC-D3520A | macro | `_ZOLISTS_H_` | zolists.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-D6050B | macro | `_ZMUSIC_ENGINE_H_` | zmusic_engine.h | 2-2 | ADAPT | audio | todo |  |  |  |  |  |
@@ -1082,7 +1082,7 @@ Avancement du portage : 79/2913 (2.71%).
 | MAC-E5E713 | macro | `_ZGWPRODUCTION_H_` | gwproduction.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-E7DC43 | macro | `_EDEATH_H_` | edeath.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-E81588 | macro | `_ZCANNON_H_` | zcannon.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-E8E547 | macro | `SMOOTHING_ON` | SDL_rotozoom.h | 29-29 | REPLACE | rendering | todo | rendering-basic |  |  |  |  |
+| MAC-E8E547 | macro | `SMOOTHING_ON` | SDL_rotozoom.h | 29-29 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Replaced SMOOTHING_ON with the ROTOZOOM_SMOOTHING_ON TypeScript constant. |  |  |
 | MAC-E8EBB4 | macro | `MAX_VERSION_PACKET_CHARS` | event_handler.h | 231-231 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-EBD11A | macro | `_BROBOT_H_` | brobot.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-EDC56A | macro | `_ZGWFACTORY_LIST_H_` | gwfactory_list.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |

@@ -2,16 +2,21 @@
  * Ported from Zod Engine upstream.
  *
  * Upstream:
- * - File: SDL_rotozoom.cpp
+ * - Files: SDL_rotozoom.cpp, SDL_rotozoom.h
  * - Symbols: shrinkSurfaceRGBA, shrinkSurfaceY, zoomSurfaceY,
  *   rotateSurface90Degrees, rotozoomSurfaceSizeXY, rotozoomSurfaceSize, MAX,
- *   VALUE_LIMIT
+ *   VALUE_LIMIT, _SDL_rotozoom_h, M_PI, SMOOTHING_OFF, SMOOTHING_ON,
+ *   SDL_ROTOZOOM_SCOPE
  * - Ledger: FUN-0743BB, FUN-9C99EE, FUN-AB50C1, FUN-B81617,
- *   FUN-E7CB44, FUN-FEC912, MAC-8F2CDF, MAC-D23627
+ *   FUN-E7CB44, FUN-FEC912, MAC-04F8EA, MAC-38509D, MAC-78DBD4,
+ *   MAC-8F2CDF, MAC-9E34B7, MAC-D23627, MAC-E8E547
  *
  * Porting notes:
  * - SDL surfaces are replaced with browser-compatible typed pixel buffers.
  * - The C `MAX` macro is replaced by native `Math.max` where needed.
+ * - The C `_SDL_rotozoom_h` header guard is replaced by ES module boundaries.
+ * - The C `SDL_ROTOZOOM_SCOPE` export/import macro variants are replaced by
+ *   named ES exports.
  */
 
 /**
@@ -57,12 +62,56 @@ export type GrayscaleSurface = {
  * - Defines the lower bound used to avoid near-zero transform instability.
  *
  * Ledger: MAC-D23627
- * Upstream: SDL_rotozoom.cpp:772
+ * Upstream: SDL_rotozoom.cpp:772, SDL_rotozoom.cpp:1095
+ *
+ * Adaptation:
+ * - Replaces both duplicate C preprocessor macro declarations with one named
+ *   TypeScript constant.
+ */
+export const ROTOZOOM_VALUE_LIMIT = 0.001;
+
+/**
+ * Replacement for upstream `M_PI`.
+ *
+ * Role:
+ * - Provides the pi constant used when converting rotozoom degrees to radians.
+ *
+ * Ledger: MAC-38509D
+ * Upstream: SDL_rotozoom.h:21
+ *
+ * Adaptation:
+ * - Replaces the C preprocessor macro with a named TypeScript constant while
+ *   preserving the upstream numeric precision.
+ */
+export const ROTOZOOM_PI = 3.141592654;
+
+/**
+ * Replacement for upstream `SMOOTHING_OFF`.
+ *
+ * Role:
+ * - Identifies nearest-neighbor rotozoom sampling when smoothing is disabled.
+ *
+ * Ledger: MAC-78DBD4
+ * Upstream: SDL_rotozoom.h:28
  *
  * Adaptation:
  * - Replaces the C preprocessor macro with a named TypeScript constant.
  */
-export const ROTOZOOM_VALUE_LIMIT = 0.001;
+export const ROTOZOOM_SMOOTHING_OFF = 0;
+
+/**
+ * Replacement for upstream `SMOOTHING_ON`.
+ *
+ * Role:
+ * - Identifies interpolated rotozoom sampling when smoothing is enabled.
+ *
+ * Ledger: MAC-E8E547
+ * Upstream: SDL_rotozoom.h:29
+ *
+ * Adaptation:
+ * - Replaces the C preprocessor macro with a named TypeScript constant.
+ */
+export const ROTOZOOM_SMOOTHING_ON = 1;
 
 /**
  * Replacement for upstream `shrinkSurfaceRGBA`.
@@ -185,7 +234,7 @@ export function calculateRotozoomSurfaceSize(
   zoomX: number,
   zoomY: number,
 ): { width: number; height: number } {
-  const angleRadians = (angleDegrees * Math.PI) / 180;
+  const angleRadians = (angleDegrees * ROTOZOOM_PI) / 180;
   const rawSine = Math.abs(Math.sin(angleRadians));
   const rawCosine = Math.abs(Math.cos(angleRadians));
   const sine = rawSine < Number.EPSILON * 8 ? 0 : rawSine;

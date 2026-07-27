@@ -4,14 +4,42 @@ import {
   calculateUniformRotozoomSurfaceSize,
   rotateRgbaSurface90Degrees,
   resizeGrayscaleSurfaceNearest,
+  ROTOZOOM_PI,
+  ROTOZOOM_SMOOTHING_OFF,
+  ROTOZOOM_SMOOTHING_ON,
   ROTOZOOM_VALUE_LIMIT,
   shrinkGrayscaleSurface,
   shrinkRgbaSurface,
 } from "../src/rendering/ImageScaling";
 
 describe("RGBA image scaling", () => {
+  it("replaces the SDL_rotozoom header guard with module boundaries", async () => {
+    const firstImport = await import("../src/rendering/ImageScaling");
+    const secondImport = await import("../src/rendering/ImageScaling");
+
+    expect(firstImport.ROTOZOOM_VALUE_LIMIT).toBe(0.001);
+    expect(secondImport.ROTOZOOM_VALUE_LIMIT).toBe(firstImport.ROTOZOOM_VALUE_LIMIT);
+  });
+
+  it("replaces the SDL_rotozoom export macro with named exports", async () => {
+    const imageScaling = await import("../src/rendering/ImageScaling");
+
+    expect(typeof imageScaling.calculateRotozoomSurfaceSize).toBe("function");
+    expect(typeof imageScaling.rotateRgbaSurface90Degrees).toBe("function");
+    expect(typeof imageScaling.shrinkRgbaSurface).toBe("function");
+  });
+
   it("replaces the rotozoom minimum value threshold", () => {
     expect(ROTOZOOM_VALUE_LIMIT).toBe(0.001);
+  });
+
+  it("replaces the SDL_rotozoom pi macro", () => {
+    expect(ROTOZOOM_PI).toBe(3.141592654);
+  });
+
+  it("replaces the SDL_rotozoom smoothing macros", () => {
+    expect(ROTOZOOM_SMOOTHING_OFF).toBe(0);
+    expect(ROTOZOOM_SMOOTHING_ON).toBe(1);
   });
 
   it("shrinks by averaging each source pixel block", () => {
@@ -80,15 +108,16 @@ describe("RGBA image scaling", () => {
       height: 30,
     });
     expect(calculateRotozoomSurfaceSize(20, 10, 90, 2, 3)).toEqual({
-      width: 30,
-      height: 40,
+      // Upstream `M_PI` precision leaves a tiny cosine value, which is ceiled.
+      width: 31,
+      height: 41,
     });
   });
 
   it("calculates rotozoom bounds with a uniform scale", () => {
     expect(calculateUniformRotozoomSurfaceSize(20, 10, 90, 2)).toEqual({
-      width: 20,
-      height: 40,
+      width: 21,
+      height: 41,
     });
   });
 

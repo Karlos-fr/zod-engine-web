@@ -3,6 +3,11 @@ import type { GameState } from "../app/GameState";
 import type { World } from "../simulation/World";
 import { CameraController } from "./CameraController";
 import { EntityView } from "./EntityView";
+import {
+  getScreenDimensions,
+  initializeOpenGlRendering,
+  resetOpenGlViewport,
+} from "./OpenGLInitialization";
 import { TerrainView } from "./TerrainView";
 
 export class ThreeRenderer {
@@ -15,6 +20,7 @@ export class ThreeRenderer {
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    initializeOpenGlRendering(this.renderer);
     this.domElement = this.renderer.domElement;
     this.host.appendChild(this.domElement);
     this.scene.background = new THREE.Color(0x101318);
@@ -37,9 +43,8 @@ export class ThreeRenderer {
   }
 
   private readonly resize = (): void => {
-    const width = this.host.clientWidth || window.innerWidth;
-    const height = this.host.clientHeight || window.innerHeight;
-    this.renderer.setSize(width, height, false);
+    const { width, height } = getScreenDimensions(this.host, window);
+    resetOpenGlViewport(this.renderer, width, height);
     this.cameraController.resize(width, height);
   };
 }
