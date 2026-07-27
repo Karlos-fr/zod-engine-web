@@ -5,6 +5,7 @@ import {
   type DriverInfo,
   type FireMissileInfo,
   type ObjectLocation,
+  type ZPortraitReference,
   EnterFortWaypointStage,
   ObjectMode,
   UnitRepairWaypointStage,
@@ -12,6 +13,14 @@ import {
 } from "../src/simulation/entities/EntityTypes";
 
 describe("entity types", () => {
+  it("ports the ZPortrait forward declaration as a type-only reference", () => {
+    const acceptsPortraitReference = (
+      portrait: ZPortraitReference | null,
+    ): boolean => portrait === null;
+
+    expect(acceptsPortraitReference(null)).toBe(true);
+  });
+
   it("ports unit repair waypoint stages", () => {
     expect(UnitRepairWaypointStage.GoToEntrance).toBe(0);
     expect(UnitRepairWaypointStage.EnterBuilding).toBe(1);

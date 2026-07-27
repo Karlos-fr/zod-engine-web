@@ -3,16 +3,38 @@
  *
  * Upstream:
  * - File: zobject.h
- * - Symbols: unit_repair_wp_stage, object_mode, enter_fort_wp_stage,
+ * - Symbols: ZPortrait, unit_repair_wp_stage, object_mode, enter_fort_wp_stage,
  *   agro_wp_stage, crane_repair_wp_stage, waypoint_mode, driver_info_s,
  *   fire_missile_info, object_location
- * - Ledger: ENU-15E6FE, ENU-607230, ENU-8888D1, ENU-89BB59,
- *   ENU-A5B4CE, ENU-F1EC73, STR-2B4D1A, STR-B318DE, STR-B83FCF
+ * - Ledger: CLS-0F0B9E, ENU-15E6FE, ENU-607230, ENU-8888D1,
+ *   ENU-89BB59, ENU-A5B4CE, ENU-F1EC73, STR-2B4D1A, STR-B318DE,
+ *   STR-B83FCF
  *
  * Porting notes:
  * - C++ enums are preserved as numeric TypeScript enums for data parity.
  * - C++ structs are represented as plain typed records.
+ * - The `ZPortrait` forward declaration is represented as an opaque type.
  */
+
+declare const zPortraitReferenceBrand: unique symbol;
+
+/**
+ * Port of upstream `ZPortrait` forward declaration.
+ *
+ * Role:
+ * - Provides a typed reference to the portrait subsystem without requiring the
+ *   full portrait class definition.
+ *
+ * Ledger: CLS-0F0B9E
+ * Upstream: zobject.h:58
+ *
+ * Notes:
+ * - This mirrors the C++ forward declaration; `CLS-EEDED5` remains the future
+ *   full `ZPortrait` class port from `zportrait.h`.
+ */
+export type ZPortraitReference = {
+  readonly [zPortraitReferenceBrand]: "ZPortrait";
+};
 
 /**
  * Port of upstream `unit_repair_wp_stage`.

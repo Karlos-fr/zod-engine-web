@@ -4,9 +4,10 @@
  * Upstream:
  * - File: SDL_rotozoom.cpp
  * - Symbols: shrinkSurfaceRGBA, shrinkSurfaceY, zoomSurfaceY,
- *   rotateSurface90Degrees, rotozoomSurfaceSizeXY, rotozoomSurfaceSize, MAX
+ *   rotateSurface90Degrees, rotozoomSurfaceSizeXY, rotozoomSurfaceSize, MAX,
+ *   VALUE_LIMIT
  * - Ledger: FUN-0743BB, FUN-9C99EE, FUN-AB50C1, FUN-B81617,
- *   FUN-E7CB44, FUN-FEC912, MAC-8F2CDF
+ *   FUN-E7CB44, FUN-FEC912, MAC-8F2CDF, MAC-D23627
  *
  * Porting notes:
  * - SDL surfaces are replaced with browser-compatible typed pixel buffers.
@@ -50,13 +51,16 @@ export type GrayscaleSurface = {
 };
 
 /**
- * Browser-side threshold for rotozoom calculations.
+ * Replacement for upstream `VALUE_LIMIT`.
  *
  * Role:
  * - Defines the lower bound used to avoid near-zero transform instability.
  *
- * Ledger: FUN-AB50C1, FUN-B81617
- * Upstream: SDL_rotozoom.cpp:809-823
+ * Ledger: MAC-D23627
+ * Upstream: SDL_rotozoom.cpp:772
+ *
+ * Adaptation:
+ * - Replaces the C preprocessor macro with a named TypeScript constant.
  */
 export const ROTOZOOM_VALUE_LIMIT = 0.001;
 
