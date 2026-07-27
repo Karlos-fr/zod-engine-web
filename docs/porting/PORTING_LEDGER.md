@@ -5,13 +5,13 @@ symbole upstream ou une décision explicite de portage.
 
 ## Statistiques
 
-Avancement du portage : 203/2913 (6.97%).
+Avancement du portage : 223/2913 (7.66%).
 
 | Statut | Nombre | Pourcentage |
 |---|---:|---:|
 | ignored | 1 | 0.03% |
-| ported | 203 | 6.97% |
-| todo | 2709 | 93.00% |
+| ported | 223 | 7.66% |
+| todo | 2689 | 92.31% |
 | total | 2913 | 100.00% |
 
 | ID | Type | Symbole | Fichier | Lignes | Décision | Domaine cible | Statut | Lot | Cible TS | Notes | Depends On | Blocked By |
@@ -250,14 +250,14 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-18C48E | constant | `glvl` | zobject.cpp | 1122-1122 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused the shared GLVL constant for the second identical local declaration. |  |  |
 | CON-18C48E | constant | `glvl` | zobject.cpp | 1370-1370 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused the shared GLVL constant for the second identical local declaration. |  |  |
 | CON-1BE418 | constant | `unit_y` | chowitzer.cpp | 91-91 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-1C30E4 | constant | `x_plus` | brobot.cpp | 360-360 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-1C30E4 | constant | `x_plus` | brobot.cpp | 360-360 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot x_plus as ROBOT_FACTORY_EFFECT_X_OFFSET_PIXELS. |  |  |
 | CON-1DC64D | constant | `x_plus` | brepair.cpp | 239-239 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair x_plus as REPAIR_EFFECT_X_OFFSET_PIXELS. |  |  |
 | CON-1DC64D | constant | `x_plus` | brepair.cpp | 357-357 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Mapped second BRepair x_plus occurrence to REPAIR_EFFECT_X_OFFSET_PIXELS. |  |  |
 | CON-223BBB | constant | `min_stamina` | zobject.cpp | 2095-2095 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported min_stamina as MIN_STAMINA. |  |  |
 | CON-22DE38 | constant | `PI_shift` | zobject.cpp | 716-716 | PORTER | simulation | todo | entity-core |  |  | CON-A3B238,MAC-7602DF | MAC-7602DF |
 | CON-22DE38 | constant | `PI_shift` | zobject.cpp | 1040-1040 | PORTER | simulation | todo | entity-core |  |  | CON-A3B238,MAC-7602DF | MAC-7602DF |
 | CON-2330D6 | constant | `cx` | gmmw_radio.cpp | 98-98 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-243565 | constant | `double_light_x` | brobot.cpp | 221-221 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-243565 | constant | `double_light_x` | brobot.cpp | 221-221 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot double_light_x as ROBOT_FACTORY_DOUBLE_LIGHT_X_PIXELS. |  |  |
 | CON-24B563 | constant | `buf_size` | zserver_events.cpp | 120-120 | DEFER | network | todo |  |  |  |  |  |
 | CON-25DB3E | constant | `side_light_x` | bradar.cpp | 196-196 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported side_light_x as RADAR_SIDE_LIGHT_X_PIXELS. |  |  |
 | CON-261D7F | constant | `turrent_time_int` | vmedium.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the medium vehicle turret animation interval as a named vehicle timing constant. |  |  |
@@ -274,7 +274,7 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-3224D8 | constant | `bullet_speed` | emissilecrockets.cpp | 144-144 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-34142A | constant | `bulb_x` | brepair.cpp | 212-212 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair bulb_x as REPAIR_BULB_X_PIXELS. |  |  |
 | CON-369A89 | constant | `time_d2` | emissilecrockets.cpp | 146-146 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
-| CON-37D778 | constant | `green_box_y` | brobot.cpp | 228-228 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-37D778 | constant | `green_box_y` | brobot.cpp | 228-228 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot green_box_y as ROBOT_FACTORY_GREEN_BOX_Y_PIXELS. |  |  |
 | CON-37F4A2 | constant | `max_list_size` | map_editor.cpp | 993-993 | PORTER | world | ported |  | src/world/WorldConstants.ts | Ported the map editor maximum list size as a typed world constant. |  |  |
 | CON-39029D | constant | `z` | zobject.cpp | 1603-1603 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused Z_FINE_EPSILON for the seventh local z declaration with the same value. |  |  |
 | CON-39029D | constant | `z` | zobject.cpp | 2488-2488 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused Z_FINE_EPSILON for the seventh local z declaration with the same value. |  |  |
@@ -284,11 +284,11 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-39029D | constant | `z` | zobject.cpp | 2922-2922 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused Z_FINE_EPSILON for the seventh local z declaration with the same value. |  |  |
 | CON-39029D | constant | `z` | zobject.cpp | 3100-3100 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Reused Z_FINE_EPSILON for the seventh local z declaration with the same value. |  |  |
 | CON-3965FB | constant | `clear_threshold` | zgun_placement_heatmap.cpp | 498-498 | PORTER | world | todo |  |  |  | CON-7BF996,CON-B7423E,CON-DC7963 | CON-7BF996,CON-B7423E,CON-DC7963 |
-| CON-3C2846 | constant | `smoke_stack_x` | brepair.cpp | 214-214 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-3CBE11 | constant | `spin_x` | brobot.cpp | 217-217 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-3C2846 | constant | `smoke_stack_x` | brepair.cpp | 214-214 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair smoke_stack_x as REPAIR_SMOKE_STACK_X_PIXELS. |  |  |
+| CON-3CBE11 | constant | `spin_x` | brobot.cpp | 217-217 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot spin_x as ROBOT_FACTORY_SPINNER_X_PIXELS. |  |  |
 | CON-3EA12F | constant | `lasting_time` | zplayer.cpp | 600-600 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-3EF127 | constant | `the_len` | zsdl.cpp | 183-183 | REPLACE | rendering | ported | rendering-basic | src/rendering/SelectionBoxRendering.ts | Replaced draw_selection_box the_len with a named TypeScript selection-box corner length constant. |  |  |
-| CON-3FE461 | constant | `side_light_x` | brepair.cpp | 210-210 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-3FE461 | constant | `side_light_x` | brepair.cpp | 210-210 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair side_light_x as REPAIR_SIDE_LIGHT_X_PIXELS. |  |  |
 | CON-400452 | constant | `max_down` | edeathsparks.cpp | 11-11 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-41D8B4 | constant | `button_h` | gwproduction.cpp | 190-190 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-42F57C | constant | `percent_guns_building_max` | zbot.cpp | 1799-1799 | PORTER | simulation | todo |  |  |  |  |  |
@@ -303,15 +303,15 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-500A93 | constant | `max_description_len` | zvote.cpp | 59-59 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-51596A | constant | `bulb_x` | bvehicle.cpp | 224-224 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-522E47 | constant | `turrent_time_int` | vjeep.cpp | 6-6 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the jeep turret animation interval as a named vehicle timing constant. |  |  |
-| CON-550D5E | constant | `green_box_x` | brobot.cpp | 227-227 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-550D5E | constant | `green_box_x` | brobot.cpp | 227-227 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot green_box_x as ROBOT_FACTORY_GREEN_BOX_X_PIXELS. |  |  |
 | CON-56E525 | constant | `buf_size` | zclient.cpp | 840-840 | DEFER | network | todo |  |  |  |  |  |
 | CON-5C1C35 | constant | `stop_width` | gmm_manage_bots.cpp | 19-19 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-5D684E | constant | `lasting_time` | zplayer_events.cpp | 683-683 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-5F25C2 | constant | `ih` | gmmw_list.cpp | 235-235 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-5F25C2 | constant | `ih` | gmmw_list.cpp | 252-252 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-5F6CA0 | constant | `base_time_int` | vjeep.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the jeep base animation interval as a named vehicle timing constant. |  |  |
-| CON-5F7D01 | constant | `exhaust_y` | brobot.cpp | 230-230 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-626CD9 | constant | `robot_x` | brobot.cpp | 219-219 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-5F7D01 | constant | `exhaust_y` | brobot.cpp | 230-230 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot exhaust_y as ROBOT_FACTORY_EXHAUST_Y_PIXELS. |  |  |
+| CON-626CD9 | constant | `robot_x` | brobot.cpp | 219-219 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot robot_x as ROBOT_FACTORY_ROBOT_X_PIXELS. |  |  |
 | CON-62EF7F | constant | `y_down_shift` | zhud.cpp | 1074-1074 | PORTER | ui | todo |  |  |  |  |  |
 | CON-633D10 | constant | `bar_y_shift` | zobject.cpp | 628-628 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported bar_y_shift as BAR_Y_SHIFT. |  |  |
 | CON-65484C | constant | `x_hours_shift` | zhud.cpp | 1075-1075 | PORTER | ui | todo |  |  |  |  |  |
@@ -326,7 +326,7 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-7BB0C5 | constant | `front_light_y` | bradar.cpp | 195-195 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported front_light_y as RADAR_FRONT_LIGHT_Y_PIXELS. |  |  |
 | CON-7BE48C | constant | `max_horz` | ogrenades.cpp | 60-60 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-7BF996 | constant | `time_inc` | zgun_placement_heatmap.cpp | 496-496 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported time_inc as a named unit history heatmap time increment constant. |  |  |
-| CON-7C6665 | constant | `side_light_y` | brepair.cpp | 211-211 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-7C6665 | constant | `side_light_y` | brepair.cpp | 211-211 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair side_light_y as REPAIR_SIDE_LIGHT_Y_PIXELS. |  |  |
 | CON-816F9A | constant | `exhaust_y` | bvehicle.cpp | 233-233 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-834886 | constant | `bullet_speed` | elaser.cpp | 9-9 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-841EC3 | constant | `lid_shift_x` | vmedium.cpp | 156-156 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the medium vehicle lid horizontal render offset as a named vehicle rendering constant. |  |  |
@@ -338,7 +338,7 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-880C94 | constant | `iw` | gmmw_list.cpp | 251-251 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-8910F3 | constant | `y_plus` | bvehicle.cpp | 362-362 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-895F4C | constant | `sq_tile_per_bird` | zplayer.cpp | 575-575 | PORTER | world | ported |  | src/world/BirdMap.ts | Ported sq_tile_per_bird as AMBIENT_BIRD_SQUARE_TILES_PER_BIRD. |  |  |
-| CON-896ADD | constant | `min_interval_time` | brobot.cpp | 138-138 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-896ADD | constant | `min_interval_time` | brobot.cpp | 138-138 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot min_interval_time as ROBOT_FACTORY_MIN_PROCESS_INTERVAL_SECONDS. |  |  |
 | CON-8A3DCA | constant | `max_total_dist` | zbot.cpp | 483-483 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-8B3D98 | constant | `button_spacer` | gmm_manage_bots.cpp | 20-20 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-8E48FD | constant | `unit_y` | cgatling.cpp | 92-92 | PORTER | simulation | todo |  |  |  |  |  |
@@ -346,7 +346,7 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-8F3C4C | constant | `button_margin` | gwproduction.cpp | 191-191 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-90EFB2 | constant | `x_minutes_shift` | zhud.cpp | 1076-1076 | PORTER | ui | todo |  |  |  | CON-65484C | CON-65484C |
 | CON-910E76 | constant | `label_width` | gmm_manage_bots.cpp | 17-17 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-91192A | constant | `min_interval_time` | brepair.cpp | 125-125 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-91192A | constant | `min_interval_time` | brepair.cpp | 125-125 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair min_interval_time as REPAIR_MIN_PROCESS_INTERVAL_SECONDS. |  |  |
 | CON-95202A | constant | `tank_x` | bvehicle.cpp | 226-226 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-970474 | constant | `max_right` | edeathsparks.cpp | 13-13 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-9762E8 | constant | `run_past_radius` | zsettings.cpp | 16-16 | PORTER | data | ported |  | src/data/ZSettingsData.ts | Ported the run past radius as a typed gameplay settings constant. |  |  |
@@ -369,16 +369,16 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-B31A58 | constant | `max_values` | zserver_commands.cpp | 439-439 | DEFER | network | todo |  |  |  |  |  |
 | CON-B31A58 | constant | `max_values` | zserver_commands.cpp | 535-535 | DEFER | network | todo |  |  |  |  |  |
 | CON-B31A58 | constant | `max_values` | zserver_commands.cpp | 596-596 | DEFER | network | todo |  |  |  |  |  |
-| CON-B35129 | constant | `text_box_x` | brepair.cpp | 216-216 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-B35129 | constant | `text_box_x` | brepair.cpp | 216-216 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair text_box_x as REPAIR_TEXT_BOX_X_PIXELS. |  |  |
 | CON-B414E6 | constant | `time_d` | emissilecrockets.cpp | 145-145 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-B63D15 | constant | `conco_dist_from_entrace` | ecraneconco.cpp | 92-92 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-B6F0A4 | constant | `spin_y` | brobot.cpp | 218-218 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-B6F0A4 | constant | `spin_y` | brobot.cpp | 218-218 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot spin_y as ROBOT_FACTORY_SPINNER_Y_PIXELS. |  |  |
 | CON-B7423E | constant | `time_dec` | zgun_placement_heatmap.cpp | 497-497 | PORTER | world | todo |  |  |  | CON-7BF996,CON-DC7963 | CON-7BF996,CON-DC7963 |
 | CON-B7E178 | constant | `max_items` | zplayer.cpp | 476-476 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-B9244F | constant | `max_combo_check` | zbot.cpp | 1946-1946 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-BABD0B | constant | `time_d2` | emomissilerockets.cpp | 155-155 | PORTER | simulation | todo |  |  |  | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 | CON-055B1A,CON-3224D8,CON-45BACE,CON-7196C6,CON-834886 |
 | CON-BE1C5B | constant | `max_dist` | zobject.cpp | 629-629 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported max_dist as MAX_BAR_DISTANCE while retaining the upstream 30 + 6 expression. |  |  |
-| CON-BEDC34 | constant | `robot_y` | brobot.cpp | 220-220 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-BEDC34 | constant | `robot_y` | brobot.cpp | 220-220 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRobot robot_y as ROBOT_FACTORY_ROBOT_Y_PIXELS. |  |  |
 | CON-C105A3 | constant | `y_r` | zobject.cpp | 622-622 | PORTER | simulation | ported | entity-core | src/simulation/entities/EntityConstants.ts | Ported y_r as BAR_YELLOW_RED. |  |  |
 | CON-C4B75F | constant | `heat_tile_dist` | zgun_placement_heatmap.cpp | 464-464 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported heat_tile_dist at zgun_placement_heatmap.cpp:464 as a named flag heat tile-distance constant. |  |  |
 | CON-C4B75F | constant | `heat_tile_dist` | zgun_placement_heatmap.cpp | 495-495 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported heat_tile_dist at zgun_placement_heatmap.cpp:495 as a named unit-history heat tile-distance constant. |  |  |
@@ -399,7 +399,7 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-DC32BD | constant | `fort_heat_tile_dist` | zgun_placement_heatmap.cpp | 565-565 | PORTER | world | ported |  | src/world/GunPlacementHeatMap.ts | Ported fort_heat_tile_dist as a named fortification heat tile-distance constant. |  |  |
 | CON-DC3B3A | constant | `tank_y` | bvehicle.cpp | 227-227 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-DC7963 | constant | `time_inc` | cursor.cpp | 206-206 | PORTER | input | ported | selection-orders | src/input/CursorTiming.ts | Ported cursor Process time_inc as CURSOR_FRAME_INTERVAL_SECONDS. |  |  |
-| CON-DE02B1 | constant | `smoke_stack_y` | brepair.cpp | 215-215 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-DE02B1 | constant | `smoke_stack_y` | brepair.cpp | 215-215 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair smoke_stack_y as REPAIR_SMOKE_STACK_Y_PIXELS. |  |  |
 | CON-DF4F42 | constant | `cone_dist_from_entrace` | ecraneconco.cpp | 93-93 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-E23243 | constant | `level_x` | brobot.cpp | 225-225 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-E3F731 | constant | `level_y` | brobot.cpp | 226-226 | PORTER | simulation | todo |  |  |  |  |  |
@@ -412,15 +412,15 @@ Avancement du portage : 203/2913 (6.97%).
 | CON-EBA752 | constant | `box_spinner_y` | bradar.cpp | 199-199 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported box_spinner_y as RADAR_BOX_SPINNER_Y_PIXELS. |  |  |
 | CON-ECB893 | constant | `max_dist` | zhud.cpp | 1013-1013 | PORTER | ui | todo |  |  |  |  |  |
 | CON-ECF527 | constant | `padding` | zsdl.cpp | 182-182 | REPLACE | rendering | ported | rendering-basic | src/rendering/SelectionBoxRendering.ts | Replaced draw_selection_box padding with a named TypeScript selection-box padding constant. |  |  |
-| CON-F0AC7E | constant | `y_plus` | brepair.cpp | 240-240 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-F0AC7E | constant | `y_plus` | brepair.cpp | 358-358 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-F0AC7E | constant | `y_plus` | brepair.cpp | 240-240 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair y_plus as REPAIR_EFFECT_Y_OFFSET_PIXELS. |  |  |
+| CON-F0AC7E | constant | `y_plus` | brepair.cpp | 358-358 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair second y_plus occurrence with REPAIR_EFFECT_Y_OFFSET_PIXELS. |  |  |
 | CON-F1F093 | constant | `min_interval_time` | bvehicle.cpp | 139-139 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F303B7 | constant | `single_light_y` | brobot.cpp | 224-224 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F3CA14 | constant | `lid_shift_y` | vmedium.cpp | 157-157 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported the medium vehicle lid vertical render offset as a named vehicle rendering constant. |  |  |
 | CON-F6E57A | constant | `sign_dist_from_conco` | ecraneconco.cpp | 95-95 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F769B2 | constant | `max_up` | edeathsparks.cpp | 10-10 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-F8A190 | constant | `x_plus` | bvehicle.cpp | 361-361 | PORTER | simulation | todo |  |  |  |  |  |
-| CON-F8EF0D | constant | `text_box_y` | brepair.cpp | 217-217 | PORTER | simulation | todo |  |  |  |  |  |
+| CON-F8EF0D | constant | `text_box_y` | brepair.cpp | 217-217 | PORTER | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Ported BRepair text_box_y as REPAIR_TEXT_BOX_Y_PIXELS. |  |  |
 | CON-F94FC5 | constant | `y_int` | zplayer.cpp | 2068-2068 | PORTER | simulation | todo |  |  |  |  |  |
 | CON-FC26A8 | constant | `turrent_time_int` | vcrane.cpp | 5-5 | PORTER | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Ported vcrane turrent_time_int as CRANE_TURRET_FRAME_INTERVAL_SECONDS. |  |  |
 | CON-FC9E8D | constant | `lights_y` | bvehicle.cpp | 231-231 | PORTER | simulation | todo |  |  |  |  |  |
@@ -1089,7 +1089,7 @@ Avancement du portage : 203/2913 (6.97%).
 | MAC-EDD456 | macro | `_CGATLING_H_` | cgatling.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-F05645 | macro | `MAX_PLAYER_NAME_SIZE` | constants.h | 11-11 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-F13D4D | macro | `_EBULLET_H_` | ebullet.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-F5FC59 | macro | `_BREPAIR_H_` | brepair.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-F5FC59 | macro | `_BREPAIR_H_` | brepair.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted brepair.h header guard as BREPAIR_HEADER_GUARD_PORTED. |  |  |
 | MAC-F62E20 | macro | `VER_MAJOR` | zod_engine_private.h | 9-9 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-F686A6 | macro | `MMLIST_ENTRY_HEIGHT` | zgui_main_menu_widgets.h | 169-169 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-F72C27 | macro | `_ZGMM_MAIN_MENU_H_` | gmm_main_menu.h | 2-2 | ADAPT | ui | todo |  |  |  |  |  |
