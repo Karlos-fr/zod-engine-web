@@ -2,14 +2,16 @@
  * Ported from Zod Engine upstream.
  *
  * Upstream:
- * - File: common.cpp
- * - Symbols: clean_newline, create_folder, data_to_hex_string, distance,
- *   dirent, file_can_be_written, good_user_char, lcase, point_distance_from_line,
- *   points_within_area, points_within_distance, print_dump, sort_string_func,
- *   split, timeval, uni_pause
- * - Ledger: FUN-1BE126, FUN-B95428, FUN-5F1997, FUN-ABEA7C, STR-1D8775,
- *   FUN-1C4E95, FUN-3667DC, FUN-F3E417, FUN-BFB321, FUN-43910E, FUN-016B43,
- *   FUN-370236, STR-037FF7, FUN-72F8C3, FUN-7CC24F, FUN-9FDD49
+ * - File: common.cpp / common.h
+ * - Symbols: _COMMON_H_, clean_newline, create_folder, data_to_hex_string,
+ *   distance, dirent, file_can_be_written, frand, good_user_char, is1, isz,
+ *   lcase, point_distance_from_line, points_within_area,
+ *   points_within_distance, print_dump, sort_string_func, split, swap, timeval,
+ *   uni_pause, xy_struct, xy_to_i
+ * - Ledger: MAC-2DAAF5, FUN-1BE126, FUN-B95428, FUN-5F1997, FUN-ABEA7C,
+ *   STR-1D8775, FUN-1C4E95, FUN-3667DC, FUN-F3E417, FUN-BFB321, FUN-43910E,
+ *   FUN-016B43, FUN-370236, STR-037FF7, FUN-72F8C3, FUN-7CC24F, FUN-9FDD49,
+ *   CLS-B0EADD, FUN-1AE16E, FUN-34DB10, FUN-352386, FUN-5D72BB, FUN-BCA1D9
  *
  * Porting notes:
  * - Native filesystem probes are represented with injectable browser-safe
@@ -23,6 +25,22 @@
  */
 
 const utf8Encoder = new TextEncoder();
+
+/**
+ * Adaptation of upstream `_COMMON_H_`.
+ *
+ * Role:
+ * - Records that the C++ `common.h` include guard is represented by the
+ *   TypeScript module boundary.
+ *
+ * Ledger: MAC-2DAAF5
+ * Upstream: common.h:2-2
+ *
+ * Adaptation:
+ * - ES modules already prevent repeated declaration; this exported marker keeps
+ *   the ledger traceable without runtime behavior.
+ */
+export const COMMON_HEADER_GUARD_PORTED = true;
 
 /**
  * Port of upstream `dirent`.
@@ -40,6 +58,43 @@ export type DirectoryEntry = {
   name: string;
   type: "regular" | "directory" | "other";
 };
+
+/**
+ * Port of upstream `xy_struct`.
+ *
+ * Role:
+ * - Stores an integer coordinate pair used by common simulation helpers.
+ *
+ * Ledger: CLS-B0EADD
+ * Upstream: common.h:13-20
+ *
+ * Adaptation:
+ * - Preserves the default zero coordinate constructor and parameterized
+ *   constructor in a TypeScript class.
+ */
+export class XyStruct {
+  x: number;
+  y: number;
+
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+/**
+ * Port of upstream `xy_to_i`.
+ *
+ * Role:
+ * - Converts an x/y coordinate into the linear index used by column-major
+ *   common arrays.
+ *
+ * Ledger: FUN-34DB10
+ * Upstream: common.h:66-66
+ */
+export function xyToIndex(x: number, y: number, height: number): number {
+  return x * height + y;
+}
 
 /**
  * Result shape for the TypeScript adaptation of upstream `split`.
@@ -76,6 +131,70 @@ export type Timeval = {
   tvSec: number;
   tvUsec: number;
 };
+
+/**
+ * Port of upstream `frand`.
+ *
+ * Role:
+ * - Produces a discrete random fraction in the inclusive range from zero to
+ *   one for common simulation calculations.
+ *
+ * Ledger: FUN-BCA1D9
+ * Upstream: common.h:64-64
+ *
+ * Adaptation:
+ * - Replaces C `rand()` with an injectable integer source backed by
+ *   `Math.random` by default.
+ */
+export function frand(
+  randomInt: () => number = () => Math.floor(Math.random() * 10001),
+): number {
+  return (Math.trunc(randomInt()) % 10001) / 10000.0;
+}
+
+/**
+ * Port of upstream `isz`.
+ *
+ * Role:
+ * - Tests whether a floating-point value is close enough to zero for common
+ *   math comparisons.
+ *
+ * Ledger: FUN-5D72BB
+ * Upstream: common.h:49-50
+ */
+export function isZero(num: number): boolean {
+  return num < 0.00001 && num > -0.00001;
+}
+
+/**
+ * Port of upstream `is1`.
+ *
+ * Role:
+ * - Tests whether a floating-point value is close enough to one for common
+ *   math comparisons.
+ *
+ * Ledger: FUN-352386
+ * Upstream: common.h:52-52
+ */
+export function isOne(num: number): boolean {
+  return num < 1.00001 && num > 0.99999;
+}
+
+/**
+ * Port of upstream `swap`.
+ *
+ * Role:
+ * - Exchanges two integer values used by common utility code.
+ *
+ * Ledger: FUN-1AE16E
+ * Upstream: common.h:55-62
+ *
+ * Adaptation:
+ * - Replaces C++ reference mutation with a returned tuple.
+ */
+export function swap(a: number, b: number): [number, number] {
+  return [b, a];
+}
 
 /**
  * Port of upstream `clean_newline`.

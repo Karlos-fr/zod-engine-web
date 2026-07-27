@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   cleanNewline,
+  COMMON_HEADER_GUARD_PORTED,
   createFolder,
   dataToHexString,
   type DirectoryEntry,
   distance,
   fileCanBeWritten,
+  frand,
   goodUserChar,
+  isOne,
+  isZero,
   lcase,
   pointDistanceFromLine,
   pointsWithinArea,
@@ -14,11 +18,18 @@ import {
   printDump,
   split,
   sortStringFunc,
+  swap,
   type Timeval,
   uniPause,
+  XyStruct,
+  xyToIndex,
 } from "../src/simulation/Common";
 
 describe("common", () => {
+  it("adapts the common.h include guard to an ES module marker", () => {
+    expect(COMMON_HEADER_GUARD_PORTED).toBe(true);
+  });
+
   it("ports clean_newline by truncating at carriage returns or line feeds", () => {
     expect(cleanNewline("ready\r\n")).toBe("ready");
     expect(cleanNewline("ready\nnext")).toBe("ready");
@@ -70,6 +81,22 @@ describe("common", () => {
     expect(entry).toEqual({ name: "map.zod", type: "regular" });
   });
 
+  it("ports xy_struct constructors for coordinate data", () => {
+    expect(new XyStruct()).toEqual({ x: 0, y: 0 });
+    expect(new XyStruct(12, -4)).toEqual({ x: 12, y: -4 });
+  });
+
+  it("ports xy_to_i as column-major coordinate indexing", () => {
+    expect(xyToIndex(0, 0, 8)).toBe(0);
+    expect(xyToIndex(3, 4, 8)).toBe(28);
+    expect(xyToIndex(5, 2, 10)).toBe(52);
+  });
+
+  it("ports swap by returning the exchanged integer pair", () => {
+    expect(swap(3, 7)).toEqual([7, 3]);
+    expect(swap(-2, 5)).toEqual([5, -2]);
+  });
+
   it("ports file_can_be_written through an append-open probe", () => {
     const opened: string[] = [];
 
@@ -90,6 +117,13 @@ describe("common", () => {
     expect(fileCanBeWritten("browser-only.dat")).toBe(false);
   });
 
+  it("ports frand as rand modulo 10001 over 10000", () => {
+    expect(frand(() => 0)).toBe(0);
+    expect(frand(() => 1234)).toBe(0.1234);
+    expect(frand(() => 10000)).toBe(1);
+    expect(frand(() => 10001)).toBe(0);
+  });
+
   it("ports good_user_char allowed ASCII characters", () => {
     for (const character of ["A", "z", "0", "9", " ", "@", ".", "_", "-"]) {
       expect(goodUserChar(character)).toBe(true);
@@ -100,6 +134,22 @@ describe("common", () => {
     for (const character of ["!", "\n", "/", "é", "ab", ""]) {
       expect(goodUserChar(character)).toBe(false);
     }
+  });
+
+  it("ports is1 with strict upstream tolerance around one", () => {
+    expect(isOne(1)).toBe(true);
+    expect(isOne(0.999991)).toBe(true);
+    expect(isOne(1.000009)).toBe(true);
+    expect(isOne(0.99999)).toBe(false);
+    expect(isOne(1.00001)).toBe(false);
+  });
+
+  it("ports isz with strict upstream tolerance around zero", () => {
+    expect(isZero(0)).toBe(true);
+    expect(isZero(0.000009)).toBe(true);
+    expect(isZero(-0.000009)).toBe(true);
+    expect(isZero(0.00001)).toBe(false);
+    expect(isZero(-0.00001)).toBe(false);
   });
 
   it("ports lcase by lowercasing within the inspected size", () => {
