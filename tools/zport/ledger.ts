@@ -43,9 +43,35 @@ export function writeLedger(rows: LedgerRow[], filePath = ledgerPath): void {
   const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
   fs.writeFileSync(
     filePath,
-    `${preamble}${renderMarkdownTable(sorted.map(toTableRow))}\n`,
+    `${preamble}${renderPortingStatistics(sorted)}\n\n${renderMarkdownTable(sorted.map(toTableRow))}\n`,
     "utf8",
   );
+}
+
+export function renderPortingStatistics(rows: LedgerRow[]): string {
+  const total = rows.length;
+  const statusCounts = countByStatus(rows);
+  const completed = (statusCounts.get("ported") ?? 0) + (statusCounts.get("verified") ?? 0);
+  const statuses = [...statusCounts.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+
+  const lines = [
+    "## Statistiques",
+    "",
+    `Avancement du portage : ${completed}/${total} (${formatPercentage(completed, total)}).`,
+    "",
+    "| Statut | Nombre | Pourcentage |",
+    "|---|---:|---:|",
+  ];
+
+  for (const [status, count] of statuses) {
+    lines.push(`| ${status} | ${count} | ${formatPercentage(count, total)} |`);
+  }
+
+  lines.push(`| total | ${total} | ${formatPercentage(total, total)} |`);
+
+  return lines.join("\n");
 }
 
 export function mergeRows(existing: LedgerRow[], scanned: LedgerRow[]): LedgerRow[] {
@@ -133,4 +159,20 @@ function fromTableRow(row: TableRow): LedgerRow {
 
 function stableKey(row: LedgerRow): string {
   return `${row.type}:${row.file}:${row.symbol}`;
+}
+
+function countByStatus(rows: LedgerRow[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const status = row.status || "(empty)";
+    counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function formatPercentage(value: number, total: number): string {
+  if (total === 0) {
+    return "0.00%";
+  }
+  return `${((value / total) * 100).toFixed(2)}%`;
 }
