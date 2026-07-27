@@ -3,7 +3,9 @@ import {
   BBRIDGE_HEADER_GUARD_PORTED,
   BFORT_HEADER_GUARD_PORTED,
   BRADAR_HEADER_GUARD_PORTED,
+  BROBOT_HEADER_GUARD_PORTED,
   BREPAIR_HEADER_GUARD_PORTED,
+  BVEHICLE_HEADER_GUARD_PORTED,
   RADAR_BOX_SPINNER_X_PIXELS,
   RADAR_BOX_SPINNER_Y_PIXELS,
   RADAR_DISH_X_PIXELS,
@@ -15,13 +17,19 @@ import {
   RADAR_SIDE_LIGHT_X_PIXELS,
   RADAR_SIDE_LIGHT_Y_PIXELS,
   ROBOT_FACTORY_DOUBLE_LIGHT_X_PIXELS,
+  ROBOT_FACTORY_DOUBLE_LIGHT_Y_PIXELS,
   ROBOT_FACTORY_EFFECT_X_OFFSET_PIXELS,
+  ROBOT_FACTORY_EFFECT_Y_OFFSET_PIXELS,
+  ROBOT_FACTORY_EXHAUST_X_PIXELS,
   ROBOT_FACTORY_EXHAUST_Y_PIXELS,
   ROBOT_FACTORY_GREEN_BOX_X_PIXELS,
   ROBOT_FACTORY_GREEN_BOX_Y_PIXELS,
+  ROBOT_FACTORY_LEVEL_X_PIXELS,
+  ROBOT_FACTORY_LEVEL_Y_PIXELS,
   ROBOT_FACTORY_MIN_PROCESS_INTERVAL_SECONDS,
   ROBOT_FACTORY_ROBOT_X_PIXELS,
   ROBOT_FACTORY_ROBOT_Y_PIXELS,
+  ROBOT_FACTORY_SINGLE_LIGHT_Y_PIXELS,
   ROBOT_FACTORY_SPINNER_X_PIXELS,
   ROBOT_FACTORY_SPINNER_Y_PIXELS,
   REPAIR_BULB_X_PIXELS,
@@ -37,6 +45,22 @@ import {
   REPAIR_SMOKE_STACK_Y_PIXELS,
   REPAIR_TEXT_BOX_X_PIXELS,
   REPAIR_TEXT_BOX_Y_PIXELS,
+  VEHICLE_FACTORY_BULB_X_PIXELS,
+  VEHICLE_FACTORY_BULB_Y_PIXELS,
+  VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS,
+  VEHICLE_FACTORY_EFFECT_Y_OFFSET_PIXELS,
+  VEHICLE_FACTORY_EXHAUST_X_PIXELS,
+  VEHICLE_FACTORY_EXHAUST_Y_PIXELS,
+  VEHICLE_FACTORY_LEVEL_X_PIXELS,
+  VEHICLE_FACTORY_LEVEL_Y_PIXELS,
+  VEHICLE_FACTORY_LIGHTS_Y_PIXELS,
+  VEHICLE_FACTORY_MIN_PROCESS_INTERVAL_SECONDS,
+  VEHICLE_FACTORY_SPINNER_X_PIXELS,
+  VEHICLE_FACTORY_SPINNER_Y_PIXELS,
+  VEHICLE_FACTORY_TANK_X_PIXELS,
+  VEHICLE_FACTORY_TANK_Y_PIXELS,
+  VEHICLE_FACTORY_VENT_X_PIXELS,
+  VEHICLE_FACTORY_VENT_Y_PIXELS,
 } from "../src/simulation/entities/BuildingTypes";
 
 describe("building types", () => {
@@ -96,6 +120,98 @@ describe("building types", () => {
     );
   });
 
+  it("adapts the brobot header guard to module boundaries", async () => {
+    const firstImport = await import(
+      "../src/simulation/entities/BuildingTypes"
+    );
+    const secondImport = await import(
+      "../src/simulation/entities/BuildingTypes"
+    );
+
+    expect(BROBOT_HEADER_GUARD_PORTED).toBe(true);
+    expect(secondImport.BROBOT_HEADER_GUARD_PORTED).toBe(
+      firstImport.BROBOT_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("adapts the bvehicle header guard to module boundaries", async () => {
+    const firstImport = await import(
+      "../src/simulation/entities/BuildingTypes"
+    );
+    const secondImport = await import(
+      "../src/simulation/entities/BuildingTypes"
+    );
+
+    expect(BVEHICLE_HEADER_GUARD_PORTED).toBe(true);
+    expect(secondImport.BVEHICLE_HEADER_GUARD_PORTED).toBe(
+      firstImport.BVEHICLE_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("ports the vehicle factory exhaust x offset", () => {
+    expect(VEHICLE_FACTORY_EXHAUST_X_PIXELS).toBe(28);
+  });
+
+  it("ports the vehicle factory exhaust y offset", () => {
+    expect(VEHICLE_FACTORY_EXHAUST_Y_PIXELS).toBe(-22);
+  });
+
+  it("ports the vehicle factory bulb x offset", () => {
+    expect(VEHICLE_FACTORY_BULB_X_PIXELS).toBe(24);
+  });
+
+  it("ports the vehicle factory bulb y offset", () => {
+    expect(VEHICLE_FACTORY_BULB_Y_PIXELS).toBe(39);
+  });
+
+  it("ports the vehicle factory effect x offset", () => {
+    expect(VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS).toBe(15);
+  });
+
+  it("ports the vehicle factory effect y offset", () => {
+    expect(VEHICLE_FACTORY_EFFECT_Y_OFFSET_PIXELS).toBe(8);
+  });
+
+  it("ports the vehicle factory level x offset", () => {
+    expect(VEHICLE_FACTORY_LEVEL_X_PIXELS).toBe(8);
+  });
+
+  it("ports the vehicle factory level y offset", () => {
+    expect(VEHICLE_FACTORY_LEVEL_Y_PIXELS).toBe(56);
+  });
+
+  it("ports the vehicle factory lights y offset", () => {
+    expect(VEHICLE_FACTORY_LIGHTS_Y_PIXELS).toBe(47);
+  });
+
+  it("ports the vehicle factory minimum process interval", () => {
+    expect(VEHICLE_FACTORY_MIN_PROCESS_INTERVAL_SECONDS).toBe(0.25);
+  });
+
+  it("ports the vehicle factory spinner x offset", () => {
+    expect(VEHICLE_FACTORY_SPINNER_X_PIXELS).toBe(9);
+  });
+
+  it("ports the vehicle factory spinner y offset", () => {
+    expect(VEHICLE_FACTORY_SPINNER_Y_PIXELS).toBe(-2);
+  });
+
+  it("ports the vehicle factory tank x offset", () => {
+    expect(VEHICLE_FACTORY_TANK_X_PIXELS).toBe(16);
+  });
+
+  it("ports the vehicle factory tank y offset", () => {
+    expect(VEHICLE_FACTORY_TANK_Y_PIXELS).toBe(48);
+  });
+
+  it("ports the vehicle factory vent x offset", () => {
+    expect(VEHICLE_FACTORY_VENT_X_PIXELS).toBe(16);
+  });
+
+  it("ports the vehicle factory vent y offset", () => {
+    expect(VEHICLE_FACTORY_VENT_Y_PIXELS).toBe(32);
+  });
+
   it("ports the radar side-light x offset", () => {
     expect(RADAR_SIDE_LIGHT_X_PIXELS).toBe(41);
   });
@@ -108,8 +224,20 @@ describe("building types", () => {
     expect(ROBOT_FACTORY_DOUBLE_LIGHT_X_PIXELS).toBe(16);
   });
 
+  it("ports the robot factory double-light y offset", () => {
+    expect(ROBOT_FACTORY_DOUBLE_LIGHT_Y_PIXELS).toBe(32);
+  });
+
   it("ports the robot factory effect x offset", () => {
     expect(ROBOT_FACTORY_EFFECT_X_OFFSET_PIXELS).toBe(19);
+  });
+
+  it("ports the robot factory effect y offset", () => {
+    expect(ROBOT_FACTORY_EFFECT_Y_OFFSET_PIXELS).toBe(8);
+  });
+
+  it("ports the robot factory exhaust x offset", () => {
+    expect(ROBOT_FACTORY_EXHAUST_X_PIXELS).toBe(28);
   });
 
   it("ports the robot factory exhaust y offset", () => {
@@ -124,6 +252,14 @@ describe("building types", () => {
     expect(ROBOT_FACTORY_GREEN_BOX_Y_PIXELS).toBe(39);
   });
 
+  it("ports the robot factory level x offset", () => {
+    expect(ROBOT_FACTORY_LEVEL_X_PIXELS).toBe(8);
+  });
+
+  it("ports the robot factory level y offset", () => {
+    expect(ROBOT_FACTORY_LEVEL_Y_PIXELS).toBe(56);
+  });
+
   it("ports the robot factory minimum process interval", () => {
     expect(ROBOT_FACTORY_MIN_PROCESS_INTERVAL_SECONDS).toBe(0.25);
   });
@@ -134,6 +270,10 @@ describe("building types", () => {
 
   it("ports the robot factory robot y offset", () => {
     expect(ROBOT_FACTORY_ROBOT_Y_PIXELS).toBe(48);
+  });
+
+  it("ports the robot factory single-light y offset", () => {
+    expect(ROBOT_FACTORY_SINGLE_LIGHT_Y_PIXELS).toBe(68);
   });
 
   it("ports the robot factory spinner x offset", () => {

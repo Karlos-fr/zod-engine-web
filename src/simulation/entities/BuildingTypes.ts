@@ -2,13 +2,15 @@
  * Ported from Zod Engine upstream.
  *
  * Upstream:
- * - Files: bbridge.h, bfort.h, bradar.h, brepair.h, bradar.cpp, brepair.cpp,
- *   brobot.cpp
+ * - Files: bbridge.h, bfort.h, bradar.h, brepair.h, brobot.h, bvehicle.h,
+ *   bvehicle.cpp, bradar.cpp, brepair.cpp, brobot.cpp
  * - Symbols: _BBRIDGE_H_, _BFORT_H_, _BRADAR_H_, _BREPAIR_H_,
- *   box_spinner_x, box_spinner_y, bulb_x, bulb_y, dish_x, double_light_x,
- *   exhaust_y, front_light_x, front_light_y, green_box_x, green_box_y,
+ *   _BROBOT_H_, _BVEHICLE_H_, box_spinner_x, box_spinner_y, bulb_x, bulb_y,
+ *   dish_x, double_light_x, double_light_y, exhaust_x, exhaust_y,
+ *   front_light_x, front_light_y, green_box_x, green_box_y, level_x, level_y,
  *   min_interval_time, robot_x, robot_y, side_light_x, side_light_y,
- *   smoke_stack_x, smoke_stack_y, text_box_x, text_box_y, spin_x, spin_y,
+ *   single_light_y, smoke_stack_x, smoke_stack_y, text_box_x, text_box_y,
+ *   spin_x, spin_y,
  *   x_plus, y_plus
  * - Ledger: MAC-09DFD1, MAC-189091, MAC-BBC4DD, CON-25DB3E, CON-30AB1E,
  *   CON-77BBB1, CON-7BB0C5, CON-853627, CON-A5E131, CON-D1A073,
@@ -17,7 +19,12 @@
  *   CON-7C6665, CON-91192A, CON-B35129, CON-DE02B1, CON-F0AC7E,
  *   CON-F8EF0D, MAC-F5FC59, CON-1C30E4, CON-243565, CON-37D778,
  *   CON-3CBE11, CON-550D5E, CON-5F7D01, CON-626CD9, CON-896ADD,
- *   CON-B6F0A4, CON-BEDC34
+ *   CON-B6F0A4, CON-BEDC34, CON-C75954, CON-C7BFBF, CON-E23243,
+ *   CON-E3F731, CON-E4554F, CON-F303B7, MAC-EBD11A, CON-177CE6,
+ *   CON-2636E0, CON-30B5A0, CON-442B90, CON-480525, CON-4A3C30,
+ *   CON-51596A, CON-816F9A, CON-8910F3, CON-95202A, CON-9B2756,
+ *   CON-DC3B3A, CON-F1F093, CON-F8A190, CON-FC9E8D, CON-FEF53C,
+ *   MAC-90D390
  *
  * Porting notes:
  * - Building header guards are replaced by ES module boundaries.
@@ -84,6 +91,276 @@ export const BRADAR_HEADER_GUARD_PORTED = true;
 export const BREPAIR_HEADER_GUARD_PORTED = true;
 
 /**
+ * Marker exported from the building type module.
+ *
+ * Role:
+ * - Provides a concrete module boundary for the adapted `brobot.h` include
+ *   guard before the full `BRobot` class is ported.
+ *
+ * Ledger: MAC-EBD11A
+ * Upstream: brobot.h:2
+ *
+ * Adaptation:
+ * - Replaces the C `_BROBOT_H_` header guard with TypeScript module loading.
+ */
+export const BROBOT_HEADER_GUARD_PORTED = true;
+
+/**
+ * Marker exported from the building type module.
+ *
+ * Role:
+ * - Provides a concrete module boundary for the adapted `bvehicle.h` include
+ *   guard before the full `BVehicle` class is ported.
+ *
+ * Ledger: MAC-90D390
+ * Upstream: bvehicle.h:2
+ *
+ * Adaptation:
+ * - Replaces the C `_BVEHICLE_H_` header guard with TypeScript module loading.
+ */
+export const BVEHICLE_HEADER_GUARD_PORTED = true;
+
+/**
+ * Port of upstream `min_interval_time` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the minimum time interval between vehicle factory process updates.
+ *
+ * Ledger: CON-F1F093
+ * Upstream: bvehicle.cpp:139
+ *
+ * Notes:
+ * - Unit is seconds.
+ * - Kept separate from the `BRobot`, `BRadar`, and `BRepair` constants with
+ *   the same upstream name.
+ */
+export const VEHICLE_FACTORY_MIN_PROCESS_INTERVAL_SECONDS = 0.25;
+
+/**
+ * Port of upstream `exhaust_x` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the x offset of the vehicle factory exhaust effect source.
+ *
+ * Ledger: CON-177CE6
+ * Upstream: bvehicle.cpp:232
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_EXHAUST_X_PIXELS = 28;
+
+/**
+ * Port of upstream `exhaust_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory exhaust effect source.
+ *
+ * Ledger: CON-816F9A
+ * Upstream: bvehicle.cpp:233
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_EXHAUST_Y_PIXELS = -22;
+
+/**
+ * Port of upstream `bulb_x` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the x offset of the vehicle factory bulb effect source.
+ *
+ * Ledger: CON-51596A
+ * Upstream: bvehicle.cpp:224
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_BULB_X_PIXELS = 24;
+
+/**
+ * Port of upstream `bulb_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory bulb effect source.
+ *
+ * Ledger: CON-FEF53C
+ * Upstream: bvehicle.cpp:225
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_BULB_Y_PIXELS = 39;
+
+/**
+ * Port of upstream `x_plus` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the additional x offset applied while rendering the vehicle
+ *   factory building effect layer.
+ *
+ * Ledger: CON-F8A190
+ * Upstream: bvehicle.cpp:361
+ *
+ * Adaptation:
+ * - Evaluates the C++ expression `31 - 16` as a named number.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS = 15;
+
+/**
+ * Port of upstream `y_plus` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the additional y offset applied while rendering the vehicle
+ *   factory building effect layer.
+ *
+ * Ledger: CON-8910F3
+ * Upstream: bvehicle.cpp:362
+ *
+ * Adaptation:
+ * - Evaluates the C++ expression `32 - 24` as a named number.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_EFFECT_Y_OFFSET_PIXELS = 8;
+
+/**
+ * Port of upstream `level_x` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the x offset of the vehicle factory level indicator effect source.
+ *
+ * Ledger: CON-9B2756
+ * Upstream: bvehicle.cpp:176, bvehicle.cpp:228
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ * - The same upstream local constant appears in both vehicle factory render
+ *   and after-effects code with the same value.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_LEVEL_X_PIXELS = 8;
+
+/**
+ * Port of upstream `level_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory level indicator effect source.
+ *
+ * Ledger: CON-2636E0
+ * Upstream: bvehicle.cpp:177, bvehicle.cpp:229
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ * - The same upstream local constant appears in both vehicle factory render
+ *   and after-effects code with the same value.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_LEVEL_Y_PIXELS = 56;
+
+/**
+ * Port of upstream `lights_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory lights effect source.
+ *
+ * Ledger: CON-FC9E8D
+ * Upstream: bvehicle.cpp:231
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_LIGHTS_Y_PIXELS = 47;
+
+/**
+ * Port of upstream `spin_x` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the x offset of the vehicle factory spinner effect source.
+ *
+ * Ledger: CON-30B5A0
+ * Upstream: bvehicle.cpp:220
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_SPINNER_X_PIXELS = 9;
+
+/**
+ * Port of upstream `spin_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory spinner effect source.
+ *
+ * Ledger: CON-442B90
+ * Upstream: bvehicle.cpp:221
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ * - Kept separate from the `BRobot` constant with the same upstream name.
+ */
+export const VEHICLE_FACTORY_SPINNER_Y_PIXELS = -2;
+
+/**
+ * Port of upstream `tank_x` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the x offset of the vehicle factory tank effect source.
+ *
+ * Ledger: CON-95202A
+ * Upstream: bvehicle.cpp:226
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_TANK_X_PIXELS = 16;
+
+/**
+ * Port of upstream `tank_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory tank effect source.
+ *
+ * Ledger: CON-DC3B3A
+ * Upstream: bvehicle.cpp:227
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_TANK_Y_PIXELS = 48;
+
+/**
+ * Port of upstream `vent_x` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the x offset of the vehicle factory vent effect source.
+ *
+ * Ledger: CON-4A3C30
+ * Upstream: bvehicle.cpp:222
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_VENT_X_PIXELS = 16;
+
+/**
+ * Port of upstream `vent_y` from `BVehicle`.
+ *
+ * Role:
+ * - Defines the y offset of the vehicle factory vent effect source.
+ *
+ * Ledger: CON-480525
+ * Upstream: bvehicle.cpp:223
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const VEHICLE_FACTORY_VENT_Y_PIXELS = 32;
+
+/**
  * Port of upstream `min_interval_time` from `BRobot`.
  *
  * Role:
@@ -112,6 +389,34 @@ export const ROBOT_FACTORY_MIN_PROCESS_INTERVAL_SECONDS = 0.25;
  * - Unit is source image pixels.
  */
 export const ROBOT_FACTORY_DOUBLE_LIGHT_X_PIXELS = 16;
+
+/**
+ * Port of upstream `double_light_y` from `BRobot`.
+ *
+ * Role:
+ * - Defines the y offset of the robot factory double-light effect source.
+ *
+ * Ledger: CON-E4554F
+ * Upstream: brobot.cpp:222
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const ROBOT_FACTORY_DOUBLE_LIGHT_Y_PIXELS = 32;
+
+/**
+ * Port of upstream `exhaust_x` from `BRobot`.
+ *
+ * Role:
+ * - Defines the x offset of the robot factory exhaust effect source.
+ *
+ * Ledger: CON-C7BFBF
+ * Upstream: brobot.cpp:229
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const ROBOT_FACTORY_EXHAUST_X_PIXELS = 28;
 
 /**
  * Port of upstream `exhaust_y` from `BRobot`.
@@ -156,6 +461,34 @@ export const ROBOT_FACTORY_GREEN_BOX_X_PIXELS = 38;
 export const ROBOT_FACTORY_GREEN_BOX_Y_PIXELS = 39;
 
 /**
+ * Port of upstream `level_x` from `BRobot`.
+ *
+ * Role:
+ * - Defines the x offset of the robot factory level indicator effect source.
+ *
+ * Ledger: CON-E23243
+ * Upstream: brobot.cpp:225
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const ROBOT_FACTORY_LEVEL_X_PIXELS = 8;
+
+/**
+ * Port of upstream `level_y` from `BRobot`.
+ *
+ * Role:
+ * - Defines the y offset of the robot factory level indicator effect source.
+ *
+ * Ledger: CON-E3F731
+ * Upstream: brobot.cpp:226
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const ROBOT_FACTORY_LEVEL_Y_PIXELS = 56;
+
+/**
  * Port of upstream `robot_x` from `BRobot`.
  *
  * Role:
@@ -182,6 +515,20 @@ export const ROBOT_FACTORY_ROBOT_X_PIXELS = 16;
  * - Unit is source image pixels.
  */
 export const ROBOT_FACTORY_ROBOT_Y_PIXELS = 48;
+
+/**
+ * Port of upstream `single_light_y` from `BRobot`.
+ *
+ * Role:
+ * - Defines the y offset of the robot factory single-light effect source.
+ *
+ * Ledger: CON-F303B7
+ * Upstream: brobot.cpp:224
+ *
+ * Notes:
+ * - Unit is source image pixels.
+ */
+export const ROBOT_FACTORY_SINGLE_LIGHT_Y_PIXELS = 68;
 
 /**
  * Port of upstream `spin_x` from `BRobot`.
@@ -225,6 +572,21 @@ export const ROBOT_FACTORY_SPINNER_Y_PIXELS = -2;
  * - Evaluates the C++ expression `35 - 16` as a named number.
  */
 export const ROBOT_FACTORY_EFFECT_X_OFFSET_PIXELS = 19;
+
+/**
+ * Port of upstream `y_plus` from `BRobot`.
+ *
+ * Role:
+ * - Defines the additional y offset applied while rendering the robot factory
+ *   building effect layer.
+ *
+ * Ledger: CON-C75954
+ * Upstream: brobot.cpp:361
+ *
+ * Adaptation:
+ * - Evaluates the C++ expression `32 - 24` as a named number.
+ */
+export const ROBOT_FACTORY_EFFECT_Y_OFFSET_PIXELS = 8;
 
 /**
  * Port of upstream `min_interval_time` from `BRepair`.
