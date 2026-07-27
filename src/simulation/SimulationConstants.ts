@@ -3,13 +3,18 @@
  *
  * Upstream:
  * - File: constants.h
- * - Symbols: _CONSTANTS_H_, LIFE_AFTER_DEATH_TIME, MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
- *   MAX_BOT_BYPASS_SIZE, MAX_BUILDING_LEVELS, USE_TEAM_COLORS,
- *   PI, VEHICLE_MOVE_ANIM_SPEED, building_type, cannon_type, item_type,
+ * - Symbols: _CONSTANTS_H_, DEFAULT_MAX_UNITS_PER_TEAM, GAME_VERSION,
+ *   LIFE_AFTER_DEATH_TIME, MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
+ *   MAX_BOT_BYPASS_SIZE, MAX_BUILDING_LEVELS, MAX_PLAYER_NAME_SIZE,
+ *   MAX_STORED_CANNONS, MAX_UNIT_HEALTH,
+ *   REGISTRATION_COST, ROAD_SPEED, TAN1, USE_TEAM_COLORS, WATER_SPEED, PI,
+ *   VEHICLE_MOVE_ANIM_SPEED, building_type, cannon_type, item_type,
  *   planet_type, player_mode, robot_type, rotation_enum, team_type,
  *   vehicle_type
- * - Ledger: MAC-1287A5, MAC-0CDBBE, MAC-3B5684, MAC-4B1E30, MAC-121301,
- *   MAC-342124, MAC-7602DF, MAC-34B895, ENU-6CCCD3, ENU-6A6D22,
+ * - Ledger: MAC-1287A5, MAC-9E687B, MAC-B78A07, MAC-F05645,
+ *   MAC-0CDBBE, MAC-3B5684, MAC-4B1E30, MAC-121301, MAC-BDECE3,
+ *   MAC-342124, MAC-7602DF, MAC-8579DB, MAC-9232B4, MAC-D07409,
+ *   MAC-DAF679, MAC-A85B9D, MAC-34B895, ENU-6CCCD3, ENU-6A6D22,
  *   ENU-523167, ENU-E6E6A8, ENU-786D8C, ENU-6E67A8, ENU-68E0FB,
  *   ENU-A1AE9F, ENU-E29FE5
  *
@@ -32,6 +37,75 @@
  *   the ledger traceable without runtime behavior.
  */
 export const CONSTANTS_HEADER_GUARD_PORTED = true;
+
+/**
+ * Adaptation of upstream `GAME_VERSION`.
+ *
+ * Role:
+ * - Identifies the upstream game data and protocol version carried by this
+ *   port.
+ *
+ * Ledger: MAC-B78A07
+ * Upstream: constants.h:9
+ */
+export const GAME_VERSION = "2018-01-14";
+
+/**
+ * Adaptation of upstream `MAX_PLAYER_NAME_SIZE`.
+ *
+ * Role:
+ * - Defines the maximum player-name field size accepted by simulation and
+ *   network-facing data.
+ *
+ * Ledger: MAC-F05645
+ * Upstream: constants.h:11
+ */
+export const MAX_PLAYER_NAME_SIZE = 30;
+
+/**
+ * Adaptation of upstream `MAX_STORED_CANNONS`.
+ *
+ * Role:
+ * - Defines how many cannon placements or selections can be stored by
+ *   simulation systems.
+ *
+ * Ledger: MAC-BDECE3
+ * Upstream: constants.h:20
+ */
+export const MAX_STORED_CANNONS = 4;
+
+/**
+ * Adaptation of upstream `DEFAULT_MAX_UNITS_PER_TEAM`.
+ *
+ * Role:
+ * - Defines the default per-team unit cap used by simulation setup.
+ *
+ * Ledger: MAC-9E687B
+ * Upstream: constants.h:21
+ */
+export const DEFAULT_MAX_UNITS_PER_TEAM = 70;
+
+/**
+ * Adaptation of upstream `ROAD_SPEED`.
+ *
+ * Role:
+ * - Defines the movement speed factor applied to road traversal.
+ *
+ * Ledger: MAC-D07409
+ * Upstream: constants.h:23
+ */
+export const ROAD_SPEED = 1.689;
+
+/**
+ * Adaptation of upstream `WATER_SPEED`.
+ *
+ * Role:
+ * - Defines the movement speed factor applied to water traversal.
+ *
+ * Ledger: MAC-A85B9D
+ * Upstream: constants.h:24
+ */
+export const WATER_SPEED = 0.7;
 
 /**
  * Adaptation of upstream `LIFE_AFTER_DEATH_TIME`.
@@ -79,6 +153,45 @@ export const MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET = 64;
  * Upstream: constants.h:12
  */
 export const MAX_BUILDING_LEVELS = 6;
+
+/**
+ * Adaptation of upstream `MAX_UNIT_HEALTH`.
+ *
+ * Role:
+ * - Defines the maximum health value available to unit-like simulation
+ *   objects.
+ *
+ * Ledger: MAC-8579DB
+ * Upstream: constants.h:42
+ */
+export const MAX_UNIT_HEALTH = 10000;
+
+/**
+ * Adaptation of upstream `REGISTRATION_COST`.
+ *
+ * Role:
+ * - Defines the cost charged by registration-related simulation behavior.
+ *
+ * Ledger: MAC-9232B4
+ * Upstream: constants.h:33
+ */
+export const REGISTRATION_COST = 1;
+
+/**
+ * Adaptation of upstream `TAN1`.
+ *
+ * Role:
+ * - Provides the upstream tangent-of-one-radian approximation used by
+ *   simulation angle math.
+ *
+ * Ledger: MAC-DAF679
+ * Upstream: constants.h:26
+ *
+ * Notes:
+ * - Preserves the upstream approximation instead of recalculating it at
+ *   runtime.
+ */
+export const TAN1 = 1.55740772;
 
 /**
  * Adaptation of upstream `PI`.

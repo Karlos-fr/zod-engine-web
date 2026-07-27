@@ -4,26 +4,59 @@ import {
   BuildingType,
   CannonType,
   CONSTANTS_HEADER_GUARD_PORTED,
+  DEFAULT_MAX_UNITS_PER_TEAM,
+  GAME_VERSION,
   ItemType,
   LIFE_AFTER_DEATH_SECONDS,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   MAX_BUILDING_LEVELS,
+  MAX_PLAYER_NAME_SIZE,
+  MAX_STORED_CANNONS,
+  MAX_UNIT_HEALTH,
   PI,
   PlanetType,
   PlayerConnectionMode,
+  REGISTRATION_COST,
+  ROAD_SPEED,
   RobotType,
   Rotation,
+  TAN1,
   TEAM_TYPE_MAX_COUNTS,
   TeamType,
   USE_TEAM_COLORS,
   VEHICLE_MOVE_ANIMATION_SPEED,
   VehicleType,
+  WATER_SPEED,
 } from "../src/simulation/SimulationConstants";
 
 describe("simulation constants", () => {
   it("adapts the constants.h include guard to an ES module marker", () => {
     expect(CONSTANTS_HEADER_GUARD_PORTED).toBe(true);
+  });
+
+  it("adapts GAME_VERSION as the upstream version string", () => {
+    expect(GAME_VERSION).toBe("2018-01-14");
+  });
+
+  it("adapts MAX_PLAYER_NAME_SIZE as a data field limit", () => {
+    expect(MAX_PLAYER_NAME_SIZE).toBe(30);
+  });
+
+  it("adapts MAX_STORED_CANNONS as a simulation storage limit", () => {
+    expect(MAX_STORED_CANNONS).toBe(4);
+  });
+
+  it("adapts DEFAULT_MAX_UNITS_PER_TEAM as a simulation limit", () => {
+    expect(DEFAULT_MAX_UNITS_PER_TEAM).toBe(70);
+  });
+
+  it("adapts ROAD_SPEED as a movement factor", () => {
+    expect(ROAD_SPEED).toBe(1.689);
+  });
+
+  it("adapts WATER_SPEED as a movement factor", () => {
+    expect(WATER_SPEED).toBe(0.7);
   });
 
   it("adapts LIFE_AFTER_DEATH_TIME as seconds", () => {
@@ -42,8 +75,20 @@ describe("simulation constants", () => {
     expect(MAX_BUILDING_LEVELS).toBe(6);
   });
 
+  it("adapts MAX_UNIT_HEALTH as a simulation limit", () => {
+    expect(MAX_UNIT_HEALTH).toBe(10000);
+  });
+
+  it("adapts REGISTRATION_COST as a simulation cost", () => {
+    expect(REGISTRATION_COST).toBe(1);
+  });
+
   it("adapts PI with the upstream approximation", () => {
     expect(PI).toBe(3.14159);
+  });
+
+  it("adapts TAN1 with the upstream approximation", () => {
+    expect(TAN1).toBe(1.55740772);
   });
 
   it("adapts VEHICLE_MOVE_ANIM_SPEED as an animation factor", () => {

@@ -5,13 +5,13 @@ symbole upstream ou une décision explicite de portage.
 
 ## Statistiques
 
-Avancement du portage : 308/2913 (10.57%).
+Avancement du portage : 317/2913 (10.88%).
 
 | Statut | Nombre | Pourcentage |
 |---|---:|---:|
 | ignored | 1 | 0.03% |
-| ported | 308 | 10.57% |
-| todo | 2604 | 89.39% |
+| ported | 317 | 10.88% |
+| todo | 2595 | 89.08% |
 | total | 2913 | 100.00% |
 
 | ID | Type | Symbole | Fichier | Lignes | Décision | Domaine cible | Statut | Lot | Cible TS | Notes | Depends On | Blocked By |
@@ -986,7 +986,7 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-83E500 | macro | `COMPANY_NAME` | zod_engine_private.h | 13-13 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-83E82D | macro | `_RGRUNT_H_` | rgrunt.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the rgrunt.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-854B90 | macro | `ETANKSPARK_TIME` | etankspark.cpp | 6-6 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-8579DB | macro | `MAX_UNIT_HEALTH` | constants.h | 42-42 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-8579DB | macro | `MAX_UNIT_HEALTH` | constants.h | 42-42 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_UNIT_HEALTH as the unit health ceiling constant. |  |  |
 | MAC-858FED | macro | `MAX_STORED_SPACE_BAR_EVENTS` | zplayer.h | 106-106 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-860937 | macro | `_ZCORE_H_` | zcore.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-88D410 | macro | `MMLIST_DOWN_BUTTON_FROM_RIGHT` | zgui_main_menu_widgets.h | 175-175 | ADAPT | ui | todo |  |  |  |  |  |
@@ -1003,7 +1003,7 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-90D390 | macro | `_BVEHICLE_H_` | bvehicle.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted BVehicle header guard as BVEHICLE_HEADER_GUARD_PORTED. |  |  |
 | MAC-911051 | macro | `_ZGMM_MULTIPLAYER_H_` | gmm_multiplayer.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-92052D | macro | `MAX_MOUTHS` | zportrait.h | 21-21 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-9232B4 | macro | `REGISTRATION_COST` | constants.h | 33-33 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-9232B4 | macro | `REGISTRATION_COST` | constants.h | 33-33 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted REGISTRATION_COST as the registration cost constant. |  |  |
 | MAC-94160E | macro | `_EROBOTDEATH_H_` | erobotdeath.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-96C7EA | macro | `_EVENTHANDLER_H_` | event_handler.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-9A9BA4 | macro | `_EMAPOBJECTTURRENT_H_` | emapobjectturrent.h | 2-2 | ADAPT | world | ported |  | src/world/MapObjectTurretEffect.ts | Adapted the emapobjectturrent.h include guard to MapObjectTurretEffect ES module boundaries. |  |  |
@@ -1012,20 +1012,20 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 52-52 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ImageScaling named ES exports for the SDL_ROTOZOOM_SCOPE dllimport branch. |  |  |
 | MAC-9E34B7 | macro | `SDL_ROTOZOOM_SCOPE` | SDL_rotozoom.h | 57-57 | REPLACE | rendering | ported | rendering-basic | src/rendering/ImageScaling.ts | Reused ImageScaling named ES exports for the SDL_ROTOZOOM_SCOPE extern branch. |  |  |
 | MAC-9E35F6 | macro | `MMRADIO_HEIGHT` | zgui_main_menu_widgets.h | 279-279 | ADAPT | ui | todo |  |  |  |  |  |
-| MAC-9E687B | macro | `DEFAULT_MAX_UNITS_PER_TEAM` | constants.h | 21-21 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-9E687B | macro | `DEFAULT_MAX_UNITS_PER_TEAM` | constants.h | 21-21 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted DEFAULT_MAX_UNITS_PER_TEAM as the default team unit cap constant. |  |  |
 | MAC-9FAF42 | macro | `_EROBOTTURRENT_H_` | erobotturrent.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-A1C505 | macro | `ZTEAM_BASE_TEAM` | zteam.h | 12-12 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-A749BD | macro | `_OROCK_H_` | orock.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-A79FD1 | macro | `MAX_COMP_LOSING_MESSAGES` | zsound_engine.h | 9-9 | ADAPT | audio | todo |  |  |  |  |  |
 | MAC-A837E6 | macro | `_ZPATH_FINDING_H_` | zpath_finding.h | 2-2 | ADAPT | world | ported | navigation-basic | src/world/navigation/NavigationTypes.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
-| MAC-A85B9D | macro | `WATER_SPEED` | constants.h | 24-24 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-A85B9D | macro | `WATER_SPEED` | constants.h | 24-24 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted WATER_SPEED as the water traversal speed factor. |  |  |
 | MAC-A866D1 | macro | `_ZPATH_FINDING_ASTAR_H_` | zpath_finding_astar.h | 2-2 | ADAPT | world | ported | navigation-basic | src/world/navigation/AStar.ts | Adapted the C++ header guard through native ES module scoping; no runtime symbol is required. |  |  |
 | MAC-AFC09B | macro | `_ZROBOT_H_` | zrobot.h | 2-2 | ADAPT | simulation | ported | robot-basic | src/simulation/entities/RobotTypes.ts | Adapted the zrobot.h include guard to RobotTypes ES module boundaries. |  |  |
 | MAC-B132A7 | macro | `MMRADIO_MIN_SELECTIONS` | zgui_main_menu_widgets.h | 283-283 | ADAPT | ui | todo |  |  |  |  |  |
 | MAC-B23CBF | macro | `_ZGUN_PLACEMENT_HEATMAP_H_` | zgun_placement_heatmap.h | 2-2 | ADAPT | world | ported |  | src/world/GunPlacementHeatMap.ts | Adapted the zgun_placement_heatmap.h include guard to GunPlacementHeatMap ES module boundaries. |  |  |
 | MAC-B5CB35 | macro | `_ZEFFECT_H_` | zeffect.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-B6CD4F | macro | `_EMISSILECROCKETS_H_` | emissilecrockets.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-B78A07 | macro | `GAME_VERSION` | constants.h | 9-9 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-B78A07 | macro | `GAME_VERSION` | constants.h | 9-9 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted GAME_VERSION as the upstream version string. |  |  |
 | MAC-B78B02 | macro | `_OROCKETS_H_` | orockets.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-B7ED75 | macro | `_ZGMM_WARNING_H_` | gmm_warning.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-BBC4DD | macro | `_BRADAR_H_` | bradar.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted bradar.h include guard as BRADAR_HEADER_GUARD_PORTED. |  |  |
@@ -1033,7 +1033,7 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-BD2F8B | macro | `_EROCKTURRENT_H_` | erockturrent.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-BD45DB | macro | `GWPFUS_OBJH` | gwproduction_fus.cpp | 29-29 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-BDB6B9 | macro | `_ZMYSQL_H_` | zmysql.h | 2-2 | DEFER | simulation | todo |  |  |  |  |  |
-| MAC-BDECE3 | macro | `MAX_STORED_CANNONS` | constants.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-BDECE3 | macro | `MAX_STORED_CANNONS` | constants.h | 20-20 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_STORED_CANNONS as the cannon storage limit constant. |  |  |
 | MAC-BF5A5F | macro | `BIRD_MAP_PADDING` | abird.cpp | 3-3 | ADAPT | world | ported |  | src/world/BirdMap.ts | Adapted the bird map padding macro as a typed world constant. |  |  |
 | MAC-BFD033 | macro | `LEGAL_TRADEMARKS` | zod_engine_private.h | 18-18 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-BFE2E7 | macro | `_ETANKOIL_H_` | etankoil.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
@@ -1050,7 +1050,7 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-CE13A1 | macro | `_EPYROFIRE_H_` | epyrofire.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-CE6227 | macro | `Nb` | zencrypt_aes.cpp | 7-7 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-CFFCBD | macro | `_ZFONT_ENGINE_H_` | zfont_engine.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-D07409 | macro | `ROAD_SPEED` | constants.h | 23-23 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-D07409 | macro | `ROAD_SPEED` | constants.h | 23-23 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted ROAD_SPEED as the road traversal speed factor. |  |  |
 | MAC-D08EAE | macro | `MAX_EYES` | zportrait.h | 19-19 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-D09B3B | macro | `_ELIGHTROCKET_H_` | elightrocket.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-D13C6B | macro | `_VMEDIUM_H_` | vmedium.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vmedium.h include guard to VehicleTypes ES module boundaries. |  |  |
@@ -1068,7 +1068,7 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-D80FA3 | macro | `PRODUCT_NAME` | zod_engine_private.h | 20-20 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-D8F2C2 | macro | `_VHEAVY_H_` | vheavy.h | 2-2 | ADAPT | simulation | ported | vehicle-basic | src/simulation/entities/VehicleTypes.ts | Adapted the vheavy.h include guard to VehicleTypes ES module boundaries. |  |  |
 | MAC-D9FEDE | macro | `ZOD_ENGINE_PRIVATE_H` | zod_engine_private.h | 5-5 | ADAPT | simulation | todo |  |  |  |  |  |
-| MAC-DAF679 | macro | `TAN1` | constants.h | 26-26 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-DAF679 | macro | `TAN1` | constants.h | 26-26 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted TAN1 as the upstream tangent approximation constant. |  |  |
 | MAC-DB695F | macro | `ETANKOIL_TIME` | etankoil.cpp | 6-6 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-DBAF13 | macro | `_ZGWLOGIN_H_` | gwlogin.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-DBCCD7 | macro | `_CGUN_H_` | cgun.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted CGun header guard as CGUN_HEADER_GUARD_PORTED. |  |  |
@@ -1087,7 +1087,7 @@ Avancement du portage : 308/2913 (10.57%).
 | MAC-EBD11A | macro | `_BROBOT_H_` | brobot.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted BRobot header guard as BROBOT_HEADER_GUARD_PORTED. |  |  |
 | MAC-EDC56A | macro | `_ZGWFACTORY_LIST_H_` | gwfactory_list.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-EDD456 | macro | `_CGATLING_H_` | cgatling.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/CannonTypes.ts | Adapted CGatling header guard as CGATLING_HEADER_GUARD_PORTED. |  |  |
-| MAC-F05645 | macro | `MAX_PLAYER_NAME_SIZE` | constants.h | 11-11 | ADAPT | simulation | todo |  |  |  |  |  |
+| MAC-F05645 | macro | `MAX_PLAYER_NAME_SIZE` | constants.h | 11-11 | ADAPT | simulation | ported |  | src/simulation/SimulationConstants.ts | Adapted MAX_PLAYER_NAME_SIZE as the player name field limit constant. |  |  |
 | MAC-F13D4D | macro | `_EBULLET_H_` | ebullet.h | 2-2 | ADAPT | simulation | todo |  |  |  |  |  |
 | MAC-F5FC59 | macro | `_BREPAIR_H_` | brepair.h | 2-2 | ADAPT | simulation | ported |  | src/simulation/entities/BuildingTypes.ts | Adapted brepair.h header guard as BREPAIR_HEADER_GUARD_PORTED. |  |  |
 | MAC-F62E20 | macro | `VER_MAJOR` | zod_engine_private.h | 9-9 | ADAPT | simulation | todo |  |  |  |  |  |
