@@ -1,0 +1,2 @@
+export const TICKS_UNTIL_PATHFINDING_PAUSE = 90;
+export const CRAWL_DISTANCE = 4;

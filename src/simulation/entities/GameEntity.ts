@@ -6,6 +6,12 @@ export class GameEntity {
   position: Vector2;
   target: Vector2 | null = null;
   speedTilesPerSecond = 2;
+  aiLastSetBuildTime = 0;
+  initialHealthPercent = 0;
+  attackRadius = 0;
+  justLeftCannon = false;
+  pixelWidth = 0;
+  pixelHeight = 0;
 
   constructor(options: { id: string; kind: string; position: Vector2 }) {
     this.id = options.id;
@@ -15,6 +21,37 @@ export class GameEntity {
 
   issueMoveOrder(target: Vector2): void {
     this.target = { ...target };
+  }
+
+  setLastAiBuildTime(value: number): void {
+    this.aiLastSetBuildTime = value;
+  }
+
+  getLastAiBuildTime(): number {
+    return this.aiLastSetBuildTime;
+  }
+
+  getInitialHealthPercent(): number {
+    return this.initialHealthPercent;
+  }
+
+  getCoordinates(): Vector2 {
+    return { ...this.position };
+  }
+
+  getAttackRadius(): number {
+    return this.attackRadius;
+  }
+
+  setJustLeftCannon(value: boolean): void {
+    this.justLeftCannon = value;
+  }
+
+  getPixelDimensions(): { width: number; height: number } {
+    return {
+      width: this.pixelWidth,
+      height: this.pixelHeight,
+    };
   }
 
   update(deltaSeconds: number): void {

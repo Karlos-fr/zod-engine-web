@@ -53,10 +53,7 @@ export function resolveDependencies(
   index = buildSymbolIndex(rows),
 ): DependencyResolution {
   const excerpt = readExcerpt(row);
-  const currentSymbol = stripTicks(row.symbol);
-  const calls = extractCalls(excerpt).filter(
-    (call) => !ignoredCalls.has(call) && call !== currentSymbol,
-  );
+  const calls = extractCalls(excerpt).filter((call) => !ignoredCalls.has(call));
   const references = extractSymbolReferences(excerpt, rows, row);
   const dependencies = new Set<string>();
   const unresolvedCalls: string[] = [];

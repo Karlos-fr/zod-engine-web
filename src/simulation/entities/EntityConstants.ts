@@ -1,0 +1,13 @@
+export const MAX_UNITS_PER_TYPE = 7;
+export const GLVL = 170;
+export const MIN_STAMINA = 0.3;
+export const Z_EPSILON = 0.00001;
+export const Z_FINE_EPSILON = 0.000001;
+export const BAR_Y_SHIFT = -8;
+export const BAR_X_SHIFT = -3;
+export const BAR_RED = 0;
+export const HOVER_NAME_Y_SHIFT = -19;
+export const DOT_COUNT = 10;
+export const MAX_BAR_DISTANCE = 30 + 6;
+export const BAR_YELLOW_RED = 247;
+export const BAR_GREEN_RED = 82;

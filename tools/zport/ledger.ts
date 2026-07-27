@@ -104,7 +104,7 @@ export function updateLedgerRow(
   filePath = ledgerPath,
 ): LedgerRow {
   const rows = readLedger(filePath);
-  const index = rows.findIndex((row) => row.id === id);
+  const index = findPreferredRowIndex(rows, id);
   if (index === -1) {
     throw new Error(`Unknown ledger id: ${id}`);
   }
@@ -114,11 +114,23 @@ export function updateLedgerRow(
 }
 
 export function findLedgerRow(id: string, filePath = ledgerPath): LedgerRow {
-  const row = readLedger(filePath).find((entry) => entry.id === id);
+  const rows = readLedger(filePath);
+  const index = findPreferredRowIndex(rows, id);
+  const row = index === -1 ? undefined : rows[index];
   if (!row) {
     throw new Error(`Unknown ledger id: ${id}`);
   }
   return row;
+}
+
+function findPreferredRowIndex(rows: LedgerRow[], id: string): number {
+  const actionableIndex = rows.findIndex(
+    (row) => row.id === id && (row.status === "todo" || row.status === "in_progress"),
+  );
+  if (actionableIndex !== -1) {
+    return actionableIndex;
+  }
+  return rows.findIndex((row) => row.id === id);
 }
 
 export function toTableRow(row: LedgerRow): TableRow {
