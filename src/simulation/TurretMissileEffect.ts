@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: eturrentmissile.h
  */
 
 /**
  * Port of upstream `_ETURRENTMISSILE_H_`.
  * Role: Marks an upstream header boundary.
- * Ledger: MAC-132963
  * Upstream: eturrentmissile.h:2
  */
 export const ETURRET_MISSILE_HEADER_GUARD_PORTED = true;
@@ -14,7 +12,6 @@ export const ETURRET_MISSILE_HEADER_GUARD_PORTED = true;
 /**
  * Port of upstream `eturrent_missile`.
  * Role: Identifies the turret missile effect sprite set.
- * Ledger: ENU-1893F9
  * Upstream: eturrentmissile.h:6-15
  */
 export enum TurretMissileEffectType {

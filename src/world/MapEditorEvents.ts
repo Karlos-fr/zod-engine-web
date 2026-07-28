@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: map_editor.cpp
  */
 
 /**
  * Port of upstream `map_event`.
  * Role: Stores one map editor operation with its mode, tile rectangle, palette tile values, object metadata, and reference id.
- * Ledger: STR-12C865
  * Upstream: map_editor.cpp:90-103
  */
 export type MapEditorEvent = {

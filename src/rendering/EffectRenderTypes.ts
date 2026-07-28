@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: ecraneconco.h
  */
 
 /**
  * Replacement for upstream `ecraneconco_render_item`.
  * Role: Identifies crane construction overlay pieces for renderer ordering.
- * Ledger: ENU-623C57
  * Upstream: ecraneconco.h:7-10
  */
 export enum CraneConstructionRenderItem {

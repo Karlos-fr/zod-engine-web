@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: map_editor.cpp
  */
 
 /**
  * Input state consumed by the ported map editor keyboard helpers.
  * Role: Stores the pressed state of directional and modifier keys for the map editor.
- * Ledger: FUN-5AFC37, FUN-615E08, FUN-9CD6AB
  * Upstream: map_editor.cpp:231-232, map_editor.cpp:698-719
  */
 export type MapEditorModifierKeyState = {
@@ -23,7 +21,6 @@ export type MapEditorModifierKeyState = {
 /**
  * SDL key code constants for the ported map editor keyboard switch.
  * Role: Names the numeric key codes for map editor key release handling.
- * Ledger: FUN-9CD6AB
  * Upstream: map_editor.cpp:702-717
  */
 export const MAP_EDITOR_INPUT_KEYS = {
@@ -41,7 +38,6 @@ export const MAP_EDITOR_INPUT_KEYS = {
  * Browser-side key identifier for the ported map editor key release
  * handler.
  * Role: Captures the SDL numeric arrow codes and adapted browser modifier key codes handled by `process_button_unpressed`.
- * Ledger: FUN-9CD6AB
  * Upstream: map_editor.cpp:702-717
  */
 export type MapEditorInputKeyCode =
@@ -57,7 +53,6 @@ export type MapEditorInputKeyCode =
 /**
  * Port of upstream `ctrl_down`.
  * Role: Reports whether either Control key is currently pressed for map editor commands.
- * Ledger: FUN-5AFC37
  * Upstream: map_editor.cpp:231
  */
 export function isControlDown(state: MapEditorModifierKeyState): boolean {
@@ -67,7 +62,6 @@ export function isControlDown(state: MapEditorModifierKeyState): boolean {
 /**
  * Port of upstream `shift_down`.
  * Role: Reports whether either Shift key is currently pressed for map editor commands.
- * Ledger: FUN-615E08
  * Upstream: map_editor.cpp:232
  */
 export function isShiftDown(state: MapEditorModifierKeyState): boolean {
@@ -77,7 +71,6 @@ export function isShiftDown(state: MapEditorModifierKeyState): boolean {
 /**
  * Port of upstream `process_button_unpressed`.
  * Role: Clears the stored pressed state for map editor movement and modifier keys when the matching key is released.
- * Ledger: FUN-9CD6AB
  * Upstream: map_editor.cpp:698-719
  */
 export function processMapEditorButtonUnpressed(

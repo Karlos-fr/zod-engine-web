@@ -1,12 +1,12 @@
+import type { VoteType } from "./VotePresentation";
+
 /**
- * Ported from Zod Engine.
  * Upstream: event_handler.h / event_handler.cpp
  */
 
 /**
  * Port of upstream `_EVENTHANDLER_H_`.
  * Role: Marks an upstream header boundary.
- * Ledger: MAC-96C7EA
  * Upstream: event_handler.h:2
  */
 export const EVENT_HANDLER_HEADER_GUARD_PORTED = true;
@@ -14,15 +14,22 @@ export const EVENT_HANDLER_HEADER_GUARD_PORTED = true;
 /**
  * Port of upstream `MAX_VERSION_PACKET_CHARS`.
  * Role: Defines the fixed character capacity of upstream `version_packet.version`.
- * Ledger: MAC-E8EBB4
  * Upstream: event_handler.h:231
  */
 export const MAX_VERSION_PACKET_CHARS = 50;
 
 /**
+ * Port of upstream `version_packet`.
+ * Role: Carries the fixed version string buffer exchanged by version events.
+ * Upstream: event_handler.h:232-235
+ */
+export type VersionPacket = {
+  version: Uint8Array;
+};
+
+/**
  * Port of upstream `player_mode_packet`.
  * Role: Carries a player's mode value in an event payload.
- * Ledger: STR-047F8A
  * Upstream: event_handler.h:132-135
  */
 export type PlayerModePacket = {
@@ -32,7 +39,6 @@ export type PlayerModePacket = {
 /**
  * Port of upstream `start_building_packet`.
  * Role: Carries the object reference and build target ids for a start-building event.
- * Ledger: STR-0CBD69
  * Upstream: event_handler.h:68-72
  */
 export type StartBuildingPacket = {
@@ -44,7 +50,6 @@ export type StartBuildingPacket = {
 /**
  * Port of upstream `eject_vehicle_packet`.
  * Role: Carries the object reference for a vehicle ejection event.
- * Ledger: STR-12EFA0
  * Upstream: event_handler.h:96-99
  */
 export type EjectVehiclePacket = {
@@ -54,7 +59,6 @@ export type EjectVehiclePacket = {
 /**
  * Port of upstream `do_portrait_anim_packet`.
  * Role: Carries the object reference and portrait animation id for an event.
- * Ledger: STR-1FBD56
  * Upstream: event_handler.h:201-205
  */
 export type DoPortraitAnimPacket = {
@@ -65,7 +69,6 @@ export type DoPortraitAnimPacket = {
 /**
  * Port of upstream `object_health_packet`.
  * Role: Carries the object reference and updated health value for an event.
- * Ledger: STR-234083
  * Upstream: event_handler.h:46-50
  */
 export type ObjectHealthPacket = {
@@ -76,7 +79,6 @@ export type ObjectHealthPacket = {
 /**
  * Port of upstream `add_remove_player_packet`.
  * Role: Carries the player id for local player add/remove events.
- * Ledger: STR-36025B
  * Upstream: event_handler.h:137-140
  */
 export type AddRemovePlayerPacket = {
@@ -86,7 +88,6 @@ export type AddRemovePlayerPacket = {
 /**
  * Port of upstream `set_building_state_packet`.
  * Role: Carries the object reference, building state, timing, and produced object ids.
- * Ledger: STR-45E9CD
  * Upstream: event_handler.h:74-81
  */
 export type SetBuildingStatePacket = {
@@ -101,7 +102,6 @@ export type SetBuildingStatePacket = {
 /**
  * Port of upstream `set_player_loginfo_packet`.
  * Role: Carries account and login state details for a local player.
- * Ledger: STR-4B1180
  * Upstream: event_handler.h:148-157
  */
 export type SetPlayerLoginfoPacket = {
@@ -117,7 +117,6 @@ export type SetPlayerLoginfoPacket = {
 /**
  * Port of upstream `update_game_paused_packet`.
  * Role: Carries the game pause state for pause synchronization events.
- * Ledger: STR-5847F3
  * Upstream: event_handler.h:159-162
  */
 export type UpdateGamePausedPacket = {
@@ -125,9 +124,19 @@ export type UpdateGamePausedPacket = {
 };
 
 /**
+ * Port of upstream `vote_info_packet`.
+ * Role: Carries the active vote state, vote type, and vote value.
+ * Upstream: event_handler.h:164-169
+ */
+export type VoteInfoPacket = {
+  inProgress: boolean;
+  voteType: VoteType;
+  value: number;
+};
+
+/**
  * Port of upstream `snipe_object_packet`.
  * Role: Carries the object reference targeted by a sniper event.
- * Ledger: STR-5E0CDA
  * Upstream: event_handler.h:122-125
  */
 export type SnipeObjectPacket = {
@@ -137,7 +146,6 @@ export type SnipeObjectPacket = {
 /**
  * Port of upstream `destroy_object_packet`.
  * Role: Carries object destruction options and killer reference data.
- * Ledger: STR-5F593D
  * Upstream: event_handler.h:58-66
  */
 export type DestroyObjectPacket = {
@@ -152,7 +160,6 @@ export type DestroyObjectPacket = {
 /**
  * Port of upstream `set_player_int_packet`.
  * Role: Carries a player id and integer value for player update events.
- * Ledger: STR-61C680
  * Upstream: event_handler.h:142-146
  */
 export type SetPlayerIntPacket = {
@@ -163,7 +170,6 @@ export type SetPlayerIntPacket = {
 /**
  * Port of upstream `fire_missile_packet`.
  * Role: Carries the firing object reference and missile target coordinates.
- * Ledger: STR-679AEA
  * Upstream: event_handler.h:52-56
  */
 export type FireMissilePacket = {
@@ -175,7 +181,6 @@ export type FireMissilePacket = {
 /**
  * Port of upstream `cancel_building_queue_packet`.
  * Role: Carries queue position and object ids for cancelling a building queue item.
- * Ledger: STR-6DF61C
  * Upstream: event_handler.h:224-229
  */
 export type CancelBuildingQueuePacket = {
@@ -188,7 +193,6 @@ export type CancelBuildingQueuePacket = {
 /**
  * Port of upstream `object_team_packet`.
  * Role: Carries object owner and driver assignment values.
- * Ledger: STR-6E2441
  * Upstream: event_handler.h:32-38
  */
 export type ObjectTeamPacket = {
@@ -201,7 +205,6 @@ export type ObjectTeamPacket = {
 /**
  * Port of upstream `repair_building_anim_packet`.
  * Role: Carries repair animation state, remaining time, and sound flag.
- * Ledger: STR-742977
  * Upstream: event_handler.h:108-114
  */
 export type RepairBuildingAnimPacket = {
@@ -214,7 +217,6 @@ export type RepairBuildingAnimPacket = {
 /**
  * Port of upstream `obj_grenade_amount_packet`.
  * Role: Carries the object reference and grenade count for synchronization.
- * Ledger: STR-779292
  * Upstream: event_handler.h:181-185
  */
 export type ObjectGrenadeAmountPacket = {
@@ -225,7 +227,6 @@ export type ObjectGrenadeAmountPacket = {
 /**
  * Port of upstream `place_cannon_packet`.
  * Role: Carries the building reference, tile coordinates, and cannon object id.
- * Ledger: STR-78A1E7
  * Upstream: event_handler.h:83-88
  */
 export type PlaceCannonPacket = {
@@ -238,7 +239,6 @@ export type PlaceCannonPacket = {
 /**
  * Port of upstream `buy_registration_packet`.
  * Role: Carries the fixed registration purchase buffer.
- * Ledger: STR-842529
  * Upstream: event_handler.h:213-216
  */
 export type BuyRegistrationPacket = {
@@ -248,7 +248,6 @@ export type BuyRegistrationPacket = {
 /**
  * Port of upstream `crane_anim_packet`.
  * Role: Carries crane animation state and repair target references.
- * Ledger: STR-8967C6
  * Upstream: event_handler.h:101-106
  */
 export type CraneAnimPacket = {
@@ -260,7 +259,6 @@ export type CraneAnimPacket = {
 /**
  * Port of upstream `loginoff_packet`.
  * Role: Carries whether the login UI should be shown.
- * Ledger: STR-9357F5
  * Upstream: event_handler.h:176-179
  */
 export type LoginoffPacket = {
@@ -270,7 +268,6 @@ export type LoginoffPacket = {
 /**
  * Port of upstream `set_lid_state_packet`.
  * Role: Carries vehicle lid open state for an object reference.
- * Ledger: STR-A5F5BA
  * Upstream: event_handler.h:116-120
  */
 export type SetLidStatePacket = {
@@ -281,7 +278,6 @@ export type SetLidStatePacket = {
 /**
  * Port of upstream `team_ended_packet`.
  * Role: Carries the ended team and whether it won.
- * Ledger: STR-B28B90
  * Upstream: event_handler.h:207-211
  */
 export type TeamEndedPacket = {
@@ -292,7 +288,6 @@ export type TeamEndedPacket = {
 /**
  * Port of upstream `player_id_packet`.
  * Role: Carries a player id in player identity events.
- * Ledger: STR-B976A6
  * Upstream: event_handler.h:171-174
  */
 export type PlayerIdPacket = {
@@ -302,7 +297,6 @@ export type PlayerIdPacket = {
 /**
  * Port of upstream `zone_info_packet`.
  * Role: Carries zone ownership information.
- * Ledger: STR-DCC1C8
  * Upstream: event_handler.h:26-30
  */
 export type ZoneInfoPacket = {
@@ -313,7 +307,6 @@ export type ZoneInfoPacket = {
 /**
  * Port of upstream `attack_object_packet`.
  * Role: Carries the attacker object reference and target object reference.
- * Ledger: STR-E61E73
  * Upstream: event_handler.h:40-44
  */
 export type AttackObjectPacket = {
@@ -324,7 +317,6 @@ export type AttackObjectPacket = {
 /**
  * Port of upstream `computer_msg_packet`.
  * Role: Carries the object reference and computer message sound id.
- * Ledger: STR-E86055
  * Upstream: event_handler.h:90-94
  */
 export type ComputerMsgPacket = {
@@ -335,7 +327,6 @@ export type ComputerMsgPacket = {
 /**
  * Port of upstream `add_building_queue_packet`.
  * Role: Carries the building reference and object ids for adding a queue item.
- * Ledger: STR-F1B3AB
  * Upstream: event_handler.h:218-222
  */
 export type AddBuildingQueuePacket = {
@@ -347,7 +338,6 @@ export type AddBuildingQueuePacket = {
 /**
  * Port of upstream `object_init_packet`.
  * Role: Carries initial object position, identity, owner, links, and health.
- * Ledger: STR-F1F863
  * Upstream: event_handler.h:14-24
  */
 export type ObjectInitPacket = {
@@ -365,7 +355,6 @@ export type ObjectInitPacket = {
 /**
  * Port of upstream `driver_hit_packet`.
  * Role: Carries the object reference for a driver-hit effect event.
- * Ledger: STR-F2BFAD
  * Upstream: event_handler.h:127-130
  */
 export type DriverHitPacket = {
@@ -375,7 +364,6 @@ export type DriverHitPacket = {
 /**
  * Port of upstream `pre_event_type`.
  * Role: Identifies the top-level event source category.
- * Ledger: ENU-8D835C
  * Upstream: event_handler.h:240-243
  */
 export enum PreEventType {
@@ -387,7 +375,6 @@ export enum PreEventType {
 /**
  * Port of upstream `tcp_event`.
  * Role: Identifies network event numbers exchanged through the TCP event path.
- * Ledger: ENU-F65EB4
  * Upstream: event_handler.h:245-266
  */
 export enum TcpEvent {
@@ -483,7 +470,6 @@ export enum TcpEvent {
 /**
  * Replacement for upstream `sdl_event`.
  * Role: Identifies user input and viewport events handled by the browser runtime.
- * Ledger: ENU-A14997
  * Upstream: event_handler.h:268-283
  */
 export enum UserInputEvent {
@@ -505,7 +491,6 @@ export enum UserInputEvent {
 /**
  * Port of upstream `other_event`.
  * Role: Identifies connection lifecycle events handled outside TCP and SDL.
- * Ledger: ENU-DC722F
  * Upstream: event_handler.h:285-288
  */
 export enum OtherEvent {
@@ -516,7 +501,6 @@ export enum OtherEvent {
 /**
  * Port of upstream `Event`.
  * Role: Carries an event category, event number, player id, and payload bytes.
- * Ledger: CLS-DCA4B4
  * Upstream: event_handler.h:290-302, event_handler.cpp:3-24
  */
 export class SimulationEvent {
@@ -542,6 +526,112 @@ export class SimulationEvent {
   }
 }
 
+export type EventHandlerFunction<TParent> = (
+  parent: TParent | null,
+  data: Uint8Array | null,
+  size: number,
+  player: number,
+) => void;
+
+/**
+ * Port of upstream `EventHandler`.
+ * Role: Stores event callbacks and dispatches queued simulation events.
+ * Upstream: event_handler.h:309-323
+ */
+export class EventHandler<TParent> {
+  private readonly functions: Array<Array<EventHandlerFunction<TParent> | null>>;
+  private readonly eventList: SimulationEvent[] = [];
+  private parent: TParent | null = null;
+  private readonly log: (message: string) => void;
+
+  constructor(log: (message: string) => void = () => undefined) {
+    this.log = log;
+    this.functions = Array.from({ length: MAX_EVENT_TYPES }, () =>
+      Array.from({ length: MAX_FUNCTIONS }, () => null),
+    );
+  }
+
+  setParent(parent: TParent): void {
+    this.parent = parent;
+  }
+
+  addEvent(event: SimulationEvent): void {
+    this.eventList.push(event);
+  }
+
+  addFunction(
+    eventType: number,
+    eventNumber: number,
+    callback: EventHandlerFunction<TParent>,
+  ): void {
+    if (!this.isEventSlotInBounds(eventType, eventNumber)) {
+      this.log(
+        `EventHandler::attempting to attach function to out of bounds event ${eventType}:${eventNumber}`,
+      );
+      return;
+    }
+
+    if (this.functions[eventType][eventNumber]) {
+      this.log(
+        `EventHandler::attempting to attach function already attached event ${eventType}:${eventNumber}`,
+      );
+    }
+
+    this.functions[eventType][eventNumber] = callback;
+  }
+
+  processEvent(
+    eventType: number,
+    eventNumber: number,
+    data: Uint8Array | null,
+    size: number,
+    player: number,
+  ): number {
+    if (!this.isEventSlotInBounds(eventType, eventNumber)) {
+      this.log(
+        `EventHandler::attempting to process invalid event ${eventType}:${eventNumber}`,
+      );
+      return 0;
+    }
+
+    const callback = this.functions[eventType][eventNumber];
+    if (!callback) {
+      this.log(`EventHandler::no function attached to event ${eventType}:${eventNumber}`);
+      return 0;
+    }
+
+    callback(this.parent, data, size, player);
+    return 1;
+  }
+
+  processEvents(): void {
+    for (const event of this.eventList) {
+      this.processEvent(
+        event.eventType,
+        event.eventNumber,
+        event.data,
+        event.size,
+        event.player,
+      );
+    }
+
+    this.eventList.length = 0;
+  }
+
+  getEventList(): SimulationEvent[] {
+    return this.eventList;
+  }
+
+  private isEventSlotInBounds(eventType: number, eventNumber: number): boolean {
+    return (
+      eventType >= 0 &&
+      eventType < MAX_EVENT_TYPES &&
+      eventNumber >= 0 &&
+      eventNumber < MAX_FUNCTIONS
+    );
+  }
+}
+
 function copyEventPayload(data: Uint8Array | null, size: number): Uint8Array {
   if (size <= 0) {
     return new Uint8Array(0);
@@ -555,7 +645,6 @@ function copyEventPayload(data: Uint8Array | null, size: number): Uint8Array {
 /**
  * Port of upstream `MAX_EVENT_TYPES`.
  * Role: Defines the dispatch table height for top-level event categories.
- * Ledger: MAC-16A9AF
  * Upstream: event_handler.h:304
  */
 export const MAX_EVENT_TYPES = 5;
@@ -563,7 +652,6 @@ export const MAX_EVENT_TYPES = 5;
 /**
  * Port of upstream `MAX_FUNCTIONS`.
  * Role: Defines the dispatch table width allocated for event functions.
- * Ledger: MAC-6FF2C3
  * Upstream: event_handler.h:305
  */
 export const MAX_FUNCTIONS = 200;

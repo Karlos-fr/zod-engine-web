@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: zpath_finding.h
  */
 
 /**
  * Port of upstream `ffnode`.
  * Role: Stores a tile coordinate for flood-fill pathfinding queues.
- * Ledger: CLS-0189C7
  * Upstream: zpath_finding.h:62-67
  */
 export class FloodFillNode {
@@ -22,7 +20,6 @@ export class FloodFillNode {
 /**
  * Port of upstream `pf_tile_types`.
  * Role: Classifies pathfinding tiles by movement affordance.
- * Ledger: ENU-E2519F
  * Upstream: zpath_finding.h:11-14
  */
 export enum PathTileType {
@@ -36,7 +33,6 @@ export enum PathTileType {
 /**
  * Port of upstream `Lock_List`.
  * Role: Marks the beginning of a critical section around shared navigation lists.
- * Ledger: FUN-5C4BB5
  * Upstream: zpath_finding.h:130
  */
 export function lockList(): void {
@@ -46,7 +42,6 @@ export function lockList(): void {
 /**
  * Port of upstream `Unlock_List`.
  * Role: Marks the end of a critical section around shared navigation lists.
- * Ledger: FUN-A8D32D
  * Upstream: zpath_finding.h:131
  */
 export function unlockList(): void {
@@ -56,7 +51,6 @@ export function unlockList(): void {
 /**
  * Port of upstream `map_pathfinding_info_tile`.
  * Role: Stores movement costs and passability for one pathfinding tile.
- * Ledger: STR-BD17E8
  * Upstream: zpath_finding.h:16-21
  */
 export type MapPathfindingTile = {

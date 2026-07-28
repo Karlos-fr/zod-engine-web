@@ -12,6 +12,7 @@ import {
   type DriverHitPacket,
   type EjectVehiclePacket,
   EVENT_HANDLER_HEADER_GUARD_PORTED,
+  EventHandler,
   type FireMissilePacket,
   type LoginoffPacket,
   MAX_EVENT_TYPES,
@@ -38,8 +39,11 @@ import {
   type TeamEndedPacket,
   type UpdateGamePausedPacket,
   UserInputEvent,
+  type VersionPacket,
+  type VoteInfoPacket,
   type ZoneInfoPacket,
 } from "../src/simulation/EventHandler";
+import { VoteType } from "../src/simulation/VotePresentation";
 
 describe("event handler", () => {
   it("adapts the event_handler.h include guard to an ES module marker", async () => {
@@ -54,6 +58,17 @@ describe("event handler", () => {
 
   it("ports MAX_VERSION_PACKET_CHARS as the version packet capacity", () => {
     expect(MAX_VERSION_PACKET_CHARS).toBe(50);
+  });
+
+  it("ports version_packet as a fixed version buffer payload shape", () => {
+    const packet = {
+      version: new Uint8Array(MAX_VERSION_PACKET_CHARS),
+    } satisfies VersionPacket;
+
+    packet.version[0] = 49;
+
+    expect(packet.version).toHaveLength(MAX_VERSION_PACKET_CHARS);
+    expect(packet.version[0]).toBe(49);
   });
 
   it("ports player_mode_packet as a mode payload shape", () => {
@@ -142,6 +157,20 @@ describe("event handler", () => {
     const packet = { gamePaused: true } satisfies UpdateGamePausedPacket;
 
     expect(packet.gamePaused).toBe(true);
+  });
+
+  it("ports vote_info_packet as a vote state payload shape", () => {
+    const packet = {
+      inProgress: true,
+      voteType: VoteType.ChangeMap,
+      value: 12,
+    } satisfies VoteInfoPacket;
+
+    expect(packet).toEqual({
+      inProgress: true,
+      voteType: VoteType.ChangeMap,
+      value: 12,
+    });
   });
 
   it("ports snipe_object_packet as a target reference payload shape", () => {
@@ -423,5 +452,56 @@ describe("event handler", () => {
 
   it("ports MAX_FUNCTIONS as the event function dispatch width", () => {
     expect(MAX_FUNCTIONS).toBe(200);
+  });
+
+  it("ports EventHandler event queue access and dispatch", () => {
+    const handler = new EventHandler<{ name: string }>();
+    const parent = { name: "core" };
+    const calls: unknown[] = [];
+    const event = new SimulationEvent(
+      PreEventType.Tcp,
+      TcpEvent.FireMissile,
+      7,
+      new Uint8Array([1, 2, 3]),
+      2,
+    );
+
+    handler.setParent(parent);
+    handler.addFunction(PreEventType.Tcp, TcpEvent.FireMissile, (...args) => {
+      calls.push(args);
+    });
+    handler.addEvent(event);
+
+    expect(handler.getEventList()).toEqual([event]);
+    handler.processEvents();
+
+    expect(calls).toEqual([[parent, new Uint8Array([1, 2]), 2, 7]]);
+    expect(handler.getEventList()).toEqual([]);
+  });
+
+  it("ports EventHandler direct event processing result codes", () => {
+    const logs: string[] = [];
+    const handler = new EventHandler<object>(logs.push.bind(logs));
+
+    expect(handler.processEvent(PreEventType.Tcp, TcpEvent.FireMissile, null, 0, 0)).toBe(0);
+    expect(logs).toEqual([
+      `EventHandler::no function attached to event ${PreEventType.Tcp}:${TcpEvent.FireMissile}`,
+    ]);
+
+    handler.addFunction(PreEventType.Tcp, TcpEvent.FireMissile, () => undefined);
+    expect(handler.processEvent(PreEventType.Tcp, TcpEvent.FireMissile, null, 0, 0)).toBe(1);
+  });
+
+  it("ports EventHandler bounds checks for callback registration", () => {
+    const logs: string[] = [];
+    const handler = new EventHandler<object>(logs.push.bind(logs));
+
+    handler.addFunction(MAX_EVENT_TYPES, 0, () => undefined);
+    handler.addFunction(0, MAX_FUNCTIONS, () => undefined);
+
+    expect(logs).toEqual([
+      `EventHandler::attempting to attach function to out of bounds event ${MAX_EVENT_TYPES}:0`,
+      `EventHandler::attempting to attach function to out of bounds event 0:${MAX_FUNCTIONS}`,
+    ]);
   });
 });

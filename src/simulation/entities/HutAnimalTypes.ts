@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: ahutanimal.h
  */
 
 /**
  * Port of upstream `_AHUTANIMAL_H_`.
  * Role: Marks an upstream compile-time boundary.
- * Ledger: MAC-C5E798
  * Upstream: ahutanimal.h:2
  */
 export const AHUTANIMAL_HEADER_GUARD_PORTED = true;
@@ -14,7 +12,6 @@ export const AHUTANIMAL_HEADER_GUARD_PORTED = true;
 /**
  * Minimal state consumed by ported `AHutAnimal` home-navigation accessors.
  * Role: Stores whether the hut animal is currently returning to its home tile.
- * Ledger: FUN-7A56DE
  * Upstream: ahutanimal.h:58, ahutanimal.h:80
  */
 export type HutAnimalHomeState = {
@@ -24,7 +21,6 @@ export type HutAnimalHomeState = {
 /**
  * Minimal state consumed by ported `AHutAnimal` home-coordinate mutators.
  * Role: Stores the hut tile coordinates that an animal treats as home.
- * Ledger: FUN-8B87D4
  * Upstream: ahutanimal.h:57, ahutanimal.h:78-79
  */
 export type HutAnimalHomeCoordsState = {
@@ -35,7 +31,6 @@ export type HutAnimalHomeCoordsState = {
 /**
  * Port of upstream `hut_animal_type`.
  * Role: Identifies the ambient animal species that can be spawned around hut objects.
- * Ledger: ENU-E7E2B3
  * Upstream: ahutanimal.h:6-13
  */
 export enum HutAnimalType {
@@ -59,7 +54,6 @@ export enum HutAnimalType {
 /**
  * Port of upstream `MAX_HUT_ANIMAL_TYPES`.
  * Role: Defines the number of concrete hut animal species in the upstream enum.
- * Ledger: ENU-E7E2B3
  * Upstream: ahutanimal.h:12
  */
 export const HUT_ANIMAL_TYPE_COUNT = 15;
@@ -67,7 +61,6 @@ export const HUT_ANIMAL_TYPE_COUNT = 15;
 /**
  * Port of upstream `hut_animal_state`.
  * Role: Represents the behavior state for hut animals while idling, walking, or looking around.
- * Ledger: ENU-3BDCE3
  * Upstream: ahutanimal.h:23-26
  */
 export enum HutAnimalState {
@@ -79,7 +72,6 @@ export enum HutAnimalState {
 /**
  * Port of upstream `MAX_HA_STATES`.
  * Role: Defines the number of concrete hut animal states in the upstream enum.
- * Ledger: ENU-3BDCE3
  * Upstream: ahutanimal.h:25
  */
 export const HUT_ANIMAL_STATE_COUNT = 3;
@@ -87,7 +79,6 @@ export const HUT_ANIMAL_STATE_COUNT = 3;
 /**
  * Port of upstream `IsGoingHome`.
  * Role: Reports whether a hut animal is currently returning to its home tile.
- * Ledger: FUN-7A56DE
  * Upstream: ahutanimal.h:58
  */
 export function isHutAnimalGoingHome(state: HutAnimalHomeState): boolean {
@@ -97,7 +88,6 @@ export function isHutAnimalGoingHome(state: HutAnimalHomeState): boolean {
 /**
  * Port of upstream `SetHomeCoords`.
  * Role: Replaces the hut animal home tile coordinates.
- * Ledger: FUN-8B87D4
  * Upstream: ahutanimal.h:57
  */
 export function setHutAnimalHomeCoords<

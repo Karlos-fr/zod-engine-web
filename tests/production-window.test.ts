@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BuildingType } from "../src/simulation/SimulationConstants";
 import {
   clearProductionSelection,
   getProductionUnitSelectorRefId,
@@ -7,6 +8,7 @@ import {
   PRODUCTION_SELECTOR_CENTER_Y_OFFSET_PIXELS,
   PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS,
   PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS,
+  setProductionBuildingType,
   setProductionIsOnlySelector,
   setProductionUnitSelectorRefId,
   ZGW_PRODUCTION_HEADER_GUARD_PORTED,
@@ -59,6 +61,14 @@ describe("production window", () => {
 
     setProductionIsOnlySelector(state, false);
     expect(state.isOnlySelector).toBe(false);
+  });
+
+  it("ports SetBuildingType as production building type update", () => {
+    const state = { buildingType: BuildingType.FortFront };
+
+    setProductionBuildingType(state, BuildingType.VehicleFactory);
+
+    expect(state.buildingType).toBe(BuildingType.VehicleFactory);
   });
 
   it("ports SetUnitSelectorRefID as unit selector reference update", () => {

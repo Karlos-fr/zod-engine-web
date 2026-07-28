@@ -1,14 +1,12 @@
 import type { RgbaSurface } from "./ImageScaling";
 
 /**
- * Ported from Zod Engine.
  * Upstream: zsdl.cpp, zsdl.h
  */
 
 /**
  * Browser-side replacement for `SDL_Color`.
  * Role: Carries 8-bit color channels for a direct pixel write.
- * Ledger: FUN-9356C2
  * Upstream: zsdl.cpp:675-701
  */
 export type SurfacePixelColor = {
@@ -21,7 +19,6 @@ export type SurfacePixelColor = {
 /**
  * Browser-side replacement for the SDL source/destination rectangle pair.
  * Role: Carries the copied region dimensions and destination position for blits.
- * Ledger: FUN-A5A250
  * Upstream: zsdl.cpp:551-566
  */
 export type SurfaceBlitRegion = {
@@ -36,7 +33,6 @@ export type SurfaceBlitRegion = {
 /**
  * Browser-side replacement for an SDL tile blit request.
  * Role: Carries source and destination tile coordinates for 16-pixel blits.
- * Ledger: FUN-6D8C4B
  * Upstream: zsdl.cpp:568-571
  */
 export type SurfaceTileBlitRegion = {
@@ -49,7 +45,6 @@ export type SurfaceTileBlitRegion = {
 /**
  * Replacement for upstream `put32pixel`.
  * Role: Writes one pixel into a 32-bit surface when the target coordinate is inside bounds.
- * Ledger: FUN-9356C2
  * Upstream: zsdl.cpp:675-701
  */
 export function putRgbaSurfacePixel(
@@ -72,7 +67,6 @@ export function putRgbaSurfacePixel(
 /**
  * Replacement for upstream `get32pixel`.
  * Role: Reads one 32-bit pixel from a surface and returns its color channels.
- * Ledger: FUN-F75CC8
  * Upstream: zsdl.cpp:703-747
  */
 export function getRgbaSurfacePixel(
@@ -97,7 +91,6 @@ export function getRgbaSurfacePixel(
 /**
  * Replacement for upstream `ZSDL_ModifyBlack`.
  * Role: Recolors fully black visible pixels so they remain distinguishable from transparent black in later SDL-style operations.
- * Ledger: FUN-A35BBA
  * Upstream: zsdl.cpp:523-549
  */
 export function replaceOpaqueBlackPixels(surface: RgbaSurface): void {
@@ -118,7 +111,6 @@ export function replaceOpaqueBlackPixels(surface: RgbaSurface): void {
 /**
  * Replacement for upstream `ZSDL_BlitSurface`.
  * Role: Copies a rectangular RGBA region from one surface into another.
- * Ledger: FUN-A5A250
  * Upstream: zsdl.cpp:551-566
  */
 export function blitRgbaSurface(
@@ -177,7 +169,6 @@ export function blitRgbaSurface(
 /**
  * Replacement for upstream `ZSDL_BlitTileSurface`.
  * Role: Copies one 16-pixel tile between RGBA surfaces.
- * Ledger: FUN-6D8C4B
  * Upstream: zsdl.cpp:568-571
  */
 export function blitRgbaTileSurface(

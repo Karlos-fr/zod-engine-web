@@ -43,14 +43,28 @@ npm run zport -- scan
 npm run zport -- status
 npm run zport -- next
 npm run zport -- batch constants --limit 10
+npm run zport -- batch constants --limit 10 --apply-plan
 npm run zport -- deps <id>
+npm run zport -- brief <id>
 npm run zport -- context <id>
 npm run zport -- show <id>
 npm run zport -- start <id>
 npm run zport -- done <id> --target <path>
+npm run zport -- done-batch constants --target <path> <id>...
+npm run zport -- audit-comments
 npm run zport -- block <id> --note "reason"
 npm run zport -- ignore <id> --note "reason"
 ```
+
+Si un ID apparaît plusieurs fois dans le référentiel, la CLI le signale. Quand
+les lignes correspondent au même symbole upstream dans le même fichier, `done`
+marque toutes les occurrences équivalentes ensemble. Si les lignes ne sont pas
+équivalentes, la CLI refuse l'action pour éviter de masquer une collision d'ID.
+
+Pour réduire le contexte consommé pendant le portage, `brief <id>` doit être
+préféré à `context <id>` lorsque l'extrait upstream suffit. `brief` ajoute aussi
+une recherche courte dans `src` pour repérer un symbole déjà porté ou un
+équivalent local.
 
 ## Workflow de portage
 
@@ -112,6 +126,13 @@ La CLI peut proposer un lot sûr :
 npm run zport -- batch constants --limit 10
 ```
 
+Pour obtenir un plan compact avec les lignes upstream et les correspondances
+déjà présentes dans `src` :
+
+```sh
+npm run zport -- batch constants --limit 10 --apply-plan
+```
+
 Options utiles :
 
 ```sh
@@ -122,12 +143,12 @@ Workflow pour un lot de constantes :
 
 1. Proposer le lot :
    ```sh
-   npm run zport -- batch constants --limit 10
+   npm run zport -- batch constants --limit 10 --apply-plan
    ```
 2. Vérifier chaque ID du lot :
    ```sh
    npm run zport -- deps <id>
-   npm run zport -- context <id>
+   npm run zport -- brief <id>
    ```
 3. Porter uniquement ces constantes dans le même fichier cible.
 4. Ajouter les commentaires d'entité et les tests de parité.
@@ -137,9 +158,9 @@ Workflow pour un lot de constantes :
    npm test
    npm run build
    ```
-6. Marquer chaque ID individuellement :
+6. Marquer le lot :
    ```sh
-   npm run zport -- done <id> --target <path>
+   npm run zport -- done-batch constants --target <path> <id>...
    ```
 
 Les enums, structures, classes, fonctions et méthodes restent à porter un
@@ -160,12 +181,11 @@ code.
 Chaque fichier contenant du code porté doit commencer par un en-tête court qui
 donne seulement l'origine upstream du module. L'en-tête ne doit pas contenir de
 dépendances, includes, liste de symboles, statut, décision, lot de portage ou
-IDs de ledger. Ces informations restent dans `PORTING_LEDGER.md`, dans la CLI
-et, pour les IDs, sur les commentaires des entités concernées.
+IDs de ledger. Ces informations restent dans `PORTING_LEDGER.md` et dans la
+CLI.
 
 ```ts
 /**
- * Ported from Zod Engine.
  * Upstream: zmap.h / zmap.cpp
  */
 ```
@@ -180,7 +200,6 @@ Format minimal :
 /**
  * Port of upstream `<symbol>`.
  * Role: <short description of the entity and its responsibility in the game>.
- * Ledger: <ID>
  * Upstream: <file>:<lines>
  */
 ```
@@ -191,10 +210,10 @@ sans décrire le graphe autour d'elle.
 
 La ligne `Role` ne doit jamais lister les dépendances, les utilisateurs, les
 appelants, les appelés, les includes upstream, les raisons de sélection par la
-CLI, ni l'ordre de portage. Elle ne doit pas non plus décrire les
-transformations ordinaires du portage : changement de nom TypeScript, injection
-de dépendance, remplacement d'un état global, conversion d'un pointeur ou
-adaptation d'une API navigateur.
+CLI, les IDs de ledger, ni l'ordre de portage. Elle ne doit pas non plus
+décrire les transformations ordinaires du portage : changement de nom
+TypeScript, injection de dépendance, remplacement d'un état global, conversion
+d'un pointeur ou adaptation d'une API navigateur.
 
 Formulations à éviter dans le code :
 
@@ -204,6 +223,7 @@ Formulations à éviter dans le code :
 - `Required before ...`
 - `Selected by zport ...`
 - `Ported with ...`
+- `Ledger: ...`
 
 Ces informations appartiennent au ledger, aux tests ou à la sortie de la CLI,
 pas au code applicatif.
@@ -219,7 +239,6 @@ dans le code ; elles peuvent être notées dans le ledger si nécessaire.
 /**
  * Port of upstream `pf_point`.
  * Role: Tile-space coordinate used by the A* pathfinding queue.
- * Ledger: CLS-XXXXXX
  * Upstream: zpath_finding_astar.h:18-27
  */
 export type PathfindingPoint = {
@@ -230,6 +249,12 @@ export type PathfindingPoint = {
 
 Les commentaires en ligne sont réservés aux écarts importants avec l'upstream ou
 aux points de parité comportementale. Ils ne doivent pas paraphraser le code.
+
+La norme peut être contrôlée automatiquement :
+
+```sh
+npm run zport -- audit-comments
+```
 
 ## Référentiel de portage
 

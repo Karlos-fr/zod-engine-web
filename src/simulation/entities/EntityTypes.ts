@@ -1,5 +1,4 @@
 /**
- * Ported from Zod Engine.
  * Upstream: zobject.h
  */
 
@@ -8,7 +7,6 @@ declare const zPortraitReferenceBrand: unique symbol;
 /**
  * Port of upstream `ZPortrait` forward declaration.
  * Role: Provides a typed reference to the portrait subsystem without requiring the full portrait class definition.
- * Ledger: CLS-0F0B9E
  * Upstream: zobject.h:58
  */
 export type ZPortraitReference = {
@@ -18,7 +16,6 @@ export type ZPortraitReference = {
 /**
  * Port of upstream `unit_repair_wp_stage`.
  * Role: Tracks the state machine for a unit entering, using, and leaving repair.
- * Ledger: ENU-15E6FE
  * Upstream: zobject.h:89-92
  */
 export enum UnitRepairWaypointStage {
@@ -31,7 +28,6 @@ export enum UnitRepairWaypointStage {
 /**
  * Port of upstream `object_mode`.
  * Role: Identifies the current animation or behavior mode of an entity.
- * Ledger: ENU-607230
  * Upstream: zobject.h:68-75
  */
 export enum ObjectMode {
@@ -55,7 +51,6 @@ export enum ObjectMode {
 /**
  * Port of upstream `enter_fort_wp_stage`.
  * Role: Tracks the waypoint state for entering and leaving a fort.
- * Ledger: ENU-8888D1
  * Upstream: zobject.h:99-102
  */
 export enum EnterFortWaypointStage {
@@ -67,7 +62,6 @@ export enum EnterFortWaypointStage {
 /**
  * Port of upstream `agro_wp_stage`.
  * Role: Tracks whether an aggressive waypoint is attacking or returning.
- * Ledger: ENU-89BB59
  * Upstream: zobject.h:94-97
  */
 export enum AggroWaypointStage {
@@ -78,7 +72,6 @@ export enum AggroWaypointStage {
 /**
  * Port of upstream `crane_repair_wp_stage`.
  * Role: Tracks the waypoint state for a crane repair interaction.
- * Ledger: ENU-A5B4CE
  * Upstream: zobject.h:84-87
  */
 export enum CraneRepairWaypointStage {
@@ -90,7 +83,6 @@ export enum CraneRepairWaypointStage {
 /**
  * Port of upstream `waypoint_mode`.
  * Role: Identifies the order type currently assigned to an entity waypoint.
- * Ledger: ENU-F1EC73
  * Upstream: zobject.h:77-82
  */
 export enum WaypointMode {
@@ -110,7 +102,6 @@ export enum WaypointMode {
 /**
  * Port of upstream `driver_info_s`.
  * Role: Stores driver combat state for vehicles that can contain drivers.
- * Ledger: STR-2B4D1A
  * Upstream: zobject.h:209-213
  */
 export type DriverInfo = {
@@ -121,7 +112,6 @@ export type DriverInfo = {
 /**
  * Port of upstream `fire_missile_info`.
  * Role: Stores delayed missile launch offsets relative to an entity.
- * Ledger: STR-B318DE
  * Upstream: zobject.h:203-207
  */
 export type FireMissileInfo = {
@@ -133,7 +123,6 @@ export type FireMissileInfo = {
 /**
  * Port of upstream `object_location`.
  * Role: Stores tile coordinates plus fractional deltas for entity placement.
- * Ledger: STR-B83FCF
  * Upstream: zobject.h:197-201
  */
 export type ObjectLocation = {

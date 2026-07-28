@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: map_merger.cpp
  */
 
 /**
  * Port of upstream `direction`.
  * Role: Identifies whether map merger operations combine maps vertically or horizontally.
- * Ledger: ENU-EF1A8E
  * Upstream: map_merger.cpp:4-7
  */
 export enum MapMergeDirection {

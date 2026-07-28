@@ -3,8 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  areEquivalentLedgerOccurrences,
   findLedgerRow,
   type LedgerRow,
+  updateEquivalentLedgerRows,
   updateLedgerRow,
   writeLedger,
 } from "../tools/zport/ledger.ts";
@@ -29,6 +31,54 @@ describe("ledger duplicate IDs", () => {
         .split("\n")
         .filter((line) => line.includes("| CON-SAME |") && line.includes("| ported |")),
     ).toHaveLength(2);
+  });
+
+  it("updates equivalent duplicate occurrences together", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zport-ledger-"));
+    const file = path.join(directory, "ledger.md");
+    writeLedger(
+      [
+        row({ lines: "10-10" }),
+        row({ lines: "20-20" }),
+      ],
+      file,
+    );
+
+    const updatedRows = updateEquivalentLedgerRows(
+      "CON-SAME",
+      { status: "ported", targetTs: "src/constants.ts" },
+      file,
+    );
+
+    expect(updatedRows).toHaveLength(2);
+    expect(
+      fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .filter(
+          (line) =>
+            line.includes("| CON-SAME |") &&
+            line.includes("| ported |") &&
+            line.includes("| src/constants.ts |"),
+        ),
+    ).toHaveLength(2);
+  });
+
+  it("rejects ambiguous duplicate occurrences", () => {
+    const duplicateRows = [
+      row({ symbol: "`same`" }),
+      row({ symbol: "`other`" }),
+    ];
+
+    expect(areEquivalentLedgerOccurrences(duplicateRows)).toBe(false);
+
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zport-ledger-"));
+    const file = path.join(directory, "ledger.md");
+    writeLedger(duplicateRows, file);
+
+    expect(() =>
+      updateEquivalentLedgerRows("CON-SAME", { status: "ported" }, file),
+    ).toThrow("Ambiguous duplicate ledger id");
   });
 
   it("writes computed porting statistics before the ledger table", () => {

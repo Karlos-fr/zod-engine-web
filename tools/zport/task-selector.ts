@@ -100,7 +100,10 @@ function scoreBatch(batch: string): number {
   return index === -1 ? 999 : index;
 }
 
-function isBatchableConstant(row: LedgerRow, options: ConstantBatchOptions = {}): boolean {
+export function isBatchableConstant(
+  row: LedgerRow,
+  options: ConstantBatchOptions = {},
+): boolean {
   return (
     ["todo", "qualified"].includes(row.status) &&
     ["constant", "macro"].includes(row.type) &&

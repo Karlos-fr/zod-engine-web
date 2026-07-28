@@ -1,5 +1,4 @@
 /**
- * Ported from Zod Engine.
  * Upstream: zmap.h / zmap.cpp
  */
 import { TeamType } from "../simulation/SimulationConstants";
@@ -7,7 +6,6 @@ import { TeamType } from "../simulation/SimulationConstants";
 /**
  * Port of upstream `buf_size`.
  * Role: Defines the fixed scratch-buffer size used when reading map file chunks.
- * Ledger: CON-A4D9DE
  * Upstream: zmap.cpp:986
  */
 export const MAP_FILE_READ_BUFFER_SIZE = 1024;
@@ -15,7 +13,6 @@ export const MAP_FILE_READ_BUFFER_SIZE = 1024;
 /**
  * Port of upstream `MAX_SHIFT_CLICK`.
  * Role: Caps the viewport distance controlled by shift-click map navigation.
- * Ledger: MAC-D755B4
  * Upstream: zmap.h:16
  */
 export const MAX_SHIFT_CLICK_PIXELS = 1;
@@ -23,7 +20,6 @@ export const MAX_SHIFT_CLICK_PIXELS = 1;
 /**
  * Port of upstream `SHIFT_CLICK_S`.
  * Role: Defines the viewport shift speed for shift-click map navigation.
- * Ledger: MAC-737D40
  * Upstream: zmap.h:17
  */
 export const SHIFT_CLICK_SPEED_PIXELS_PER_SECOND = 320;
@@ -31,7 +27,6 @@ export const SHIFT_CLICK_SPEED_PIXELS_PER_SECOND = 320;
 /**
  * Port of upstream `SHIFT_CLICK_STREAM`.
  * Role: Defines the shift-click stream interval for viewport movement.
- * Ledger: MAC-6DE912
  * Upstream: zmap.h:18
  */
 export const SHIFT_CLICK_STREAM_SECONDS = 0.1;
@@ -39,7 +34,6 @@ export const SHIFT_CLICK_STREAM_SECONDS = 0.1;
 /**
  * Port of upstream `map_object_type`.
  * Role: Identifies the category of an object stored in map files.
- * Ledger: ENU-73F208
  * Upstream: zmap.h:21-32
  */
 export enum MapObjectType {
@@ -57,7 +51,6 @@ export enum MapObjectType {
 /**
  * Port of upstream `map_object_old`.
  * Role: Stores the compact object placement record for legacy map files.
- * Ledger: STR-0B5308
  * Upstream: zmap.h:144-151
  */
 export type LegacyMapObject = {
@@ -72,7 +65,6 @@ export type LegacyMapObject = {
 /**
  * Port of upstream `map_object`.
  * Role: Stores a map object placement with link metadata and starting health.
- * Ledger: STR-0F5E6C
  * Upstream: zmap.h:153-162
  */
 export type MapObject = LegacyMapObject & {
@@ -83,7 +75,6 @@ export type MapObject = LegacyMapObject & {
 /**
  * Port of upstream `map_tile`.
  * Role: Stores the terrain tile identifier for one map cell.
- * Ledger: STR-143915
  * Upstream: zmap.h:164-167
  */
 export type MapTile = {
@@ -93,7 +84,6 @@ export type MapTile = {
 /**
  * Port of upstream `map_zone`.
  * Role: Stores a tile-space rectangle used to define a named map zone.
- * Ledger: STR-A8124B
  * Upstream: zmap.h:139-142
  */
 export type MapZone = {
@@ -106,7 +96,6 @@ export type MapZone = {
 /**
  * Port of upstream `palette_tile_info`.
  * Role: Describes terrain palette behavior flags for movement and rendering.
- * Ledger: STR-981FBC
  * Upstream: zmap.h:42-56
  */
 export type PaletteTileInfo = {
@@ -125,7 +114,6 @@ export type PaletteTileInfo = {
 /**
  * Port of upstream `palette_tile_info_new`.
  * Role: Preserves the newer palette tile record name for later map formats.
- * Ledger: STR-FDE51E
  * Upstream: zmap.h:58-72
  */
 export type NewPaletteTileInfo = PaletteTileInfo;
@@ -133,7 +121,6 @@ export type NewPaletteTileInfo = PaletteTileInfo;
 /**
  * Port of upstream `map_effect_info`.
  * Role: Tracks the active terrain effect tile and its next animation timestamp.
- * Ledger: CLS-0E1945
  * Upstream: zmap.h:105-112
  */
 export type MapEffectInfo = {
@@ -144,7 +131,6 @@ export type MapEffectInfo = {
 /**
  * Port of upstream `map_effect_info` default initialization.
  * Role: Creates a terrain effect state record before animation scheduling begins.
- * Ledger: CLS-0E1945
  * Upstream: zmap.h:105-112
  */
 export function createMapEffectInfo(tile = 0): MapEffectInfo {
@@ -157,7 +143,6 @@ export function createMapEffectInfo(tile = 0): MapEffectInfo {
 /**
  * Browser-side rectangle for the `map_zone_info_tile` port.
  * Role: Represents the render-space bounds attached to a zone-info tile.
- * Ledger: CLS-A4BB08
  * Upstream: zmap.h:77-95
  */
 export type Rect = {
@@ -170,7 +155,6 @@ export type Rect = {
 /**
  * Port of upstream `map_zone_info_tile`.
  * Role: Stores transient render and water-bobbing state for a map zone tile.
- * Ledger: CLS-A4BB08
  * Upstream: zmap.h:77-95
  */
 export type MapZoneInfoTile = {
@@ -183,7 +167,6 @@ export type MapZoneInfoTile = {
 /**
  * Port of upstream `map_zone_info_tile` default initialization.
  * Role: Creates zone tile render state with deterministic testable bob selection.
- * Ledger: CLS-A4BB08
  * Upstream: zmap.h:77-95
  */
 export function createMapZoneInfoTile(
@@ -206,7 +189,6 @@ export function createMapZoneInfoTile(
 /**
  * Port of upstream `map_zone_info`.
  * Role: Stores ownership, bounds, and render tiles for a map zone.
- * Ledger: STR-5D37E3
  * Upstream: zmap.h:97-103
  */
 export type MapZoneInfo = {

@@ -1,14 +1,12 @@
 import { isZero } from "../simulation/Common";
 
 /**
- * Ported from Zod Engine.
  * Upstream: zsdl.cpp
  */
 
 /**
  * Replacement for upstream `AngleFromLoc`.
  * Role: Converts a movement vector into a normalized clockwise degree angle.
- * Ledger: FUN-6B2841
  * Upstream: zsdl.cpp:154-178
  */
 export function angleFromLocation(deltaX: number, deltaY: number): number {

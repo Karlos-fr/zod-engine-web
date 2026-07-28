@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: zmap.h
  */
 
 /**
  * Port of upstream `map_basics`.
  * Role: Stores the high-level dimensions and counts read from a map file header.
- * Ledger: CLS-A580AC
  * Upstream: zmap.h:114-137
  */
 export type MapBasics = {
@@ -22,7 +20,6 @@ export type MapBasics = {
 /**
  * Port of upstream `map_basics` default initialization.
  * Role: Creates an empty map metadata record before loading or resetting map data.
- * Ledger: CLS-A580AC
  * Upstream: zmap.h:114-137
  */
 export function createEmptyMapBasics(): MapBasics {
@@ -40,7 +37,6 @@ export function createEmptyMapBasics(): MapBasics {
 /**
  * Port of upstream `map_basics::clear`.
  * Role: Restores map metadata to its empty state while preserving the target object.
- * Ledger: CLS-A580AC
  * Upstream: zmap.h:135-137
  */
 export function resetMapBasics(target: MapBasics): void {

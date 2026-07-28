@@ -2,14 +2,12 @@ import { getopt, type GetoptState } from "../app/MainOptions";
 import { PlanetType } from "../simulation/SimulationConstants";
 
 /**
- * Ported from Zod Engine.
  * Upstream: map_editor.cpp
  */
 
 /**
  * Browser-side replacement for map editor startup globals.
  * Role: Stores the map editor startup fields needed for argument validation.
- * Ledger: FUN-B81D4A
  * Upstream: map_editor.cpp:567-585
  */
 export type MapEditorStartupOptions = {
@@ -23,7 +21,6 @@ export type MapEditorStartupOptions = {
 /**
  * Browser-side replacement for map editor argument globals.
  * Role: Stores the parsed startup fields set by map editor command-line options.
- * Ledger: FUN-F3FF0B
  * Upstream: map_editor.cpp:587-631
  */
 export type MapEditorParsedArgs = MapEditorStartupOptions & {
@@ -33,7 +30,6 @@ export type MapEditorParsedArgs = MapEditorStartupOptions & {
 /**
  * Browser-side result for map editor startup validation.
  * Role: Carries whether startup options are valid and the usage text to display when invalid.
- * Ledger: FUN-B81D4A
  * Upstream: map_editor.cpp:567-585
  */
 export type MapEditorStartupValidation = {
@@ -44,7 +40,6 @@ export type MapEditorStartupValidation = {
 /**
  * Port of upstream `display_proper_init`.
  * Role: Builds the startup usage text shown by the standalone Zod map editor.
- * Ledger: FUN-B2CCDC
  * Upstream: map_editor.cpp:550-565
  */
 export function displayProperInit(execCommand: string): string {
@@ -70,7 +65,6 @@ export function displayProperInit(execCommand: string): string {
 /**
  * Port of upstream `checkargs`.
  * Role: Validates the startup options required by the standalone map editor.
- * Ledger: FUN-B81D4A
  * Upstream: map_editor.cpp:567-585
  */
 export function checkMapEditorArgs(
@@ -103,7 +97,6 @@ export function checkMapEditorArgs(
 /**
  * Port of upstream `getargs`.
  * Role: Parses standalone map editor command-line options into startup fields.
- * Ledger: FUN-F3FF0B
  * Upstream: map_editor.cpp:587-631
  */
 export function parseMapEditorArgs(argv: readonly string[]): MapEditorParsedArgs {

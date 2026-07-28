@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   BULLET_SPEED,
   calcDamageMissileExplodeTimeTo,
+  calcMissileCannonRocketTimeD,
+  calcMissileCannonRocketTimeD2,
+  calcMobileMissileRocketTimeD,
+  calcMobileMissileRocketTimeD2,
   EBULLET_HEADER_GUARD_PORTED,
   EFLAME_HEADER_GUARD_PORTED,
   ELASER_HEADER_GUARD_PORTED,
@@ -103,6 +107,11 @@ describe("projectile constants", () => {
     ).toThrow(RangeError);
   });
 
+  it("ports emissilecrockets.cpp timing thresholds from missile speed", () => {
+    expect(calcMissileCannonRocketTimeD(300)).toBe(0.02);
+    expect(calcMissileCannonRocketTimeD2(300)).toBeCloseTo(0.0266666667);
+  });
+
   it("ports emomissilerockets.cpp bullet_speed as the mobile missile launcher settings speed", () => {
     expect(
       resolveMobileMissileRocketSpeed(
@@ -126,5 +135,10 @@ describe("projectile constants", () => {
         0,
       ),
     ).toThrow(RangeError);
+  });
+
+  it("ports emomissilerockets.cpp timing thresholds from missile speed", () => {
+    expect(calcMobileMissileRocketTimeD(400)).toBe(0.015);
+    expect(calcMobileMissileRocketTimeD2(400)).toBe(0.02);
   });
 });

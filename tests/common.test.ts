@@ -3,6 +3,8 @@ import {
   cleanNewline,
   COMMON_HEADER_GUARD_PORTED,
   createFolder,
+  currentTime,
+  type CurrentTimeState,
   dataToHexString,
   type DirectoryEntry,
   directoryFileList,
@@ -14,11 +16,16 @@ import {
   isOne,
   isZero,
   lcase,
+  type LocalTimeFields,
+  parseFileList,
   pointDistanceFromLine,
   pointsWithinArea,
   pointsWithinDistance,
+  printdReg,
   printDump,
   split,
+  startStopPerf,
+  type StartStopPerfState,
   sortStringFunc,
   swap,
   type Timeval,
@@ -115,6 +122,55 @@ describe("common", () => {
     expect(directoryFileList("browser-only")).toEqual([]);
   });
 
+  it("ports parse_filelist as a case-insensitive suffix filter", () => {
+    expect(
+      parseFileList(
+        ["alpha.map", "beta.MAP", "map.backup", "gamma.map.tmp", "delta.zod"],
+        ".map",
+      ),
+    ).toEqual(["alpha.map", "beta.MAP"]);
+  });
+
+  it("ports parse_filelist extension normalization", () => {
+    expect(parseFileList(["one.ZOD", "two.map", "three.zod"], ".ZOD")).toEqual([
+      "one.ZOD",
+      "three.zod",
+    ]);
+  });
+
+  it("ports printd_reg as an appended registration log line", () => {
+    const writes: Array<{ filename: string; line: string }> = [];
+
+    expect(
+      printdReg(
+        "registered",
+        () => "Tue Jul 28 03:25:00 2026\n",
+        (filename, line) => {
+          writes.push({ filename, line });
+        },
+      ),
+    ).toBe(true);
+    expect(writes).toEqual([
+      {
+        filename: "reg_log.txt",
+        line: "Tue Jul 28 03:25:00 2026 :: registered\n",
+      },
+    ]);
+  });
+
+  it("reports printd_reg write failures", () => {
+    expect(
+      printdReg(
+        "registered",
+        () => "Tue Jul 28 03:25:00 2026",
+        () => {
+          throw new Error("locked");
+        },
+      ),
+    ).toBe(false);
+    expect(printdReg("registered")).toBe(false);
+  });
+
   it("ports xy_struct constructors for coordinate data", () => {
     expect(new XyStruct()).toEqual({ x: 0, y: 0 });
     expect(new XyStruct(12, -4)).toEqual({ x: 12, y: -4 });
@@ -156,6 +212,32 @@ describe("common", () => {
     expect(frand(() => 1234)).toBe(0.1234);
     expect(frand(() => 10000)).toBe(1);
     expect(frand(() => 10001)).toBe(0);
+  });
+
+  it("ports current_time as elapsed seconds from the first sample", () => {
+    const state: CurrentTimeState = { firstSec: 0, firstUsec: 0 };
+    const samples = [
+      { tvSec: 100, tvUsec: 250000 },
+      { tvSec: 103, tvUsec: 750000 },
+    ];
+
+    expect(currentTime(() => samples.shift()!, state)).toBe(0);
+    expect(currentTime(() => samples.shift()!, state)).toBe(3.5);
+    expect(state).toEqual({ firstSec: 100, firstUsec: 250000 });
+  });
+
+  it("ports start_stop_perf as a toggled elapsed-time logger", () => {
+    const state: StartStopPerfState = { perfStarted: false, lastTime: 0 };
+    const samples = [12.25, 14.75];
+    const logs: string[] = [];
+
+    expect(startStopPerf("phase", () => samples.shift()!, state, logs.push.bind(logs))).toBeNull();
+    expect(state).toEqual({ perfStarted: true, lastTime: 12.25 });
+    expect(startStopPerf("phase", () => samples.shift()!, state, logs.push.bind(logs))).toBe(
+      "performance:'phase' time:2.5",
+    );
+    expect(logs).toEqual(["performance:'phase' time:2.5"]);
+    expect(state.perfStarted).toBe(false);
   });
 
   it("ports good_user_char allowed ASCII characters", () => {
@@ -261,6 +343,23 @@ describe("common", () => {
     const now: Timeval = { tvSec: 12, tvUsec: 345 };
 
     expect(now).toEqual({ tvSec: 12, tvUsec: 345 });
+  });
+
+  it("ports tm as broken-down local time fields", () => {
+    const localTime: LocalTimeFields = {
+      seconds: 3,
+      minutes: 4,
+      hours: 5,
+      monthDay: 6,
+      month: 7,
+      year: 126,
+      weekDay: 2,
+      yearDay: 188,
+      daylightSavingTime: 1,
+    };
+
+    expect(localTime.monthDay).toBe(6);
+    expect(localTime.daylightSavingTime).toBe(1);
   });
 
   it("preserves split destination cap and null terminator behavior", () => {

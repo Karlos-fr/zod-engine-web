@@ -9,6 +9,7 @@ import {
   CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH,
   ECRANE_CONSTRUCTION_HEADER_GUARD_PORTED,
   moveCraneConstructionItemToDestination,
+  setCraneConstructionItemReturn,
   setCraneConstructionItemStart,
   setCraneConstructionTravelDistances,
 } from "../src/simulation/CraneConstructionEffect";
@@ -54,6 +55,7 @@ describe("crane construction effect", () => {
       startY: 12,
       destX: 28,
       destY: 4,
+      height: 10,
       widthDistance: 99,
       heightDistance: 99,
     };
@@ -62,6 +64,36 @@ describe("crane construction effect", () => {
 
     expect(item.widthDistance).toBe(20);
     expect(item.heightDistance).toBe(-8);
+  });
+
+  it("ports SetReturn as a centered return destination helper", () => {
+    const item = {
+      x: 10,
+      y: 20,
+      startX: 0,
+      startY: 0,
+      destX: 0,
+      destY: 0,
+      width: 8,
+      height: 12,
+      widthDistance: 0,
+      heightDistance: 0,
+    };
+
+    setCraneConstructionItemReturn(item, 50, 80);
+
+    expect(item).toEqual({
+      x: 10,
+      y: 20,
+      startX: 10,
+      startY: 20,
+      destX: 46,
+      destY: 74,
+      width: 8,
+      height: 12,
+      widthDistance: 36,
+      heightDistance: 54,
+    });
   });
 
   it("ports SetStart as a centered start placement helper", () => {

@@ -1,19 +1,28 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { auditPortingComments } from "./comment-audit.ts";
 import { inspectFile } from "./large-file-policy.ts";
 import {
+  areEquivalentLedgerOccurrences,
   findLedgerRow,
+  findLedgerRows,
   readLedger,
+  updateEquivalentLedgerRows,
   updateLedgerRow,
   type LedgerRow,
 } from "./ledger.ts";
 import { buildContext } from "./context-builder.ts";
 import { scanUpstream } from "./scan-upstream.ts";
-import { selectConstantBatch, selectNext } from "./task-selector.ts";
+import {
+  isBatchableConstant,
+  selectConstantBatch,
+  selectNext,
+} from "./task-selector.ts";
 import { upstreamSourceRoot } from "./config.ts";
 import { extractRange } from "./symbol-extractor.ts";
 import { resolveDependencies } from "./dependencies.ts";
+import { findExistingSourceMatches } from "./source-search.ts";
 
 const [, , command, ...args] = process.argv;
 
@@ -34,6 +43,8 @@ function run(commandName = "help", argsList: string[]): void {
       return status();
     case "show":
       return show(requiredArg(argsList, 0, "id"));
+    case "brief":
+      return brief(requiredArg(argsList, 0, "id"));
     case "context":
       return console.log(buildContext(requiredArg(argsList, 0, "id")));
     case "deps":
@@ -48,6 +59,10 @@ function run(commandName = "help", argsList: string[]): void {
       return mark(requiredArg(argsList, 0, "id"), { status: "in_progress" });
     case "done":
       return done(argsList);
+    case "done-batch":
+      return doneBatch(argsList);
+    case "audit-comments":
+      return auditComments();
     case "block":
       return requireNoteAndMark(argsList, "blocked");
     case "ignore":
@@ -91,6 +106,7 @@ function status(): void {
 
 function show(id: string): void {
   const row = findLedgerRow(id);
+  printDuplicateIdNotice(id);
   const fullPath = path.join(upstreamSourceRoot, row.file);
   const content = fs.readFileSync(fullPath, "utf8");
   console.log(`${row.id} ${row.symbol}`);
@@ -98,6 +114,43 @@ function show(id: string): void {
   console.log(`decision=${row.decision} status=${row.status} domain=${row.targetDomain}`);
   console.log("");
   console.log(extractRange(content, row.lines));
+}
+
+function brief(id: string): void {
+  const rows = readLedger();
+  const row = findLedgerRow(id);
+  printDuplicateIdNotice(id, rows);
+  const resolution = resolveDependencies(row, rows);
+  const fullPath = path.join(upstreamSourceRoot, row.file);
+  const content = fs.readFileSync(fullPath, "utf8");
+  const existingMatches = findExistingSourceMatches(row, 6);
+
+  console.log(`${row.id} ${row.decision} ${row.targetDomain} ${row.file}:${row.lines} ${row.symbol}`);
+  console.log(`status=${row.status} type=${row.type} target=${row.targetTs || "none"}`);
+  console.log(
+    `blocked_by=${resolution.blockedBy.length ? resolution.blockedBy.join(",") : "none"}`,
+  );
+  console.log(
+    `depends_on=${resolution.dependsOn.length ? resolution.dependsOn.join(",") : "none"}`,
+  );
+  console.log("");
+  console.log("excerpt:");
+  console.log(extractRange(content, row.lines));
+  console.log("");
+  console.log("existing_source_matches:");
+  if (!existingMatches.length) {
+    console.log("  none");
+  } else {
+    existingMatches.forEach((match) =>
+      console.log(`  ${match.file}:${match.line}: ${match.text}`),
+    );
+  }
+  console.log("");
+  console.log("checklist:");
+  console.log("  deps checked");
+  console.log("  port only this symbol");
+  console.log("  add focused tests");
+  console.log("  mark done with target");
 }
 
 function inspect(argsList: string[]): void {
@@ -116,6 +169,7 @@ function inspect(argsList: string[]): void {
 function deps(id: string): void {
   const rows = readLedger();
   const row = findLedgerRow(id);
+  printDuplicateIdNotice(id, rows);
   const resolution = resolveDependencies(row, rows);
   console.log(`${row.id} ${row.symbol}`);
   printList("depends_on", resolution.dependsOn);
@@ -154,9 +208,40 @@ function batch(argsList: string[]): void {
     return;
   }
 
+  if (options["apply-plan"] !== undefined) {
+    printConstantBatchPlan(rows);
+    return;
+  }
+
   for (const row of rows) {
     console.log(`${row.id} ${row.decision} ${row.targetDomain} ${row.file} ${row.symbol}`);
   }
+}
+
+function printConstantBatchPlan(rows: LedgerRow[]): void {
+  const first = rows[0];
+  const targetCandidates = [...new Set(rows.map((row) => row.targetTs).filter(Boolean))];
+  console.log(`# Constant batch plan`);
+  console.log(`file=${first.file}`);
+  console.log(`domain=${first.targetDomain}`);
+  console.log(`target=${targetCandidates.length === 1 ? targetCandidates[0] : "choose target"}`);
+  console.log(`count=${rows.length}`);
+  console.log("");
+  for (const row of rows) {
+    console.log(`${row.id} ${row.type} ${row.symbol} ${row.file}:${row.lines}`);
+    console.log(`  source: ${getSourceLine(row)?.trim() || "(missing)"}`);
+    const matches = findExistingSourceMatches(row, 3);
+    console.log(
+      `  existing: ${
+        matches.length
+          ? matches.map((match) => `${match.file}:${match.line}`).join(", ")
+          : "none"
+      }`,
+    );
+  }
+  console.log("");
+  console.log("After porting the complete plan:");
+  console.log(`  npm run zport -- done-batch constants --target <path> ${rows.map((row) => row.id).join(" ")}`);
 }
 
 function getSourceLine(row: LedgerRow): string | undefined {
@@ -179,11 +264,87 @@ function done(argsList: string[]): void {
   if (!target && !note) {
     throw new Error("done requires --target <path> or --note <text>");
   }
-  mark(id, {
+  const currentRow = findLedgerRow(id);
+  const rows = findLedgerRows(id);
+  const patch = {
     status: "ported",
-    targetTs: target || findLedgerRow(id).targetTs,
-    notes: note || findLedgerRow(id).notes,
+    targetTs: target || currentRow.targetTs,
+    notes: note || currentRow.notes,
+  };
+
+  if (rows.length > 1) {
+    if (!areEquivalentLedgerOccurrences(rows)) {
+      throw new Error(
+        `Ambiguous duplicate ledger id: ${id}. Use a unique id before marking this symbol.`,
+      );
+    }
+    const updatedRows = updateEquivalentLedgerRows(id, patch);
+    console.log(`${id} ported (${updatedRows.length} equivalent occurrences)`);
+    return;
+  }
+
+  mark(id, patch);
+}
+
+function doneBatch(argsList: string[]): void {
+  const kind = requiredArg(argsList, 0, "kind");
+  if (kind !== "constants") {
+    throw new Error("done-batch supports only: constants");
+  }
+
+  const options = parseOptions(argsList.slice(1));
+  const target = options.target;
+  const note = options.note;
+  const ids = argsList.slice(1).filter((value, index, list) => {
+    if (value.startsWith("--")) {
+      return false;
+    }
+    return index === 0 || !list[index - 1]?.startsWith("--");
   });
+
+  if (!target && !note) {
+    throw new Error("done-batch constants requires --target <path> or --note <text>");
+  }
+  if (!ids.length) {
+    throw new Error("done-batch constants requires at least one id");
+  }
+
+  const rows = readLedger();
+  const selectedRows = ids.map((id) => findLedgerRow(id));
+  const invalidRows = selectedRows.filter(
+    (row) => !isBatchableConstant(row, { getSourceLine }),
+  );
+  if (invalidRows.length) {
+    throw new Error(
+      `done-batch constants accepts only batchable todo constants/macros: ${invalidRows
+        .map((row) => row.id)
+        .join(",")}`,
+    );
+  }
+  const blockedRows = selectedRows.filter(
+    (row) => resolveDependencies(row, rows).blockedBy.length > 0,
+  );
+  if (blockedRows.length) {
+    throw new Error(
+      `done-batch constants refuses blocked ids: ${blockedRows.map((row) => row.id).join(",")}`,
+    );
+  }
+
+  for (const id of ids) {
+    const currentRow = findLedgerRow(id);
+    const patch = {
+      status: "ported",
+      targetTs: target || currentRow.targetTs,
+      notes: note || currentRow.notes,
+    };
+    const duplicateRows = findLedgerRows(id);
+    if (duplicateRows.length > 1) {
+      updateEquivalentLedgerRows(id, patch);
+    } else {
+      updateLedgerRow(id, patch);
+    }
+  }
+  console.log(`ported ${ids.length} constants/macros`);
 }
 
 function requireNoteAndMark(
@@ -200,8 +361,36 @@ function requireNoteAndMark(
 }
 
 function mark(id: string, patch: Partial<LedgerRow>): void {
+  printDuplicateIdNotice(id);
   const row = updateLedgerRow(id, patch);
   console.log(`${row.id} ${row.status}`);
+}
+
+function auditComments(): void {
+  const issues = auditPortingComments();
+  if (!issues.length) {
+    console.log("Comment audit passed.");
+    return;
+  }
+  for (const issue of issues) {
+    console.log(`${issue.file}:${issue.line}: ${issue.message}`);
+    console.log(`  ${issue.text}`);
+  }
+  process.exitCode = 1;
+}
+
+function printDuplicateIdNotice(id: string, rows = readLedger()): void {
+  const matchingRows = rows.filter((row) => row.id === id);
+  if (matchingRows.length < 2) {
+    return;
+  }
+  const equivalence = areEquivalentLedgerOccurrences(matchingRows)
+    ? "equivalent occurrences"
+    : "ambiguous collision";
+  console.warn(`warning: duplicate ledger id ${id} (${matchingRows.length} ${equivalence})`);
+  for (const row of matchingRows) {
+    console.warn(`  ${row.status} ${row.file}:${row.lines} ${row.symbol}`);
+  }
 }
 
 function matches(row: LedgerRow, filters: Record<string, string>): boolean {
@@ -277,15 +466,20 @@ function help(): void {
   list [--status value] [--decision value] [--domain value] [--file text] [--batch value]
   status
   show <id>
+  brief <id>
   context <id>
   deps <id>
-  batch constants [--limit 10] [--file relative-upstream-file] [--domain value]
+  batch constants [--limit 10] [--file relative-upstream-file] [--domain value] [--apply-plan]
       Propose a homogeneous batch of unblocked one-line constants/macros.
       Functions, methods, classes, structs and enums remain one-symbol tasks.
   inspect-file <relative-upstream-file>
   next
   start <id>
   done <id> --target <path>
+      Equivalent duplicate ids are marked together; ambiguous duplicate ids are refused.
+  done-batch constants --target <path> <id>...
+      Marks a validated batch of unblocked one-line constants/macros.
+  audit-comments
   block <id> --note <text>
   ignore <id> --note <text>`);
 }

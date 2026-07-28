@@ -1,12 +1,10 @@
 /**
- * Ported from Zod Engine.
  * Upstream: main.h, xgetopt.h
  */
 
 /**
  * Port of upstream `_MAIN_H_`.
  * Role: Marks an upstream header boundary.
- * Ledger: MAC-DD84CF
  * Upstream: main.h:2
  */
 export const MAIN_OPTIONS_HEADER_GUARD_PORTED = true;
@@ -14,7 +12,6 @@ export const MAIN_OPTIONS_HEADER_GUARD_PORTED = true;
 /**
  * Port of upstream `XGETOPT_H`.
  * Role: Marks an upstream header boundary.
- * Ledger: MAC-2BEE1A
  * Upstream: xgetopt.h:20
  */
 export const XGETOPT_HEADER_GUARD_PORTED = true;
@@ -22,7 +19,6 @@ export const XGETOPT_HEADER_GUARD_PORTED = true;
 /**
  * Port of upstream `getopt` state.
  * Role: Tracks the current option index, option argument, and grouped-option cursor.
- * Ledger: FUN-7B9FA4
  * Upstream: xgetopt.h:29-90
  */
 export type GetoptState = {
@@ -34,7 +30,6 @@ export type GetoptState = {
 /**
  * Port of upstream `getopt`.
  * Role: Reads the next short command-line option from an argument vector.
- * Ledger: FUN-7B9FA4
  * Upstream: xgetopt.h:29-90
  */
 export function getopt(
@@ -100,7 +95,6 @@ export function getopt(
 /**
  * Port of upstream `display_help`.
  * Role: Builds the startup command help text for the main game executable.
- * Ledger: FUN-82C387
  * Upstream: main.cpp:179-208
  */
 export function displayMainHelp(shellCommand: string): string {
@@ -140,7 +134,6 @@ export function displayMainHelp(shellCommand: string): string {
 /**
  * Port of upstream `display_version`.
  * Role: Builds the startup version and credits text for the main game executable.
- * Ledger: FUN-AE167A
  * Upstream: main.cpp:210-219
  */
 export function displayMainVersion(useOpenGl = true): string {
