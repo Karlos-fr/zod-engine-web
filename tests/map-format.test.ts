@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   createMapEffectInfo,
   createMapZoneInfoTile,
@@ -6,6 +7,7 @@ import {
   type MapObject,
   type MapTile,
   type MapZone,
+  type MapZoneInfo,
   type NewPaletteTileInfo,
   type PaletteTileInfo,
   MAP_FILE_READ_BUFFER_SIZE,
@@ -154,6 +156,29 @@ describe("map format constants", () => {
       isWater: true,
       bobIndex: 1,
       nextTime: 0,
+    });
+  });
+
+  it("ports map_zone_info ownership, bounds, and tile list", () => {
+    const zoneInfoTile = createMapZoneInfoTile({ x: 4, y: 5, random: () => 0 });
+    const zoneInfo: MapZoneInfo = {
+      owner: TeamType.Red,
+      tiles: [zoneInfoTile],
+      x: 2,
+      y: 3,
+      width: 8,
+      height: 5,
+      id: 7,
+    };
+
+    expect(zoneInfo).toEqual({
+      owner: TeamType.Red,
+      tiles: [zoneInfoTile],
+      x: 2,
+      y: 3,
+      width: 8,
+      height: 5,
+      id: 7,
     });
   });
 });

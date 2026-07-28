@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ZUNITRATING_HEADER_GUARD_PORTED } from "../src/simulation/UnitRating";
+import {
+  UnitCrossReference,
+  ZUNITRATING_HEADER_GUARD_PORTED,
+} from "../src/simulation/UnitRating";
 
 describe("unit rating", () => {
   it("adapts the zunitrating.h include guard to an ES module marker", async () => {
@@ -10,5 +13,11 @@ describe("unit rating", () => {
     expect(secondImport.ZUNITRATING_HEADER_GUARD_PORTED).toBe(
       firstImport.ZUNITRATING_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports unit cross-reference outcomes", () => {
+    expect(UnitCrossReference.WillDie).toBe(0);
+    expect(UnitCrossReference.Even).toBe(1);
+    expect(UnitCrossReference.WillKill).toBe(2);
   });
 });

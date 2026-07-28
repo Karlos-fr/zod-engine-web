@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmmw_radio.cpp
- * Symbols: lx, cx, rx
  */
 
 /**

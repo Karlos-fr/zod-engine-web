@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   blitRgbaSurface,
+  blitRgbaTileSurface,
   getRgbaSurfacePixel,
   putRgbaSurfacePixel,
   replaceOpaqueBlackPixels,
@@ -175,5 +176,51 @@ describe("surface pixel operations", () => {
     });
 
     expect([...destination.data]).toEqual([1, 2, 3, 4]);
+  });
+
+  it("replaces ZSDL_BlitTileSurface with a 16-pixel tile copy", () => {
+    const source = {
+      width: 32,
+      height: 16,
+      data: new Uint8ClampedArray(32 * 16 * 4),
+    };
+    const destination = {
+      width: 16,
+      height: 16,
+      data: new Uint8ClampedArray(16 * 16 * 4),
+    };
+
+    putRgbaSurfacePixel(source, 16, 0, {
+      red: 40,
+      green: 50,
+      blue: 60,
+      alpha: 70,
+    });
+    putRgbaSurfacePixel(source, 31, 15, {
+      red: 80,
+      green: 90,
+      blue: 100,
+      alpha: 110,
+    });
+
+    blitRgbaTileSurface(source, destination, {
+      sourceX: 1,
+      sourceY: 0,
+      destinationX: 0,
+      destinationY: 0,
+    });
+
+    expect(getRgbaSurfacePixel(destination, 0, 0)).toEqual({
+      red: 40,
+      green: 50,
+      blue: 60,
+      alpha: 70,
+    });
+    expect(getRgbaSurfacePixel(destination, 15, 15)).toEqual({
+      red: 80,
+      green: 90,
+      blue: 100,
+      alpha: 110,
+    });
   });
 });

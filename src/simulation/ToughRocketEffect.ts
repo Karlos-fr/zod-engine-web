@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etoughrocket.h
- * Symbols: _ETOUGHROCKET_H_
  */
 
 /**
- * Adaptation of upstream `_ETOUGHROCKET_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etoughrocket.h`.
+ * Port of upstream `_ETOUGHROCKET_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-FD9DDA
  * Upstream: etoughrocket.h:2
  */

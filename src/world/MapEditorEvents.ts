@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: map_editor.cpp
- * Symbols: map_event
  */
 
 /**

@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: abird.h / abird.cpp / zplayer.cpp
- * Symbols: BIRD_MAP_PADDING, sq_tile_per_bird, _ABIRD_H_
  */
 
 /**
  * Port of upstream `_ABIRD_H_`.
- * Role: Marks upstream `abird.h` as compile-time only.
+ * Role: Marks an upstream compile-time boundary.
  * Ledger: MAC-70EFAF
  * Upstream: abird.h:2
  */

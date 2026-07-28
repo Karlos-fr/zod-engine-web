@@ -1,13 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: ecraneconco.h / ecraneconco.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
- * Adaptation of upstream `_ECRANECONCO_H_`.
- * Role: Marks the TypeScript module boundary for upstream `ecraneconco.h`.
+ * Port of upstream `_ECRANECONCO_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-62A0D4
  * Upstream: ecraneconco.h:2
  */
@@ -18,7 +16,6 @@ export const ECRANE_CONSTRUCTION_HEADER_GUARD_PORTED = true;
  * Role: Represents the position fields touched by the crane construction item destination snap operation.
  * Ledger: FUN-3474CE
  * Upstream: ecraneconco.h:61-65
- * Adaptation: Models only the fields required by `MoveToDest`; the full `ECraneConcoItem` class remains unported.
  */
 export type CraneConstructionDestinationState = {
   x: number;
@@ -32,7 +29,6 @@ export type CraneConstructionDestinationState = {
  * Role: Represents the coordinate fields touched by crane construction travel distance calculation.
  * Ledger: FUN-7A3CE6
  * Upstream: ecraneconco.h:49-53
- * Adaptation: Models only the fields required by `SetTravelDistances`; the full `ECraneConcoItem` class remains unported.
  */
 export type CraneConstructionTravelDistanceState =
   CraneConstructionDestinationState & {
@@ -43,11 +39,24 @@ export type CraneConstructionTravelDistanceState =
   };
 
 /**
+ * Adaptation support for upstream `ECraneConcoItem::SetStart`.
+ * Role: Represents the coordinate fields touched by crane construction start placement.
+ * Ledger: FUN-8E3B39
+ * Upstream: ecraneconco.h:34-38
+ */
+export type CraneConstructionStartState = {
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  width: number;
+};
+
+/**
  * Port of upstream `MoveToDest`.
  * Role: Snaps a crane construction item to its destination coordinates.
  * Ledger: FUN-3474CE
  * Upstream: ecraneconco.h:61-65
- * Adaptation: Ported as a standalone mutating helper over the minimal destination state instead of as an `ECraneConcoItem` method.
  */
 export function moveCraneConstructionItemToDestination(
   item: CraneConstructionDestinationState,
@@ -61,7 +70,6 @@ export function moveCraneConstructionItemToDestination(
  * Role: Calculates crane construction item travel deltas from start to destination.
  * Ledger: FUN-7A3CE6
  * Upstream: ecraneconco.h:49-53
- * Adaptation: Ported as a standalone mutating helper over the minimal travel distance state instead of as an `ECraneConcoItem` method.
  */
 export function setCraneConstructionTravelDistances(
   item: CraneConstructionTravelDistanceState,
@@ -71,11 +79,29 @@ export function setCraneConstructionTravelDistances(
 }
 
 /**
+ * Port of upstream `SetStart`.
+ * Role: Centers a crane construction item on its starting coordinates.
+ * Ledger: FUN-8E3B39
+ * Upstream: ecraneconco.h:34-38
+ */
+export function setCraneConstructionItemStart(
+  item: CraneConstructionStartState,
+  x: number,
+  y: number,
+): void {
+  const centeredX = x - (item.width >> 1);
+  const centeredY = y - (item.width >> 1);
+  item.startX = centeredX;
+  item.x = centeredX;
+  item.startY = centeredY;
+  item.y = centeredY;
+}
+
+/**
  * Port of upstream `travel_time_width`.
  * Role: Defines the width of the crane construction travel animation window.
  * Ledger: CON-D2486C
  * Upstream: ecraneconco.h:125, ecraneconco.cpp:3
- * Notes: Uses the out-of-class definition from `ecraneconco.cpp` for the runtime value.
  */
 export const CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH = 0.8;
 
@@ -121,7 +147,7 @@ export const CRANE_CONSTRUCTION_DISTANCE_FROM_ENTRANCE = 16;
 
 /**
  * Port of upstream `dist_from_entrance_box`.
- * Role: Defines the box-size entrance offset used by the crane construction effect.
+ * Role: Defines the box-size entrance offset for the crane construction effect.
  * Ledger: CON-6A7A05
  * Upstream: ecraneconco.cpp:178
  */

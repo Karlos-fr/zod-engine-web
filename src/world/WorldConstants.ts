@@ -1,8 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: constants.h, map_editor.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
@@ -10,7 +8,6 @@
  * Role: Defines the maximum number of terrain tiles addressable by planet/map level systems.
  * Ledger: MAC-198B3B
  * Upstream: constants.h:14
- * Adaptation: Replaces the C macro expression `(20*24)` with its evaluated numeric TypeScript constant.
  */
 export const MAX_PLANET_TILES = 480;
 
@@ -24,10 +21,9 @@ export const MAP_ITEM_TYPE_COUNT = 22;
 
 /**
  * Port of upstream `max_list_size`.
- * Role: Defines the maximum temporary list size used by map editor operations.
+ * Role: Defines the maximum temporary list size for map editor operations.
  * Ledger: CON-37F4A2
  * Upstream: map_editor.cpp:993
- * Adaptation: Replaces the C++ local constant with a typed TypeScript export for future browser map editor logic.
  */
 export const MAP_EDITOR_MAX_LIST_SIZE = 5000;
 
@@ -36,16 +32,14 @@ export const MAP_EDITOR_MAX_LIST_SIZE = 5000;
  * Role: Defines the map editor view-shift speed used when moving the editor camera across the map.
  * Ledger: CON-853D91
  * Upstream: map_editor.cpp:635
- * Adaptation: Replaces the C++ local constant with a typed TypeScript export for future browser map editor controls.
  */
 export const MAP_EDITOR_VIEW_SHIFT_SPEED = 800;
 
 /**
  * Port of upstream `map_editor_mode`.
- * Role: Identifies the active editing tool mode used by the map editor.
+ * Role: Identifies the active editing tool mode for the map editor.
  * Ledger: ENU-A4B8CB
  * Upstream: map_editor.cpp:71-77
- * Adaptation: Preserves the C++ implicit numeric enum values in a TypeScript enum. * - Removes the `_MODE` suffix from member names while documenting the upstream symbol.
  */
 export enum MapEditorMode {
   PlaceTile = 0,
@@ -65,7 +59,6 @@ export enum MapEditorMode {
  * Role: Identifies how much ruler overlay information the map editor displays.
  * Ledger: ENU-F0BC9E
  * Upstream: map_editor.cpp:79-83
- * Adaptation: Preserves the C++ implicit numeric enum values in a TypeScript enum. * - Removes the `_RULER` suffix from display modes while documenting the upstream symbol.
  */
 export enum MapRulerMode {
   None = 0,

@@ -1,16 +1,35 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zbot.h, zbot.cpp
- * Symbols: _ZBOT_H_, max_line_dist, max_total_dist, percent_guns_building_max, max_combo_check
  */
 
 /**
- * Adaptation of upstream `_ZBOT_H_`.
- * Role: Marks the TypeScript module boundary for the future `ZBot` AI client port.
+ * Port of upstream `_ZBOT_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-4B483B
  * Upstream: zbot.h:2
  */
 export const ZBOT_HEADER_GUARD_PORTED = true;
+
+/**
+ * Port of upstream `PreferredUnit`.
+ * Role: Stores a bot build preference and how many matching units are already in production.
+ * Ledger: CLS-1C96C2
+ * Upstream: zbot.h:115-137
+ */
+export class PreferredUnit {
+  ot: number;
+  oid: number;
+  pValue: number;
+  inProduction: number;
+
+  constructor(ot = 255, oid = 255, pValue = 1.0) {
+    this.ot = ot;
+    this.oid = oid;
+    this.pValue = pValue;
+    this.inProduction = 0;
+  }
+}
 
 /**
  * Port of upstream `max_line_dist`.

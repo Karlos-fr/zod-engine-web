@@ -1,13 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: bbridge.h, bfort.h, bradar.h, brepair.h, brobot.h, bvehicle.h, zbuilding.h
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
  * Marker exported from the building type module.
- * Role: Marks the TypeScript module boundary for upstream `bbridge.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-09DFD1
  * Upstream: bbridge.h:2
  */
@@ -15,7 +13,7 @@ export const BBRIDGE_HEADER_GUARD_PORTED = true;
 
 /**
  * Marker exported from the building type module.
- * Role: Marks the TypeScript module boundary for upstream `bfort.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-189091
  * Upstream: bfort.h:2
  */
@@ -23,7 +21,7 @@ export const BFORT_HEADER_GUARD_PORTED = true;
 
 /**
  * Marker exported from the building type module.
- * Role: Marks the TypeScript module boundary for upstream `bradar.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-BBC4DD
  * Upstream: bradar.h:2
  */
@@ -31,7 +29,7 @@ export const BRADAR_HEADER_GUARD_PORTED = true;
 
 /**
  * Marker exported from the building type module.
- * Role: Marks the TypeScript module boundary for upstream `brepair.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-F5FC59
  * Upstream: brepair.h:2
  */
@@ -39,7 +37,7 @@ export const BREPAIR_HEADER_GUARD_PORTED = true;
 
 /**
  * Marker exported from the building type module.
- * Role: Marks the TypeScript module boundary for upstream `brobot.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-EBD11A
  * Upstream: brobot.h:2
  */
@@ -47,22 +45,22 @@ export const BROBOT_HEADER_GUARD_PORTED = true;
 
 /**
  * Marker exported from the building type module.
- * Role: Marks the TypeScript module boundary for upstream `bvehicle.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-90D390
  * Upstream: bvehicle.h:2
  */
 export const BVEHICLE_HEADER_GUARD_PORTED = true;
 
 /**
- * Adaptation of upstream `_ZBUILDING_H_`.
- * Role: Marks the TypeScript module boundary for the future `ZBuilding` object port.
+ * Port of upstream `_ZBUILDING_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-07456B
  * Upstream: zbuilding.h:2
  */
 export const ZBUILDING_HEADER_GUARD_PORTED = true;
 
 /**
- * Adaptation of upstream `MAX_QUEUE_ITEMS`.
+ * Port of upstream `MAX_QUEUE_ITEMS`.
  * Role: Defines the maximum number of queued production units for a building.
  * Ledger: MAC-D64F26
  * Upstream: zbuilding.h:8
@@ -70,11 +68,40 @@ export const ZBUILDING_HEADER_GUARD_PORTED = true;
 export const BUILDING_MAX_QUEUE_ITEMS = 5;
 
 /**
+ * Port of upstream `building_state`.
+ * Role: Identifies the production state currently held by a building.
+ * Ledger: ENU-FF8F11
+ * Upstream: zbuilding.h:10-13
+ */
+export enum BuildingState {
+  Place = 0,
+  Select = 1,
+  Building = 2,
+  Paused = 3,
+  MaxBuildingStates = 4,
+}
+
+/**
+ * Port of upstream `ZBProductionUnit`.
+ * Role: Stores the object type and object id queued for building production.
+ * Ledger: CLS-83B562
+ * Upstream: zbuilding.h:18-25
+ */
+export class ZBProductionUnit {
+  ot: number;
+  oid: number;
+
+  constructor(ot = 0, oid = 0) {
+    this.ot = ot;
+    this.oid = oid;
+  }
+}
+
+/**
  * Port of upstream `min_interval_time` from `BVehicle`.
  * Role: Defines the minimum time interval between vehicle factory process updates.
  * Ledger: CON-F1F093
  * Upstream: bvehicle.cpp:139
- * Notes: Unit is seconds. * - Kept separate from the `BRobot`, `BRadar`, and `BRepair` constants with the same upstream name.
  */
 export const VEHICLE_FACTORY_MIN_PROCESS_INTERVAL_SECONDS = 0.25;
 
@@ -83,7 +110,6 @@ export const VEHICLE_FACTORY_MIN_PROCESS_INTERVAL_SECONDS = 0.25;
  * Role: Defines the x offset of the vehicle factory exhaust effect source.
  * Ledger: CON-177CE6
  * Upstream: bvehicle.cpp:232
- * Notes: Unit is source image pixels. * - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_EXHAUST_X_PIXELS = 28;
 
@@ -92,7 +118,6 @@ export const VEHICLE_FACTORY_EXHAUST_X_PIXELS = 28;
  * Role: Defines the y offset of the vehicle factory exhaust effect source.
  * Ledger: CON-816F9A
  * Upstream: bvehicle.cpp:233
- * Notes: Unit is source image pixels. * - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_EXHAUST_Y_PIXELS = -22;
 
@@ -117,7 +142,6 @@ export const VEHICLE_FACTORY_BULB_Y_PIXELS = 39;
  * Role: Defines the additional x offset applied while rendering the vehicle factory building effect layer.
  * Ledger: CON-F8A190
  * Upstream: bvehicle.cpp:361
- * Adaptation: Evaluates the C++ expression `31 - 16` as a named number. * - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS = 15;
 
@@ -126,7 +150,6 @@ export const VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS = 15;
  * Role: Defines the additional y offset applied while rendering the vehicle factory building effect layer.
  * Ledger: CON-8910F3
  * Upstream: bvehicle.cpp:362
- * Adaptation: Evaluates the C++ expression `32 - 24` as a named number. * - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_EFFECT_Y_OFFSET_PIXELS = 8;
 
@@ -135,7 +158,6 @@ export const VEHICLE_FACTORY_EFFECT_Y_OFFSET_PIXELS = 8;
  * Role: Defines the x offset of the vehicle factory level indicator effect source.
  * Ledger: CON-9B2756
  * Upstream: bvehicle.cpp:176, bvehicle.cpp:228
- * Notes: Unit is source image pixels. * - The same upstream local constant appears in both vehicle factory render and after-effects code with the same value. - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_LEVEL_X_PIXELS = 8;
 
@@ -144,7 +166,6 @@ export const VEHICLE_FACTORY_LEVEL_X_PIXELS = 8;
  * Role: Defines the y offset of the vehicle factory level indicator effect source.
  * Ledger: CON-2636E0
  * Upstream: bvehicle.cpp:177, bvehicle.cpp:229
- * Notes: Unit is source image pixels. * - The same upstream local constant appears in both vehicle factory render and after-effects code with the same value. - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_LEVEL_Y_PIXELS = 56;
 
@@ -161,7 +182,6 @@ export const VEHICLE_FACTORY_LIGHTS_Y_PIXELS = 47;
  * Role: Defines the x offset of the vehicle factory spinner effect source.
  * Ledger: CON-30B5A0
  * Upstream: bvehicle.cpp:220
- * Notes: Unit is source image pixels. * - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_SPINNER_X_PIXELS = 9;
 
@@ -170,7 +190,6 @@ export const VEHICLE_FACTORY_SPINNER_X_PIXELS = 9;
  * Role: Defines the y offset of the vehicle factory spinner effect source.
  * Ledger: CON-442B90
  * Upstream: bvehicle.cpp:221
- * Notes: Unit is source image pixels. * - Kept separate from the `BRobot` constant with the same upstream name.
  */
 export const VEHICLE_FACTORY_SPINNER_Y_PIXELS = -2;
 
@@ -211,7 +230,6 @@ export const VEHICLE_FACTORY_VENT_Y_PIXELS = 32;
  * Role: Defines the minimum time interval between robot factory process updates.
  * Ledger: CON-896ADD
  * Upstream: brobot.cpp:138
- * Notes: Unit is seconds. * - Kept separate from the `BRadar` and `BRepair` constants with the same upstream name.
  */
 export const ROBOT_FACTORY_MIN_PROCESS_INTERVAL_SECONDS = 0.25;
 
@@ -340,7 +358,6 @@ export const ROBOT_FACTORY_EFFECT_Y_OFFSET_PIXELS = 8;
  * Role: Defines the minimum time interval between repair building process updates.
  * Ledger: CON-91192A
  * Upstream: brepair.cpp:125
- * Notes: Unit is seconds. * - Kept separate from the `BRadar` constant with the same upstream name.
  */
 export const REPAIR_MIN_PROCESS_INTERVAL_SECONDS = 0.35;
 
@@ -349,7 +366,6 @@ export const REPAIR_MIN_PROCESS_INTERVAL_SECONDS = 0.35;
  * Role: Defines the x offset of the repair building front-light effect source.
  * Ledger: CON-0DF011
  * Upstream: brepair.cpp:208
- * Notes: Unit is source image pixels. * - Kept separate from the `BRadar` constant with the same upstream name.
  */
 export const REPAIR_FRONT_LIGHT_X_PIXELS = 6;
 
@@ -358,7 +374,6 @@ export const REPAIR_FRONT_LIGHT_X_PIXELS = 6;
  * Role: Defines the y offset of the repair building front-light effect source.
  * Ledger: CON-2E8243
  * Upstream: brepair.cpp:209
- * Notes: Unit is source image pixels. * - Kept separate from the `BRadar` constant with the same upstream name.
  */
 export const REPAIR_FRONT_LIGHT_Y_PIXELS = 16;
 
@@ -367,7 +382,6 @@ export const REPAIR_FRONT_LIGHT_Y_PIXELS = 16;
  * Role: Defines the x offset of the repair building side-light effect source.
  * Ledger: CON-3FE461
  * Upstream: brepair.cpp:210
- * Notes: Unit is source image pixels. * - Kept separate from the `BRadar` constant with the same upstream name.
  */
 export const REPAIR_SIDE_LIGHT_X_PIXELS = 18;
 
@@ -376,7 +390,6 @@ export const REPAIR_SIDE_LIGHT_X_PIXELS = 18;
  * Role: Defines the y offset of the repair building side-light effect source.
  * Ledger: CON-7C6665
  * Upstream: brepair.cpp:211
- * Notes: Unit is source image pixels. * - Kept separate from the `BRadar` constant with the same upstream name.
  */
 export const REPAIR_SIDE_LIGHT_Y_PIXELS = 6;
 
@@ -433,7 +446,6 @@ export const REPAIR_TEXT_BOX_Y_PIXELS = 32;
  * Role: Defines the additional x offset applied while rendering the repair building effect layer.
  * Ledger: CON-1DC64D
  * Upstream: brepair.cpp:239, brepair.cpp:357
- * Adaptation: Evaluates the C++ expression `26 - 16` as a named number. * - Kept separate from the `BRadar` constant with the same upstream name. - Reused for both upstream `BRepair` local constants with this expression.
  */
 export const REPAIR_EFFECT_X_OFFSET_PIXELS = 10;
 
@@ -442,7 +454,6 @@ export const REPAIR_EFFECT_X_OFFSET_PIXELS = 10;
  * Role: Defines the additional y offset applied while rendering the repair building effect layer.
  * Ledger: CON-F0AC7E
  * Upstream: brepair.cpp:240, brepair.cpp:358
- * Adaptation: Evaluates the C++ expression `30 - 24` as a named number. * - Kept separate from the `BRadar` constant with the same upstream name. - Reused for both upstream `BRepair` local constants with this expression.
  */
 export const REPAIR_EFFECT_Y_OFFSET_PIXELS = 6;
 

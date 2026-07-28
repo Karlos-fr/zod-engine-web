@@ -1,8 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zobject.h
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 declare const zPortraitReferenceBrand: unique symbol;
@@ -12,7 +10,6 @@ declare const zPortraitReferenceBrand: unique symbol;
  * Role: Provides a typed reference to the portrait subsystem without requiring the full portrait class definition.
  * Ledger: CLS-0F0B9E
  * Upstream: zobject.h:58
- * Notes: This mirrors the C++ forward declaration; `CLS-EEDED5` remains the future full `ZPortrait` class port from `zportrait.h`.
  */
 export type ZPortraitReference = {
   readonly [zPortraitReferenceBrand]: "ZPortrait";

@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: epyrofire.h
- * Symbols: _EPYROFIRE_H_
  */
 
 /**
- * Adaptation of upstream `_EPYROFIRE_H_`.
- * Role: Marks the TypeScript module boundary for upstream `epyrofire.h`.
+ * Port of upstream `_EPYROFIRE_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-CE13A1
  * Upstream: epyrofire.h:2
  */

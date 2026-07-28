@@ -1,13 +1,56 @@
 /**
  * Ported from Zod Engine.
  * Upstream: ztime.h
- * Symbols: _ZTIME_H_
  */
 
 /**
- * Adaptation of upstream `_ZTIME_H_`.
- * Role: Marks the TypeScript module boundary for upstream `ztime.h`.
+ * Port of upstream `_ZTIME_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-D6C6EC
  * Upstream: ztime.h:2
  */
 export const ZTIME_HEADER_GUARD_PORTED = true;
+
+/**
+ * Port of upstream `game_speed`.
+ * Role: Stores the current simulation time speed multiplier.
+ * Ledger: FUN-89879D
+ * Upstream: ztime.h:14
+ */
+export type SimulationTimeSpeedState = {
+  gameSpeed: number;
+};
+
+/**
+ * Port of upstream `paused`.
+ * Role: Stores whether simulation time progression is paused.
+ * Ledger: FUN-8F2C9B
+ * Upstream: ztime.h:12
+ */
+export type SimulationTimePauseState = {
+  paused: boolean;
+};
+
+/**
+ * Port of upstream `IsPaused`.
+ * Role: Returns whether simulation time progression is paused.
+ * Ledger: FUN-8F2C9B
+ * Upstream: ztime.h:12
+ */
+export function isSimulationPaused(
+  state: SimulationTimePauseState,
+): boolean {
+  return state.paused;
+}
+
+/**
+ * Port of upstream `GameSpeed`.
+ * Role: Returns the current simulation time speed multiplier.
+ * Ledger: FUN-89879D
+ * Upstream: ztime.h:14
+ */
+export function getSimulationGameSpeed(
+  state: SimulationTimeSpeedState,
+): number {
+  return state.gameSpeed;
+}

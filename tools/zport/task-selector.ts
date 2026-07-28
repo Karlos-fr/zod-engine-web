@@ -1,5 +1,5 @@
 import type { LedgerRow } from "./ledger.ts";
-import { isDependencyClear } from "./dependencies.ts";
+import { resolveDependencies } from "./dependencies.ts";
 
 const domainOrder = [
   "data",
@@ -30,7 +30,7 @@ export function selectNext(rows: LedgerRow[]): LedgerRow | undefined {
   return rows
     .filter((row) => ["todo", "qualified"].includes(row.status))
     .filter((row) => !["IGNORE", "DEFER"].includes(row.decision))
-    .filter(isDependencyClear)
+    .filter((row) => isDependencyClear(row, rows))
     .sort(compareRows)[0];
 }
 
@@ -49,7 +49,7 @@ export function selectConstantBatch(
   const candidates = uniqueById(
     rows
       .filter((row) => isBatchableConstant(row, options))
-      .filter(isDependencyClear)
+      .filter((row) => isDependencyClear(row, rows))
       .filter((row) => !options.file || row.file === options.file)
       .filter((row) => !options.domain || row.targetDomain === options.domain)
       .sort(compareRows),
@@ -64,6 +64,10 @@ export function selectConstantBatch(
     .filter((row) => row.file === first.file)
     .filter((row) => row.targetDomain === first.targetDomain)
     .slice(0, limit);
+}
+
+function isDependencyClear(row: LedgerRow, rows: LedgerRow[]): boolean {
+  return resolveDependencies(row, rows).blockedBy.length === 0;
 }
 
 function compareRows(a: LedgerRow, b: LedgerRow): number {

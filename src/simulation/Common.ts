@@ -1,18 +1,15 @@
 /**
  * Ported from Zod Engine.
  * Upstream: common.cpp / common.h
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 const utf8Encoder = new TextEncoder();
 
 /**
- * Adaptation of upstream `_COMMON_H_`.
- * Role: Marks the TypeScript module boundary for upstream `common.h`.
+ * Port of upstream `_COMMON_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-2DAAF5
  * Upstream: common.h:2-2
- * Adaptation: ES modules already prevent repeated declaration; this exported marker keeps the ledger traceable without runtime behavior.
  */
 export const COMMON_HEADER_GUARD_PORTED = true;
 
@@ -29,10 +26,9 @@ export type DirectoryEntry = {
 
 /**
  * Port of upstream `xy_struct`.
- * Role: Stores an integer coordinate pair used by common simulation helpers.
+ * Role: Stores an integer coordinate pair for common simulation helpers.
  * Ledger: CLS-B0EADD
  * Upstream: common.h:13-20
- * Adaptation: Preserves the default zero coordinate constructor and parameterized constructor in a TypeScript class.
  */
 export class XyStruct {
   x: number;
@@ -46,7 +42,7 @@ export class XyStruct {
 
 /**
  * Port of upstream `xy_to_i`.
- * Role: Converts an x/y coordinate into the linear index used by column-major common arrays.
+ * Role: Converts an x/y coordinate into the linear index for column-major common arrays.
  * Ledger: FUN-34DB10
  * Upstream: common.h:66-66
  */
@@ -70,7 +66,6 @@ export type SplitResult = {
  * Role: Stores wall-clock seconds and microseconds returned by `gettimeofday`.
  * Ledger: STR-037FF7
  * Upstream: common.cpp:77-87
- * Adaptation: Represents the POSIX `tv_sec` and `tv_usec` fields as camelCase numeric properties.
  */
 export type Timeval = {
   tvSec: number;
@@ -82,7 +77,6 @@ export type Timeval = {
  * Role: Produces a discrete random fraction in the inclusive range from zero to one for common simulation calculations.
  * Ledger: FUN-BCA1D9
  * Upstream: common.h:64-64
- * Adaptation: Replaces C `rand()` with an injectable integer source backed by `Math.random` by default.
  */
 export function frand(
   randomInt: () => number = () => Math.floor(Math.random() * 10001),
@@ -112,7 +106,7 @@ export function isOne(num: number): boolean {
 
 /**
  * Port of upstream `swap`.
- * Role: Exchanges two integer values used by common utility code.
+ * Role: Exchanges two integer values for common utility code.
  * Ledger: FUN-1AE16E
  * Upstream: common.h:55-62
  */
@@ -145,7 +139,6 @@ export function cleanNewline(message: string, size = message.length): string {
  * Role: Requests creation of a folder path through the platform filesystem.
  * Ledger: FUN-B95428
  * Upstream: common.cpp:46-53
- * Adaptation: Replaces direct `mkdir` access with an injectable adapter so browser code can provide storage-specific directory creation.
  */
 export function createFolder(
   folderName: string,
@@ -158,6 +151,29 @@ export function createFolder(
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Port of upstream `directory_filelist`.
+ * Role: Returns regular file names found in a directory.
+ * Ledger: FUN-1E36E5
+ * Upstream: common.cpp:318-365
+ */
+export function directoryFileList(
+  folderName: string,
+  readDirectory: (folderName: string) => readonly DirectoryEntry[] = () => {
+    throw new Error("No directory listing adapter available.");
+  },
+): string[] {
+  const normalizedFolderName = folderName.length === 0 ? "." : folderName;
+
+  try {
+    return readDirectory(normalizedFolderName)
+      .filter((entry) => entry.type === "regular")
+      .map((entry) => entry.name);
+  } catch {
+    return [];
   }
 }
 
@@ -196,7 +212,6 @@ export function distance(x1: number, y1: number, x2: number, y2: number): number
  * Role: Reports whether a target path can be opened for append-style writing.
  * Ledger: FUN-1C4E95
  * Upstream: common.cpp:305-316
- * Adaptation: Replaces direct `fopen(filename, "a")` access with an injectable probe so browser code can provide storage-specific write checks.
  */
 export function fileCanBeWritten(
   filename: string,
@@ -217,7 +232,6 @@ export function fileCanBeWritten(
  * Role: Checks whether a character is allowed in upstream user-facing text fields.
  * Ledger: FUN-7CC24F
  * Upstream: common.cpp:233-243
- * Notes: Mirrors C `isalnum` for ASCII alphanumeric characters and preserves the explicit punctuation allow-list.
  */
 export function goodUserChar(character: string): boolean {
   if (character.length !== 1) {
@@ -228,11 +242,34 @@ export function goodUserChar(character: string): boolean {
 }
 
 /**
+ * Port of upstream `good_user_string`.
+ * Role: Checks whether a user-facing text value is non-empty and well spaced.
+ * Ledger: FUN-7EC968
+ * Upstream: common.cpp:245-267
+ */
+export function goodUserString(message: string): boolean {
+  if (message.length === 0) {
+    return false;
+  }
+
+  for (const character of message) {
+    if (!goodUserChar(character)) {
+      return false;
+    }
+  }
+
+  if (message.includes("  ")) {
+    return false;
+  }
+
+  return message[0] !== " " && message[message.length - 1] !== " ";
+}
+
+/**
  * Port of upstream `lcase`.
  * Role: Lowercases a message buffer until the inspected size or null terminator.
  * Ledger: FUN-9FDD49
  * Upstream: common.cpp:147-151, common.cpp:153-157
- * Adaptation: Replaces in-place `char *` mutation with a returned string. * - Also covers the upstream `string &` overload by defaulting `messageSize` to the full string length.
  */
 export function lcase(message: string, messageSize = message.length): string {
   const limit = Math.min(Math.max(messageSize, 0), message.length);
@@ -351,7 +388,6 @@ export function printDump(message: string, size: number, name: string): string {
  * Role: Extracts one delimited token from a message while returning the cursor used to continue scanning.
  * Ledger: FUN-370236
  * Upstream: common.cpp:93-124
- * Adaptation: Replaces destination-buffer mutation and `int *initial` mutation with a returned token and next cursor.
  */
 export function split(
   message: string,
@@ -389,10 +425,9 @@ export function split(
 
 /**
  * Port of upstream `sort_string_func`.
- * Role: Provides the lexicographic string ordering predicate used by upstream list sorting helpers.
+ * Role: Provides the lexicographic string ordering predicate for upstream list sorting helpers.
  * Ledger: FUN-016B43
  * Upstream: common.cpp:391-394
- * Adaptation: Replaces `strcmp(a.c_str(), b.c_str()) < 0` with equivalent byte-wise comparison of UTF-8 encoded JavaScript strings.
  */
 export function sortStringFunc(a: string, b: string): boolean {
   const aBytes = utf8Encoder.encode(a);

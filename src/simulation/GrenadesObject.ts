@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: ogrenades.h, ogrenades.cpp
- * Symbols: _OGRENADES_H_, max_horz, max_vert
  */
 
 /**
- * Adaptation of upstream `_OGRENADES_H_`.
- * Role: Marks the TypeScript module boundary for upstream `ogrenades.h`.
+ * Port of upstream `_OGRENADES_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-0E2872
  * Upstream: ogrenades.h:2
  */

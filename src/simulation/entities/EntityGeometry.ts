@@ -1,14 +1,13 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zobject.h
- * Symbols: GetCenterCords
  */
 
 import type { Vector2 } from "../../world/Vector2";
 
 /**
  * Port of upstream `GetCenterCords`.
- * Role: Returns the center coordinates used by entity targeting and selection.
+ * Role: Returns the center coordinates for entity targeting and selection.
  * Ledger: FUN-03D079
  * Upstream: zobject.h:408
  */

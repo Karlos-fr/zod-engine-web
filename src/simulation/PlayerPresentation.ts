@@ -1,21 +1,18 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zplayer.h / zplayer.cpp
- * Symbols: max_news_history, shift_tick, shift_speed, lasting_time,
- * start_fade_time, fade_per_second, max_items, y_int, _ZPLAYER_H_,
- * MAX_STORED_SPACE_BAR_EVENTS, SPACE_BAR_EVENT_LIFETIME
  */
 
 /**
- * Adaptation of upstream `_ZPLAYER_H_`.
- * Role: Marks the TypeScript module boundary for upstream `zplayer.h`.
+ * Port of upstream `_ZPLAYER_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-CCEF75
  * Upstream: zplayer.h:2
  */
 export const ZPLAYER_HEADER_GUARD_PORTED = true;
 
 /**
- * Adaptation of upstream `MAX_STORED_SPACE_BAR_EVENTS`.
+ * Port of upstream `MAX_STORED_SPACE_BAR_EVENTS`.
  * Role: Defines how many space-bar focus events are retained.
  * Ledger: MAC-858FED
  * Upstream: zplayer.h:106
@@ -23,12 +20,65 @@ export const ZPLAYER_HEADER_GUARD_PORTED = true;
 export const PLAYER_MAX_STORED_SPACE_BAR_EVENTS = 5;
 
 /**
- * Adaptation of upstream `SPACE_BAR_EVENT_LIFETIME`.
+ * Port of upstream `SPACE_BAR_EVENT_LIFETIME`.
  * Role: Defines how long space-bar focus events remain valid.
  * Ledger: MAC-904CC6
  * Upstream: zplayer.h:107
  */
 export const PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS = 10;
+
+/**
+ * Port of upstream `ASCII_DOWN_MAX`.
+ * Role: Defines how many lowercase ASCII key states are tracked by the player.
+ * Ledger: MAC-6A8542
+ * Upstream: zplayer.h:152
+ */
+export const PLAYER_ASCII_DOWN_MAX = 26;
+
+/**
+ * Port of upstream `key_event`.
+ * Role: Stores a raw key code and Unicode value received by the player input layer.
+ * Ledger: STR-340B52
+ * Upstream: zplayer.h:44-48
+ */
+export type PlayerKeyEvent = {
+  theKey: number;
+  theUnicode: number;
+};
+
+/**
+ * Port of upstream `mouse_button_info`.
+ * Role: Stores mouse button screen/map coordinates and click-origin flags.
+ * Ledger: CLS-14AA3F
+ * Upstream: zplayer.h:95-104
+ */
+export type MouseButtonInfo = {
+  x: number;
+  y: number;
+  mapX: number;
+  mapY: number;
+  down: boolean;
+  startedOverHud: boolean;
+  startedOverGui: boolean;
+};
+
+/**
+ * Port of upstream `mouse_button_info` constructor.
+ * Role: Creates a cleared mouse button interaction state.
+ * Ledger: CLS-14AA3F
+ * Upstream: zplayer.h:95-104
+ */
+export function createMouseButtonInfo(): MouseButtonInfo {
+  return {
+    x: 0,
+    y: 0,
+    mapX: 0,
+    mapY: 0,
+    down: false,
+    startedOverHud: false,
+    startedOverGui: false,
+  };
+}
 
 /**
  * Port of upstream `max_items`.

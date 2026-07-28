@@ -4,6 +4,7 @@ import {
   BOT_CRANE_TARGET_MAX_TOTAL_DISTANCE_PIXELS,
   BOT_MAX_BUILD_COMBO_CHECK,
   BOT_MAX_GUNS_BUILDING_RATIO,
+  PreferredUnit,
   ZBOT_HEADER_GUARD_PORTED,
 } from "../src/simulation/BotAI";
 
@@ -24,5 +25,23 @@ describe("bot AI", () => {
   it("ports build-order heuristic limits", () => {
     expect(BOT_MAX_GUNS_BUILDING_RATIO).toBe(0.35);
     expect(BOT_MAX_BUILD_COMBO_CHECK).toBe(6);
+  });
+
+  it("ports PreferredUnit default construction", () => {
+    expect(new PreferredUnit()).toEqual({
+      ot: 255,
+      oid: 255,
+      pValue: 1,
+      inProduction: 0,
+    });
+  });
+
+  it("ports PreferredUnit configured construction", () => {
+    expect(new PreferredUnit(2, 7, 1.5)).toEqual({
+      ot: 2,
+      oid: 7,
+      pValue: 1.5,
+      inProduction: 0,
+    });
   });
 });

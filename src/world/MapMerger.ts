@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: map_merger.cpp
- * Symbols: direction
  */
 
 /**

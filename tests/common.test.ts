@@ -5,10 +5,12 @@ import {
   createFolder,
   dataToHexString,
   type DirectoryEntry,
+  directoryFileList,
   distance,
   fileCanBeWritten,
   frand,
   goodUserChar,
+  goodUserString,
   isOne,
   isZero,
   lcase,
@@ -81,6 +83,38 @@ describe("common", () => {
     expect(entry).toEqual({ name: "map.zod", type: "regular" });
   });
 
+  it("ports directory_filelist by returning regular directory entries", () => {
+    const requestedFolders: string[] = [];
+
+    expect(
+      directoryFileList("maps", (folderName) => {
+        requestedFolders.push(folderName);
+        return [
+          { name: "alpha.map", type: "regular" },
+          { name: "nested", type: "directory" },
+          { name: "socket", type: "other" },
+          { name: "beta.map", type: "regular" },
+        ];
+      }),
+    ).toEqual(["alpha.map", "beta.map"]);
+    expect(requestedFolders).toEqual(["maps"]);
+  });
+
+  it("ports directory_filelist empty-path and open-failure behavior", () => {
+    expect(
+      directoryFileList("", (folderName) => {
+        expect(folderName).toBe(".");
+        return [{ name: "local.map", type: "regular" }];
+      }),
+    ).toEqual(["local.map"]);
+    expect(
+      directoryFileList("missing", () => {
+        throw new Error("missing");
+      }),
+    ).toEqual([]);
+    expect(directoryFileList("browser-only")).toEqual([]);
+  });
+
   it("ports xy_struct constructors for coordinate data", () => {
     expect(new XyStruct()).toEqual({ x: 0, y: 0 });
     expect(new XyStruct(12, -4)).toEqual({ x: 12, y: -4 });
@@ -133,6 +167,17 @@ describe("common", () => {
   it("rejects good_user_char disallowed or multi-character input", () => {
     for (const character of ["!", "\n", "/", "é", "ab", ""]) {
       expect(goodUserChar(character)).toBe(false);
+    }
+  });
+
+  it("ports good_user_string for valid user-facing text", () => {
+    expect(goodUserString("Commander_12")).toBe(true);
+    expect(goodUserString("Alpha Team-2")).toBe(true);
+  });
+
+  it("rejects good_user_string empty, badly spaced, or invalid text", () => {
+    for (const message of ["", " Alpha", "Alpha ", "Alpha  Team", "Bad/Name"]) {
+      expect(goodUserString(message)).toBe(false);
     }
   });
 

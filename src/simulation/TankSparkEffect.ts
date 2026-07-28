@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etankspark.h / etankspark.cpp
- * Symbols: _ETANKSPARK_H_, ETANKSPARK_TIME
  */
 
 /**
- * Adaptation of upstream `_ETANKSPARK_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etankspark.h`.
+ * Port of upstream `_ETANKSPARK_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-6036C3
  * Upstream: etankspark.h:2
  */

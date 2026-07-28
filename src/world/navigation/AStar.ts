@@ -1,13 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zpath_finding_astar.h / zpath_finding_astar.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
  * Port of upstream `hf`.
- * Role: Computes the Manhattan-distance heuristic used by A* path scoring.
+ * Role: Computes the Manhattan-distance heuristic for A* path scoring.
  * Ledger: FUN-C49153
  * Upstream: zpath_finding_astar.cpp:10
  */

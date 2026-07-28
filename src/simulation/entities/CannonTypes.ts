@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zcannon.h, cmissilecannon.h / cmissilecannon.cpp
- * Symbols: see entity comments
  */
 
 /**
@@ -37,8 +36,8 @@ export const CHOWITZER_HEADER_GUARD_PORTED = true;
 export const CMISSILECANNON_HEADER_GUARD_PORTED = true;
 
 /**
- * Adaptation of upstream `_ZCANNON_H_`.
- * Role: Marks the TypeScript module boundary for the future `ZCannon` base class port.
+ * Port of upstream `_ZCANNON_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-E81588
  * Upstream: zcannon.h:2
  */
@@ -49,7 +48,6 @@ export const ZCANNON_HEADER_GUARD_PORTED = true;
  * Role: Defines the x offset of the gatling cannon unit render source.
  * Ledger: CON-035582
  * Upstream: cgatling.cpp:91, cgatling.cpp:202
- * Notes: Unit is source image pixels. * - The same upstream local constant appears in both gatling cannon render and process code with the same value.
  */
 export const GATLING_CANNON_UNIT_X_PIXELS = 0;
 
@@ -106,6 +104,5 @@ export const GUN_CANNON_UNIT_Y_PIXELS = 0;
  * Role: Defines the y offset of the gatling cannon unit render source.
  * Ledger: CON-8E48FD
  * Upstream: cgatling.cpp:92, cgatling.cpp:203
- * Notes: Unit is source image pixels. * - The same upstream local constant appears in both gatling cannon render and process code with the same value.
  */
 export const GATLING_CANNON_UNIT_Y_PIXELS = -7;

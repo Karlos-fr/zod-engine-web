@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: ebridgeturrent.h
- * Symbols: _EBRIDGETURRENT_H_
  */
 
 /**
  * Marker exported from the bridge turret effect module.
- * Role: Marks the TypeScript module boundary for upstream `ebridgeturrent.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-472D7E
  * Upstream: ebridgeturrent.h:2
  */

@@ -3,6 +3,7 @@ import {
   GRAPHICS_ARCHIVE_PATH,
   ZGFILE_HEADER_GUARD_PORTED,
 } from "../src/assets/GraphicsArchive";
+import type { GraphicsArchiveEntry } from "../src/assets/GraphicsArchive";
 
 describe("graphics archive", () => {
   it("adapts the zgfile.h include guard to an ES module marker", async () => {
@@ -17,5 +18,21 @@ describe("graphics archive", () => {
 
   it("adapts the upstream sprite archive path", () => {
     expect(GRAPHICS_ARCHIVE_PATH).toBe("assets/sprites.zgfx");
+  });
+
+  it("ports graphics archive entries", () => {
+    const entry: GraphicsArchiveEntry = {
+      filename: "units/robot.png",
+      w: 32,
+      h: 48,
+      fileOffset: 1024,
+    };
+
+    expect(entry).toEqual({
+      filename: "units/robot.png",
+      w: 32,
+      h: 48,
+      fileOffset: 1024,
+    });
   });
 });

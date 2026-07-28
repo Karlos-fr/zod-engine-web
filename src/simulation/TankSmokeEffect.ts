@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etanksmoke.h / etanksmoke.cpp
- * Symbols: _ETANKSMOKE_H_, ETANKSMOKE_TIME
  */
 
 /**
- * Adaptation of upstream `_ETANKSMOKE_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etanksmoke.h`.
+ * Port of upstream `_ETANKSMOKE_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-D63C99
  * Upstream: etanksmoke.h:2
  */

@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmm_multiplayer.h
- * Symbols: _ZGMM_MULTIPLAYER_H_
  */
 
 /**
- * Adaptation of upstream `_ZGMM_MULTIPLAYER_H_`.
- * Role: Marks the TypeScript module boundary for upstream `gmm_multiplayer.h`.
+ * Port of upstream `_ZGMM_MULTIPLAYER_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-911051
  * Upstream: gmm_multiplayer.h:2
  */

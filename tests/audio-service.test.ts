@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   AudioService,
+  DangerLevelStartInfo,
+  MusicDangerLevel,
   SoundSetting,
+  SoundEngineSound,
   SOUND_ENGINE_MAX_COMP_LOSING_MESSAGES,
   SOUND_ENGINE_MIX_CHANNELS,
   ZMUSIC_ENGINE_HEADER_GUARD_PORTED,
   ZSOUND_ENGINE_HEADER_GUARD_PORTED,
+  getMusicEngineDangerLevel,
+  setMusicEngineMusicOn,
 } from "../src/audio/AudioService";
 
 describe("audio service", () => {
@@ -41,6 +46,169 @@ describe("audio service", () => {
     expect(SoundSetting.Sound75).toBe(3);
     expect(SoundSetting.Sound100).toBe(4);
     expect(SoundSetting.MaxSoundSettings).toBe(5);
+  });
+
+  it("ports sound_engine_sound identifiers in upstream order", () => {
+    const expectedNames = [
+      "PsychoFireSnd",
+      "RiochetSnd",
+      "RandomExplosionSnd",
+      "LightRandomExplosionSnd",
+      "LightFireSnd",
+      "MediumFireSnd",
+      "HeavyFireSnd",
+      "PyroFireSnd",
+      "LaserFireSnd",
+      "RifleFireSnd",
+      "GunFireSnd",
+      "GatlingFireSnd",
+      "TurrentExplosionSnd",
+      "JeepFireSnd",
+      "ToughFireSnd",
+      "MomissileFireSnd",
+      "RadarSnd",
+      "RobotFactorySnd",
+      "VehicleFactorySnd",
+      "CompVehicleSnd",
+      "CompRobotSnd",
+      "CompGunSnd",
+      "CompStartingManufactureSnd",
+      "CompManufacturingCanceledSnd",
+      "CompStartingRepairSnd",
+      "CompVehicleRepairedSnd",
+      "CompTerritoryLostSnd",
+      "CompRadarActivatedSnd",
+      "CompFortUnderAttack",
+      "CompYourLosing0",
+      "CompYourLosing1",
+      "CompYourLosing2",
+      "CompYourLosing3",
+      "CompYourLosing4",
+      "CompYourLosing5",
+      "CompYourLosing6",
+      "CompYourLosing7",
+      "CompYourLosing8",
+      "CompYourLosing9",
+      "BatChirpSnd",
+      "CrowSnd",
+      "ThrowGrenadeSnd",
+      "YesSir1Snd",
+      "YesSir2Snd",
+      "YesSir3Snd",
+      "UnitReporting1Snd",
+      "UnitReporting2Snd",
+      "UnitReporting3Snd",
+      "GruntsReportingSnd",
+      "PsychosReportingSnd",
+      "SnipersReportingSnd",
+      "ToughsReportingSnd",
+      "LasersReportingSnd",
+      "PyrosReportingSnd",
+      "WereOnOurWaySnd",
+      "HereWeGoSnd",
+      "YouGotItSnd",
+      "MovingInSnd",
+      "OkaySnd",
+      "AlrightSnd",
+      "NoProblemSnd",
+      "OverAndOutSnd",
+      "AffirmativeSnd",
+      "GoingInSnd",
+      "LetsDoItSnd",
+      "LetsGetThemSnd",
+      "WereUnderAttackSnd",
+      "ISaidWereUnderAttackSnd",
+      "HelpHelpSnd",
+      "TheyreAllOverUsSnd",
+      "WereLosingItSnd",
+      "AaahhhSnd",
+      "OhMyGodSnd",
+      "ForChristSakeSnd",
+      "YourJokingSnd",
+      "NoWaySnd",
+      "ForgetItSnd",
+      "GetOuttaHereSnd",
+      "TargetDestroyedSnd",
+      "BridgeDestroyedSnd",
+      "BuildingDestroyedSnd",
+      "GoodHitSnd",
+      "NiceOneSnd",
+      "OhYeahSnd",
+      "GotchaSnd",
+      "SmokinSnd",
+      "CoolSnd",
+      "WipeOutSnd",
+      "BridgeRepairedSnd",
+      "BuildingRepairedSnd",
+      "TerritoryTakenSnd",
+      "FireExtinguishedSnd",
+      "GunCapturedSnd",
+      "VehicleCapturedSnd",
+      "GrenadesCollectedSnd",
+      "LetsTakeTheFortSnd",
+      "LetsDoThemSnd",
+      "TheyreOnTheRunSnd",
+      "LetsFinishThemOffSnd",
+      "WhatAreYouWaitingForSnd",
+      "LetsEndItNowSnd",
+      "LetsGoForItSnd",
+      "YeehaaEndSnd",
+      "NiceOneEndSnd",
+      "AlrightEndSnd",
+      "ExcelentEndSnd",
+      "WeveDoneItEndSnd",
+      "YeahhhEndSnd",
+      "YoureCrapLoseSnd",
+      "WeveLostItLoseSnd",
+      "YouveBlownItLoseSnd",
+      "WeHateYouLoseSnd",
+      "MoronLoseSnd",
+      "AssholeLoseSnd",
+      "ItsOverLoseSnd",
+      "LetsDoIt1StartSnd",
+      "LetsDoIt2StartSnd",
+      "MaxEngineSounds",
+    ] as const;
+
+    expectedNames.forEach((name, index) => {
+      expect(SoundEngineSound[name]).toBe(index);
+    });
+  });
+
+  it("ports music danger level identifiers", () => {
+    expect(MusicDangerLevel.Calm).toBe(0);
+    expect(MusicDangerLevel.Attacking).toBe(1);
+    expect(MusicDangerLevel.Fort).toBe(2);
+    expect(MusicDangerLevel.MaxDangerLevels).toBe(3);
+  });
+
+  it("ports danger-level music segment metadata", () => {
+    expect(new DangerLevelStartInfo()).toEqual({
+      position: 0,
+      length: 0,
+    });
+    expect(new DangerLevelStartInfo(12.5, 4.25)).toEqual({
+      position: 12.5,
+      length: 4.25,
+    });
+  });
+
+  it("ports ZMusicEngine::SetMusicOn as music engine enablement state", () => {
+    const state = { soundSystemOn: true };
+
+    setMusicEngineMusicOn(state, false);
+    expect(state.soundSystemOn).toBe(false);
+
+    setMusicEngineMusicOn(state, true);
+    expect(state.soundSystemOn).toBe(true);
+  });
+
+  it("ports ZMusicEngine::GetDangerLevel as a danger level accessor", () => {
+    expect(
+      getMusicEngineDangerLevel({
+        dangerLevel: MusicDangerLevel.Attacking,
+      }),
+    ).toBe(MusicDangerLevel.Attacking);
   });
 
   it("replaces ZSDL_SetMusicOn with service music state", () => {

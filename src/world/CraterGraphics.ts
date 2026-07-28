@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zmap_crater_graphics.h
- * Symbols: MAX_KNOWN_CRATER_TYPES, MAX_KNOWN_CRATER_N
  */
 
 /**

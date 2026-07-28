@@ -6,6 +6,7 @@ import {
   BAR_GREEN_RED,
   BAR_X_SHIFT,
   DOT_COUNT,
+  ENTITY_PI_SHIFT_RADIANS,
   GLVL,
   HOVER_NAME_Y_SHIFT,
   MAX_BAR_DISTANCE,
@@ -54,6 +55,10 @@ describe("entity constants", () => {
 
   it("ports the entity indicator dot count", () => {
     expect(DOT_COUNT).toBe(10);
+  });
+
+  it("ports the entity indicator angular spacing", () => {
+    expect(ENTITY_PI_SHIFT_RADIANS).toBeCloseTo(0.1570795);
   });
 
   it("ports the maximum entity bar distance", () => {

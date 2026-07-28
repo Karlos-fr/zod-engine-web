@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zsdl.cpp
- * Symbols: ZSDL_Quit
  */
 
 /**
@@ -20,7 +19,6 @@ export type ZsdlQuitHooks = {
  * Role: Shuts down audio before shutting down the SDL/Web rendering layer.
  * Ledger: FUN-5843FA
  * Upstream: zsdl.cpp:758-762
- * Adaptation: Replaces `Mix_CloseAudio()` and `SDL_Quit()` with injected browser lifecycle hooks while preserving call order.
  */
 export function quitZsdl(hooks: ZsdlQuitHooks): void {
   hooks.closeAudio();

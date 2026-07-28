@@ -7,6 +7,7 @@ import {
   BREPAIR_HEADER_GUARD_PORTED,
   BVEHICLE_HEADER_GUARD_PORTED,
   BUILDING_MAX_QUEUE_ITEMS,
+  BuildingState,
   RADAR_BOX_SPINNER_X_PIXELS,
   RADAR_BOX_SPINNER_Y_PIXELS,
   RADAR_DISH_X_PIXELS,
@@ -62,6 +63,7 @@ import {
   VEHICLE_FACTORY_TANK_Y_PIXELS,
   VEHICLE_FACTORY_VENT_X_PIXELS,
   VEHICLE_FACTORY_VENT_Y_PIXELS,
+  ZBProductionUnit,
   ZBUILDING_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/BuildingTypes";
 
@@ -166,6 +168,28 @@ describe("building types", () => {
 
   it("ports the building production queue limit", () => {
     expect(BUILDING_MAX_QUEUE_ITEMS).toBe(5);
+  });
+
+  it("ports building production states", () => {
+    expect(BuildingState.Place).toBe(0);
+    expect(BuildingState.Select).toBe(1);
+    expect(BuildingState.Building).toBe(2);
+    expect(BuildingState.Paused).toBe(3);
+    expect(BuildingState.MaxBuildingStates).toBe(4);
+  });
+
+  it("ports ZBProductionUnit default construction", () => {
+    expect(new ZBProductionUnit()).toEqual({
+      ot: 0,
+      oid: 0,
+    });
+  });
+
+  it("ports ZBProductionUnit configured construction", () => {
+    expect(new ZBProductionUnit(1, 4)).toEqual({
+      ot: 1,
+      oid: 4,
+    });
   });
 
   it("ports the vehicle factory exhaust x offset", () => {

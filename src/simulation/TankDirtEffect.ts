@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etankdirt.h / etankdirt.cpp
- * Symbols: _ETANKDIRT_H_, ETANKDIRT_TIME
  */
 
 /**
- * Adaptation of upstream `_ETANKDIRT_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etankdirt.h`.
+ * Port of upstream `_ETANKDIRT_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-C33314
  * Upstream: etankdirt.h:2
  */

@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zplayer_events.cpp
- * Symbols: lasting_time
  */
 
 /**

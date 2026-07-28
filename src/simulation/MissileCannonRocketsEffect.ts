@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: emissilecrockets.h
- * Symbols: _EMISSILECROCKETS_H_
  */
 
 /**
- * Adaptation of upstream `_EMISSILECROCKETS_H_`.
- * Role: Marks the TypeScript module boundary for upstream `emissilecrockets.h`.
+ * Port of upstream `_EMISSILECROCKETS_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-B6CD4F
  * Upstream: emissilecrockets.h:2
  */

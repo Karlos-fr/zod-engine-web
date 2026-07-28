@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gwlogin.h
- * Symbols: _ZGWLOGIN_H_
  */
 
 /**
- * Adaptation of upstream `_ZGWLOGIN_H_`.
- * Role: Marks the TypeScript module boundary for upstream `gwlogin.h`.
+ * Port of upstream `_ZGWLOGIN_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-DBAF13
  * Upstream: gwlogin.h:2
  */

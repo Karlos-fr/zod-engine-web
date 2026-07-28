@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmmw_list.cpp
- * Symbols: clicks_per_second, iw, ih
  */
 
 /**

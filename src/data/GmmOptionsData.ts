@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmm_options.h
- * Symbols: MAX_GMMOPTIONS_SPEED_SETTINGS
  */
 
 /**

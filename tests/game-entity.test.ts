@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
+import { TeamType } from "../src/simulation/SimulationConstants";
 
 describe("GameEntity", () => {
   it("sets the last AI build time", () => {
@@ -71,5 +72,16 @@ describe("GameEntity", () => {
     entity.pixelHeight = 48;
 
     expect(entity.getPixelDimensions()).toEqual({ width: 64, height: 48 });
+  });
+
+  it("gets its owner team", () => {
+    const entity = new GameEntity({
+      id: "robot-3",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+
+    expect(entity.getOwner()).toBe(TeamType.Blue);
   });
 });

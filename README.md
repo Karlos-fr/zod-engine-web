@@ -150,23 +150,23 @@ explicite dans les notes du ledger.
 ## Norme de commentaires de portage
 
 Les commentaires dans le code porté doivent rester utiles au lecteur du code.
-Ils ne doivent pas recopier le contexte de portage déjà disponible dans le
-référentiel : dépendances, includes upstream, liste d'appels, statut, décision,
-blocages ou justification de sélection restent dans `PORTING_LEDGER.md` et dans
-la CLI.
+Ils doivent expliquer ce qu'est l'entité et d'où elle vient, pas raconter le
+travail de portage ni son voisinage technique. Le contexte de portage reste
+dans le référentiel et dans la CLI : dépendances, includes upstream, liste
+d'appels, statut, décision, blocages, justification de sélection, ordre de
+traitement et notes de lot ne doivent pas apparaître dans les commentaires du
+code.
 
 Chaque fichier contenant du code porté doit commencer par un en-tête court qui
-donne seulement la traçabilité minimale. Pour un fichier avec un ou deux
-symboles, l'en-tête peut nommer les symboles et IDs. Pour un fichier avec de
-nombreuses entités portées, utiliser `voir commentaires d'entité` et laisser les
-IDs précis sur chaque entité. L'en-tête ne doit pas contenir de dépendances.
+donne seulement l'origine upstream du module. L'en-tête ne doit pas contenir de
+dépendances, includes, liste de symboles, statut, décision, lot de portage ou
+IDs de ledger. Ces informations restent dans `PORTING_LEDGER.md`, dans la CLI
+et, pour les IDs, sur les commentaires des entités concernées.
 
 ```ts
 /**
  * Ported from Zod Engine.
  * Upstream: zmap.h / zmap.cpp
- * Symbols: voir commentaires d'entité
- * Ledger: voir commentaires d'entité
  */
 ```
 
@@ -185,11 +185,35 @@ Format minimal :
  */
 ```
 
-Ajouter une ligne `Adaptation` uniquement quand le port change réellement la
-forme ou le comportement upstream : renommage non évident, expression C++
-évaluée, changement de type ou comportement volontairement différent. Les
-dépendances elles-mêmes ne doivent jamais être listées dans le code, même pour
-expliquer une adaptation.
+La ligne `Role` doit décrire seulement le rôle métier ou technique immédiat de
+l'entité, en une phrase courte. Elle doit répondre à "à quoi sert cette entité ?"
+sans décrire le graphe autour d'elle.
+
+La ligne `Role` ne doit jamais lister les dépendances, les utilisateurs, les
+appelants, les appelés, les includes upstream, les raisons de sélection par la
+CLI, ni l'ordre de portage. Elle ne doit pas non plus décrire les
+transformations ordinaires du portage : changement de nom TypeScript, injection
+de dépendance, remplacement d'un état global, conversion d'un pointeur ou
+adaptation d'une API navigateur.
+
+Formulations à éviter dans le code :
+
+- `Depends on ...`
+- `Uses ...`
+- `Called by ...`
+- `Required before ...`
+- `Selected by zport ...`
+- `Ported with ...`
+
+Ces informations appartiennent au ledger, aux tests ou à la sortie de la CLI,
+pas au code applicatif.
+
+La ligne `Adaptation` est exceptionnelle. Elle n'est autorisée que si le code
+serait ambigu sans elle, par exemple une différence volontaire de comportement
+ou une transformation non évidente. Les conversions ordinaires du portage
+(`struct` vers `type`, macro vers constante, méthode C++ vers fonction
+TypeScript, état global vers objet explicite) ne doivent pas être commentées
+dans le code ; elles peuvent être notées dans le ledger si nécessaire.
 
 ```ts
 /**
@@ -197,7 +221,6 @@ expliquer une adaptation.
  * Role: Tile-space coordinate used by the A* pathfinding queue.
  * Ledger: CLS-XXXXXX
  * Upstream: zpath_finding_astar.h:18-27
- * Adaptation: Immutable TypeScript data shape.
  */
 export type PathfindingPoint = {
   x: number;

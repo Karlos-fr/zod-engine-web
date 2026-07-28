@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ComponentMessage,
   MAX_RENDERABLE_STORED_GUNS,
   ZCOMP_MESSAGE_ENGINE_HEADER_GUARD_PORTED,
 } from "../src/rendering/ComponentMessageRendering";
@@ -17,5 +18,12 @@ describe("component message rendering constants", () => {
 
   it("replaces the max renderable stored guns macro", () => {
     expect(MAX_RENDERABLE_STORED_GUNS).toBe(8);
+  });
+
+  it("ports component message categories", () => {
+    expect(ComponentMessage.RobotManufactured).toBe(0);
+    expect(ComponentMessage.VehicleManufactured).toBe(1);
+    expect(ComponentMessage.GunManufactured).toBe(2);
+    expect(ComponentMessage.Fort).toBe(3);
   });
 });

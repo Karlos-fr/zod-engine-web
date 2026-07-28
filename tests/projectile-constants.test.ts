@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BULLET_SPEED,
+  calcDamageMissileExplodeTimeTo,
   EBULLET_HEADER_GUARD_PORTED,
   EFLAME_HEADER_GUARD_PORTED,
   ELASER_HEADER_GUARD_PORTED,
@@ -10,6 +11,7 @@ import {
   resolveMobileMissileRocketSpeed,
   ZDAMAGE_MISSILE_HEADER_GUARD_PORTED,
 } from "../src/simulation/ProjectileConstants";
+import type { DamageMissileTimingState } from "../src/simulation/ProjectileConstants";
 
 describe("projectile constants", () => {
   it("adapts the ebullet.h include guard to an ES module marker", async () => {
@@ -62,6 +64,18 @@ describe("projectile constants", () => {
 
   it("ports elaser.cpp bullet_speed as the laser projectile speed", () => {
     expect(LASER_PROJECTILE_SPEED).toBe(300);
+  });
+
+  it("ports damage missile explosion time calculation", () => {
+    const state: DamageMissileTimingState = {
+      x: 13,
+      y: 24,
+      explodeTime: 0,
+    };
+
+    calcDamageMissileExplodeTimeTo(state, 10, 20, 5, 8);
+
+    expect(state.explodeTime).toBe(9);
   });
 
   it("ports emissilecrockets.cpp bullet_speed as the missile cannon rocket settings speed", () => {

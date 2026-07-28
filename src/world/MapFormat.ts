@@ -1,9 +1,8 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zmap.h / zmap.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
+import { TeamType } from "../simulation/SimulationConstants";
 
 /**
  * Port of upstream `buf_size`.
@@ -23,7 +22,7 @@ export const MAX_SHIFT_CLICK_PIXELS = 1;
 
 /**
  * Port of upstream `SHIFT_CLICK_S`.
- * Role: Defines the viewport shift speed used by shift-click map navigation.
+ * Role: Defines the viewport shift speed for shift-click map navigation.
  * Ledger: MAC-737D40
  * Upstream: zmap.h:17
  */
@@ -57,7 +56,7 @@ export enum MapObjectType {
 
 /**
  * Port of upstream `map_object_old`.
- * Role: Stores the compact object placement record used by legacy map files.
+ * Role: Stores the compact object placement record for legacy map files.
  * Ledger: STR-0B5308
  * Upstream: zmap.h:144-151
  */
@@ -106,7 +105,7 @@ export type MapZone = {
 
 /**
  * Port of upstream `palette_tile_info`.
- * Role: Describes terrain palette behavior flags used by movement and rendering.
+ * Role: Describes terrain palette behavior flags for movement and rendering.
  * Ledger: STR-981FBC
  * Upstream: zmap.h:42-56
  */
@@ -125,7 +124,7 @@ export type PaletteTileInfo = {
 
 /**
  * Port of upstream `palette_tile_info_new`.
- * Role: Preserves the newer palette tile record name used by later map formats.
+ * Role: Preserves the newer palette tile record name for later map formats.
  * Ledger: STR-FDE51E
  * Upstream: zmap.h:58-72
  */
@@ -156,7 +155,7 @@ export function createMapEffectInfo(tile = 0): MapEffectInfo {
 }
 
 /**
- * Browser-side rectangle used by the `map_zone_info_tile` port.
+ * Browser-side rectangle for the `map_zone_info_tile` port.
  * Role: Represents the render-space bounds attached to a zone-info tile.
  * Ledger: CLS-A4BB08
  * Upstream: zmap.h:77-95
@@ -203,3 +202,19 @@ export function createMapZoneInfoTile(
     nextTime: 0,
   };
 }
+
+/**
+ * Port of upstream `map_zone_info`.
+ * Role: Stores ownership, bounds, and render tiles for a map zone.
+ * Ledger: STR-5D37E3
+ * Upstream: zmap.h:97-103
+ */
+export type MapZoneInfo = {
+  owner: TeamType;
+  tiles: MapZoneInfoTile[];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  id: number;
+};

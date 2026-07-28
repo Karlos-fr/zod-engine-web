@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gwcreateuser.h
- * Symbols: _ZGWCREATEUSER_H_
  */
 
 /**
- * Adaptation of upstream `_ZGWCREATEUSER_H_`.
- * Role: Marks the TypeScript module boundary for upstream `gwcreateuser.h`.
+ * Port of upstream `_ZGWCREATEUSER_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-0AE2BD
  * Upstream: gwcreateuser.h:2
  */

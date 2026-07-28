@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etankoil.h / etankoil.cpp
- * Symbols: _ETANKOIL_H_, ETANKOIL_TIME
  */
 
 /**
- * Adaptation of upstream `_ETANKOIL_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etankoil.h`.
+ * Port of upstream `_ETANKOIL_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-BFE2E7
  * Upstream: etankoil.h:2
  */

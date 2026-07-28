@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmm_player_list.h
- * Symbols: _ZGMM_PLAYER_LIST_H_
  */
 
 /**
- * Adaptation of upstream `_ZGMM_PLAYER_LIST_H_`.
- * Role: Marks the TypeScript module boundary for upstream `gmm_player_list.h`.
+ * Port of upstream `_ZGMM_PLAYER_LIST_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-6F190E
  * Upstream: gmm_player_list.h:2
  */

@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etoughmushroom.h
- * Symbols: _ETOUGHMUSHROOM_H_
  */
 
 /**
- * Adaptation of upstream `_ETOUGHMUSHROOM_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etoughmushroom.h`.
+ * Port of upstream `_ETOUGHMUSHROOM_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-129E35
  * Upstream: etoughmushroom.h:2
  */

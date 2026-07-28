@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: oflag.h, oflag.cpp
- * Symbols: _OFLAG_H_, int_time
  */
 
 /**
- * Adaptation of upstream `_OFLAG_H_`.
- * Role: Marks the TypeScript module boundary for upstream `oflag.h`.
+ * Port of upstream `_OFLAG_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-2FAA3D
  * Upstream: oflag.h:2
  */

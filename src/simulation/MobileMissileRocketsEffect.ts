@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: emomissilerockets.h
- * Symbols: _EMOMISSILEROCKETS_H_
  */
 
 /**
- * Adaptation of upstream `_EMOMISSILEROCKETS_H_`.
- * Role: Marks the TypeScript module boundary for upstream `emomissilerockets.h`.
+ * Port of upstream `_EMOMISSILEROCKETS_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-451A6A
  * Upstream: emomissilerockets.h:2
  */

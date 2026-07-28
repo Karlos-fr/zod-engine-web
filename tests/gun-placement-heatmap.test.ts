@@ -6,6 +6,8 @@ import {
   GUN_PLACEMENT_HEATMAP_PROCESS_TIME_INCREMENT,
   type HeatMapBaseState,
   UNIT_HISTORY_HEAT_TILE_DISTANCE,
+  UNIT_HISTORY_HEATMAP_CLEAR_THRESHOLD,
+  UNIT_HISTORY_HEATMAP_TIME_DECAY,
   UNIT_HISTORY_HEATMAP_TIME_INCREMENT,
   ZGUN_PLACEMENT_HEATMAP_HEADER_GUARD_PORTED,
   getHeatMapSize,
@@ -44,6 +46,18 @@ describe("gun placement heatmap", () => {
 
   it("ports time_inc as the unit-history heatmap time increment", () => {
     expect(UNIT_HISTORY_HEATMAP_TIME_INCREMENT).toBe(0.01);
+  });
+
+  it("ports time_dec as the unit-history heatmap decay factor", () => {
+    expect(UNIT_HISTORY_HEATMAP_TIME_DECAY).toBeCloseTo(
+      Math.pow(0.2, 1 / (2 * 60 * (1 / 0.01))),
+    );
+  });
+
+  it("ports clear_threshold as the unit-history heatmap clear threshold", () => {
+    expect(UNIT_HISTORY_HEATMAP_CLEAR_THRESHOLD).toBeCloseTo(
+      Math.pow(UNIT_HISTORY_HEATMAP_TIME_DECAY, 5 * 60 * (1 / 0.01)),
+    );
   });
 
   it("ports GetHeatMapSize as the heatmap size accessor", () => {

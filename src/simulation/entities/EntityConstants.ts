@@ -1,9 +1,8 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zobject.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
+import { PI } from "../SimulationConstants";
 
 /**
  * Port of upstream `max_units_in_type`.
@@ -15,7 +14,7 @@ export const MAX_UNITS_PER_TYPE = 7;
 
 /**
  * Port of upstream `glvl`.
- * Role: Defines the shared grayscale level used by entity image processing code.
+ * Role: Defines the shared grayscale level for entity image processing code.
  * Ledger: CON-18C48E
  * Upstream: zobject.cpp:1122, zobject.cpp:1370
  */
@@ -23,7 +22,7 @@ export const GLVL = 170;
 
 /**
  * Port of upstream `min_stamina`.
- * Role: Defines the lower stamina threshold used by entity behavior.
+ * Role: Defines the lower stamina threshold for entity behavior.
  * Ledger: CON-223BBB
  * Upstream: zobject.cpp:2095
  */
@@ -39,7 +38,7 @@ export const Z_EPSILON = 0.00001;
 
 /**
  * Port of repeated upstream `z` local constants.
- * Role: Provides the fine tolerance used by repeated entity Z calculations.
+ * Role: Provides the fine tolerance for repeated entity Z calculations.
  * Ledger: CON-39029D
  * Upstream: zobject.cpp:1603, zobject.cpp:2488, zobject.cpp:2591,
  * zobject.cpp:2676, zobject.cpp:2703, zobject.cpp:2922,
@@ -86,6 +85,14 @@ export const HOVER_NAME_Y_SHIFT = -19;
  * Upstream: zobject.cpp:715, zobject.cpp:1039
  */
 export const DOT_COUNT = 10;
+
+/**
+ * Port of upstream `PI_shift`.
+ * Role: Defines the angular spacing between dotted entity UI markers.
+ * Ledger: CON-22DE38
+ * Upstream: zobject.cpp:716, zobject.cpp:1040
+ */
+export const ENTITY_PI_SHIFT_RADIANS = (PI / 2) / DOT_COUNT;
 
 /**
  * Port of upstream `max_dist`.

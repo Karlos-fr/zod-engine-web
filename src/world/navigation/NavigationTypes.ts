@@ -1,13 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zpath_finding.h
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
  * Port of upstream `ffnode`.
- * Role: Stores a tile coordinate used by flood-fill pathfinding queues.
+ * Role: Stores a tile coordinate for flood-fill pathfinding queues.
  * Ledger: CLS-0189C7
  * Upstream: zpath_finding.h:62-67
  */

@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: etoughsmoke.h
- * Symbols: _ETOUGHSMOKE_H_
  */
 
 /**
- * Adaptation of upstream `_ETOUGHSMOKE_H_`.
- * Role: Marks the TypeScript module boundary for upstream `etoughsmoke.h`.
+ * Port of upstream `_ETOUGHSMOKE_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-18754C
  * Upstream: etoughsmoke.h:2
  */

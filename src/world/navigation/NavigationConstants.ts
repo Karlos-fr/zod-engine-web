@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zpath_finding.cpp / zpath_finding_astar.cpp
- * Symbols: ticks_until_pause, crawl_dist
  */
 
 /**
@@ -14,7 +13,7 @@ export const TICKS_UNTIL_PATHFINDING_PAUSE = 90;
 
 /**
  * Port of upstream `crawl_dist`.
- * Role: Defines the neighborhood crawl distance used by pathfinding expansion.
+ * Role: Defines the neighborhood crawl distance for pathfinding expansion.
  * Ledger: CON-C73102
  * Upstream: zpath_finding.cpp:905
  */

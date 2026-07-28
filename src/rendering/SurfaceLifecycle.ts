@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zsdl.cpp
- * Symbols: ZSDL_FreeSurface
  */
 
 /**
@@ -16,10 +15,9 @@ export type SurfaceReference<TSurface> = {
 
 /**
  * Replacement for upstream `ZSDL_FreeSurface`.
- * Role: Releases the current surface, when present, and clears the caller-visible reference.
+ * Role: Releases the current surface, when present, and clears the observable reference.
  * Ledger: FUN-1371A6
  * Upstream: zsdl.cpp:749-756
- * Adaptation: Replaces `SDL_FreeSurface(surface); surface = NULL;` with an optional disposer callback followed by `current = null`.
  */
 export function freeSdlSurface<TSurface>(
   surface: SurfaceReference<TSurface>,

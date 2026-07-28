@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zmini_map.h
- * Symbols: see entity comments
  */
 
 /**
  * Port of upstream `_ZMINIMAP_H_`.
- * Role: Marks upstream `zmini_map.h` as compile-time only.
+ * Role: Marks an upstream compile-time boundary.
  * Ledger: MAC-6C4569
  * Upstream: zmini_map.h:2
  */

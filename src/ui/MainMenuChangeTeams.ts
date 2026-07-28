@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmm_change_teams.h / gmm_change_teams.cpp
- * Symbols: _ZGMM_CHANGE_TEAMS_H_, button_width
  */
 
 /**
- * Adaptation of upstream `_ZGMM_CHANGE_TEAMS_H_`.
- * Role: Marks the TypeScript module boundary for upstream `gmm_change_teams.h`.
+ * Port of upstream `_ZGMM_CHANGE_TEAMS_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-804C34
  * Upstream: gmm_change_teams.h:2
  */

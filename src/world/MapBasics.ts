@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zmap.h
- * Symbols: map_basics
  */
 
 /**

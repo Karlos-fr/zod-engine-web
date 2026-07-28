@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: ahutanimal.h
- * Symbols: see entity comments
  */
 
 /**
  * Port of upstream `_AHUTANIMAL_H_`.
- * Role: Marks upstream `ahutanimal.h` as compile-time only.
+ * Role: Marks an upstream compile-time boundary.
  * Ledger: MAC-C5E798
  * Upstream: ahutanimal.h:2
  */
@@ -38,7 +37,6 @@ export type HutAnimalHomeCoordsState = {
  * Role: Identifies the ambient animal species that can be spawned around hut objects.
  * Ledger: ENU-E7E2B3
  * Upstream: ahutanimal.h:6-13
- * Adaptation: Uses PascalCase member names while preserving the C++ numeric order. * - Corrects upstream spelling in `DESERT_RABIT` and `ARCTIC_RABIT` to `DesertRabbit` and `ArcticRabbit`. - The upstream `MAX_HUT_ANIMAL_TYPES` sentinel is exposed as `HUT_ANIMAL_TYPE_COUNT` instead of an actionable animal type.
  */
 export enum HutAnimalType {
   GreenSnake = 0,
@@ -68,10 +66,9 @@ export const HUT_ANIMAL_TYPE_COUNT = 15;
 
 /**
  * Port of upstream `hut_animal_state`.
- * Role: Represents the behavior state used by hut animals while idling, walking, or looking around.
+ * Role: Represents the behavior state for hut animals while idling, walking, or looking around.
  * Ledger: ENU-3BDCE3
  * Upstream: ahutanimal.h:23-26
- * Adaptation: Uses a PascalCase TypeScript enum while preserving the C++ numeric order. * - The upstream `MAX_HA_STATES` sentinel is exposed as `HUT_ANIMAL_STATE_COUNT` instead of an actionable state.
  */
 export enum HutAnimalState {
   Nothing = 0,
@@ -102,7 +99,6 @@ export function isHutAnimalGoingHome(state: HutAnimalHomeState): boolean {
  * Role: Replaces the hut animal home tile coordinates.
  * Ledger: FUN-8B87D4
  * Upstream: ahutanimal.h:57
- * Adaptation: Returns updated state instead of mutating `AHutAnimal::home_x` and `AHutAnimal::home_y`.
  */
 export function setHutAnimalHomeCoords<
   TState extends HutAnimalHomeCoordsState,

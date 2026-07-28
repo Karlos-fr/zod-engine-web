@@ -1,13 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zgun_placement_heatmap.h / zgun_placement_heatmap.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
  * Marker exported from the gun placement heatmap module.
- * Role: Marks the TypeScript module boundary for upstream `zgun_placement_heatmap.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-B23CBF
  * Upstream: zgun_placement_heatmap.h:2
  */
@@ -25,7 +23,7 @@ export type HeatMapBaseState = {
 
 /**
  * Port of upstream `process_time_inc`.
- * Role: Defines the processing time increment used by the gun placement heatmap update loop.
+ * Role: Defines the processing time increment for the gun placement heatmap update loop.
  * Ledger: CON-D3A379
  * Upstream: zgun_placement_heatmap.cpp:32
  */
@@ -44,7 +42,6 @@ export const FLAG_HEAT_TILE_DISTANCE = 6;
  * Role: Defines the tile radius used when adding recent unit-position history heat to placement evaluation.
  * Ledger: CON-C4B75F
  * Upstream: zgun_placement_heatmap.cpp:495
- * Notes: Unit is tile distance. * - Shares the upstream symbol name with the flag heat distance at line 464, but is kept as a separate named constant because it is scoped to different heatmap processing logic.
  */
 export const UNIT_HISTORY_HEAT_TILE_DISTANCE = 6;
 
@@ -71,6 +68,28 @@ export const FORT_HEAT_TILE_DISTANCE = 3;
  * Upstream: zgun_placement_heatmap.cpp:496
  */
 export const UNIT_HISTORY_HEATMAP_TIME_INCREMENT = 0.01;
+
+/**
+ * Port of upstream `time_dec`.
+ * Role: Defines the per-step decay factor for unit history heatmap values.
+ * Ledger: CON-B7423E
+ * Upstream: zgun_placement_heatmap.cpp:497
+ */
+export const UNIT_HISTORY_HEATMAP_TIME_DECAY = Math.pow(
+  0.2,
+  1 / (2 * 60 * (1 / UNIT_HISTORY_HEATMAP_TIME_INCREMENT)),
+);
+
+/**
+ * Port of upstream `clear_threshold`.
+ * Role: Defines the unit-history heat value below which entries are cleared.
+ * Ledger: CON-3965FB
+ * Upstream: zgun_placement_heatmap.cpp:498
+ */
+export const UNIT_HISTORY_HEATMAP_CLEAR_THRESHOLD = Math.pow(
+  UNIT_HISTORY_HEATMAP_TIME_DECAY,
+  5 * 60 * (1 / UNIT_HISTORY_HEATMAP_TIME_INCREMENT),
+);
 
 /**
  * Port of upstream `GetHeatMapSize`.

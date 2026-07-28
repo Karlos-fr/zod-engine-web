@@ -3,7 +3,6 @@ import * as THREE from "three";
 /**
  * Ported from Zod Engine.
  * Upstream: zsdl_opengl.cpp, zsdl_opengl.h
- * Symbols: InitOpenGL, ResetOpenGLViewPort, GetScreenDimensions, _ZSDL_OPENGL_H_
  */
 
 export type RendererInitializationTarget = {
@@ -61,7 +60,6 @@ export type ScreenDimensionFallback = {
  * Role: Applies the default renderer state needed before drawing a frame.
  * Ledger: FUN-103D30
  * Upstream: zsdl_opengl.cpp:8-28
- * Adaptation: Replaces global fixed-function OpenGL setup with renderer-local WebGL defaults that are stable in Three.js. - Texture mapping, depth testing, smooth shading, alpha blending, and identity matrices are handled by Three.js materials, cameras, and scene graph state.
  */
 export function initializeOpenGlRendering(
   renderer: RendererInitializationTarget,
@@ -76,7 +74,6 @@ export function initializeOpenGlRendering(
  * Role: Resizes the render viewport before drawing with the current projection.
  * Ledger: FUN-365BFD
  * Upstream: zsdl_opengl.cpp:30-43
- * Adaptation: Replaces `glViewport(0, 0, width, height)` with `WebGLRenderer.setSize`. * - The upstream `glOrtho` projection reset is handled by `CameraController.resize` in the Three.js rendering path.
  */
 export function resetOpenGlViewport(
   renderer: RendererViewportTarget,
@@ -98,7 +95,6 @@ export function resetOpenGlViewport(
  * Role: Returns the current render target width and height.
  * Ledger: FUN-B68917
  * Upstream: zsdl_opengl.h:30
- * Adaptation: Returns a structured object instead of writing C++ reference arguments. * - Reads the browser host dimensions, falling back to the window dimensions when the host has no layout size yet.
  */
 export function getScreenDimensions(
   source: ScreenDimensionSource,

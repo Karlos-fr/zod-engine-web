@@ -1,13 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: gmm_manage_bots.h / gmm_manage_bots.cpp
- * Symbols: see entity comments
- * Ledger: see entity comments
  */
 
 /**
- * Adaptation of upstream `_ZGMM_MANAGE_BOTS_H_`.
- * Role: Marks the TypeScript module boundary for upstream `gmm_manage_bots.h`.
+ * Port of upstream `_ZGMM_MANAGE_BOTS_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-2D309A
  * Upstream: gmm_manage_bots.h:2
  */

@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: orockets.h
- * Symbols: _OROCKETS_H_
  */
 
 /**
- * Adaptation of upstream `_OROCKETS_H_`.
- * Role: Marks the TypeScript module boundary for the future `ORockets` object port.
+ * Port of upstream `_OROCKETS_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-B78B02
  * Upstream: orockets.h:2
  */

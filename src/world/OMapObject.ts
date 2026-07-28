@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: omapobject.h
- * Symbols: _OMAPOBJECT_H_
  */
 
 /**
  * Marker exported from the object map object module.
- * Role: Marks the TypeScript module boundary for upstream `omapobject.h`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-56C8DF
  * Upstream: omapobject.h:2
  */

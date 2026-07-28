@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: tile_info_editor.cpp
- * Symbols: editor_mode
  */
 
 /**

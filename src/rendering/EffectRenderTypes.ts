@@ -1,7 +1,6 @@
 /**
  * Ported from Zod Engine.
  * Upstream: ecraneconco.h
- * Symbols: ecraneconco_render_item
  */
 
 /**

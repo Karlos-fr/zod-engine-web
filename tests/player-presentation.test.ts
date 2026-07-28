@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  createMouseButtonInfo,
+  PLAYER_ASCII_DOWN_MAX,
   PLAYER_GRAPHICS_LOAD_ITEM_COUNT,
   PLAYER_MAX_NEWS_HISTORY,
   PLAYER_MAX_STORED_SPACE_BAR_EVENTS,
@@ -12,6 +14,7 @@ import {
   PLAYER_SPLASH_FADE_PER_SECOND,
   ZPLAYER_HEADER_GUARD_PORTED,
 } from "../src/simulation/PlayerPresentation";
+import type { PlayerKeyEvent } from "../src/simulation/PlayerPresentation";
 
 describe("player presentation constants", () => {
   it("adapts the zplayer.h include guard to an ES module marker", async () => {
@@ -44,5 +47,33 @@ describe("player presentation constants", () => {
   it("adapts the space-bar focus event retention constants", () => {
     expect(PLAYER_MAX_STORED_SPACE_BAR_EVENTS).toBe(5);
     expect(PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS).toBe(10);
+  });
+
+  it("adapts the lowercase ASCII key state count", () => {
+    expect(PLAYER_ASCII_DOWN_MAX).toBe(26);
+  });
+
+  it("ports player key events", () => {
+    const event: PlayerKeyEvent = {
+      theKey: 97,
+      theUnicode: 65,
+    };
+
+    expect(event).toEqual({
+      theKey: 97,
+      theUnicode: 65,
+    });
+  });
+
+  it("ports cleared mouse button interaction state", () => {
+    expect(createMouseButtonInfo()).toEqual({
+      x: 0,
+      y: 0,
+      mapX: 0,
+      mapY: 0,
+      down: false,
+      startedOverHud: false,
+      startedOverGui: false,
+    });
   });
 });

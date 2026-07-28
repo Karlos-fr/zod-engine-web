@@ -1,12 +1,11 @@
 /**
  * Ported from Zod Engine.
  * Upstream: zbuildlist.h
- * Symbols: _ZBUILDLIST_H_
  */
 
 /**
- * Adaptation of upstream `_ZBUILDLIST_H_`.
- * Role: Marks the TypeScript module boundary for the future `ZBuildList` port.
+ * Port of upstream `_ZBUILDLIST_H_`.
+ * Role: Marks an upstream header boundary.
  * Ledger: MAC-250FF9
  * Upstream: zbuildlist.h:2
  */
