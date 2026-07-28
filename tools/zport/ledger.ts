@@ -142,6 +142,36 @@ export function updateEquivalentLedgerRows(
   return updatedRows;
 }
 
+export function updateEquivalentLedgerRowsByLines(
+  id: string,
+  lines: string,
+  patch: Partial<LedgerRow>,
+  filePath = ledgerPath,
+): LedgerRow[] {
+  const rows = readLedger(filePath);
+  const matchingRows = rows.filter((row) => row.id === id && row.lines === lines);
+  if (!matchingRows.length) {
+    throw new Error(`Unknown ledger id and lines: ${id} ${lines}`);
+  }
+  if (!areEquivalentLedgerOccurrences(matchingRows)) {
+    throw new Error(
+      `Ambiguous duplicate ledger id and lines: ${id} ${lines}. Use a unique id before marking this symbol.`,
+    );
+  }
+
+  const updatedRows: LedgerRow[] = [];
+  const nextRows = rows.map((row) => {
+    if (row.id !== id || row.lines !== lines) {
+      return row;
+    }
+    const updated = { ...row, ...patch };
+    updatedRows.push(updated);
+    return updated;
+  });
+  writeLedger(nextRows, filePath);
+  return updatedRows;
+}
+
 export function findLedgerRow(id: string, filePath = ledgerPath): LedgerRow {
   const rows = readLedger(filePath);
   const index = findPreferredRowIndex(rows, id);
@@ -166,6 +196,7 @@ export function areEquivalentLedgerOccurrences(rows: LedgerRow[]): boolean {
       row.type === first.type &&
       row.symbol === first.symbol &&
       row.file === first.file &&
+      row.lines === first.lines &&
       row.decision === first.decision &&
       row.targetDomain === first.targetDomain,
   );

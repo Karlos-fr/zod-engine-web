@@ -7,7 +7,9 @@ import {
   CRANE_CONSTRUCTION_DISTANCE_FROM_ENTRANCE_BOX,
   CRANE_CONSTRUCTION_SIGN_DISTANCE_FROM_CONCRETE,
   CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH,
+  CraneConstructionItem,
   ECRANE_CONSTRUCTION_HEADER_GUARD_PORTED,
+  compareCraneConstructionRenderItemBottom,
   moveCraneConstructionItemToDestination,
   setCraneConstructionItemReturn,
   setCraneConstructionItemStart,
@@ -27,6 +29,90 @@ describe("crane construction effect", () => {
 
   it("ports travel_time_width as the travel animation window", () => {
     expect(CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH).toBe(0.8);
+  });
+
+  it("ports ECraneConcoItem default construction", () => {
+    expect(new CraneConstructionItem()).toEqual({
+      type: -1,
+      x: 0,
+      y: 0,
+      startX: 0,
+      startY: 0,
+      destX: 0,
+      destY: 0,
+      width: 0,
+      height: 0,
+      widthDistance: 0,
+      heightDistance: 0,
+    });
+  });
+
+  it("ports ECraneConcoItem Init and Move", () => {
+    const item = new CraneConstructionItem();
+
+    item.init(3, 20, 30, 8, 12);
+    item.destX = 45;
+    item.destY = 50;
+    item.setTravelDistances();
+    item.move(0.5);
+
+    expect(item).toEqual({
+      type: 3,
+      x: 32,
+      y: 40,
+      startX: 20,
+      startY: 30,
+      destX: 45,
+      destY: 50,
+      width: 8,
+      height: 12,
+      widthDistance: 25,
+      heightDistance: 20,
+    });
+  });
+
+  it("ports ECraneConcoItem SetStart, SetReturn, and MoveToDest", () => {
+    const item = new CraneConstructionItem();
+    item.init(2, 10, 20, 8, 12);
+
+    item.setStart(50, 80);
+    item.setReturn(100, 120);
+    item.moveToDestination();
+
+    expect(item).toEqual({
+      type: 2,
+      x: 96,
+      y: 114,
+      startX: 46,
+      startY: 76,
+      destX: 96,
+      destY: 114,
+      width: 8,
+      height: 12,
+      widthDistance: 50,
+      heightDistance: 38,
+    });
+  });
+
+  it("replaces ecc_render_item_comp as a strict bottom-edge comparison", () => {
+    expect(
+      compareCraneConstructionRenderItemBottom(
+        { y: 10, height: 8 },
+        { y: 12, height: 9 },
+      ),
+    ).toBe(true);
+    expect(
+      compareCraneConstructionRenderItemBottom(
+        { y: 10, height: 8 },
+        { y: 12, height: 6 },
+      ),
+    ).toBe(false);
+    expect(
+      compareCraneConstructionRenderItemBottom(
+        { y: 10, height: 8 },
+        { y: 5, height: 7 },
+      ),
+    ).toBe(false);
   });
 
   it("ports MoveToDest as a destination snap helper", () => {

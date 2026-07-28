@@ -53,7 +53,14 @@ export function resolveDependencies(
   index = buildSymbolIndex(rows),
 ): DependencyResolution {
   const excerpt = readExcerpt(row);
-  const calls = extractCalls(excerpt).filter((call) => !ignoredCalls.has(call));
+  const localDefinitions = extractLocalFunctionDefinitions(excerpt);
+  const currentSymbol = unqualifiedName(stripTicks(row.symbol));
+  const calls = extractCalls(excerpt).filter(
+    (call) =>
+      !ignoredCalls.has(call) &&
+      !isCurrentSymbolCall(call, currentSymbol) &&
+      !localDefinitions.has(unqualifiedName(call)),
+  );
   const references = extractSymbolReferences(excerpt, rows, row);
   const dependencies = new Set<string>();
   const unresolvedCalls: string[] = [];
@@ -169,4 +176,23 @@ function stripTicks(value: string): string {
 function unqualifiedName(value: string): string {
   const parts = value.split("::");
   return parts[parts.length - 1] ?? value;
+}
+
+function isCurrentSymbolCall(call: string, currentSymbol: string): boolean {
+  return unqualifiedName(call) === currentSymbol;
+}
+
+function extractLocalFunctionDefinitions(excerpt: string): Set<string> {
+  const definitions = new Set<string>();
+  const source = stripExtractRangeLineNumbers(excerpt);
+  for (const match of source.matchAll(
+    /^\s*(?:(?:static|virtual|inline|constexpr|const|bool|char|double|float|int|void|unsigned|signed|long|short|[A-Za-z_][\w:<>*&\s]*)\s+)?([A-Za-z_][\w]*)\s*\([^;{}]*\)\s*(?:const\s*)?(?:\{|$)/gm,
+  )) {
+    definitions.add(match[1]);
+  }
+  return definitions;
+}
+
+function stripExtractRangeLineNumbers(excerpt: string): string {
+  return excerpt.replace(/^\s*\d+\s/gm, "");
 }

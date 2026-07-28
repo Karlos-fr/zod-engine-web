@@ -2,6 +2,9 @@
  * Upstream: zplayer.h / zplayer.cpp
  */
 
+import { currentTime } from "./Common";
+import type { SimulationTime } from "./SimulationTime";
+
 /**
  * Port of upstream `_ZPLAYER_H_`.
  * Role: Marks an upstream header boundary.
@@ -56,6 +59,73 @@ export type MouseButtonInfo = {
 };
 
 /**
+ * Port of upstream `SpaceBarEvent` lifetime fields.
+ * Role: Stores the creation timestamp used to expire a space-bar focus event.
+ * Upstream: zplayer.h:109-150
+ */
+export type SpaceBarEventLifetimeState = {
+  creationTime: number;
+};
+
+/**
+ * Port of upstream `selection_info` ztime pointer field.
+ * Role: Holds the simulation clock used by player selection state.
+ * Upstream: zplayer.h:79
+ */
+export type PlayerSelectionZTimeState = {
+  ztime: SimulationTime | null;
+};
+
+/**
+ * Port of upstream `SpaceBarEvent`.
+ * Role: Stores a retained space-bar focus action for object selection or GUI opening.
+ * Upstream: zplayer.h:109-150
+ */
+export class SpaceBarEvent {
+  refId = -1;
+  selectObject = false;
+  openGui = false;
+  creationTime: number;
+
+  constructor(refId = -1, selectObject = false, openGui = false, now = currentTime()) {
+    this.clear();
+    this.refId = refId;
+    this.selectObject = selectObject;
+    this.openGui = openGui;
+    this.creationTime = now;
+  }
+
+  /**
+   * Port of upstream `SpaceBarEvent::clear`.
+   * Role: Resets the retained action target and action flags.
+   * Upstream: zplayer.h:122-127
+   */
+  clear(): void {
+    this.refId = -1;
+    this.selectObject = false;
+    this.openGui = false;
+  }
+
+  /**
+   * Port of upstream `SpaceBarEvent::past_lifetime`.
+   * Role: Reports whether the retained space-bar focus action has expired.
+   * Upstream: zplayer.h:129-132
+   */
+  pastLifetime(now = currentTime()): boolean {
+    return isPastSpaceBarEventLifetime(this, now);
+  }
+
+  /**
+   * Port of upstream `SpaceBarEvent::operator==`.
+   * Role: Compares retained space-bar focus actions by object reference id only.
+   * Upstream: zplayer.h:139-149
+   */
+  equals(other: SpaceBarEvent): boolean {
+    return other === this || other.refId === this.refId;
+  }
+}
+
+/**
  * Port of upstream `mouse_button_info` constructor.
  * Role: Creates a cleared mouse button interaction state.
  * Upstream: zplayer.h:95-104
@@ -70,6 +140,30 @@ export function createMouseButtonInfo(): MouseButtonInfo {
     startedOverHud: false,
     startedOverGui: false,
   };
+}
+
+/**
+ * Port of upstream `past_lifetime`.
+ * Role: Reports whether a space-bar focus event has exceeded its active lifetime.
+ * Upstream: zplayer.h:129-132
+ */
+export function isPastSpaceBarEventLifetime(
+  event: SpaceBarEventLifetimeState,
+  now = currentTime(),
+): boolean {
+  return now > event.creationTime + PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS;
+}
+
+/**
+ * Port of upstream `selection_info::SetZTime`.
+ * Role: Stores the simulation clock reference for player selection state.
+ * Upstream: zplayer.h:53
+ */
+export function setPlayerSelectionZTime(
+  state: PlayerSelectionZTimeState,
+  ztime: SimulationTime,
+): void {
+  state.ztime = ztime;
 }
 
 /**

@@ -38,6 +38,15 @@ export const CMISSILECANNON_HEADER_GUARD_PORTED = true;
 export const ZCANNON_HEADER_GUARD_PORTED = true;
 
 /**
+ * Port of upstream `ZCannon::CanSetWaypoints`.
+ * Role: Reports that cannon entities can receive waypoint orders.
+ * Upstream: zcannon.h:16
+ */
+export function canCannonSetWaypoints(): boolean {
+  return true;
+}
+
+/**
  * Port of upstream `unit_x` from `CGatling`.
  * Role: Defines the x offset of the gatling cannon unit render source.
  * Upstream: cgatling.cpp:91, cgatling.cpp:202

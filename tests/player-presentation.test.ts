@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { SimulationTime } from "../src/simulation/SimulationTime";
 import {
   createMouseButtonInfo,
+  isPastSpaceBarEventLifetime,
   PLAYER_ASCII_DOWN_MAX,
   PLAYER_GRAPHICS_LOAD_ITEM_COUNT,
   PLAYER_MAX_NEWS_HISTORY,
@@ -12,6 +14,8 @@ import {
   PLAYER_SELECTION_SHIFT_TICK_SECONDS,
   PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS,
   PLAYER_SPLASH_FADE_PER_SECOND,
+  setPlayerSelectionZTime,
+  SpaceBarEvent,
   ZPLAYER_HEADER_GUARD_PORTED,
 } from "../src/simulation/PlayerPresentation";
 import type { PlayerKeyEvent } from "../src/simulation/PlayerPresentation";
@@ -75,5 +79,70 @@ describe("player presentation constants", () => {
       startedOverHud: false,
       startedOverGui: false,
     });
+  });
+
+  it("ports space-bar event lifetime expiry", () => {
+    const event = { creationTime: 20 };
+
+    expect(isPastSpaceBarEventLifetime(event, 29.999)).toBe(false);
+    expect(isPastSpaceBarEventLifetime(event, 30)).toBe(false);
+    expect(isPastSpaceBarEventLifetime(event, 30.001)).toBe(true);
+  });
+
+  it("ports SpaceBarEvent default construction", () => {
+    expect(new SpaceBarEvent(undefined, undefined, undefined, 20)).toEqual({
+      refId: -1,
+      selectObject: false,
+      openGui: false,
+      creationTime: 20,
+    });
+  });
+
+  it("ports SpaceBarEvent configured construction", () => {
+    expect(new SpaceBarEvent(42, true, true, 20)).toEqual({
+      refId: 42,
+      selectObject: true,
+      openGui: true,
+      creationTime: 20,
+    });
+  });
+
+  it("ports SpaceBarEvent clear without changing creation time", () => {
+    const event = new SpaceBarEvent(42, true, true, 20);
+
+    event.clear();
+
+    expect(event).toEqual({
+      refId: -1,
+      selectObject: false,
+      openGui: false,
+      creationTime: 20,
+    });
+  });
+
+  it("ports SpaceBarEvent past_lifetime using the stored creation time", () => {
+    const event = new SpaceBarEvent(42, false, false, 20);
+
+    expect(event.pastLifetime(30)).toBe(false);
+    expect(event.pastLifetime(30.001)).toBe(true);
+  });
+
+  it("ports SpaceBarEvent equality by reference id only", () => {
+    const event = new SpaceBarEvent(42, true, false, 20);
+    const matchingEvent = new SpaceBarEvent(42, false, true, 99);
+    const otherEvent = new SpaceBarEvent(7, true, false, 20);
+
+    expect(event.equals(event)).toBe(true);
+    expect(event.equals(matchingEvent)).toBe(true);
+    expect(event.equals(otherEvent)).toBe(false);
+  });
+
+  it("ports selection_info::SetZTime as simulation clock reference assignment", () => {
+    const ztime = new SimulationTime();
+    const state = { ztime: null };
+
+    setPlayerSelectionZTime(state, ztime);
+
+    expect(state.ztime).toBe(ztime);
   });
 });

@@ -100,6 +100,168 @@ export enum WaypointMode {
 }
 
 /**
+ * Port of upstream `ZPath_Finding_AStar::pf_point` reference.
+ * Role: Stores one pathfinding point queued for waypoint movement.
+ * Upstream: zobject.h:119
+ */
+export type WaypointPathPoint = {
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream `waypoint_information`.
+ * Role: Stores the active waypoint movement and pathfinding state for an entity.
+ * Upstream: zobject.h:104-152
+ */
+export class WaypointInformation {
+  stage = 0;
+  x = 0;
+  y = 0;
+  sx = 0;
+  sy = 0;
+  adx = 0;
+  ady = 0;
+  craneExitX = 0;
+  craneExitY = 0;
+  agroCenterX = 0;
+  agroCenterY = 0;
+  fortExitX = 0;
+  fortExitY = 0;
+  initAttackX = 0;
+  initAttackY = 0;
+  pathFindingId = 0;
+  gotPathfindingResponse = false;
+  pathfindingPointList: WaypointPathPoint[] = [];
+
+  clear(): void {
+    this.stage = 0;
+    this.x = 0;
+    this.y = 0;
+    this.sx = 0;
+    this.sy = 0;
+    this.adx = 0;
+    this.ady = 0;
+    this.craneExitX = 0;
+    this.craneExitY = 0;
+    this.agroCenterX = 0;
+    this.agroCenterY = 0;
+    this.fortExitX = 0;
+    this.fortExitY = 0;
+    this.initAttackX = 0;
+    this.initAttackY = 0;
+    this.pathFindingId = 0;
+    this.gotPathfindingResponse = false;
+    this.pathfindingPointList.length = 0;
+  }
+}
+
+/**
+ * Port of upstream `waypoint`.
+ * Role: Stores one queued movement or interaction order for an entity.
+ * Upstream: zobject.h:157-195
+ */
+export class Waypoint {
+  mode = -1;
+  refId = -1;
+  x = 0;
+  y = 0;
+  attackTo = false;
+  playerGiven = false;
+
+  clear(): void {
+    this.mode = -1;
+    this.refId = -1;
+    this.x = 0;
+    this.y = 0;
+    this.attackTo = false;
+    this.playerGiven = false;
+  }
+
+  equals(other: Waypoint): boolean {
+    return (
+      other.mode === this.mode &&
+      other.refId === this.refId &&
+      other.x === this.x &&
+      other.y === this.y &&
+      other.attackTo === this.attackTo &&
+      other.playerGiven === this.playerGiven
+    );
+  }
+
+  notEquals(other: Waypoint): boolean {
+    return !this.equals(other);
+  }
+}
+
+/**
+ * Port of upstream `server_flag`.
+ * Role: Stores per-entity network update flags and payload values.
+ * Upstream: zobject.h:219-289
+ */
+export class ServerFlag {
+  updatedLocation = false;
+  updatedVelocity = false;
+  updatedWaypoints = false;
+  updatedAttackObject = false;
+  updatedAttackObjectHealth = false;
+  updatedAttackObjectDriverHealth = false;
+  updatedOpenLid = false;
+  firedMissile = false;
+  missileX = 0;
+  missileY = 0;
+  enteredTargetRefId = -1;
+  buildUnit = false;
+  bot = 0;
+  buildingObjectId = 0;
+  autoRepair = false;
+  setCraneAnim = false;
+  craneAnimOn = false;
+  craneRepairRefId = -1;
+  enteredRepairBuildingRefId = -1;
+  repairUnit = false;
+  robotObjectType = 0;
+  robotObjectId = 0;
+  repairDriverType = 0;
+  repairDriverInfo: DriverInfo[] = [];
+  repairWaypointList: Waypoint[] = [];
+  recheckLidStatus = false;
+  destroyFortBuildingRefId = -1;
+  updatedGrenadeAmount = false;
+  updatedLeaderGrenadeAmount = false;
+  deleteGrenadeBoxRefId = -1;
+  doPickupGrenadeAnim = false;
+  portraitAnimRefId = -1;
+  portraitAnimValue = -1;
+
+  clear(): void {
+    this.updatedLocation = false;
+    this.updatedVelocity = false;
+    this.updatedWaypoints = false;
+    this.updatedAttackObject = false;
+    this.updatedAttackObjectHealth = false;
+    this.updatedAttackObjectDriverHealth = false;
+    this.updatedOpenLid = false;
+    this.firedMissile = false;
+    this.buildUnit = false;
+    this.enteredTargetRefId = -1;
+    this.autoRepair = false;
+    this.setCraneAnim = false;
+    this.craneAnimOn = false;
+    this.craneRepairRefId = -1;
+    this.enteredRepairBuildingRefId = -1;
+    this.repairUnit = false;
+    this.destroyFortBuildingRefId = -1;
+    this.updatedGrenadeAmount = false;
+    this.updatedLeaderGrenadeAmount = false;
+    this.deleteGrenadeBoxRefId = -1;
+    this.doPickupGrenadeAnim = false;
+    this.portraitAnimRefId = -1;
+    this.portraitAnimValue = -1;
+  }
+}
+
+/**
  * Port of upstream `driver_info_s`.
  * Role: Stores driver combat state for vehicles that can contain drivers.
  * Upstream: zobject.h:209-213

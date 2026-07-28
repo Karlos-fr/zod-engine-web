@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canCannonSetWaypoints,
   CGATLING_HEADER_GUARD_PORTED,
   CGUN_HEADER_GUARD_PORTED,
   CHOWITZER_HEADER_GUARD_PORTED,
@@ -64,6 +65,10 @@ describe("cannon types", () => {
     expect(secondImport.ZCANNON_HEADER_GUARD_PORTED).toBe(
       firstImport.ZCANNON_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports ZCannon CanSetWaypoints as enabled waypoint orders", () => {
+    expect(canCannonSetWaypoints()).toBe(true);
   });
 
   it("ports the gatling cannon unit x offset", () => {

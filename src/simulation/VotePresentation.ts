@@ -34,6 +34,24 @@ export enum VoteType {
 }
 
 /**
+ * Port of upstream `vote_type`.
+ * Role: Stores the kind of vote currently active.
+ * Upstream: zvote.h:43
+ */
+export type VoteTypeState = {
+  voteType: VoteType;
+};
+
+/**
+ * Port of upstream `GetVoteType`.
+ * Role: Returns the kind of vote currently active.
+ * Upstream: zvote.h:41
+ */
+export function getVoteType(state: VoteTypeState): VoteType {
+  return state.voteType;
+}
+
+/**
  * Port of upstream `in_progress`.
  * Role: Stores whether a vote is currently active.
  * Upstream: zvote.h:45

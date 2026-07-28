@@ -85,12 +85,14 @@ Par défaut, le portage se fait strictement **un symbole à la fois**.
    ```
 5. Porter uniquement ce symbole.
 6. Ajouter ou adapter les tests.
-7. Valider :
+7. Valider au plus près du changement :
    ```sh
-   npm run lint
-   npm test
-   npm run build
+   npm test -- <test-file>
    ```
+   Utiliser `npm run lint` si le changement touche du TypeScript partagé, des
+   exports ou plusieurs fichiers. Le full `npm test` et `npm run build` sont
+   réservés aux checkpoints : fin de lot, changement transverse, doute de type,
+   ou avant `commit/push`.
 8. Marquer le symbole :
    ```sh
    npm run zport -- done <id> --target <path>
@@ -152,11 +154,11 @@ Workflow pour un lot de constantes :
    ```
 3. Porter uniquement ces constantes dans le même fichier cible.
 4. Ajouter les commentaires d'entité et les tests de parité.
-5. Valider :
+5. Valider le lot, pas chaque constante isolément :
    ```sh
    npm run lint
-   npm test
-   npm run build
+   npm test -- <test-file>
+   npm run zport -- audit-comments
    ```
 6. Marquer le lot :
    ```sh
@@ -167,6 +169,16 @@ Les enums, structures, classes, fonctions et méthodes restent à porter un
 symbole à la fois. Les macros conditionnelles, calculées ou dépendantes doivent
 être traitées comme des éléments sensibles, donc hors lot sauf justification
 explicite dans les notes du ledger.
+
+### Checkpoints de validation
+
+Pendant le portage courant, privilégier les tests ciblés et les commandes CLI
+compactes pour réduire la durée de cycle et le contexte consommé. Ne pas lancer
+le full `npm test` ou `npm run build` après chaque constante simple.
+
+Le full `npm test` et `npm run build` restent obligatoires avant chaque
+`commit/push`, après un lot de constantes conséquent, après une modification de
+la CLI, ou dès qu'un changement touche une API partagée entre domaines.
 
 ## Norme de commentaires de portage
 

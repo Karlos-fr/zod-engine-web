@@ -6,6 +6,7 @@ import {
   calcMissileCannonRocketTimeD2,
   calcMobileMissileRocketTimeD,
   calcMobileMissileRocketTimeD2,
+  DamageMissile,
   EBULLET_HEADER_GUARD_PORTED,
   EFLAME_HEADER_GUARD_PORTED,
   ELASER_HEADER_GUARD_PORTED,
@@ -80,6 +81,52 @@ describe("projectile constants", () => {
     calcDamageMissileExplodeTimeTo(state, 10, 20, 5, 8);
 
     expect(state.explodeTime).toBe(9);
+  });
+
+  it("ports damage_missile with explicit default field values", () => {
+    const missile = new DamageMissile();
+
+    expect(missile).toMatchObject({
+      x: 0,
+      y: 0,
+      damage: 0,
+      team: 0,
+      radius: 0,
+      explodeTime: 0,
+      attackerRefId: 0,
+      attackPlayerGiven: false,
+      targetRefId: 0,
+    });
+  });
+
+  it("ports the damage_missile parameterized constructor fields", () => {
+    const missile = new DamageMissile({
+      x: 20,
+      y: 30,
+      damage: 45,
+      radius: 6,
+      explodeTime: 12.5,
+    });
+
+    expect(missile.x).toBe(20);
+    expect(missile.y).toBe(30);
+    expect(missile.damage).toBe(45);
+    expect(missile.radius).toBe(6);
+    expect(missile.explodeTime).toBe(12.5);
+  });
+
+  it("ports damage_missile CalcExplodeTimeTo on the class", () => {
+    const missile = new DamageMissile({
+      x: 13,
+      y: 24,
+      damage: 10,
+      radius: 3,
+      explodeTime: 0,
+    });
+
+    missile.calcExplodeTimeTo(10, 20, 5, 8);
+
+    expect(missile.explodeTime).toBe(9);
   });
 
   it("ports emissilecrockets.cpp bullet_speed as the missile cannon rocket settings speed", () => {

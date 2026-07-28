@@ -79,7 +79,7 @@ function extractClasses(lines: string[]): RawSymbol[] {
       type: match[1],
       symbol: match[2],
       start: index + 1,
-      end: findBlockEnd(lines, index),
+      end: isForwardDeclaration(line) ? index + 1 : findBlockEnd(lines, index),
     });
   });
 
@@ -221,6 +221,10 @@ function findBlockEnd(lines: string[], startIndex: number): number {
 function stripLineComment(line: string): string {
   const index = line.indexOf("//");
   return index === -1 ? line : line.slice(0, index);
+}
+
+function isForwardDeclaration(line: string): boolean {
+  return /^\s*(?:class|struct)\s+[A-Za-z_][\w]*\s*;/.test(stripLineComment(line));
 }
 
 function makeId(type: string, relativeFile: string, symbol: string, startLine: number): string {

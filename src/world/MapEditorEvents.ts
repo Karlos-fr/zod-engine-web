@@ -2,6 +2,8 @@
  * Upstream: map_editor.cpp
  */
 
+import { MAP_EDITOR_MAX_LIST_SIZE } from "./WorldConstants";
+
 /**
  * Port of upstream `map_event`.
  * Role: Stores one map editor operation with its mode, tile rectangle, palette tile values, object metadata, and reference id.
@@ -35,3 +37,23 @@ export type MapEditorEvent = {
   /** Upstream `ref_id`: editor reference id associated with the event. */
   referenceId: number;
 };
+
+/**
+ * Port of upstream `store_map_event`.
+ * Role: Stores a map editor event unless it is empty, while retaining only the newest bounded history.
+ * Upstream: map_editor.cpp:991-1001
+ */
+export function storeMapEditorEvent(
+  event: MapEditorEvent,
+  list: MapEditorEvent[],
+): void {
+  if (event.mode === -1) {
+    return;
+  }
+
+  list.push(event);
+
+  while (list.length > MAP_EDITOR_MAX_LIST_SIZE) {
+    list.shift();
+  }
+}

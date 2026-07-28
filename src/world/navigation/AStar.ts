@@ -2,6 +2,42 @@
  * Upstream: zpath_finding_astar.h / zpath_finding_astar.cpp
  */
 
+import type { MapPathfindingTile } from "./NavigationTypes";
+
+/**
+ * Port of upstream `map_pathfinding_info_tile` forward declaration.
+ * Role: References the pathfinding tile metadata used by A* without redefining it.
+ * Upstream: zpath_finding_astar.h:13
+ */
+export type AStarMapPathfindingTileReference = MapPathfindingTile;
+
+/**
+ * Port of upstream `ZPath_Finding_Response` forward declaration.
+ * Role: Represents the pathfinding response object consumed by A* helpers.
+ * Upstream: zpath_finding_astar.h:14
+ */
+export type PathFindingResponseReference = object;
+
+/**
+ * Port of upstream `pf_point`.
+ * Role: Stores one queued A* point with path score and parent coordinates.
+ * Upstream: zpath_finding_astar.h:18-27
+ */
+export class PathFindingPoint {
+  x: number;
+  y: number;
+  f = 0;
+  g = 0;
+  h = 0;
+  px = 0;
+  py = 0;
+
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
 /**
  * Port of upstream `hf`.
  * Role: Computes the Manhattan-distance heuristic for A* path scoring.

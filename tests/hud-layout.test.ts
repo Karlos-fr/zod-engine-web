@@ -5,10 +5,13 @@ import {
   HUD_PORTRAIT_X_PIXELS,
   HUD_PORTRAIT_Y_PIXELS,
   HUD_TIMER_HOURS_X_SHIFT_PIXELS,
+  HUD_TIMER_MINUTES_X_SHIFT_PIXELS,
+  HUD_TIMER_SECONDS_X_SHIFT_PIXELS,
   HUD_TIMER_Y_DOWN_SHIFT_PIXELS,
   HUD_WIDTH_PIXELS,
   HudButton,
   HudButtonState,
+  HudClickResponse,
   HudEndUnit,
   HudResponseType,
   ZHUD_HEADER_GUARD_PORTED,
@@ -57,6 +60,38 @@ describe("HUD layout", () => {
     expect(HudResponseType.JumpToUnit).toBe(2);
   });
 
+  it("ports hud_click_response construction through clear", () => {
+    expect(new HudClickResponse()).toEqual({
+      used: false,
+      type: -1,
+      button: 0,
+      miniX: 0,
+      miniY: 0,
+      jumpRefId: -1,
+    });
+  });
+
+  it("ports hud_click_response clear as partial response reset", () => {
+    const response = new HudClickResponse();
+    response.used = true;
+    response.type = HudResponseType.MiniMap;
+    response.button = HudButton.A;
+    response.miniX = 4;
+    response.miniY = 5;
+    response.jumpRefId = 42;
+
+    response.clear();
+
+    expect(response).toEqual({
+      used: false,
+      type: -1,
+      button: HudButton.A,
+      miniX: 4,
+      miniY: 5,
+      jumpRefId: -1,
+    });
+  });
+
   it("ports HUD end-unit identifiers", () => {
     expect(new HudEndUnit()).toEqual({
       objectType: 0,
@@ -86,5 +121,7 @@ describe("HUD layout", () => {
   it("ports the HUD timer offsets", () => {
     expect(HUD_TIMER_Y_DOWN_SHIFT_PIXELS).toBe(9);
     expect(HUD_TIMER_HOURS_X_SHIFT_PIXELS).toBe(38);
+    expect(HUD_TIMER_MINUTES_X_SHIFT_PIXELS).toBe(38 + 14);
+    expect(HUD_TIMER_SECONDS_X_SHIFT_PIXELS).toBe(38 + 14 + 23);
   });
 });

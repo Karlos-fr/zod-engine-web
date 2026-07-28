@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { OMAP_OBJECT_HEADER_GUARD_PORTED } from "../src/world/OMapObject";
+import {
+  ObjectMapObject,
+  OMAP_OBJECT_HEADER_GUARD_PORTED,
+} from "../src/world/OMapObject";
 
 describe("object map object", () => {
   it("adapts the omapobject header guard to module boundaries", async () => {
@@ -10,5 +13,9 @@ describe("object map object", () => {
     expect(secondImport.OMAP_OBJECT_HEADER_GUARD_PORTED).toBe(
       firstImport.OMAP_OBJECT_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports OMapObject IsDestroyableImpass as true", () => {
+    expect(new ObjectMapObject().isDestroyableImpassable()).toBe(true);
   });
 });

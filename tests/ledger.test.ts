@@ -7,6 +7,7 @@ import {
   findLedgerRow,
   type LedgerRow,
   updateEquivalentLedgerRows,
+  updateEquivalentLedgerRowsByLines,
   updateLedgerRow,
   writeLedger,
 } from "../tools/zport/ledger.ts";
@@ -39,7 +40,7 @@ describe("ledger duplicate IDs", () => {
     writeLedger(
       [
         row({ lines: "10-10" }),
-        row({ lines: "20-20" }),
+        row({ lines: "10-10" }),
       ],
       file,
     );
@@ -79,6 +80,43 @@ describe("ledger duplicate IDs", () => {
     expect(() =>
       updateEquivalentLedgerRows("CON-SAME", { status: "ported" }, file),
     ).toThrow("Ambiguous duplicate ledger id");
+  });
+
+  it("rejects same-symbol duplicate IDs on different upstream ranges", () => {
+    expect(
+      areEquivalentLedgerOccurrences([
+        row({ lines: "217-289" }),
+        row({ lines: "291-689" }),
+      ]),
+    ).toBe(false);
+  });
+
+  it("updates duplicate occurrences by upstream range", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zport-ledger-"));
+    const file = path.join(directory, "ledger.md");
+    writeLedger(
+      [
+        row({ lines: "217-289" }),
+        row({ lines: "291-689" }),
+      ],
+      file,
+    );
+
+    const updatedRows = updateEquivalentLedgerRowsByLines(
+      "CON-SAME",
+      "217-289",
+      { status: "ported", targetTs: "src/forward.ts" },
+      file,
+    );
+
+    expect(updatedRows).toHaveLength(1);
+    const content = fs.readFileSync(file, "utf8");
+    expect(content).toContain(
+      "| CON-SAME | constant | `same` | file.cpp | 217-289 | PORTER | simulation | ported |  | src/forward.ts |",
+    );
+    expect(content).toContain(
+      "| CON-SAME | constant | `same` | file.cpp | 291-689 | PORTER | simulation | todo |",
+    );
   });
 
   it("writes computed porting statistics before the ledger table", () => {

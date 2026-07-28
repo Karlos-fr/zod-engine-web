@@ -65,6 +65,35 @@ export enum HudResponseType {
 }
 
 /**
+ * Port of upstream `hud_click_response`.
+ * Role: Carries the result of HUD input handling.
+ * Upstream: zhud.h:35-52
+ */
+export class HudClickResponse {
+  used = false;
+  type = -1;
+  button = 0;
+  miniX = 0;
+  miniY = 0;
+  jumpRefId = -1;
+
+  constructor() {
+    this.clear();
+  }
+
+  /**
+   * Port of upstream `hud_click_response::clear`.
+   * Role: Resets whether a HUD click response is active and clears jump metadata.
+   * Upstream: zhud.h:46-51
+   */
+  clear(): void {
+    this.used = false;
+    this.type = -1;
+    this.jumpRefId = -1;
+  }
+}
+
+/**
  * Port of upstream `zhud_end_unit`.
  * Role: Stores object identifiers shown in the HUD end-unit sequence.
  * Upstream: zhud.h:77-89
@@ -124,3 +153,19 @@ export const HUD_TIMER_Y_DOWN_SHIFT_PIXELS = 9;
  * Upstream: zhud.cpp:1075
  */
 export const HUD_TIMER_HOURS_X_SHIFT_PIXELS = 38;
+
+/**
+ * Port of upstream `x_minutes_shift`.
+ * Role: Defines the x offset for the HUD timer minutes field.
+ * Upstream: zhud.cpp:1076
+ */
+export const HUD_TIMER_MINUTES_X_SHIFT_PIXELS =
+  HUD_TIMER_HOURS_X_SHIFT_PIXELS + 14;
+
+/**
+ * Port of upstream `x_seconds_shift`.
+ * Role: Defines the x offset for the HUD timer seconds field.
+ * Upstream: zhud.cpp:1077
+ */
+export const HUD_TIMER_SECONDS_X_SHIFT_PIXELS =
+  HUD_TIMER_MINUTES_X_SHIFT_PIXELS + 23;

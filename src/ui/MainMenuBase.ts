@@ -2,6 +2,9 @@
  * Upstream: zgui_main_menu_base.h
  */
 
+import type { PlayerInfo } from "../simulation/GameCore";
+import type { SimulationTime } from "../simulation/SimulationTime";
+
 /**
  * Port of upstream `_ZGUIMAINMENUBASE_H_`.
  * Role: Marks an upstream header boundary.
@@ -38,6 +41,14 @@ export const MAIN_MENU_BOTTOM_MARGIN_PIXELS = 5;
 export const MAIN_MENU_TITLE_HEIGHT_PIXELS = 18;
 
 /**
+ * Port of upstream `GMM_TITLE_MARGIN`.
+ * Role: Defines the vertical offset below the top margin and title row.
+ * Upstream: zgui_main_menu_base.h:22
+ */
+export const MAIN_MENU_TITLE_MARGIN_PIXELS =
+  MAIN_MENU_TITLE_HEIGHT_PIXELS + MAIN_MENU_TOP_MARGIN_PIXELS;
+
+/**
  * Port of upstream `menu_type`.
  * Role: Identifies the active main-menu screen.
  * Upstream: zgui_main_menu_base.h:24-30
@@ -52,6 +63,340 @@ export enum MainMenuType {
   Warning = 6,
   Multiplayer = 7,
   MaxMenuTypes = 8,
+}
+
+/**
+ * Port of upstream `gmm_warning_flag`.
+ * Role: Carries warning dialog text and follow-up actions requested by main-menu widgets.
+ * Upstream: zgui_main_menu_base.h:45-62
+ */
+export class MainMenuWarningFlag {
+  text1 = "";
+  text2 = "";
+  quitGame = false;
+  resetMap = false;
+
+  constructor() {
+    this.clear();
+  }
+
+  /**
+   * Port of upstream `gmm_warning_flag::clear`.
+   * Role: Resets warning text and action flags.
+   * Upstream: zgui_main_menu_base.h:50-56
+   */
+  clear(): void {
+    this.text1 = "";
+    this.text2 = "";
+    this.quitGame = false;
+    this.resetMap = false;
+  }
+}
+
+/**
+ * Port of upstream `gmm_flag`.
+ * Role: Carries actions requested by main-menu widgets and nested warning state.
+ * Upstream: zgui_main_menu_base.h:64-113
+ */
+export class MainMenuFlag {
+  openMainMenu = false;
+  openMainMenuType = -1;
+  reshuffleTeams = false;
+  changeTeam = false;
+  changeTeamType = -1;
+  startBot = false;
+  stopBot = false;
+  startBotTeam = -1;
+  stopBotTeam = -1;
+  changeMap = false;
+  changeMapNumber = -1;
+  resetMap = false;
+  quitGame = false;
+  setVolume = false;
+  setVolumeValue = -1;
+  pauseGame = false;
+  setGameSpeed = false;
+  setGameSpeedValue = 1.0;
+  warningFlags = new MainMenuWarningFlag();
+
+  constructor() {
+    this.clear();
+  }
+
+  /**
+   * Port of upstream `gmm_flag::clear`.
+   * Role: Resets main-menu requested actions and nested warning flags.
+   * Upstream: zgui_main_menu_base.h:69-91
+   */
+  clear(): void {
+    this.openMainMenu = false;
+    this.openMainMenuType = -1;
+    this.reshuffleTeams = false;
+    this.changeTeam = false;
+    this.changeTeamType = -1;
+    this.startBot = false;
+    this.stopBot = false;
+    this.startBotTeam = -1;
+    this.stopBotTeam = -1;
+    this.changeMap = false;
+    this.changeMapNumber = -1;
+    this.resetMap = false;
+    this.quitGame = false;
+    this.setVolume = false;
+    this.setVolumeValue = -1;
+    this.pauseGame = false;
+    this.setGameSpeed = false;
+    this.setGameSpeedValue = 1.0;
+    this.warningFlags.clear();
+  }
+}
+
+/**
+ * Port of upstream `menu_type`.
+ * Role: Stores the active main-menu screen.
+ * Upstream: zgui_main_menu_base.h:118
+ */
+export type MainMenuTypeState = {
+  menuType: MainMenuType;
+};
+
+/**
+ * Port of upstream `sound_setting` reference.
+ * Role: Holds a mutable audio setting referenced by the main menu base.
+ * Upstream: zgui_main_menu_base.h:145, zgui_main_menu_base.h:181
+ */
+export type MainMenuSoundSettingRef = {
+  value: number;
+};
+
+/**
+ * Port of upstream `sound_setting` pointer field.
+ * Role: Stores the mutable audio setting reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:145, zgui_main_menu_base.h:181
+ */
+export type MainMenuSoundSettingState = {
+  soundSetting: MainMenuSoundSettingRef | null;
+};
+
+/**
+ * Port of upstream `player_team` reference.
+ * Role: Holds a mutable player-team value referenced by the main menu base.
+ * Upstream: zgui_main_menu_base.h:144, zgui_main_menu_base.h:180
+ */
+export type MainMenuPlayerTeamRef = {
+  value: number;
+};
+
+/**
+ * Port of upstream `player_team` pointer field.
+ * Role: Stores the mutable player-team reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:144, zgui_main_menu_base.h:180
+ */
+export type MainMenuPlayerTeamState = {
+  playerTeam: MainMenuPlayerTeamRef | null;
+};
+
+/**
+ * Port of upstream `ztime` pointer field.
+ * Role: Stores the simulation clock reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:146, zgui_main_menu_base.h:181
+ */
+export type MainMenuZTimeState = {
+  ztime: SimulationTime | null;
+};
+
+/**
+ * Port of upstream `player_info` list reference.
+ * Role: Holds the mutable player info list referenced by the main menu base.
+ * Upstream: zgui_main_menu_base.h:142, zgui_main_menu_base.h:178
+ */
+export type MainMenuPlayerInfoList = PlayerInfo[];
+
+/**
+ * Port of upstream `player_info` pointer field.
+ * Role: Stores the mutable player info list reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:142, zgui_main_menu_base.h:178
+ */
+export type MainMenuPlayerInfoListState = {
+  playerInfoList: MainMenuPlayerInfoList | null;
+};
+
+/**
+ * Port of upstream `killme` state.
+ * Role: Holds whether the main-menu base should be removed.
+ * Upstream: zgui_main_menu_base.h:133, zgui_main_menu_base.h:172
+ */
+export type MainMenuKillState = {
+  killMe: boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` coordinate fields.
+ * Role: Holds the main-menu base origin.
+ * Upstream: zgui_main_menu_base.h:139, zgui_main_menu_base.h:174
+ */
+export type MainMenuCoordinateState = {
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream `GetCoords` output.
+ * Role: Carries the main-menu base origin.
+ * Upstream: zgui_main_menu_base.h:139
+ */
+export type MainMenuCoordsResult = {
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` dimension fields.
+ * Role: Holds the main-menu base dimensions.
+ * Upstream: zgui_main_menu_base.h:140, zgui_main_menu_base.h:174
+ */
+export type MainMenuDimensionState = {
+  width: number;
+  height: number;
+};
+
+/**
+ * Port of upstream `GetDimensions` output.
+ * Role: Carries the main-menu base dimensions.
+ * Upstream: zgui_main_menu_base.h:140
+ */
+export type MainMenuDimensionsResult = {
+  width: number;
+  height: number;
+};
+
+/**
+ * Port of upstream `warning_flags` field.
+ * Role: Stores warning dialog flags owned by the main menu base.
+ * Upstream: zgui_main_menu_base.h:148, zgui_main_menu_base.h:183
+ */
+export type MainMenuWarningFlagsState = {
+  warningFlags: MainMenuWarningFlag;
+};
+
+/**
+ * Port of upstream `GetMenuType`.
+ * Role: Returns the active main-menu screen.
+ * Upstream: zgui_main_menu_base.h:135
+ */
+export function getMainMenuType(state: MainMenuTypeState): MainMenuType {
+  return state.menuType;
+}
+
+/**
+ * Port of upstream `KillMe`.
+ * Role: Returns whether the main-menu base should be removed.
+ * Upstream: zgui_main_menu_base.h:133
+ */
+export function isMainMenuKilled(state: MainMenuKillState): boolean {
+  return state.killMe;
+}
+
+/**
+ * Port of upstream `DoKillMe`.
+ * Role: Marks the main-menu base for removal.
+ * Upstream: zgui_main_menu_base.h:134
+ */
+export function killMainMenu(state: MainMenuKillState): void {
+  state.killMe = true;
+}
+
+/**
+ * Port of upstream `GetCoords`.
+ * Role: Returns the main-menu base origin.
+ * Upstream: zgui_main_menu_base.h:139
+ */
+export function getMainMenuCoords(
+  state: MainMenuCoordinateState,
+): MainMenuCoordsResult {
+  return {
+    x: state.x,
+    y: state.y,
+  };
+}
+
+/**
+ * Port of upstream `GetDimensions`.
+ * Role: Returns the main-menu base dimensions.
+ * Upstream: zgui_main_menu_base.h:140
+ */
+export function getMainMenuDimensions(
+  state: MainMenuDimensionState,
+): MainMenuDimensionsResult {
+  return {
+    width: state.width,
+    height: state.height,
+  };
+}
+
+/**
+ * Port of upstream `SetWarningFlags`.
+ * Role: Copies warning dialog flags into the main menu base.
+ * Upstream: zgui_main_menu_base.h:148
+ */
+export function setMainMenuWarningFlags(
+  state: MainMenuWarningFlagsState,
+  warningFlags: MainMenuWarningFlag,
+): void {
+  const nextWarningFlags = new MainMenuWarningFlag();
+  nextWarningFlags.text1 = warningFlags.text1;
+  nextWarningFlags.text2 = warningFlags.text2;
+  nextWarningFlags.quitGame = warningFlags.quitGame;
+  nextWarningFlags.resetMap = warningFlags.resetMap;
+  state.warningFlags = nextWarningFlags;
+}
+
+/**
+ * Port of upstream `SetSoundSetting`.
+ * Role: Updates the mutable audio setting reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:145
+ */
+export function setMainMenuSoundSetting(
+  state: MainMenuSoundSettingState,
+  soundSetting: MainMenuSoundSettingRef,
+): void {
+  state.soundSetting = soundSetting;
+}
+
+/**
+ * Port of upstream `SetPlayerTeam`.
+ * Role: Updates the mutable player-team reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:144
+ */
+export function setMainMenuPlayerTeam(
+  state: MainMenuPlayerTeamState,
+  playerTeam: MainMenuPlayerTeamRef,
+): void {
+  state.playerTeam = playerTeam;
+}
+
+/**
+ * Port of upstream `SetZTime`.
+ * Role: Updates the simulation clock reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:146
+ */
+export function setMainMenuZTime(
+  state: MainMenuZTimeState,
+  ztime: SimulationTime,
+): void {
+  state.ztime = ztime;
+}
+
+/**
+ * Port of upstream `SetPlayerInfoList`.
+ * Role: Updates the mutable player info list reference used by the main menu base.
+ * Upstream: zgui_main_menu_base.h:142
+ */
+export function setMainMenuPlayerInfoList(
+  state: MainMenuPlayerInfoListState,
+  playerInfoList: MainMenuPlayerInfoList,
+): void {
+  state.playerInfoList = playerInfoList;
 }
 
 /**

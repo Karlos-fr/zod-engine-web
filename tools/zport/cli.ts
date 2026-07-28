@@ -9,6 +9,7 @@ import {
   findLedgerRows,
   readLedger,
   updateEquivalentLedgerRows,
+  updateEquivalentLedgerRowsByLines,
   updateLedgerRow,
   type LedgerRow,
 } from "./ledger.ts";
@@ -261,11 +262,17 @@ function done(argsList: string[]): void {
   const options = parseOptions(argsList.slice(1));
   const target = options.target;
   const note = options.note;
+  const lines = options.lines;
   if (!target && !note) {
     throw new Error("done requires --target <path> or --note <text>");
   }
-  const currentRow = findLedgerRow(id);
-  const rows = findLedgerRows(id);
+  const rows = lines
+    ? findLedgerRows(id).filter((row) => row.lines === lines)
+    : findLedgerRows(id);
+  if (lines && !rows.length) {
+    throw new Error(`Unknown ledger id and lines: ${id} ${lines}`);
+  }
+  const currentRow = lines ? rows[0] : findLedgerRow(id);
   const patch = {
     status: "ported",
     targetTs: target || currentRow.targetTs,
@@ -280,6 +287,12 @@ function done(argsList: string[]): void {
     }
     const updatedRows = updateEquivalentLedgerRows(id, patch);
     console.log(`${id} ported (${updatedRows.length} equivalent occurrences)`);
+    return;
+  }
+
+  if (lines) {
+    const updatedRows = updateEquivalentLedgerRowsByLines(id, lines, patch);
+    console.log(`${id} ported (${updatedRows.length} occurrence at ${lines})`);
     return;
   }
 
@@ -476,6 +489,7 @@ function help(): void {
   next
   start <id>
   done <id> --target <path>
+  done <id> --lines <range> --target <path>
       Equivalent duplicate ids are marked together; ambiguous duplicate ids are refused.
   done-batch constants --target <path> <id>...
       Marks a validated batch of unblocked one-line constants/macros.

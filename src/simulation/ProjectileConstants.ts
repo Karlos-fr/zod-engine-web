@@ -83,6 +83,47 @@ export type DamageMissileTimingState = {
 };
 
 /**
+ * Port of upstream `damage_missile`.
+ * Role: Stores a scheduled area-damage missile impact and its targeting metadata.
+ * Upstream: zdamagemissile.h:10-43
+ */
+export class DamageMissile implements DamageMissileTimingState {
+  x = 0;
+  y = 0;
+  damage = 0;
+  team = 0;
+  radius = 0;
+  explodeTime = 0;
+  attackerRefId = 0;
+  attackPlayerGiven = false;
+  targetRefId = 0;
+
+  constructor(
+    init?: {
+      x: number;
+      y: number;
+      damage: number;
+      radius: number;
+      explodeTime: number;
+    },
+  ) {
+    if (!init) {
+      return;
+    }
+
+    this.x = init.x;
+    this.y = init.y;
+    this.damage = init.damage;
+    this.radius = init.radius;
+    this.explodeTime = init.explodeTime;
+  }
+
+  calcExplodeTimeTo(sx: number, sy: number, missileSpeed: number, theTime: number): void {
+    calcDamageMissileExplodeTimeTo(this, sx, sy, missileSpeed, theTime);
+  }
+}
+
+/**
  * Port of upstream `CalcExplodeTimeTo`.
  * Role: Computes when a damage missile reaches a source point at the given speed.
  * Upstream: zdamagemissile.h:23-33

@@ -8,6 +8,7 @@ import {
   BVEHICLE_HEADER_GUARD_PORTED,
   BUILDING_MAX_QUEUE_ITEMS,
   BuildingState,
+  getBuildingProductionTimeTotal,
   RADAR_BOX_SPINNER_X_PIXELS,
   RADAR_BOX_SPINNER_Y_PIXELS,
   RADAR_DISH_X_PIXELS,
@@ -47,6 +48,7 @@ import {
   REPAIR_SMOKE_STACK_Y_PIXELS,
   REPAIR_TEXT_BOX_X_PIXELS,
   REPAIR_TEXT_BOX_Y_PIXELS,
+  setBuildingZoneOwnage,
   VEHICLE_FACTORY_BULB_X_PIXELS,
   VEHICLE_FACTORY_BULB_Y_PIXELS,
   VEHICLE_FACTORY_EFFECT_X_OFFSET_PIXELS,
@@ -190,6 +192,20 @@ describe("building types", () => {
       ot: 1,
       oid: 4,
     });
+  });
+
+  it("ports ZBuilding SetZoneOwnage as a direct zone ownership assignment", () => {
+    const state = { zoneOwnage: 0 };
+
+    setBuildingZoneOwnage(state, 1.25);
+
+    expect(state.zoneOwnage).toBe(1.25);
+  });
+
+  it("ports ProductionTimeTotal as a total production time read", () => {
+    const state = { totalProductionTime: 12.5 };
+
+    expect(getBuildingProductionTimeTotal(state)).toBe(12.5);
   });
 
   it("ports the vehicle factory exhaust x offset", () => {

@@ -2,12 +2,21 @@
  * Upstream: zportrait.h / zportrait.cpp
  */
 
+import type { GameEntity } from "./entities/GameEntity";
+
 /**
  * Port of upstream `_ZPORTRAIT_H_`.
  * Role: Marks an upstream header boundary.
  * Upstream: zportrait.h:2
  */
 export const ZPORTRAIT_HEADER_GUARD_PORTED = true;
+
+/**
+ * Port of upstream `ZObject` forward declaration.
+ * Role: Provides the entity reference accepted by portrait object binding.
+ * Upstream: zportrait.h:10
+ */
+export type PortraitObjectReference = GameEntity;
 
 /**
  * Port of upstream `ZPORTRAIT_BASE_WIDTH`.
@@ -132,6 +141,51 @@ export enum PortraitAnimationType {
   EndL2 = 67,
   EndL3 = 68,
   MaxPortraitAnims = 69,
+}
+
+/**
+ * Port of upstream `ZPortrait_Frame`.
+ * Role: Stores one frame of portrait facial and hand animation state.
+ * Upstream: zportrait.h:85-108
+ */
+export class PortraitFrame {
+  lookDirection = PortraitLookDirection.Straight;
+  mouth = 0;
+  eyes = 0;
+  hand = 0;
+  handX = 0;
+  handY = 0;
+  handDoRender = false;
+  headX = 4;
+  headY = 2;
+  duration = 0;
+}
+
+/**
+ * Port of upstream `ZPortrait` reference id field.
+ * Role: Holds the object reference associated with the active portrait.
+ * Upstream: zportrait.h:156, zportrait.h:194
+ */
+export type PortraitRefState = {
+  refId: number;
+};
+
+/**
+ * Port of upstream `SetRefID`.
+ * Role: Updates the object reference associated with the active portrait.
+ * Upstream: zportrait.h:156
+ */
+export function setPortraitRefId(state: PortraitRefState, refId: number): void {
+  state.refId = refId;
+}
+
+/**
+ * Port of upstream `GetRefID`.
+ * Role: Returns the object reference associated with the active portrait.
+ * Upstream: zportrait.h:157
+ */
+export function getPortraitRefId(state: PortraitRefState): number {
+  return state.refId;
 }
 
 /**

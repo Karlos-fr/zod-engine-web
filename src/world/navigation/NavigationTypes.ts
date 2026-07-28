@@ -3,6 +3,13 @@
  */
 
 /**
+ * Port of upstream `ZPath_Finding_Engine` forward declaration.
+ * Role: Represents a pathfinding engine reference before the engine class is defined.
+ * Upstream: zpath_finding.h:23
+ */
+export type PathFindingEngineReference = object;
+
+/**
  * Port of upstream `ffnode`.
  * Role: Stores a tile coordinate for flood-fill pathfinding queues.
  * Upstream: zpath_finding.h:62-67

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getVoteType,
   getVoteValue,
   MAX_VOTE_TIME_SECONDS,
   setVoteInProgress,
@@ -11,6 +12,7 @@ import {
 } from "../src/simulation/VotePresentation";
 import type {
   VoteProgressState,
+  VoteTypeState,
   VoteValueState,
 } from "../src/simulation/VotePresentation";
 
@@ -39,6 +41,12 @@ describe("vote presentation", () => {
 
   it("ports the maximum rendered vote description width", () => {
     expect(VOTE_DESCRIPTION_MAX_WIDTH_PIXELS).toBe(112 - 8);
+  });
+
+  it("ports the vote type getter", () => {
+    const state: VoteTypeState = { voteType: VoteType.ChangeGameSpeed };
+
+    expect(getVoteType(state)).toBe(VoteType.ChangeGameSpeed);
   });
 
   it("ports the vote in-progress setter", () => {

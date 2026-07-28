@@ -10,6 +10,89 @@
 export const ECRANE_CONSTRUCTION_HEADER_GUARD_PORTED = true;
 
 /**
+ * Port of upstream `ECraneConcoItem`.
+ * Role: Stores one crane construction animation item with travel endpoints and dimensions.
+ * Upstream: ecraneconco.h:12-73
+ */
+export class CraneConstructionItem {
+  type = -1;
+  x = 0;
+  y = 0;
+  startX = 0;
+  startY = 0;
+  destX = 0;
+  destY = 0;
+  width = 0;
+  height = 0;
+  widthDistance = 0;
+  heightDistance = 0;
+
+  /**
+   * Port of upstream `ECraneConcoItem::Init`.
+   * Role: Initializes this construction item at a crane center and calculates travel deltas.
+   * Upstream: ecraneconco.h:24-32
+   */
+  init(type: number, centerX: number, centerY: number, width = 0, height = 0): void {
+    this.type = type;
+    this.startX = centerX;
+    this.destX = centerX;
+    this.x = centerX;
+    this.startY = centerY;
+    this.destY = centerY;
+    this.y = centerY;
+    this.width = width;
+    this.height = height;
+    this.setTravelDistances();
+  }
+
+  /**
+   * Port of upstream `ECraneConcoItem::SetStart`.
+   * Role: Centers this construction item on its starting coordinates.
+   * Upstream: ecraneconco.h:34-38
+   */
+  setStart(x: number, y: number): void {
+    setCraneConstructionItemStart(this, x, y);
+  }
+
+  /**
+   * Port of upstream `ECraneConcoItem::SetReturn`.
+   * Role: Sets this construction item's return destination around a target center.
+   * Upstream: ecraneconco.h:40-47
+   */
+  setReturn(centerX: number, centerY: number): void {
+    setCraneConstructionItemReturn(this, centerX, centerY);
+  }
+
+  /**
+   * Port of upstream `ECraneConcoItem::SetTravelDistances`.
+   * Role: Calculates this construction item's travel deltas from start to destination.
+   * Upstream: ecraneconco.h:49-53
+   */
+  setTravelDistances(): void {
+    setCraneConstructionTravelDistances(this);
+  }
+
+  /**
+   * Port of upstream `ECraneConcoItem::Move`.
+   * Role: Moves this construction item along its travel vector by a percentage.
+   * Upstream: ecraneconco.h:55-59
+   */
+  move(percentage: number): void {
+    this.x = Math.trunc(this.startX + this.widthDistance * percentage);
+    this.y = Math.trunc(this.startY + this.heightDistance * percentage);
+  }
+
+  /**
+   * Port of upstream `ECraneConcoItem::MoveToDest`.
+   * Role: Snaps this construction item to its destination coordinates.
+   * Upstream: ecraneconco.h:61-65
+   */
+  moveToDestination(): void {
+    moveCraneConstructionItemToDestination(this);
+  }
+}
+
+/**
  * Adaptation support for upstream `ECraneConcoItem::MoveToDest`.
  * Role: Represents the position fields touched by the crane construction item destination snap operation.
  * Upstream: ecraneconco.h:61-65
@@ -105,6 +188,18 @@ export function setCraneConstructionItemStart(
   item.x = centeredX;
   item.startY = centeredY;
   item.y = centeredY;
+}
+
+/**
+ * Replacement for upstream `ecc_render_item_comp`.
+ * Role: Compares crane construction render items by their bottom edge for draw ordering.
+ * Upstream: ecraneconco.cpp:513-519
+ */
+export function compareCraneConstructionRenderItemBottom(
+  first: Pick<CraneConstructionItem, "y" | "height">,
+  second: Pick<CraneConstructionItem, "y" | "height">,
+): boolean {
+  return first.y + first.height < second.y + second.height;
 }
 
 /**

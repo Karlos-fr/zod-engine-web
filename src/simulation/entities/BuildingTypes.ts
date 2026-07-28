@@ -87,6 +87,47 @@ export class ZBProductionUnit {
 }
 
 /**
+ * Port of upstream `ZBuilding` zone ownership field.
+ * Role: Holds the zone ownership fraction used by building production timing.
+ * Upstream: zbuilding.h:69, zbuilding.h:87
+ */
+export type BuildingZoneOwnageState = {
+  zoneOwnage: number;
+};
+
+/**
+ * Port of upstream `ZBuilding` production timing fields.
+ * Role: Holds the total production duration tracked for the current build.
+ * Upstream: zbuilding.h:51, zbuilding.h:84
+ */
+export type BuildingProductionTimeState = {
+  totalProductionTime: number;
+};
+
+/**
+ * Port of upstream `ZBuilding::SetZoneOwnage`.
+ * Role: Updates the building zone ownership fraction.
+ * Upstream: zbuilding.h:69
+ */
+export function setBuildingZoneOwnage(
+  state: BuildingZoneOwnageState,
+  zoneOwnage: number,
+): void {
+  state.zoneOwnage = zoneOwnage;
+}
+
+/**
+ * Port of upstream `ProductionTimeTotal`.
+ * Role: Returns the total production duration tracked for the current build.
+ * Upstream: zbuilding.h:51
+ */
+export function getBuildingProductionTimeTotal(
+  state: BuildingProductionTimeState,
+): number {
+  return state.totalProductionTime;
+}
+
+/**
  * Port of upstream `min_interval_time` from `BVehicle`.
  * Role: Defines the minimum time interval between vehicle factory process updates.
  * Upstream: bvehicle.cpp:139
