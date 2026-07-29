@@ -97,6 +97,7 @@ function row(patch: Partial<LedgerRow>): LedgerRow {
     targetDomain: "simulation",
     status: "todo",
     batch: "",
+    targetSymbol: "",
     targetTs: "",
     notes: "",
     dependsOn: "",

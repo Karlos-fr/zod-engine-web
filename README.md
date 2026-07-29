@@ -51,7 +51,7 @@ npm run zport -- brief <id>
 npm run zport -- context <id>
 npm run zport -- show <id>
 npm run zport -- start <id>
-npm run zport -- done <id> --target <path>
+npm run zport -- done <id> --target <path> --target-symbol <name>
 npm run zport -- done-batch constants --target <path> <id>...
 npm run zport -- audit-comments
 npm run zport -- block <id> --note "reason"
@@ -106,7 +106,7 @@ Par défaut, le portage se fait strictement **un symbole à la fois**.
    ou avant `commit/push`.
 8. Marquer le symbole :
    ```sh
-   npm run zport -- done <id> --target <path>
+   npm run zport -- done <id> --target <path> --target-symbol <name>
    ```
 
 Le champ `Lot` du référentiel est seulement un indicateur de tri. Il ne donne
@@ -301,6 +301,10 @@ Il contient une ligne par symbole upstream détecté :
 Colonnes importantes :
 
 - `ID` : identifiant stable utilisé par la CLI ;
+- `Symbole source` : nom qualifié upstream ;
+- `Fichier source` : chemin relatif upstream ;
+- `Symbole cible` : nom TypeScript porté, si déjà défini ;
+- `Fichier cible` : fichier ou module TypeScript cible ;
 - `Décision` : `PORTER`, `ADAPT`, `REPLACE`, `IGNORE`, `DEFER` ;
 - `Statut` : `todo`, `in_progress`, `ported`, `verified`, `blocked`, `ignored` ;
 - `Depends On` : dépendances détectées ;

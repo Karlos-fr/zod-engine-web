@@ -3,14 +3,15 @@ export type TableRow = Record<string, string>;
 export const ledgerColumns = [
   "ID",
   "Type",
-  "Symbole",
-  "Fichier",
+  "Symbole source",
+  "Fichier source",
   "Lignes",
   "Décision",
   "Domaine cible",
   "Statut",
   "Lot",
-  "Cible TS",
+  "Symbole cible",
+  "Fichier cible",
   "Notes",
   "Depends On",
   "Blocked By",
@@ -33,7 +34,7 @@ export function unescapeCell(value: string): string {
 export function parseMarkdownTable(content: string): TableRow[] {
   const lines = content.split(/\r?\n/);
   const headerIndex = lines.findIndex((line) =>
-    line.trim().startsWith("| ID | Type | Symbole |"),
+    line.trim().startsWith("| ID | Type | Symbole"),
   );
 
   if (headerIndex === -1 || headerIndex + 2 >= lines.length) {
@@ -53,8 +54,9 @@ export function parseMarkdownTable(content: string): TableRow[] {
     }
 
     const row: TableRow = {};
-    ledgerColumns.forEach((column, index) => {
-      row[column] = unescapeCell((cells[index] ?? "").trim());
+    const columns = splitRow(lines[headerIndex]);
+    columns.forEach((column, index) => {
+      row[column.trim()] = unescapeCell((cells[index] ?? "").trim());
     });
     rows.push(row);
   }

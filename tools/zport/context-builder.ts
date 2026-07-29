@@ -63,14 +63,15 @@ function renderRow(row: LedgerRow): string {
   return [
     `- ID: ${row.id}`,
     `- Type: ${row.type}`,
-    `- Symbole: ${row.symbol}`,
-    `- Fichier: ${row.file}`,
+    `- Symbole source: ${row.symbol}`,
+    `- Fichier source: ${row.file}`,
     `- Lignes: ${row.lines}`,
     `- Décision: ${row.decision}`,
     `- Domaine cible: ${row.targetDomain}`,
     `- Statut: ${row.status}`,
     `- Lot: ${row.batch || "none"}`,
-    `- Cible TS: ${row.targetTs || "none"}`,
+    `- Symbole cible: ${row.targetSymbol || "none"}`,
+    `- Fichier cible: ${row.targetTs || "none"}`,
     `- Notes: ${row.notes || "none"}`,
   ].join("\n");
 }

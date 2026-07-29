@@ -18,6 +18,7 @@ export type LedgerRow = {
   targetDomain: string;
   status: string;
   batch: string;
+  targetSymbol: string;
   targetTs: string;
   notes: string;
   dependsOn: string;
@@ -90,6 +91,7 @@ export function mergeRows(existing: LedgerRow[], scanned: LedgerRow[]): LedgerRo
       targetDomain: previous.targetDomain || row.targetDomain,
       status: previous.status || row.status,
       batch: previous.batch || row.batch,
+      targetSymbol: previous.targetSymbol || row.targetSymbol,
       targetTs: previous.targetTs || row.targetTs,
       notes: previous.notes || row.notes,
       dependsOn: row.dependsOn || previous.dependsOn,
@@ -223,10 +225,11 @@ export function toTableRow(row: LedgerRow): TableRow {
     [ledgerColumns[6]]: row.targetDomain,
     [ledgerColumns[7]]: row.status,
     [ledgerColumns[8]]: row.batch,
-    [ledgerColumns[9]]: row.targetTs,
-    [ledgerColumns[10]]: row.notes,
-    [ledgerColumns[11]]: row.dependsOn,
-    [ledgerColumns[12]]: row.blockedBy,
+    [ledgerColumns[9]]: row.targetSymbol,
+    [ledgerColumns[10]]: row.targetTs,
+    [ledgerColumns[11]]: row.notes,
+    [ledgerColumns[12]]: row.dependsOn,
+    [ledgerColumns[13]]: row.blockedBy,
   };
 }
 
@@ -234,15 +237,16 @@ function fromTableRow(row: TableRow): LedgerRow {
   return {
     id: row.ID,
     type: row.Type,
-    symbol: row.Symbole,
-    file: row.Fichier,
+    symbol: row["Symbole source"] ?? row.Symbole,
+    file: row["Fichier source"] ?? row.Fichier,
     lines: row.Lignes,
     decision: row["Décision"],
     targetDomain: row["Domaine cible"],
     status: row.Statut,
     batch: row.Lot,
-    targetTs: row["Cible TS"],
-    notes: row.Notes,
+    targetSymbol: row["Symbole cible"] ?? "",
+    targetTs: row["Fichier cible"] ?? row["Cible TS"] ?? "",
+    notes: row.Notes ?? "",
     dependsOn: row["Depends On"] ?? "",
     blockedBy: row["Blocked By"] ?? "",
   };

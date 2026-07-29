@@ -124,22 +124,23 @@ Colonnes obligatoires :
 |---|---|
 | ID | Identifiant stable, par exemple `ZOBJ-0001` |
 | Type | `class`, `struct`, `enum`, `method`, `function`, `constant`, `macro`, `global` |
-| Symbole | Nom qualifié du symbole |
-| Fichier | Chemin relatif upstream |
+| Symbole source | Nom qualifié du symbole upstream |
+| Fichier source | Chemin relatif upstream |
 | Lignes | Plage `start-end` dans le fichier upstream |
 | Décision | `PORTER`, `ADAPT`, `REPLACE`, `IGNORE`, `DEFER` |
 | Domaine cible | `world`, `simulation`, `rendering`, `input`, `assets`, `audio`, `ui`, `network`, `data`, `tooling` |
 | Statut | `todo`, `qualified`, `in_progress`, `ported`, `verified`, `blocked`, `ignored` |
 | Lot | Regroupement indicatif pour le tri ; ne permet pas de porter plusieurs symboles à la fois |
-| Cible TS | Fichier ou module TypeScript cible |
+| Symbole cible | Nom TypeScript cible, si déjà défini |
+| Fichier cible | Fichier ou module TypeScript cible |
 | Notes | Justification courte, obligatoire pour `IGNORE`, `REPLACE`, `DEFER`, `blocked` |
 
 Exemple :
 
 ```md
-| ID | Type | Symbole | Fichier | Lignes | Décision | Domaine cible | Statut | Lot | Cible TS | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|
-| ZOBJ-0001 | class | `ZObject` | `src/zobject.h` | `32-210` | PORTER | simulation | todo | entity-core | `src/simulation/entities/GameEntity.ts` | Base comportementale des objets |
+| ID | Type | Symbole source | Fichier source | Lignes | Décision | Domaine cible | Statut | Lot | Symbole cible | Fichier cible | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| ZOBJ-0001 | class | `ZObject` | `src/zobject.h` | `32-210` | PORTER | simulation | todo | entity-core | `GameEntity` | `src/simulation/entities/GameEntity.ts` | Base comportementale des objets |
 | ZSDL-0001 | method | `ZSDL::Render` | `src/zsdl.cpp` | `80-155` | REPLACE | rendering | ignored | rendering-web | `src/rendering/ThreeRenderer.ts` | Remplacé par Three.js |
 ```
 
@@ -429,7 +430,7 @@ Cycle obligatoire pour chaque tâche :
 4. Porter uniquement le symbole indiqué.
 5. Ajouter ou adapter les tests.
 6. Lancer build/tests ciblés.
-7. `npm run zport -- done <id> --target <path>` ou `block/ignore`.
+7. `npm run zport -- done <id> --target <path> --target-symbol <name>` ou `block/ignore`.
 8. Résumer les décisions dans `PORTING_DECISIONS.md` si elles changent
    l'architecture.
 

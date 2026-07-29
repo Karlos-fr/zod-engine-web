@@ -48,7 +48,7 @@ describe("ledger duplicate IDs", () => {
 
     const updatedRows = updateEquivalentLedgerRows(
       "CON-SAME",
-      { status: "ported", targetTs: "src/constants.ts" },
+      { status: "ported", targetSymbol: "GAME_CONSTANTS", targetTs: "src/constants.ts" },
       file,
     );
 
@@ -61,6 +61,7 @@ describe("ledger duplicate IDs", () => {
           (line) =>
             line.includes("| CON-SAME |") &&
             line.includes("| ported |") &&
+            line.includes("| GAME_CONSTANTS |") &&
             line.includes("| src/constants.ts |"),
         ),
     ).toHaveLength(2);
@@ -106,17 +107,17 @@ describe("ledger duplicate IDs", () => {
     const updatedRows = updateEquivalentLedgerRowsByLines(
       "CON-SAME",
       "217-289",
-      { status: "ported", targetTs: "src/forward.ts" },
+      { status: "ported", targetSymbol: "ForwardSymbol", targetTs: "src/forward.ts" },
       file,
     );
 
     expect(updatedRows).toHaveLength(1);
     const content = fs.readFileSync(file, "utf8");
     expect(content).toContain(
-      "| CON-SAME | constant | `same` | file.cpp | 217-289 | PORTER | simulation | ported |  | src/forward.ts |",
+      "| CON-SAME | constant | `same` | file.cpp | 217-289 | PORTER | simulation | ported |  | ForwardSymbol | src/forward.ts |",
     );
     expect(content).toContain(
-      "| CON-SAME | constant | `same` | file.cpp | 291-689 | PORTER | simulation | todo |",
+      "| CON-SAME | constant | `same` | file.cpp | 291-689 | PORTER | simulation | todo |  |  |  |",
     );
   });
 
@@ -135,7 +136,7 @@ describe("ledger duplicate IDs", () => {
 
     const content = fs.readFileSync(file, "utf8");
     expect(content.indexOf("## Statistiques")).toBeLessThan(
-      content.indexOf("| ID | Type | Symbole |"),
+      content.indexOf("| ID | Type | Symbole source |"),
     );
     expect(content).toContain("Avancement du portage : 2/4 (50.00%).");
     expect(content).toContain("| blocked | 1 | 25.00% |");
@@ -174,6 +175,7 @@ function row(overrides: Partial<LedgerRow>): LedgerRow {
     targetDomain: "simulation",
     status: "todo",
     batch: "",
+    targetSymbol: "",
     targetTs: "",
     notes: "",
     dependsOn: "",

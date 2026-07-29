@@ -289,10 +289,11 @@ function done(argsList: string[]): void {
   const id = requiredArg(argsList, 0, "id");
   const options = parseOptions(argsList.slice(1));
   const target = options.target;
+  const targetSymbol = options["target-symbol"];
   const note = options.note;
   const lines = options.lines;
-  if (!target && !note) {
-    throw new Error("done requires --target <path> or --note <text>");
+  if (!target && !targetSymbol && !note) {
+    throw new Error("done requires --target <path>, --target-symbol <name>, or --note <text>");
   }
   const rows = lines
     ? findLedgerRows(id).filter((row) => row.lines === lines)
@@ -303,6 +304,7 @@ function done(argsList: string[]): void {
   const currentRow = lines ? rows[0] : findLedgerRow(id);
   const patch = {
     status: "ported",
+    targetSymbol: targetSymbol || currentRow.targetSymbol,
     targetTs: target || currentRow.targetTs,
     notes: note || currentRow.notes,
   };
@@ -520,8 +522,9 @@ function help(): void {
   inspect-file <relative-upstream-file>
   next
   start <id>
-  done <id> --target <path>
-  done <id> --lines <range> --target <path>
+  done <id> --target <path> [--target-symbol <name>]
+  done <id> --target-symbol <name>
+  done <id> --lines <range> --target <path> [--target-symbol <name>]
       Equivalent duplicate ids are marked together; ambiguous duplicate ids are refused.
   done-batch constants --target <path> <id>...
       Marks a validated batch of unblocked one-line constants/macros.

@@ -37,6 +37,7 @@ export function extractSymbols(relativeFile: string, content: string): LedgerRow
       targetDomain: inferDomain(relativeFile, symbol.symbol),
       status: "todo",
       batch: inferBatch(relativeFile, symbol.symbol),
+      targetSymbol: "",
       targetTs: "",
       notes: "",
       dependsOn: "",
