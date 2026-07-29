@@ -1,25 +1,48 @@
 import { describe, expect, it } from "vitest";
 import {
+  addPortraitAnimationFrame,
+  clearPortraitRobotId,
   getPortraitRefId,
+  isPortraitDoingAnimation,
   PORTRAIT_BASE_HEIGHT_PIXELS,
   PORTRAIT_BASE_WIDTH_PIXELS,
   PORTRAIT_FRAME_DURATION_MULTIPLIER_SECONDS,
   PORTRAIT_MAX_EYES,
   PORTRAIT_MAX_HANDS,
   PORTRAIT_MAX_MOUTHS,
+  PortraitAnimation,
   PortraitAnimationType,
   PortraitFrame,
   PortraitLookDirection,
   type PortraitObjectReference,
+  setPortraitCoordinates,
   setPortraitDoRandomAnims,
+  setPortraitInVehicle,
+  setPortraitOverMap,
   setPortraitRefId,
+  setPortraitRobotId,
+  setPortraitTeam,
+  setPortraitTerrainType,
   ZPORTRAIT_HEADER_GUARD_PORTED,
 } from "../src/simulation/PortraitAnimation";
 import type {
+  PortraitCurrentAnimationState,
+  PortraitCoordinateState,
+  PortraitInVehicleState,
+  PortraitOverMapState,
   PortraitRandomAnimationState,
+  PortraitRobotClearState,
   PortraitRefState,
+  PortraitRobotIdState,
+  PortraitTeamState,
+  PortraitTerrainState,
 } from "../src/simulation/PortraitAnimation";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
+import {
+  PlanetType,
+  RobotType,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 
 describe("portrait animation", () => {
   it("adapts the zportrait.h include guard to an ES module marker", async () => {
@@ -90,6 +113,74 @@ describe("portrait animation", () => {
     expect(PORTRAIT_FRAME_DURATION_MULTIPLIER_SECONDS).toBe(0.015);
   });
 
+  it("ports ZPortrait_Anim::AddFrame as shifted frame insertion and duration refresh", () => {
+    const state = { frameList: [] as PortraitFrame[], totalDuration: 0 };
+    const firstFrame = new PortraitFrame();
+    firstFrame.handX = 8;
+    firstFrame.handY = 9;
+    firstFrame.duration = 1.5;
+    const secondFrame = new PortraitFrame();
+    secondFrame.handX = 14;
+    secondFrame.handY = 15;
+    secondFrame.duration = 2.25;
+
+    addPortraitAnimationFrame(state, firstFrame);
+    firstFrame.duration = 99;
+    addPortraitAnimationFrame(state, secondFrame);
+
+    expect(firstFrame.handX).toBe(4);
+    expect(firstFrame.handY).toBe(5);
+    expect(secondFrame.handX).toBe(10);
+    expect(secondFrame.handY).toBe(11);
+    expect(state.frameList).toHaveLength(2);
+    expect(state.frameList[0]).toMatchObject({
+      handX: 4,
+      handY: 5,
+      duration: 1.5,
+    });
+    expect(state.frameList[1]).toMatchObject({
+      handX: 10,
+      handY: 11,
+      duration: 2.25,
+    });
+    expect(state.totalDuration).toBe(3.75);
+  });
+
+  it("ports ZPortrait_Anim default construction and AddFrame forwarding", () => {
+    const animation = new PortraitAnimation();
+    const frame = new PortraitFrame();
+    frame.handX = 6;
+    frame.handY = 7;
+    frame.duration = 0.5;
+
+    animation.addFrame(frame);
+
+    expect(animation.frameList).toHaveLength(1);
+    expect(animation.frameList[0]).toMatchObject({
+      handX: 2,
+      handY: 3,
+      duration: 0.5,
+    });
+    expect(animation.totalDuration).toBe(0.5);
+  });
+
+  it("ports ZPortrait_Anim assignment as an explicit independent copy", () => {
+    const source = new PortraitAnimation();
+    const frame = new PortraitFrame();
+    frame.duration = 1.25;
+    source.addFrame(frame);
+    const target = new PortraitAnimation();
+
+    expect(target.copyFrom(source)).toBe(target);
+    source.frameList[0]!.duration = 99;
+
+    expect(target.frameList).toHaveLength(1);
+    expect(target.frameList[0]).not.toBe(source.frameList[0]);
+    expect(target.frameList[0]).toMatchObject({ duration: 1.25 });
+    expect(target.totalDuration).toBe(1.25);
+    expect(target.copyFrom(target)).toBe(target);
+  });
+
   it("ports SetRefID as active portrait reference assignment", () => {
     const state: PortraitRefState = { refId: -1 };
 
@@ -112,5 +203,112 @@ describe("portrait animation", () => {
 
     setPortraitDoRandomAnims(state, false);
     expect(state.doRandomAnims).toBe(false);
+  });
+
+  it("ports ZPortrait SetOverMap as over-map state assignment", () => {
+    const state: PortraitOverMapState = { overMap: false };
+
+    setPortraitOverMap(state, true);
+    expect(state.overMap).toBe(true);
+
+    setPortraitOverMap(state, false);
+    expect(state.overMap).toBe(false);
+  });
+
+  it("ports ZPortrait SetCords as render-origin assignment", () => {
+    const state: PortraitCoordinateState = { x: 0, y: 0 };
+
+    setPortraitCoordinates(state, 24, 48);
+
+    expect(state).toEqual({ x: 24, y: 48 });
+  });
+
+  it("ports ZPortrait SetTerrainType as terrain palette assignment", () => {
+    const state: PortraitTerrainState = { terrain: PlanetType.Desert };
+
+    setPortraitTerrainType(state, PlanetType.Arctic);
+
+    expect(state.terrain).toBe(PlanetType.Arctic);
+  });
+
+  it("ports ZPortrait SetInVehicle as vehicle occupancy assignment", () => {
+    const state: PortraitInVehicleState = { inVehicle: false };
+
+    setPortraitInVehicle(state, true);
+
+    expect(state.inVehicle).toBe(true);
+  });
+
+  it("ports ZPortrait SetTeam as team palette assignment", () => {
+    const state: PortraitTeamState = { team: TeamType.Null };
+
+    setPortraitTeam(state, TeamType.Blue);
+
+    expect(state.team).toBe(TeamType.Blue);
+  });
+
+  it("ports ZPortrait SetRobotID as robot id assignment with render invalidation", () => {
+    const state: PortraitRobotIdState = {
+      oid: RobotType.Grunt,
+      doRender: false,
+    };
+
+    setPortraitRobotId(state, RobotType.Sniper);
+    expect(state).toEqual({
+      oid: RobotType.Sniper,
+      doRender: true,
+    });
+
+    state.doRender = false;
+    setPortraitRobotId(state, -1);
+    expect(state).toEqual({
+      oid: RobotType.Grunt,
+      doRender: true,
+    });
+
+    state.doRender = false;
+    setPortraitRobotId(state, RobotType.Max);
+    expect(state).toEqual({
+      oid: RobotType.Grunt,
+      doRender: true,
+    });
+  });
+
+  it("ports ZPortrait DoingAnim as active animation check", () => {
+    const state: PortraitCurrentAnimationState = { currentAnimation: -1 };
+
+    expect(isPortraitDoingAnimation(state)).toBe(false);
+
+    state.currentAnimation = PortraitAnimationType.Blink;
+    expect(isPortraitDoingAnimation(state)).toBe(true);
+  });
+
+  it("ports ZPortrait ClearRobotID as robot portrait binding reset", () => {
+    const stillFrame = new PortraitFrame();
+    stillFrame.duration = 1.5;
+    const activeFrame = new PortraitFrame();
+    activeFrame.duration = 2.5;
+    const state: PortraitRobotClearState = {
+      oid: RobotType.Sniper,
+      inVehicle: true,
+      doRender: true,
+      stillFrame,
+      renderFrame: activeFrame,
+      currentAnimation: PortraitAnimationType.Blink,
+      animationStartTime: 1234,
+      refId: 99,
+    };
+
+    clearPortraitRobotId(state);
+
+    expect(state).toMatchObject({
+      oid: RobotType.Grunt,
+      inVehicle: false,
+      doRender: false,
+      currentAnimation: -1,
+      animationStartTime: 0,
+      refId: -1,
+    });
+    expect(state.renderFrame).toBe(stillFrame);
   });
 });

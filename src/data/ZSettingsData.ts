@@ -564,6 +564,34 @@ export class ZSettings {
   }
 
   /**
+   * Port of upstream `ZSettings::LoadSettings`.
+   * Role: Parses persisted unit, building, item, and global settings entries.
+   * Upstream: zsettings.cpp:392-552
+   */
+  loadSettings(text: string): boolean {
+    let loaded = false;
+
+    for (const rawLine of text.split(/\r?\n/)) {
+      const line = rawLine.trimEnd();
+      if (!line.length || line.startsWith("#")) {
+        continue;
+      }
+
+      const entry = parseSettingsEntry(line);
+      if (!entry) {
+        loaded = true;
+        continue;
+      }
+
+      applySettingsEntry(this, entry);
+      loaded = true;
+    }
+
+    this.censorSettings();
+    return loaded;
+  }
+
+  /**
    * Port of upstream `ZSettings::SaveSettings`.
    * Role: Serializes all unit, building, item, and global settings using the persisted settings file format.
    * Upstream: zsettings.cpp:554-622
@@ -725,6 +753,165 @@ function parseFloatSetting(value: string): number {
 
 function formatDoubleSetting(value: number): string {
   return value.toFixed(6);
+}
+
+type SettingsEntry = {
+  elementType: string;
+  element: string;
+  variable: string;
+  value: string;
+};
+
+function parseSettingsEntry(line: string): SettingsEntry | null {
+  const firstDot = line.indexOf(".");
+  const secondDot = firstDot === -1 ? -1 : line.indexOf(".", firstDot + 1);
+  const equals = secondDot === -1 ? -1 : line.indexOf("=", secondDot + 1);
+
+  if (firstDot === -1 || secondDot === -1 || equals === -1) {
+    return null;
+  }
+
+  return {
+    elementType: line.slice(0, firstDot).toLowerCase(),
+    element: line.slice(firstDot + 1, secondDot).toLowerCase(),
+    variable: line.slice(secondDot + 1, equals).toLowerCase(),
+    value: line.slice(equals + 1),
+  };
+}
+
+function applySettingsEntry(settings: ZSettings, entry: SettingsEntry): void {
+  if (entry.elementType === "unit") {
+    applyUnitSettingsEntry(settings, entry);
+  } else if (entry.elementType === "building") {
+    applyBuildingSettingsEntry(settings, entry);
+  } else if (entry.elementType === "map_item") {
+    applyMapItemSettingsEntry(settings, entry);
+  } else if (entry.elementType === "global" && entry.element === "global") {
+    applyGlobalSettingsEntry(settings, entry);
+  }
+}
+
+function applyUnitSettingsEntry(settings: ZSettings, entry: SettingsEntry): void {
+  const robotIndex = ROBOT_TYPE_NAMES.indexOf(
+    entry.element as (typeof ROBOT_TYPE_NAMES)[number],
+  );
+  if (robotIndex !== -1) {
+    settings.robotSettings[robotIndex].readEntry(entry.variable, entry.value);
+    return;
+  }
+
+  const vehicleIndex = VEHICLE_TYPE_NAMES.indexOf(
+    entry.element as (typeof VEHICLE_TYPE_NAMES)[number],
+  );
+  if (vehicleIndex !== -1) {
+    settings.vehicleSettings[vehicleIndex].readEntry(entry.variable, entry.value);
+    return;
+  }
+
+  const cannonIndex = CANNON_TYPE_NAMES.indexOf(
+    entry.element as (typeof CANNON_TYPE_NAMES)[number],
+  );
+  if (cannonIndex !== -1) {
+    settings.cannonSettings[cannonIndex].readEntry(entry.variable, entry.value);
+  }
+}
+
+function applyBuildingSettingsEntry(
+  settings: ZSettings,
+  entry: SettingsEntry,
+): void {
+  if (entry.variable !== "health") {
+    return;
+  }
+
+  const health = parseFloatSetting(entry.value);
+  if (entry.element === "fort") {
+    settings.fortBuildingHealth = health;
+  } else if (entry.element === "robot") {
+    settings.robotBuildingHealth = health;
+  } else if (entry.element === "vehicle") {
+    settings.vehicleBuildingHealth = health;
+  } else if (entry.element === "repair") {
+    settings.repairBuildingHealth = health;
+  } else if (entry.element === "radar") {
+    settings.radarBuildingHealth = health;
+  } else if (entry.element === "bridge") {
+    settings.bridgeBuildingHealth = health;
+  }
+}
+
+function applyMapItemSettingsEntry(
+  settings: ZSettings,
+  entry: SettingsEntry,
+): void {
+  if (entry.variable === "health") {
+    const health = parseFloatSetting(entry.value);
+    if (entry.element === "rock") {
+      settings.rockItemHealth = health;
+    } else if (entry.element === "grenades") {
+      settings.grenadesItemHealth = health;
+    } else if (entry.element === "rockets") {
+      settings.rocketsItemHealth = health;
+    } else if (entry.element === "hut") {
+      settings.hutItemHealth = health;
+    } else if (entry.element === "map_item") {
+      settings.mapItemHealth = health;
+    }
+  } else if (entry.element === "grenades") {
+    if (entry.variable === "grenade_damage") {
+      settings.grenadeDamage = parseFloatSetting(entry.value);
+    } else if (entry.variable === "grenade_damage_radius") {
+      settings.grenadeDamageRadius = parseIntegerSetting(entry.value);
+    } else if (entry.variable === "grenade_missile_speed") {
+      settings.grenadeMissileSpeed = parseIntegerSetting(entry.value);
+    } else if (entry.variable === "grenade_attack_speed") {
+      settings.grenadeAttackSpeed = parseFloatSetting(entry.value);
+    }
+  } else if (
+    entry.element === "map_item" &&
+    entry.variable === "map_item_turrent_damage"
+  ) {
+    settings.mapItemTurrentDamage = parseFloatSetting(entry.value);
+  }
+}
+
+function applyGlobalSettingsEntry(
+  settings: ZSettings,
+  entry: SettingsEntry,
+): void {
+  if (entry.variable === "agro_distance") {
+    settings.agroDistance = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "auto_grab_vehicle_distance") {
+    settings.autoGrabVehicleDistance = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "auto_grab_flag_distance") {
+    settings.autoGrabFlagDistance = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "building_auto_repair_time") {
+    settings.buildingAutoRepairTime = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "building_auto_repair_random_additional_time") {
+    settings.buildingAutoRepairRandomAdditionalTime = parseIntegerSetting(
+      entry.value,
+    );
+  } else if (entry.variable === "max_turrent_horizontal_distance") {
+    settings.maxTurrentHorizontalDistance = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "max_turrent_vertical_distance") {
+    settings.maxTurrentVerticalDistance = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "grenades_per_box") {
+    settings.grenadesPerBox = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "partially_damaged_unit_speed") {
+    settings.partiallyDamagedUnitSpeed = parseFloatSetting(entry.value);
+  } else if (entry.variable === "damaged_unit_speed") {
+    settings.damagedUnitSpeed = parseFloatSetting(entry.value);
+  } else if (entry.variable === "run_unit_speed") {
+    settings.runUnitSpeed = parseFloatSetting(entry.value);
+  } else if (entry.variable === "run_recharge_rate") {
+    settings.runRechargeRate = parseFloatSetting(entry.value);
+  } else if (entry.variable === "hut_animal_max") {
+    settings.hutAnimalMax = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "hut_animal_min") {
+    settings.hutAnimalMin = parseIntegerSetting(entry.value);
+  } else if (entry.variable === "hut_animal_roam_distance") {
+    settings.hutAnimalRoamDistance = parseIntegerSetting(entry.value);
+  }
 }
 
 function createUnitSettingsTable(count: number): ZUnitSettings[] {

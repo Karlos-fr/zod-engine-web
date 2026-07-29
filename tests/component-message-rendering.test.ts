@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
   ComponentMessage,
+  ComponentMessageEngine,
   ComponentMessageFlags,
   type ComponentMessageObjectReference,
   MAX_RENDERABLE_STORED_GUNS,
@@ -39,6 +40,53 @@ describe("component message rendering constants", () => {
     const reference: ComponentMessageObjectReference = entity;
 
     expect(reference).toBe(entity);
+  });
+
+  it("ports ZCompMessageEngine SetObjectList as object-list reference assignment", () => {
+    const engine = new ComponentMessageEngine<GameEntity>();
+    const objectList = [
+      new GameEntity({
+        id: "entity",
+        kind: "robot",
+        position: { x: 1, y: 2 },
+      }),
+    ];
+
+    engine.setObjectList(objectList);
+
+    expect(engine.objectList).toBe(objectList);
+  });
+
+  it("ports ZCompMessageEngine SetTeam as local team assignment", () => {
+    const engine = new ComponentMessageEngine();
+
+    engine.setTeam(3);
+
+    expect(engine.ourTeam).toBe(3);
+  });
+
+  it("ports ZCompMessageEngine SetZTime as clock reference assignment", () => {
+    const engine = new ComponentMessageEngine<unknown, { now: number }>();
+    const ztime = { now: 12.5 };
+
+    engine.setZTime(ztime);
+
+    expect(engine.ztime).toBe(ztime);
+  });
+
+  it("ports ZCompMessageEngine DisplayMessage as message display scheduling", () => {
+    const engine = new ComponentMessageEngine();
+    engine.flipsDone = 4;
+
+    engine.displayMessage(ComponentMessage.VehicleManufactured, 88, () => 10.25);
+
+    expect(engine).toMatchObject({
+      showMessage: ComponentMessage.VehicleManufactured,
+      nextFlipTime: 10.55,
+      showTheMessage: true,
+      flipsDone: 0,
+      refId: 88,
+    });
   });
 
   it("ports comp_msg_flags default construction through Clear", () => {

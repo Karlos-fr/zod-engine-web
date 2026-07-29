@@ -1,23 +1,12 @@
-import crypto from "node:crypto";
 import path from "node:path";
 import type { LedgerRow } from "./ledger.ts";
+import { makeSymbolId } from "./identity.ts";
 
 type RawSymbol = {
   type: string;
   symbol: string;
   start: number;
   end: number;
-};
-
-const symbolPrefixes: Record<string, string> = {
-  class: "CLS",
-  struct: "STR",
-  enum: "ENU",
-  method: "MET",
-  function: "FUN",
-  constant: "CON",
-  macro: "MAC",
-  global: "GLB",
 };
 
 export function extractSymbols(relativeFile: string, content: string): LedgerRow[] {
@@ -38,21 +27,27 @@ export function extractSymbols(relativeFile: string, content: string): LedgerRow
     unique.set(`${symbol.type}:${symbol.symbol}:${symbol.start}`, symbol);
   }
 
-  return [...unique.values()].map((symbol) => ({
-    id: makeId(symbol.type, relativeFile, symbol.symbol, symbol.start),
-    type: symbol.type,
-    symbol: `\`${symbol.symbol}\``,
-    file: relativeFile,
-    lines: `${symbol.start}-${symbol.end}`,
-    decision: defaultDecision(symbol.type, relativeFile, symbol.symbol),
-    targetDomain: inferDomain(relativeFile, symbol.symbol),
-    status: "todo",
-    batch: inferBatch(relativeFile, symbol.symbol),
-    targetTs: "",
-    notes: "",
-    dependsOn: "",
-    blockedBy: "",
-  }));
+  return [...unique.values()].map((symbol) => {
+    const row = {
+      type: symbol.type,
+      symbol: `\`${symbol.symbol}\``,
+      file: relativeFile,
+      lines: `${symbol.start}-${symbol.end}`,
+      decision: defaultDecision(symbol.type, relativeFile, symbol.symbol),
+      targetDomain: inferDomain(relativeFile, symbol.symbol),
+      status: "todo",
+      batch: inferBatch(relativeFile, symbol.symbol),
+      targetTs: "",
+      notes: "",
+      dependsOn: "",
+      blockedBy: "",
+    };
+
+    return {
+      id: makeSymbolId(row),
+      ...row,
+    };
+  });
 }
 
 export function extractRange(content: string, lineRange: string): string {
@@ -225,13 +220,6 @@ function stripLineComment(line: string): string {
 
 function isForwardDeclaration(line: string): boolean {
   return /^\s*(?:class|struct)\s+[A-Za-z_][\w]*\s*;/.test(stripLineComment(line));
-}
-
-function makeId(type: string, relativeFile: string, symbol: string, startLine: number): string {
-  const prefix = symbolPrefixes[type] || "SYM";
-  const base = `${relativeFile}:${symbol}:${startLine}`;
-  const hash = crypto.createHash("sha1").update(base).digest("hex").slice(0, 6);
-  return `${prefix}-${hash}`.toUpperCase();
 }
 
 function defaultDecision(type: string, file: string, symbol: string): string {

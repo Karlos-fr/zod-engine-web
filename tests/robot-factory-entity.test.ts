@@ -21,4 +21,35 @@ describe("robot factory entity", () => {
 
     expect(entity.producesUnits()).toBe(true);
   });
+
+  it("ports BRobot GetCraneEntrance as the fixed point below the building", () => {
+    const entity = new RobotFactoryEntity({
+      id: "robot-factory-3",
+      kind: "robot-factory",
+      position: { x: 96, y: 128 },
+    });
+    entity.pixelHeight = 64;
+
+    expect(entity.getCraneEntrance()).toEqual({
+      canEnter: true,
+      x: 131,
+      y: 224,
+      exitX: 131,
+      exitY: 224,
+    });
+  });
+
+  it("ports BRobot GetCraneCenter as the fixed crane interaction point", () => {
+    const entity = new RobotFactoryEntity({
+      id: "robot-factory-4",
+      kind: "robot-factory",
+      position: { x: 96, y: 128 },
+    });
+
+    expect(entity.getCraneCenter()).toEqual({
+      hasCenter: true,
+      x: 131,
+      y: 160,
+    });
+  });
 });

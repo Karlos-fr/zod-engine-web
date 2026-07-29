@@ -131,6 +131,23 @@ export type CraneConstructionStartState = {
   width: number;
 };
 
+export type CraneConstructionReturnItem = {
+  setReturn(centerX: number, centerY: number): void;
+};
+
+/**
+ * Adaptation support for upstream `ECraneConco::BeginDeath`.
+ * Role: Represents the crane construction effect fields touched when death starts.
+ * Upstream: ecraneconco.cpp:500-511
+ */
+export type CraneConstructionDeathState = {
+  travelBack: boolean;
+  travelTimeStart: number;
+  travelTimeEnd: number;
+  travelTimeWidth: number;
+  renderItems: readonly CraneConstructionReturnItem[];
+};
+
 /**
  * Port of upstream `MoveToDest`.
  * Role: Snaps a crane construction item to its destination coordinates.
@@ -188,6 +205,26 @@ export function setCraneConstructionItemStart(
   item.x = centeredX;
   item.startY = centeredY;
   item.y = centeredY;
+}
+
+/**
+ * Port of upstream `ECraneConco::BeginDeath`.
+ * Role: Starts the return animation for every crane construction render item.
+ * Upstream: ecraneconco.cpp:500-511
+ */
+export function beginCraneConstructionDeath(
+  state: CraneConstructionDeathState,
+  centerX: number,
+  centerY: number,
+  currentTime: number,
+): void {
+  state.travelBack = true;
+  state.travelTimeStart = currentTime;
+  state.travelTimeEnd = state.travelTimeStart + state.travelTimeWidth;
+
+  for (const item of state.renderItems) {
+    item.setReturn(centerX + 16, centerY + 16);
+  }
 }
 
 /**

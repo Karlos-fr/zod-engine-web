@@ -42,6 +42,8 @@ CLI de portage :
 npm run zport -- scan
 npm run zport -- status
 npm run zport -- next
+npm run zport -- candidates --limit 20
+npm run zport -- cycle-candidates --limit 20
 npm run zport -- batch constants --limit 10
 npm run zport -- batch constants --limit 10 --apply-plan
 npm run zport -- deps <id>
@@ -56,10 +58,8 @@ npm run zport -- block <id> --note "reason"
 npm run zport -- ignore <id> --note "reason"
 ```
 
-Si un ID apparaît plusieurs fois dans le référentiel, la CLI le signale. Quand
-les lignes correspondent au même symbole upstream dans le même fichier, `done`
-marque toutes les occurrences équivalentes ensemble. Si les lignes ne sont pas
-équivalentes, la CLI refuse l'action pour éviter de masquer une collision d'ID.
+Les IDs du référentiel sont dérivés de l'identité source complète :
+`type + fichier + symbole + lignes`.
 
 Pour réduire le contexte consommé pendant le portage, `brief <id>` doit être
 préféré à `context <id>` lorsque l'extrait upstream suffit. `brief` ajoute aussi
@@ -74,6 +74,17 @@ Par défaut, le portage se fait strictement **un symbole à la fois**.
    ```sh
    npm run zport -- next
    ```
+   Si `next` ne trouve rien alors qu'il reste des symboles `todo`, chercher les
+   cycles et petits bloqueurs portables :
+   ```sh
+   npm run zport -- candidates --limit 20
+   ```
+   `cycle-candidates` est un alias. Ces commandes ne remplacent pas `next` :
+   elles servent seulement à orienter le portage manuel quand le graphe strict
+   est bloqué par des dépendances circulaires, des signatures de rendu
+   SDL/OpenGL à remplacer, ou des dépendances classe/méthode trop grossières.
+   Un candidat doit ensuite suivre le même workflow `deps`, `brief`, tests et
+   `done`.
 2. Vérifier ses dépendances :
    ```sh
    npm run zport -- deps <id>

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ELIGHT_ROCKET_HEADER_GUARD_PORTED } from "../src/simulation/LightRocketEffect";
+import {
+  ELIGHT_ROCKET_HEADER_GUARD_PORTED,
+  initLightRocketEffect,
+  type LightRocketInitState,
+} from "../src/simulation/LightRocketEffect";
 
 describe("light rocket effect", () => {
   it("adapts the elightrocket.h include guard to an ES module marker", async () => {
@@ -10,5 +14,19 @@ describe("light rocket effect", () => {
     expect(secondImport.ELIGHT_ROCKET_HEADER_GUARD_PORTED).toBe(
       firstImport.ELIGHT_ROCKET_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports ELightRocket Init as bullet image initialization", () => {
+    const state: LightRocketInitState = {
+      bulletImage: null,
+      finishedInit: false,
+    };
+
+    initLightRocketEffect(state);
+
+    expect(state).toEqual({
+      bulletImage: "assets/units/vehicles/light/bullet.png",
+      finishedInit: true,
+    });
   });
 });

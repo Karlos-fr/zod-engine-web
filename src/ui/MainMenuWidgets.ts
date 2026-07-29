@@ -1,3 +1,6 @@
+import { FontType } from "../rendering/FontEngine";
+import { ACTIVE_TEAM_TYPE_COUNT } from "../simulation/SimulationConstants";
+
 /**
  * Upstream: zgui_main_menu_widgets.h
  */
@@ -55,6 +58,34 @@ export type MainMenuListEntryState = {
 };
 
 /**
+ * Port of upstream `mmlist_entry`.
+ * Role: Holds one main-menu list entry with default and configured construction.
+ * Upstream: zgui_main_menu_widgets.h:183-209
+ */
+export class MainMenuListEntry implements MainMenuListEntryState {
+  text = "";
+  refId = -1;
+  sortNumber = -1;
+  state = MainMenuListState.Normal;
+
+  constructor(text?: string, refId?: number, sortNumber?: number) {
+    if (text === undefined || refId === undefined || sortNumber === undefined) {
+      this.clear();
+      return;
+    }
+
+    this.text = text;
+    this.refId = refId;
+    this.sortNumber = sortNumber;
+    this.state = MainMenuListState.Normal;
+  }
+
+  clear(): void {
+    clearMainMenuListEntry(this);
+  }
+}
+
+/**
  * Port of upstream `mmwidget_type`.
  * Role: Identifies the concrete widget kind for main-menu controls.
  * Upstream: zgui_main_menu_widgets.h:28-34
@@ -94,6 +125,40 @@ export enum MainMenuButtonState {
 }
 
 /**
+ * Port of upstream `GMMWButton` dimension state.
+ * Role: Holds the button visual type and dimensions adjusted by button layout rules.
+ * Upstream: zgui_main_menu_widgets.h:129, zgui_main_menu_widgets.h:136
+ */
+export type MainMenuButtonDimensionState = {
+  type: MainMenuButtonType;
+  width: number;
+  height: number;
+};
+
+/**
+ * Port of upstream `GMMWTextBox` text image fields.
+ * Role: Holds the text-box state needed to rebuild its rendered text image.
+ * Upstream: zgui_main_menu_widgets.h:359-369
+ */
+export type MainMenuTextBoxImageState<TTextImage> = {
+  selected: boolean;
+  text: string;
+  passworded: boolean;
+  textImage: TTextImage | null;
+  doRerender: boolean;
+};
+
+/**
+ * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
+ * Role: Allows the browser renderer to provide the actual text image or texture.
+ * Upstream: gmmw_textbox.cpp:72
+ */
+export type MainMenuTextBoxTextRenderer<TTextImage> = (
+  font: FontType,
+  text: string,
+) => TTextImage;
+
+/**
  * Port of upstream `mmlist_state`.
  * Role: Identifies the visual interaction state of main-menu list controls.
  * Upstream: zgui_main_menu_widgets.h:178-181
@@ -114,6 +179,227 @@ export function clearMainMenuListEntry(state: MainMenuListEntryState): void {
   state.refId = -1;
   state.sortNumber = -1;
   state.state = MainMenuListState.Normal;
+}
+
+/**
+ * Port of upstream `sort_mmlist_entry_func`.
+ * Role: Orders main-menu list entries by their numeric sort key.
+ * Upstream: gmmw_list.cpp:495-498
+ */
+export function isMainMenuListEntryBefore(
+  a: Pick<MainMenuListEntryState, "sortNumber">,
+  b: Pick<MainMenuListEntryState, "sortNumber">,
+): boolean {
+  return a.sortNumber < b.sortNumber;
+}
+
+/**
+ * Port of upstream `GMMWList::SetHeight`.
+ * Role: Updates the list widget height from the visible entry count.
+ * Upstream: gmmw_list.cpp:115-118
+ */
+export function setMainMenuListHeight(state: {
+  visibleEntries: number;
+  height: number;
+}): void {
+  state.height = 3 + state.visibleEntries * MAIN_MENU_LIST_ENTRY_HEIGHT_PIXELS + 2;
+}
+
+/**
+ * Port of upstream `GMMWList::SetVisibleEntries`.
+ * Role: Updates the visible entry count, clamps it to the minimum, and refreshes height.
+ * Upstream: gmmw_list.cpp:106-113
+ */
+export function setMainMenuListVisibleEntries(
+  state: { visibleEntries: number; height: number },
+  visibleEntries: number,
+): void {
+  state.visibleEntries = Math.max(visibleEntries, MAIN_MENU_LIST_MIN_ENTRIES);
+  setMainMenuListHeight(state);
+}
+
+/**
+ * Port of upstream `GMMWList::GetFirstSelected`.
+ * Role: Returns the first pressed main-menu list entry index, or -1 when none is pressed.
+ * Upstream: gmmw_list.cpp:120-127
+ */
+export function getFirstSelectedMainMenuListEntry(
+  entries: Array<Pick<MainMenuListEntryState, "state">>,
+): number {
+  return entries.findIndex((entry) => entry.state === MainMenuListState.Pressed);
+}
+
+/**
+ * Port of upstream `GMMWList::UnSelectAll`.
+ * Role: Clears pressed state from every main-menu list entry except one optional entry.
+ * Upstream: gmmw_list.cpp:129-134
+ */
+export function unselectAllMainMenuListEntries(
+  entries: Array<Pick<MainMenuListEntryState, "state">>,
+  exceptEntry: number,
+): void {
+  entries.forEach((entry, index) => {
+    if (index !== exceptEntry) {
+      entry.state = MainMenuListState.Normal;
+    }
+  });
+}
+
+/**
+ * Minimal state consumed by ported `GMMWList::CheckViewI`.
+ * Role: Holds list entries, visible entry count, and the first visible list index.
+ * Upstream: gmmw_list.cpp:136-144
+ */
+export type MainMenuListViewState = {
+  entries: readonly unknown[];
+  visibleEntries: number;
+  viewIndex: number;
+};
+
+/**
+ * Port of upstream `GMMWList` release interaction state.
+ * Role: Holds list bounds, scroll state, and scroll-button press states for release handling.
+ * Upstream: zgui_main_menu_widgets.h:211-216
+ */
+export type MainMenuListUnclickState = MainMenuListViewState & {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  upButtonState: MainMenuListState;
+  downButtonState: MainMenuListState;
+};
+
+/**
+ * Port of upstream `GMMWList::CheckViewI`.
+ * Role: Clamps the first visible list index to the available scroll range.
+ * Upstream: gmmw_list.cpp:136-144
+ */
+export function checkMainMenuListViewIndex(
+  state: MainMenuListViewState,
+): void {
+  const availableSlots = state.entries.length - state.visibleEntries;
+
+  if (state.viewIndex > availableSlots) state.viewIndex = availableSlots;
+  if (state.viewIndex < 0) state.viewIndex = 0;
+}
+
+/**
+ * Port of upstream `GMMWList::MoveUp`.
+ * Role: Moves the first visible list index one entry upward when possible.
+ * Upstream: gmmw_list.cpp:266-277
+ */
+export function moveUpMainMenuList(state: { viewIndex: number }): boolean {
+  state.viewIndex -= 1;
+
+  if (state.viewIndex < 0) {
+    state.viewIndex = 0;
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Port of upstream `GMMWList::MoveDown`.
+ * Role: Moves the first visible list index one entry downward when possible.
+ * Upstream: gmmw_list.cpp:279-297
+ */
+export function moveDownMainMenuList(state: MainMenuListViewState): boolean {
+  state.viewIndex += 1;
+
+  const availableSlots = state.entries.length - state.visibleEntries;
+
+  if (state.viewIndex > availableSlots) {
+    state.viewIndex = availableSlots;
+
+    if (state.viewIndex < 0) state.viewIndex = 0;
+
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Port of upstream `GMMWList::WithinUpButton`.
+ * Role: Tests whether a list-local point is inside the scroll-up button bounds.
+ * Upstream: gmmw_list.cpp:232-247
+ */
+export function withinMainMenuListUpButton(
+  state: { width: number },
+  pointX: number,
+  pointY: number,
+): boolean {
+  const buttonWidth = 11;
+  const buttonHeight = 8;
+  const buttonX = state.width - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS;
+  const buttonY = MAIN_MENU_LIST_UP_BUTTON_TOP_OFFSET_PIXELS;
+
+  if (pointX < buttonX) return false;
+  if (pointY < buttonY) return false;
+  if (pointX > buttonX + buttonWidth) return false;
+  if (pointY > buttonY + buttonHeight) return false;
+
+  return true;
+}
+
+/**
+ * Port of upstream `GMMWList::WithinDownButton`.
+ * Role: Tests whether a list-local point is inside the scroll-down button bounds.
+ * Upstream: gmmw_list.cpp:249-264
+ */
+export function withinMainMenuListDownButton(
+  state: { width: number; height: number },
+  pointX: number,
+  pointY: number,
+): boolean {
+  const buttonWidth = 11;
+  const buttonHeight = 8;
+  const buttonX = state.width - MAIN_MENU_LIST_DOWN_BUTTON_RIGHT_OFFSET_PIXELS;
+  const buttonY = state.height - MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS;
+
+  if (pointX < buttonX) return false;
+  if (pointY < buttonY) return false;
+  if (pointX > buttonX + buttonWidth) return false;
+  if (pointY > buttonY + buttonHeight) return false;
+
+  return true;
+}
+
+/**
+ * Port of upstream `GMMWList::UnClick`.
+ * Role: Releases list scroll buttons and applies the matching scroll action.
+ * Upstream: gmmw_list.cpp:187-205
+ */
+export function unclickMainMenuList(
+  state: MainMenuListUnclickState,
+  pointX: number,
+  pointY: number,
+): boolean {
+  const localX = pointX - state.x;
+  const localY = pointY - state.y;
+  const previousUpButtonState = state.upButtonState;
+  const previousDownButtonState = state.downButtonState;
+
+  state.upButtonState = MainMenuListState.Normal;
+  state.downButtonState = MainMenuListState.Normal;
+
+  if (
+    previousUpButtonState === MainMenuListState.Pressed &&
+    withinMainMenuListUpButton(state, localX, localY)
+  ) {
+    return moveUpMainMenuList(state);
+  }
+
+  if (
+    previousDownButtonState === MainMenuListState.Pressed &&
+    withinMainMenuListDownButton(state, localX, localY)
+  ) {
+    return moveDownMainMenuList(state);
+  }
+
+  return false;
 }
 
 /**
@@ -223,6 +509,16 @@ export type MainMenuWidgetCoordinateState = {
 };
 
 /**
+ * Port of upstream `ZGMMWidget` bounds fields.
+ * Role: Holds the main-menu widget origin and dimensions used for hit testing.
+ * Upstream: zgui_main_menu_widgets.h:61, zgui_main_menu_widgets.h:70
+ */
+export type MainMenuWidgetBoundsState = MainMenuWidgetCoordinateState & {
+  width: number;
+  height: number;
+};
+
+/**
  * Port of upstream `SetCoords`.
  * Role: Updates the main-menu widget origin.
  * Upstream: zgui_main_menu_widgets.h:60
@@ -234,6 +530,24 @@ export function setMainMenuWidgetCoords(
 ): void {
   state.x = x;
   state.y = y;
+}
+
+/**
+ * Port of upstream `ZGMMWidget::WithinDimensions`.
+ * Role: Tests whether a point is within the widget's inclusive bounds.
+ * Upstream: zgui_main_menu_widget.cpp:15-23
+ */
+export function withinMainMenuWidgetDimensions(
+  state: MainMenuWidgetBoundsState,
+  x: number,
+  y: number,
+): boolean {
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x > state.x + state.width) return false;
+  if (y > state.y + state.height) return false;
+
+  return true;
 }
 
 /**
@@ -360,6 +674,78 @@ export function setMainMenuButtonText(
 }
 
 /**
+ * Port of upstream `GMMWButton::DetermineDimensions`.
+ * Role: Applies fixed dimensions for button visual types that override the default size.
+ * Upstream: gmmw_button.cpp:216-225
+ */
+export function determineMainMenuButtonDimensions(
+  state: MainMenuButtonDimensionState,
+): void {
+  switch (state.type) {
+    case MainMenuButtonType.Close:
+      state.width = 12;
+      state.height = 12;
+      break;
+  }
+}
+
+/**
+ * Port of upstream `SetType`.
+ * Role: Stores the button visual type and reapplies type-specific dimensions.
+ * Upstream: zgui_main_menu_widgets.h:110
+ */
+export function setMainMenuButtonType(
+  state: MainMenuButtonDimensionState,
+  type: MainMenuButtonType,
+): void {
+  state.type = type;
+  determineMainMenuButtonDimensions(state);
+}
+
+/**
+ * Port of upstream `GMMWButton::Click`.
+ * Role: Presses an active button when the click lands inside its bounds.
+ * Upstream: gmmw_button.cpp:227-235
+ */
+export function clickMainMenuButton(
+  state: MainMenuWidgetBoundsState & {
+    active: boolean;
+    state: MainMenuButtonState;
+  },
+  x: number,
+  y: number,
+): boolean {
+  if (!state.active) return false;
+  if (!withinMainMenuWidgetDimensions(state, x, y)) return false;
+
+  state.state = MainMenuButtonState.Pressed;
+
+  return true;
+}
+
+/**
+ * Port of upstream `GMMWButton::UnClick`.
+ * Role: Releases a button and reports a completed click when release lands on an active pressed button.
+ * Upstream: gmmw_button.cpp:237-249
+ */
+export function unclickMainMenuButton(
+  state: MainMenuWidgetBoundsState & {
+    active: boolean;
+    state: MainMenuButtonState;
+  },
+  x: number,
+  y: number,
+): boolean {
+  const previousState = state.state;
+  state.state = MainMenuButtonState.Normal;
+
+  if (!state.active) return false;
+  if (!withinMainMenuWidgetDimensions(state, x, y)) return false;
+
+  return previousState === MainMenuButtonState.Pressed;
+}
+
+/**
  * Port of upstream `SetGreen`.
  * Role: Stores whether a main-menu button uses its green visual state.
  * Upstream: zgui_main_menu_widgets.h:111
@@ -382,6 +768,49 @@ export function setMainMenuTextBoxGoodCharsOnly(
 ): void {
   state.goodCharsOnly = goodCharsOnly;
   state.doRerender = true;
+}
+
+/**
+ * Minimal state consumed by ported `GMMWTextBox::Init`.
+ * Role: Holds text-box frame image paths and the initialization flag.
+ * Upstream: gmmw_textbox.cpp:23-31
+ */
+export type MainMenuTextBoxInitState = {
+  topImage: string | null;
+  leftImage: string | null;
+  rightImage: string | null;
+  bottomImage: string | null;
+  finishedInit: boolean;
+};
+
+/**
+ * Port of upstream `GMMWTextBox::Init`.
+ * Role: Initializes text-box frame image paths.
+ * Upstream: gmmw_textbox.cpp:23-31
+ */
+export function initMainMenuTextBox(state: MainMenuTextBoxInitState): void {
+  state.topImage =
+    "assets/other/main_menu_gui/textbox/textbox_top.png";
+  state.leftImage =
+    "assets/other/main_menu_gui/textbox/textbox_left.png";
+  state.rightImage =
+    "assets/other/main_menu_gui/textbox/textbox_right.png";
+  state.bottomImage =
+    "assets/other/main_menu_gui/textbox/textbox_bottom.png";
+  state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `GMMWTextBox::Click`.
+ * Role: Reports whether a click lands inside the text-box bounds.
+ * Upstream: gmmw_textbox.cpp:33-36
+ */
+export function clickMainMenuTextBox(
+  state: MainMenuWidgetBoundsState,
+  x: number,
+  y: number,
+): boolean {
+  return withinMainMenuWidgetDimensions(state, x, y);
 }
 
 /**
@@ -436,6 +865,27 @@ export function setMainMenuTextBoxPassworded(
 }
 
 /**
+ * Port of upstream `GMMWTextBox::MakeTextImage`.
+ * Role: Rebuilds the browser text image payload from text-box state.
+ * Upstream: gmmw_textbox.cpp:61-75
+ */
+export function makeMainMenuTextBoxImage<TTextImage>(
+  state: MainMenuTextBoxImageState<TTextImage>,
+  renderText: MainMenuTextBoxTextRenderer<TTextImage>,
+): void {
+  let renderTextValue = state.passworded
+    ? "*".repeat(state.text.length)
+    : state.text;
+
+  if (state.selected) {
+    renderTextValue += "{";
+  }
+
+  state.textImage = renderText(FontType.SmallWhite, renderTextValue);
+  state.doRerender = false;
+}
+
+/**
  * Port of upstream `SetJustification`.
  * Role: Stores the horizontal text alignment for a main-menu label.
  * Upstream: zgui_main_menu_widgets.h:156
@@ -457,6 +907,82 @@ export function setMainMenuLabelFont(
   font: number,
 ): void {
   state.font = font;
+}
+
+/**
+ * Port of upstream `GMMWLabel::SetText`.
+ * Role: Stores label text and schedules text rerendering when it differs from the rendered text.
+ * Upstream: gmmw_label.cpp:13-19
+ */
+export function setMainMenuLabelText(
+  state: { text: string; renderedText: string; rerenderText: boolean },
+  text: string,
+): void {
+  if (text === state.renderedText) {
+    return;
+  }
+
+  state.text = text;
+  state.rerenderText = true;
+}
+
+/**
+ * Port of upstream `GMMWTeamColor::SetTeam`.
+ * Role: Stores the team-color widget team, clamping invalid values to the null team.
+ * Upstream: gmmw_team_color.cpp:31-37
+ */
+export function setMainMenuTeamColorTeam(
+  state: { team: number },
+  team: number,
+): void {
+  state.team = team;
+
+  if (state.team < 0) state.team = 0;
+  if (state.team >= ACTIVE_TEAM_TYPE_COUNT) state.team = 0;
+}
+
+/**
+ * Minimal state consumed by ported `GMMWRadio::Init`.
+ * Role: Holds radio widget image paths and the initialization flag.
+ * Upstream: gmmw_radio.cpp:18-26
+ */
+export type MainMenuRadioInitState = {
+  radioLeftImage: string | null;
+  radioCenterImage: string | null;
+  radioRightImage: string | null;
+  radioSelectorImage: string | null;
+  finishedInit: boolean;
+};
+
+/**
+ * Minimal state consumed by ported `GMMWRadio::Click`.
+ * Role: Holds radio widget bounds, option count, and emitted click flags.
+ * Upstream: zgui_main_menu_widgets.h:286-289, gmmw_radio.cpp:48-69
+ */
+export type MainMenuRadioClickState = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  selections: number;
+  flags: MainMenuWidgetFlag;
+};
+
+/**
+ * Port of upstream `GMMWRadio::Init`.
+ * Role: Initializes radio widget image paths.
+ * Upstream: gmmw_radio.cpp:18-26
+ */
+export function initMainMenuRadio(state: MainMenuRadioInitState): void {
+  state.radioLeftImage =
+    "assets/other/main_menu_gui/radio/radio_left.png";
+  state.radioCenterImage =
+    "assets/other/main_menu_gui/radio/radio_center.png";
+  state.radioRightImage =
+    "assets/other/main_menu_gui/radio/radio_right.png";
+  state.radioSelectorImage =
+    "assets/other/main_menu_gui/radio/radio_selector.png";
+  state.finishedInit = true;
 }
 
 /**
@@ -495,6 +1021,59 @@ export function setMainMenuRadioSelected(
 ): void {
   state.selectedIndex = selectedIndex;
   checkMainMenuRadioSelectedIndex(state);
+}
+
+/**
+ * Port of upstream `GMMWRadio::SetMaxSelections`.
+ * Role: Updates the radio option count, clamps it to the minimum, refreshes width, and validates selection.
+ * Upstream: gmmw_radio.cpp:28-37
+ */
+export function setMainMenuRadioMaxSelections(
+  state: { selections: number; width: number; selectedIndex: number },
+  selections: number,
+): void {
+  state.selections = Math.max(selections, MAIN_MENU_RADIO_MIN_SELECTIONS);
+  state.width =
+    MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+    (state.selections - 2) * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+    MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS;
+
+  checkMainMenuRadioSelectedIndex(state);
+}
+
+/**
+ * Port of upstream `GMMWRadio::Click`.
+ * Role: Converts an in-bounds radio click into the selected option index flag.
+ * Upstream: gmmw_radio.cpp:48-69
+ */
+export function clickMainMenuRadio(
+  state: MainMenuRadioClickState,
+  clickX: number,
+  clickY: number,
+): boolean {
+  state.flags.clear();
+
+  if (clickX < state.x) return false;
+  if (clickX > state.x + state.width) return false;
+  if (clickY < state.y) return false;
+  if (clickY > state.y + state.height) return false;
+
+  const localX = clickX - state.x;
+
+  if (localX < MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS) {
+    state.flags.radioSelectionIndexSelected = 0;
+  } else if (localX > state.width - MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS) {
+    state.flags.radioSelectionIndexSelected = state.selections - 1;
+  } else {
+    state.flags.radioSelectionIndexSelected =
+      1 +
+      Math.trunc(
+        (localX - MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS) /
+          MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS,
+      );
+  }
+
+  return true;
 }
 
 /**

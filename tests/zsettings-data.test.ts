@@ -448,6 +448,91 @@ describe("z settings data", () => {
     });
   });
 
+  it("ports ZSettings::LoadSettings as persisted settings text parsing", () => {
+    const settings = new ZSettings();
+
+    const loaded = settings.loadSettings(
+      [
+        "# ignored comment",
+        "",
+        "UNIT.GrUnT.group_amount=4",
+        "unit.jeep.move_speed=19",
+        "unit.gatling.attack_damage=0.5",
+        "building.fort.health=12.5",
+        "building.radar.health=7.25",
+        "map_item.rock.health=2.5",
+        "map_item.grenades.grenade_damage=1.25",
+        "map_item.grenades.grenade_damage_radius=14",
+        "map_item.grenades.grenade_missile_speed=22",
+        "map_item.grenades.grenade_attack_speed=0.75",
+        "map_item.map_item.map_item_turrent_damage=3.5",
+        "global.global.agro_distance=44",
+        "global.global.auto_grab_vehicle_distance=222",
+        "global.global.auto_grab_flag_distance=223",
+        "global.global.building_auto_repair_time=90",
+        "global.global.building_auto_repair_random_additional_time=12",
+        "global.global.max_turrent_horizontal_distance=301",
+        "global.global.max_turrent_vertical_distance=302",
+        "global.global.grenades_per_box=20",
+        "global.global.partially_damaged_unit_speed=0.91",
+        "global.global.damaged_unit_speed=0.81",
+        "global.global.run_unit_speed=1.9",
+        "global.global.run_recharge_rate=0.4",
+        "global.global.hut_animal_max=6",
+        "global.global.hut_animal_min=2",
+        "global.global.hut_animal_roam_distance=120",
+      ].join("\n"),
+    );
+
+    expect(loaded).toBe(true);
+    expect(settings.robotSettings[RobotType.Grunt].groupAmount).toBe(4);
+    expect(settings.vehicleSettings[VehicleType.Jeep].moveSpeed).toBe(19);
+    expect(settings.cannonSettings[CannonType.Gatling].attackDamage).toBe(0.5);
+    expect(settings.fortBuildingHealth).toBe(12.5);
+    expect(settings.radarBuildingHealth).toBe(7.25);
+    expect(settings.rockItemHealth).toBe(2.5);
+    expect(settings.grenadeDamage).toBe(1.25);
+    expect(settings.grenadeDamageRadius).toBe(14);
+    expect(settings.grenadeMissileSpeed).toBe(22);
+    expect(settings.grenadeAttackSpeed).toBe(0.75);
+    expect(settings.mapItemTurrentDamage).toBe(3.5);
+    expect(settings.agroDistance).toBe(44);
+    expect(settings.autoGrabVehicleDistance).toBe(222);
+    expect(settings.autoGrabFlagDistance).toBe(223);
+    expect(settings.buildingAutoRepairTime).toBe(90);
+    expect(settings.buildingAutoRepairRandomAdditionalTime).toBe(12);
+    expect(settings.maxTurrentHorizontalDistance).toBe(301);
+    expect(settings.maxTurrentVerticalDistance).toBe(302);
+    expect(settings.grenadesPerBox).toBe(20);
+    expect(settings.partiallyDamagedUnitSpeed).toBe(0.91);
+    expect(settings.damagedUnitSpeed).toBe(0.81);
+    expect(settings.runUnitSpeed).toBe(1.9);
+    expect(settings.runRechargeRate).toBe(0.4);
+    expect(settings.hutAnimalMax).toBe(6);
+    expect(settings.hutAnimalMin).toBe(2);
+    expect(settings.hutAnimalRoamDistance).toBe(120);
+  });
+
+  it("ports ZSettings::LoadSettings empty input and final censoring", () => {
+    const emptySettings = new ZSettings();
+    expect(emptySettings.loadSettings("# comment only\n\n")).toBe(false);
+
+    const settings = new ZSettings();
+    expect(
+      settings.loadSettings(
+        [
+          "global.global.grenades_per_box=120",
+          "global.global.run_recharge_rate=2",
+          "map_item.grenades.grenade_damage=-1",
+        ].join("\n"),
+      ),
+    ).toBe(true);
+
+    expect(settings.grenadesPerBox).toBe(99);
+    expect(settings.runRechargeRate).toBe(1);
+    expect(settings.grenadeDamage).toBe(0);
+  });
+
   it("ports ZSettings::SaveSettings as persisted settings text", () => {
     const settings = new ZSettings();
 

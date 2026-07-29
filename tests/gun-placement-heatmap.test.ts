@@ -4,16 +4,90 @@ import {
   FLAG_HEAT_TILE_DISTANCE,
   FORT_HEAT_TILE_DISTANCE,
   GUN_PLACEMENT_HEATMAP_PROCESS_TIME_INCREMENT,
+  type GunPlacementCoreReference,
+  type GunPlacementMapReference,
+  type GunPlacementMapZoneInfoReference,
+  type GunPlacementObjectListsReference,
+  type GunPlacementObjectReference,
   type HeatMapBaseState,
   UNIT_HISTORY_HEAT_TILE_DISTANCE,
   UNIT_HISTORY_HEATMAP_CLEAR_THRESHOLD,
   UNIT_HISTORY_HEATMAP_TIME_DECAY,
   UNIT_HISTORY_HEATMAP_TIME_INCREMENT,
   ZGUN_PLACEMENT_HEATMAP_HEADER_GUARD_PORTED,
+  clearHeatMap,
   getHeatMapSize,
+  resetHeatMap,
+  shouldClearHeatMap,
+  shouldResetHeatMap,
 } from "../src/world/GunPlacementHeatMap";
+import { GameEntity } from "../src/simulation/entities/GameEntity";
+import { TeamType } from "../src/simulation/SimulationConstants";
+import { GameMap } from "../src/world/GameMap";
 
 describe("gun placement heatmap", () => {
+  it("ports the ZCore forward declaration as an opaque game-core reference", () => {
+    const core = { allowRun: true };
+    const acceptCore = (
+      value: GunPlacementCoreReference,
+    ): GunPlacementCoreReference => value;
+
+    expect(acceptCore(core)).toBe(core);
+  });
+
+  it("ports the ZMap forward declaration as a game-map reference", () => {
+    const map: GunPlacementMapReference = GameMap.createFlat({
+      width: 2,
+      height: 2,
+    });
+
+    expect(map).toBeInstanceOf(GameMap);
+    expect(map.width).toBe(2);
+    expect(map.height).toBe(2);
+  });
+
+  it("ports the ZObject forward declaration as a game-entity reference", () => {
+    const object: GunPlacementObjectReference = new GameEntity({
+      id: "factory-1",
+      kind: "factory",
+      position: { x: 3, y: 4 },
+    });
+
+    expect(object).toBeInstanceOf(GameEntity);
+    expect(object.position).toEqual({ x: 3, y: 4 });
+  });
+
+  it("ports the map_zone_info forward declaration as a map-zone reference", () => {
+    const zone: GunPlacementMapZoneInfoReference = {
+      owner: TeamType.Red,
+      tiles: [],
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+      id: 5,
+    };
+
+    expect(zone).toEqual({
+      owner: TeamType.Red,
+      tiles: [],
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+      id: 5,
+    });
+  });
+
+  it("ports the ZOLists forward declaration as an opaque object-lists reference", () => {
+    const objectLists = { objects: [] };
+    const acceptObjectLists = (
+      value: GunPlacementObjectListsReference,
+    ): GunPlacementObjectListsReference => value;
+
+    expect(acceptObjectLists(objectLists)).toBe(objectLists);
+  });
+
   it("adapts the zgun_placement_heatmap header guard to module boundaries", async () => {
     const firstImport = await import("../src/world/GunPlacementHeatMap");
     const secondImport = await import("../src/world/GunPlacementHeatMap");
@@ -61,8 +135,87 @@ describe("gun placement heatmap", () => {
   });
 
   it("ports GetHeatMapSize as the heatmap size accessor", () => {
-    const state: HeatMapBaseState = { heatMapSize: 256 };
+    const state: HeatMapBaseState = { heatMapSize: 256, lastTeam: TeamType.Blue };
 
     expect(getHeatMapSize(state)).toBe(256);
+  });
+
+  it("ports ZHeatMapBase ShouldClear as last-team comparison", () => {
+    expect(shouldClearHeatMap({ lastTeam: TeamType.Blue }, TeamType.Blue)).toBe(
+      false,
+    );
+    expect(shouldClearHeatMap({ lastTeam: TeamType.Red }, TeamType.Blue)).toBe(
+      true,
+    );
+  });
+
+  it("ports ZHeatMapBase ShouldReset as map area and heatmap-size comparison", () => {
+    expect(
+      shouldResetHeatMap({ heatMapSize: 12 }, { width: 3, height: 4 }),
+    ).toBe(false);
+    expect(
+      shouldResetHeatMap({ heatMapSize: 11 }, { width: 3, height: 4 }),
+    ).toBe(true);
+  });
+
+  it("ports ZHeatMapBase DoReset as heatmap allocation for map dimensions", () => {
+    const oldHeatMap = [9, 8, 7];
+    const state: HeatMapBaseState = {
+      heatMapSize: oldHeatMap.length,
+      heatMap: oldHeatMap,
+      lastTeam: TeamType.Red,
+    };
+
+    resetHeatMap(state, { width: 3, height: 2 });
+
+    expect(state.heatMapSize).toBe(6);
+    expect(state.heatMap).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(state.heatMap).not.toBe(oldHeatMap);
+    expect(state.lastTeam).toBe(TeamType.Red);
+  });
+
+  it("ports ZHeatMapBase DoReset by dropping storage for empty maps", () => {
+    const state: HeatMapBaseState = {
+      heatMapSize: 3,
+      heatMap: [1, 2, 3],
+      lastTeam: TeamType.Blue,
+    };
+
+    resetHeatMap(state, { width: 0, height: 5 });
+
+    expect(state.heatMapSize).toBe(0);
+    expect(state.heatMap).toBeUndefined();
+    expect(state.lastTeam).toBe(TeamType.Blue);
+  });
+
+  it("ports ZHeatMapBase DoReset by clamping negative computed size to zero", () => {
+    const state: HeatMapBaseState = {
+      heatMapSize: 3,
+      heatMap: [1, 2, 3],
+    };
+
+    resetHeatMap(state, { width: -2, height: 5 });
+
+    expect(state.heatMapSize).toBe(0);
+    expect(state.heatMap).toBeUndefined();
+  });
+
+  it("ports ZHeatMapBase DoClear as heatmap reset and optional team update", () => {
+    const state: HeatMapBaseState = {
+      heatMapSize: 3,
+      heatMap: [4, 5, 6, 7],
+      lastTeam: TeamType.Red,
+    };
+
+    clearHeatMap(state, TeamType.Blue);
+
+    expect(state.heatMap).toEqual([0, 0, 0, 7]);
+    expect(state.lastTeam).toBe(TeamType.Blue);
+
+    state.heatMap = [1, 2, 3];
+    clearHeatMap(state, -1);
+
+    expect(state.heatMap).toEqual([0, 0, 0]);
+    expect(state.lastTeam).toBe(TeamType.Blue);
   });
 });

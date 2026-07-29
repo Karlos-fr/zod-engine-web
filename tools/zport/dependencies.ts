@@ -77,17 +77,14 @@ export function resolveDependencies(
     filtered.forEach((id) => dependencies.add(id));
   }
 
-  const byId = new Map(rows.map((entry) => [entry.id, entry]));
+  const byId = buildRowsById(rows);
   const blockedBy = [...dependencies].filter((id) => {
-    const dependency = byId.get(id);
-    if (!dependency) {
+    const dependenciesForId = byId.get(id);
+    if (!dependenciesForId?.length) {
       return true;
     }
-    if (["ported", "verified", "ignored"].includes(dependency.status)) {
+    if (dependenciesForId.some(isSatisfiedDependency)) {
       return false;
-    }
-    if (["REPLACE", "IGNORE", "DEFER"].includes(dependency.decision)) {
-      return !dependency.notes;
     }
     return true;
   });
@@ -101,6 +98,21 @@ export function resolveDependencies(
 
 export function isDependencyClear(row: LedgerRow): boolean {
   return !row.blockedBy.trim();
+}
+
+function buildRowsById(rows: LedgerRow[]): Map<string, LedgerRow[]> {
+  const byId = new Map<string, LedgerRow[]>();
+  for (const row of rows) {
+    byId.set(row.id, [...(byId.get(row.id) ?? []), row]);
+  }
+  return byId;
+}
+
+function isSatisfiedDependency(row: LedgerRow): boolean {
+  if (["ported", "verified", "ignored"].includes(row.status)) {
+    return true;
+  }
+  return ["REPLACE", "IGNORE", "DEFER"].includes(row.decision) && Boolean(row.notes);
 }
 
 function buildSymbolIndex(rows: LedgerRow[]): Map<string, string[]> {

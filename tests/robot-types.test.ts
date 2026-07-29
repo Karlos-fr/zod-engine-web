@@ -8,6 +8,12 @@ import {
   RSNIPER_HEADER_GUARD_PORTED,
   RTOUGH_HEADER_GUARD_PORTED,
   ZROBOT_HEADER_GUARD_PORTED,
+  playGruntSelectedWav,
+  playLaserSelectedWav,
+  playPsychoSelectedWav,
+  playPyroSelectedWav,
+  playSniperSelectedWav,
+  playToughSelectedWav,
 } from "../src/simulation/entities/RobotTypes";
 
 describe("robot types", () => {
@@ -83,5 +89,29 @@ describe("robot types", () => {
     expect(secondImport.RTOUGH_HEADER_GUARD_PORTED).toBe(
       firstImport.RTOUGH_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports RGrunt PlaySelectedWav as a disabled selection sound hook", () => {
+    expect(playGruntSelectedWav()).toBeUndefined();
+  });
+
+  it("ports RLaser PlaySelectedWav as a disabled selection sound hook", () => {
+    expect(playLaserSelectedWav()).toBeUndefined();
+  });
+
+  it("ports RPsycho PlaySelectedWav as a disabled selection sound hook", () => {
+    expect(playPsychoSelectedWav()).toBeUndefined();
+  });
+
+  it("ports RPyro PlaySelectedWav as a disabled selection sound hook", () => {
+    expect(playPyroSelectedWav()).toBeUndefined();
+  });
+
+  it("ports RSniper PlaySelectedWav as a disabled selection sound hook", () => {
+    expect(playSniperSelectedWav()).toBeUndefined();
+  });
+
+  it("ports RTough PlaySelectedWav as a disabled selection sound hook", () => {
+    expect(playToughSelectedWav()).toBeUndefined();
   });
 });

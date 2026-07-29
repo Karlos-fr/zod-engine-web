@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ZGMM_MULTIPLAYER_HEADER_GUARD_PORTED } from "../src/ui/MainMenuMultiplayer";
+import {
+  handleMainMenuMultiplayerWidgetEvent,
+  ZGMM_MULTIPLAYER_HEADER_GUARD_PORTED,
+} from "../src/ui/MainMenuMultiplayer";
 
 describe("main menu multiplayer", () => {
   it("adapts the gmm_multiplayer.h include guard to an ES module marker", async () => {
@@ -10,5 +13,12 @@ describe("main menu multiplayer", () => {
     expect(secondImport.ZGMM_MULTIPLAYER_HEADER_GUARD_PORTED).toBe(
       firstImport.ZGMM_MULTIPLAYER_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports GMMMultiplayer HandleWidgetEvent as an empty widget hook", () => {
+    const widget = { touched: false };
+
+    expect(handleMainMenuMultiplayerWidgetEvent(3, widget)).toBeUndefined();
+    expect(widget).toEqual({ touched: false });
   });
 });

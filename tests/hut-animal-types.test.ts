@@ -3,13 +3,21 @@ import {
   AHUTANIMAL_HEADER_GUARD_PORTED,
   HUT_ANIMAL_STATE_COUNT,
   HUT_ANIMAL_TYPE_COUNT,
+  chooseRandomHutAnimal,
+  type HutAnimalGoHomeState,
   type HutAnimalHomeCoordsState,
   type HutAnimalHomeState,
+  type HutAnimalRoamDistanceState,
+  type HutAnimalStateNothingState,
   HutAnimalState,
   HutAnimalType,
   isHutAnimalGoingHome,
+  isHutAnimalTileTooFar,
+  sendHutAnimalHome,
   setHutAnimalHomeCoords,
+  setHutAnimalStateNothing,
 } from "../src/simulation/entities/HutAnimalTypes";
+import { PlanetType } from "../src/simulation/SimulationConstants";
 
 describe("hut animal types", () => {
   it("ports the ahutanimal.h header guard as module traceability", async () => {
@@ -73,5 +81,91 @@ describe("hut animal types", () => {
 
     expect(nextState).toEqual({ homeX: 12, homeY: 16 });
     expect(state).toEqual({ homeX: 4, homeY: 8 });
+  });
+
+  it("ports AHutAnimal SetStateNothing as idle state and delay scheduling", () => {
+    const state: HutAnimalStateNothingState = {
+      hutAnimalState: HutAnimalState.Walking,
+      nextNothingTime: 0,
+      hutAnimalType: HutAnimalType.GreenSnake,
+      walkIndex: 5,
+      graphics: [{ walkToZero: true }],
+    };
+
+    setHutAnimalStateNothing(state, 20, () => 4);
+
+    expect(state).toEqual({
+      hutAnimalState: HutAnimalState.Nothing,
+      nextNothingTime: 20.5,
+      hutAnimalType: HutAnimalType.GreenSnake,
+      walkIndex: 0,
+      graphics: [{ walkToZero: true }],
+    });
+
+    state.hutAnimalState = HutAnimalState.Walking;
+    state.walkIndex = 6;
+    state.graphics[0] = { walkToZero: false };
+
+    setHutAnimalStateNothing(state, 30, () => 0);
+
+    expect(state.hutAnimalState).toBe(HutAnimalState.Nothing);
+    expect(state.nextNothingTime).toBe(30.1);
+    expect(state.walkIndex).toBe(6);
+  });
+
+  it("ports AHutAnimal ChooseRandomAnimal guard exits", () => {
+    const animalsInPalette = [
+      [HutAnimalType.GreenSnake],
+      [],
+      [HutAnimalType.Penguin],
+    ];
+
+    expect(chooseRandomHutAnimal(-1, animalsInPalette)).toBe(0);
+    expect(chooseRandomHutAnimal(PlanetType.Max, animalsInPalette)).toBe(0);
+    expect(chooseRandomHutAnimal(PlanetType.Volcanic, animalsInPalette)).toBe(0);
+  });
+
+  it("ports AHutAnimal ChooseRandomAnimal as palette-table random selection", () => {
+    const animalsInPalette = [
+      [],
+      [],
+      [HutAnimalType.ArcticRabbit, HutAnimalType.Penguin, HutAnimalType.WhiteWolf],
+    ];
+
+    expect(
+      chooseRandomHutAnimal(PlanetType.Arctic, animalsInPalette, () => 1),
+    ).toBe(HutAnimalType.Penguin);
+    expect(
+      chooseRandomHutAnimal(PlanetType.Arctic, animalsInPalette, () => 5),
+    ).toBe(HutAnimalType.WhiteWolf);
+  });
+
+  it("ports AHutAnimal GoHome as return flag and home-tile targeting", () => {
+    const state: HutAnimalGoHomeState = {
+      goingHome: false,
+      homeX: 47,
+      homeY: 64,
+    };
+    const calls: Array<[number, number]> = [];
+
+    sendHutAnimalHome(state, (tileX, tileY) => calls.push([tileX, tileY]));
+
+    expect(state.goingHome).toBe(true);
+    expect(calls).toEqual([[2, 4]]);
+  });
+
+  it("ports AHutAnimal TileIsTooFar using the tile center and roam distance", () => {
+    const state: HutAnimalRoamDistanceState = {
+      homeX: 8,
+      homeY: 8,
+      hutAnimalRoamDistance: 16,
+    };
+
+    expect(isHutAnimalTileTooFar(state, 0, 0)).toBe(false);
+    expect(isHutAnimalTileTooFar(state, 1, 0)).toBe(false);
+
+    state.hutAnimalRoamDistance = 15;
+
+    expect(isHutAnimalTileTooFar(state, 1, 0)).toBe(true);
   });
 });

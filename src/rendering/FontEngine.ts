@@ -31,6 +31,24 @@ export enum FontType {
 }
 
 /**
+ * Port of upstream `ZFont::type`.
+ * Role: Holds the selected font atlas type.
+ * Upstream: zfont.h:20
+ */
+export type FontState = {
+  type: FontType | number;
+};
+
+/**
+ * Port of upstream `ZFont::SetType`.
+ * Role: Stores the selected font atlas type.
+ * Upstream: zfont.cpp:73-76
+ */
+export function setFontType(state: FontState, type: FontType | number): void {
+  state.type = type;
+}
+
+/**
  * Port of upstream `_ZFONT_ENGINE_H_`.
  * Role: Marks an upstream header boundary.
  * Upstream: zfont_engine.h:2

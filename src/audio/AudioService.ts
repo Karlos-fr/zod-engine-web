@@ -1,6 +1,7 @@
 /**
  * Upstream: zsdl.cpp / zmusic_engine.h / zsound_engine.h
  */
+import { PlanetType } from "../simulation/SimulationConstants";
 
 /**
  * Port of upstream `_ZMUSIC_ENGINE_H_`.
@@ -221,6 +222,40 @@ export function getMusicEngineDangerLevel(state: {
 }
 
 /**
+ * Port of upstream `ZMusicEngine::SetDangerLevel` mutable fields.
+ * Role: Stores the currently selected music danger level.
+ * Upstream: zmusic_engine.cpp:327-329
+ */
+export type MusicDangerLevelState = {
+  dangerLevel: MusicDangerLevel;
+};
+
+/**
+ * Port of upstream `ZMusicEngine::ResetMusic` call target.
+ * Role: Restarts music selection after a danger-level change.
+ * Upstream: zmusic_engine.cpp:331
+ */
+export type MusicResetter = () => void;
+
+/**
+ * Port of upstream `ZMusicEngine::SetDangerLevel`.
+ * Role: Applies a valid danger-level change and resets music when the level changes.
+ * Upstream: zmusic_engine.cpp:320-332
+ */
+export function setMusicEngineDangerLevel(
+  state: MusicDangerLevelState,
+  dangerLevel: number,
+  resetMusic: MusicResetter,
+): void {
+  if (dangerLevel < 0) return;
+  if (dangerLevel >= MusicDangerLevel.MaxDangerLevels) return;
+  if (dangerLevel === state.dangerLevel) return;
+
+  state.dangerLevel = dangerLevel;
+  resetMusic();
+}
+
+/**
  * Browser-side replacement for an SDL music handle.
  * Role: Carries an opaque music asset for the playback backend.
  * Upstream: zsdl.cpp:411-417
@@ -242,6 +277,24 @@ export type MusicPlayer = (music: MusicHandle, loops: number) => number;
 export type SoundChunkHandle = object | null;
 
 /**
+ * Browser-side replacement for an SDL chunk volume field.
+ * Role: Carries the mutable volume applied after a sound effect is loaded.
+ * Upstream: zsound_engine.cpp:55-56
+ */
+export type SoundChunkWithVolume = {
+  volume: number;
+};
+
+/**
+ * Browser-side replacement for upstream `MIX_Load_Error`.
+ * Role: Loads a sound effect asset by filename and returns the backend chunk handle.
+ * Upstream: zsound_engine.cpp:53
+ */
+export type SoundChunkLoader<TChunk extends SoundChunkWithVolume> = (
+  filename: string,
+) => TChunk | null;
+
+/**
  * Browser-side replacement for the `Mix_PlayChannel` callback.
  * Role: Starts playback for a sound chunk and returns the backend channel/status.
  * Upstream: zsdl.cpp:419-429
@@ -251,6 +304,301 @@ export type ChannelPlayer = (
   chunk: SoundChunkHandle,
   repeat: number,
 ) => number;
+
+/**
+ * Browser-side replacement for the `Mix_HaltChannel` callback.
+ * Role: Stops playback on a backend channel.
+ * Upstream: zsound_engine.cpp:101-109
+ */
+export type ChannelHalter = (channel: number) => void;
+
+/**
+ * Port of upstream `ZMap::WithinView` dependency surface.
+ * Role: Reports whether a sound source rectangle intersects the current view.
+ * Upstream: zsound_engine.cpp:290
+ */
+export type SoundViewMap = {
+  withinView(x: number, y: number, width: number, height: number): boolean;
+};
+
+/**
+ * Port of upstream `ZSoundEngine::PlayWav` call target.
+ * Role: Starts playback for one sound-engine slot after higher-level guards pass.
+ * Upstream: zsound_engine.cpp:292
+ */
+export type WavPlayer = (sound: SoundEngineSound | number) => void;
+
+/**
+ * Port of upstream `ZSound::StopRepeatSound` mutable field.
+ * Role: Tracks the repeating sound channel or `-1` when no repeat is active.
+ * Upstream: zsound_engine.cpp:101-109
+ */
+export type RepeatSoundState = {
+  repeatChannel: number;
+};
+
+/**
+ * Port of upstream `ZSound::RepeatSound` call target.
+ * Role: Starts or maintains repeat playback for one sound slot.
+ * Upstream: zsound_engine.cpp:261, zsound_engine.cpp:264
+ */
+export type RepeatSoundStarter = {
+  repeatSound(): void;
+};
+
+/**
+ * Port of upstream `ZMusicEngine::PlaySplashMusic` mutable fields.
+ * Role: Holds the splash music handle and whether planet music is currently active.
+ * Upstream: zmusic_engine.cpp:184-192
+ */
+export type SplashMusicState = {
+  soundSystemOn: boolean;
+  splashMusic: MusicHandle | null;
+  playingPlanetMusic: boolean;
+};
+
+/**
+ * Port of upstream `ZMusicEngine::PlayPlanetMusic` mutable fields.
+ * Role: Holds planet music handles and current music playback state.
+ * Upstream: zmusic_engine.cpp:196-210
+ */
+export type PlanetMusicState = {
+  soundSystemOn: boolean;
+  planetMusic: Array<MusicHandle | null>;
+  planetType: PlanetType;
+  playingPlanetMusic: boolean;
+  doNextReset: boolean;
+  dangerLevel: MusicDangerLevel;
+};
+
+/**
+ * Port of upstream `ZSoundEngine::StopRepeatWav` mutable fields.
+ * Role: Holds repeat-capable sound channels managed by the sound engine.
+ * Upstream: zsound_engine.cpp:269-282
+ */
+export type StopRepeatWavState = {
+  finishedInit: boolean;
+  radar: RepeatSoundState;
+  robotFactory: RepeatSoundState;
+};
+
+/**
+ * Port of upstream `ZSoundEngine::RepeatWav` mutable fields.
+ * Role: Holds repeat-capable sound slots managed by the sound engine.
+ * Upstream: zsound_engine.cpp:256-264
+ */
+export type RepeatWavState = {
+  finishedInit: boolean;
+  radar: RepeatSoundStarter;
+  robotFactory: RepeatSoundStarter;
+};
+
+/**
+ * Port of upstream `ZSoundEngine::PlayWavRestricted` mutable fields.
+ * Role: Holds initialization and map visibility dependencies for restricted sound playback.
+ * Upstream: zsound_engine.cpp:286-290
+ */
+export type PlayWavRestrictedState = {
+  finishedInit: boolean;
+  zmap: SoundViewMap | null;
+};
+
+/**
+ * Port of upstream `ZSound::LoadSound` mutable fields.
+ * Role: Stores loaded sound playback parameters and the loaded chunk handle.
+ * Upstream: zsound_engine.cpp:48-57
+ */
+export type LoadSoundState<TChunk extends SoundChunkWithVolume> = {
+  baseVolume: number;
+  volumeShift: number;
+  playTimeShift: number;
+  soundChunk: TChunk | null;
+};
+
+/**
+ * Port of upstream `ZSound::PlaySound` mutable fields.
+ * Role: Stores loaded sound playback timing and randomized volume parameters.
+ * Upstream: zsound_engine.cpp:63-72
+ */
+export type PlaySoundState<TChunk extends SoundChunkWithVolume> =
+  LoadSoundState<TChunk> & {
+    nextPlayTime: number;
+  };
+
+/**
+ * Browser-side replacement for upstream `current_time`.
+ * Role: Supplies the current audio clock time for sound playback throttling.
+ * Upstream: zsound_engine.cpp:65
+ */
+export type AudioClock = () => number;
+
+/**
+ * Browser-side replacement for upstream `rand() % max`.
+ * Role: Supplies bounded random jitter for sound timing and volume.
+ * Upstream: zsound_engine.cpp:69, zsound_engine.cpp:72
+ */
+export type BoundedRandomInt = (maxExclusive: number) => number;
+
+/**
+ * Port of upstream `ZSound::StopRepeatSound`.
+ * Role: Stops the repeating channel once and clears the repeat marker.
+ * Upstream: zsound_engine.cpp:101-109
+ */
+export function stopRepeatSound(
+  state: RepeatSoundState,
+  haltChannel: ChannelHalter,
+): void {
+  if (state.repeatChannel === -1) return;
+
+  haltChannel(state.repeatChannel);
+  state.repeatChannel = -1;
+}
+
+/**
+ * Port of upstream `ZMusicEngine::PlaySplashMusic`.
+ * Role: Plays splash music in a loop and leaves planet music mode.
+ * Upstream: zmusic_engine.cpp:184-192
+ */
+export function playSplashMusic(
+  state: SplashMusicState,
+  playMusic: MusicPlayer,
+): number {
+  if (!state.soundSystemOn) return 0;
+
+  const result = new AudioService().playMusic(state.splashMusic, -1, playMusic);
+  state.playingPlanetMusic = false;
+  return result;
+}
+
+/**
+ * Port of upstream `ZMusicEngine::PlayPlanetMusic`.
+ * Role: Plays the selected planet music in a loop and resets planet music state.
+ * Upstream: zmusic_engine.cpp:194-211
+ */
+export function playPlanetMusic(
+  state: PlanetMusicState,
+  planetType: number,
+  playMusic: MusicPlayer,
+): number {
+  if (!state.soundSystemOn) return 0;
+  if (planetType < 0) return 0;
+  if (planetType >= PlanetType.Max) return 0;
+
+  state.planetType = planetType;
+  const result = new AudioService().playMusic(state.planetMusic[planetType] ?? null, -1, playMusic);
+  state.playingPlanetMusic = true;
+  state.doNextReset = false;
+  state.dangerLevel = MusicDangerLevel.Calm;
+  return result;
+}
+
+/**
+ * Port of upstream `ZSoundEngine::StopRepeatWav`.
+ * Role: Stops repeat playback for repeat-capable sound engine slots.
+ * Upstream: zsound_engine.cpp:269-282
+ */
+export function stopRepeatWav(
+  state: StopRepeatWavState,
+  sound: SoundEngineSound,
+  haltChannel: ChannelHalter,
+): void {
+  if (!state.finishedInit) return;
+
+  switch (sound) {
+    case SoundEngineSound.RadarSnd:
+      stopRepeatSound(state.radar, haltChannel);
+      break;
+    case SoundEngineSound.RobotFactorySnd:
+      stopRepeatSound(state.robotFactory, haltChannel);
+      break;
+  }
+}
+
+/**
+ * Port of upstream `ZSoundEngine::RepeatWav`.
+ * Role: Starts repeat playback for repeat-capable sound engine slots.
+ * Upstream: zsound_engine.cpp:254-267
+ */
+export function repeatWav(
+  state: RepeatWavState,
+  sound: SoundEngineSound,
+): void {
+  if (!state.finishedInit) return;
+
+  switch (sound) {
+    case SoundEngineSound.RadarSnd:
+      state.radar.repeatSound();
+      break;
+    case SoundEngineSound.RobotFactorySnd:
+      state.robotFactory.repeatSound();
+      break;
+  }
+}
+
+/**
+ * Port of upstream `ZSoundEngine::PlayWavRestricted`.
+ * Role: Plays a sound only after initialization and only when its world rectangle is visible.
+ * Upstream: zsound_engine.cpp:284-293
+ */
+export function playWavRestricted(
+  state: PlayWavRestrictedState,
+  sound: SoundEngineSound | number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  playWav: WavPlayer,
+): void {
+  if (!state.finishedInit) return;
+  if (!state.zmap) return;
+  if (!state.zmap.withinView(x, y, width, height)) return;
+
+  playWav(sound);
+}
+
+/**
+ * Port of upstream `ZSound::PlaySound`.
+ * Role: Plays a loaded sound after its cooldown, then jitters the next play time and volume.
+ * Upstream: zsound_engine.cpp:59-75
+ */
+export function playSound<TChunk extends SoundChunkWithVolume>(
+  state: PlaySoundState<TChunk>,
+  currentTime: AudioClock,
+  randomInt: BoundedRandomInt,
+  playChannel: ChannelPlayer,
+): void {
+  if (!state.soundChunk) return;
+
+  const theTime = currentTime();
+  if (theTime < state.nextPlayTime) return;
+
+  state.nextPlayTime = theTime + state.playTimeShift + 0.01 * randomInt(31);
+  state.soundChunk.volume = state.baseVolume + randomInt(state.volumeShift);
+  playChannel(-1, state.soundChunk, 0);
+}
+
+/**
+ * Port of upstream `ZSound::LoadSound`.
+ * Role: Loads a sound chunk, stores playback parameters, and applies the base volume.
+ * Upstream: zsound_engine.cpp:48-57
+ */
+export function loadSound<TChunk extends SoundChunkWithVolume>(
+  state: LoadSoundState<TChunk>,
+  filename: string,
+  baseVolume: number,
+  volumeShift: number,
+  playTimeShift: number,
+  loadChunk: SoundChunkLoader<TChunk>,
+): void {
+  state.baseVolume = baseVolume;
+  state.volumeShift = volumeShift;
+  state.playTimeShift = playTimeShift;
+  state.soundChunk = loadChunk(filename);
+
+  if (state.soundChunk) {
+    state.soundChunk.volume = baseVolume;
+  }
+}
 
 export class AudioService {
   /**

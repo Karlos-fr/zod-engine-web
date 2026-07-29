@@ -19,6 +19,22 @@ export type GrenadesObjectInventoryState = {
 };
 
 /**
+ * Port of upstream `OGrenades::render_img` source.
+ * Role: Identifies the browser asset used to render grenade pickup objects.
+ * Upstream: ogrenades.cpp:27
+ */
+export const GRENADES_OBJECT_IMAGE_PATH = "assets/other/map_items/grenades.png";
+
+/**
+ * Replacement for upstream `OGrenades::render_img`.
+ * Role: Holds the loaded grenade pickup render asset.
+ * Upstream: ogrenades.h:25
+ */
+export type GrenadesObjectRenderState<TImage> = {
+  renderImage: TImage | null;
+};
+
+/**
  * Port of upstream `SetGrenadeAmount`.
  * Role: Updates the grenade count carried by a grenade pickup object.
  * Upstream: ogrenades.h:15
@@ -39,6 +55,36 @@ export function getGrenadesObjectAmount(
   state: GrenadesObjectInventoryState,
 ): number {
   return state.grenadeAmount;
+}
+
+/**
+ * Port of upstream `OGrenades::Init`.
+ * Role: Loads the shared grenade pickup render asset through the browser asset loader.
+ * Upstream: ogrenades.cpp:25-28
+ */
+export function initGrenadesObjectImage<TImage>(
+  state: GrenadesObjectRenderState<TImage>,
+  loadImage: (path: string) => TImage,
+): void {
+  state.renderImage = loadImage(GRENADES_OBJECT_IMAGE_PATH);
+}
+
+/**
+ * Port of upstream `OGrenades::Process`.
+ * Role: Reports no per-tick processing work for grenade pickup objects.
+ * Upstream: ogrenades.cpp:46-49
+ */
+export function processGrenadesObject(): number {
+  return 0;
+}
+
+/**
+ * Port of upstream `OGrenades::SetOwner`.
+ * Role: Ignores ownership changes for grenade pickup objects.
+ * Upstream: ogrenades.cpp:79-82
+ */
+export function setGrenadesObjectOwner(owner: number): void {
+  void owner;
 }
 
 /**

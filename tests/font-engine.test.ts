@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   FONT_MAX_CHARACTERS,
   FontType,
+  type FontState,
+  setFontType,
   ZFONT_ENGINE_HEADER_GUARD_PORTED,
   ZFONT_HEADER_GUARD_PORTED,
 } from "../src/rendering/FontEngine";
@@ -28,6 +30,14 @@ describe("font engine", () => {
     expect(FontType.LoadingWhite).toBe(3);
     expect(FontType.YellowMenu).toBe(4);
     expect(FontType.MaxFontTypes).toBe(5);
+  });
+
+  it("ports ZFont SetType as font atlas type assignment", () => {
+    const state: FontState = { type: FontType.BigWhite };
+
+    setFontType(state, FontType.YellowMenu);
+
+    expect(state.type).toBe(FontType.YellowMenu);
   });
 
   it("adapts the zfont_engine.h include guard to an ES module marker", async () => {

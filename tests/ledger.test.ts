@@ -6,6 +6,7 @@ import {
   areEquivalentLedgerOccurrences,
   findLedgerRow,
   type LedgerRow,
+  mergeRows,
   updateEquivalentLedgerRows,
   updateEquivalentLedgerRowsByLines,
   updateLedgerRow,
@@ -143,6 +144,23 @@ describe("ledger duplicate IDs", () => {
     expect(content).toContain("| verified | 1 | 25.00% |");
     expect(content).toContain("| total | 4 | 100.00% |");
   });
+
+  it("keeps same-symbol upstream ranges distinct when merging scanned rows", () => {
+    const existing = [
+      row({ id: "MET-OLD-A", lines: "10-20", status: "ported" }),
+      row({ id: "MET-OLD-B", lines: "22-30", status: "todo" }),
+    ];
+    const scanned = [
+      row({ id: "MET-NEW-A", lines: "10-20" }),
+      row({ id: "MET-NEW-B", lines: "22-30" }),
+    ];
+
+    expect(mergeRows(existing, scanned).map((mergedRow) => mergedRow.id)).toEqual([
+      "MET-OLD-A",
+      "MET-OLD-B",
+    ]);
+  });
+
 });
 
 function row(overrides: Partial<LedgerRow>): LedgerRow {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  type DeathEffectInitState,
   DeathEffectObject,
   EDEATH_HEADER_GUARD_PORTED,
+  initDeathEffect,
 } from "../src/simulation/DeathEffect";
 
 describe("death effect", () => {
@@ -21,5 +23,25 @@ describe("death effect", () => {
     expect(DeathEffectObject.Apc).toBe(2);
     expect(DeathEffectObject.Tank).toBe(3);
     expect(DeathEffectObject.Crane).toBe(4);
+  });
+
+  it("ports EDeath Init as wasted vehicle image initialization", () => {
+    const state: DeathEffectInitState = {
+      jeepWasted: null,
+      mobileMissileWasted: null,
+      apcWasted: null,
+      craneWasted: null,
+      finishedInit: false,
+    };
+
+    initDeathEffect(state);
+
+    expect(state).toEqual({
+      jeepWasted: "assets/units/vehicles/jeep/wasted.png",
+      mobileMissileWasted: "assets/units/vehicles/missile_launcher/wasted.png",
+      apcWasted: "assets/units/vehicles/apc/wasted.png",
+      craneWasted: "assets/units/vehicles/crane/wasted_null.png",
+      finishedInit: true,
+    });
   });
 });

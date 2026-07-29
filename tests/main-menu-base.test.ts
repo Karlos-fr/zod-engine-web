@@ -5,6 +5,7 @@ import {
   getMainMenuCoords,
   getMainMenuDimensions,
   getMainMenuType,
+  isMainMenuOverHud,
   isMainMenuKilled,
   killMainMenu,
   MAIN_MENU_BOTTOM_MARGIN_PIXELS,
@@ -22,11 +23,15 @@ import {
   type MainMenuTypeState,
   type MainMenuZTimeState,
   MainMenuType,
+  moveMainMenuBase,
+  processMainMenuBase,
+  setMainMenuCenterCoords,
   setMainMenuPlayerInfoList,
   setMainMenuPlayerTeam,
   setMainMenuSoundSetting,
   setMainMenuWarningFlags,
   setMainMenuZTime,
+  withinMainMenuDimensions,
   ZGUI_MAIN_MENU_BASE_HEADER_GUARD_PORTED,
 } from "../src/ui/MainMenuBase";
 
@@ -183,6 +188,16 @@ describe("main menu base", () => {
     expect(getMainMenuType(state)).toBe(MainMenuType.Options);
   });
 
+  it("ports ZGuiMainMenuBase Process as widget processing delegation", () => {
+    const calls: string[] = [];
+
+    processMainMenuBase({
+      processWidgets: () => calls.push("widgets"),
+    });
+
+    expect(calls).toEqual(["widgets"]);
+  });
+
   it("ports GetCoords as a main menu coordinate snapshot", () => {
     const state = { x: 30, y: 40 };
 
@@ -192,6 +207,32 @@ describe("main menu base", () => {
     expect(coords).toEqual({ x: 30, y: 40 });
   });
 
+  it("ports ZGuiMainMenuBase SetCenterCoords as centered origin placement", () => {
+    const state = { x: 0, y: 0, width: 101, height: 81 };
+
+    setMainMenuCenterCoords(state, 200, 120);
+
+    expect(state).toEqual({
+      x: 150,
+      y: 80,
+      width: 101,
+      height: 81,
+    });
+  });
+
+  it("ports ZGuiMainMenuBase Move as scaled center repositioning", () => {
+    const state = { x: 10, y: 20, width: 101, height: 81 };
+
+    moveMainMenuBase(state, 2, 0.5);
+
+    expect(state).toEqual({
+      x: 70,
+      y: -10,
+      width: 101,
+      height: 81,
+    });
+  });
+
   it("ports GetDimensions as a main menu dimensions snapshot", () => {
     const state = { width: 160, height: 90 };
 
@@ -199,6 +240,25 @@ describe("main menu base", () => {
     state.width = 0;
 
     expect(dimensions).toEqual({ width: 160, height: 90 });
+  });
+
+  it("ports ZGuiMainMenuBase::WithinDimensions as inclusive hit testing", () => {
+    const state = { x: 50, y: 60, width: 100, height: 80 };
+
+    expect(withinMainMenuDimensions(state, 50, 60)).toBe(true);
+    expect(withinMainMenuDimensions(state, 150, 140)).toBe(true);
+    expect(withinMainMenuDimensions(state, 49, 60)).toBe(false);
+    expect(withinMainMenuDimensions(state, 50, 59)).toBe(false);
+    expect(withinMainMenuDimensions(state, 151, 140)).toBe(false);
+    expect(withinMainMenuDimensions(state, 150, 141)).toBe(false);
+  });
+
+  it("ports ZGuiMainMenuBase::IsOverHUD as inclusive HUD boundary overlap", () => {
+    const state = { x: 20, y: 30, width: 40, height: 50 };
+
+    expect(isMainMenuOverHud(state, 60, 90)).toBe(true);
+    expect(isMainMenuOverHud(state, 61, 80)).toBe(true);
+    expect(isMainMenuOverHud(state, 61, 81)).toBe(false);
   });
 
   it("ports KillMe as main menu kill-state read", () => {

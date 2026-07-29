@@ -27,4 +27,41 @@ export class VehicleFactoryEntity extends GameEntity {
   override producesUnits(): boolean {
     return true;
   }
+
+  /**
+   * Port of upstream `BVehicle::GetCraneEntrance`.
+   * Role: Reports the vehicle factory crane entrance and exit point below the building.
+   * Upstream: bvehicle.cpp:478-483
+   */
+  override getCraneEntrance(): {
+    canEnter: boolean;
+    x: number;
+    y: number;
+    exitX: number;
+    exitY: number;
+  } {
+    const x = this.position.x + 31;
+    const y = this.position.y + this.pixelHeight + 32;
+
+    return {
+      canEnter: true,
+      x,
+      y,
+      exitX: x,
+      exitY: y,
+    };
+  }
+
+  /**
+   * Port of upstream `BVehicle::GetCraneCenter`.
+   * Role: Reports the vehicle factory crane interaction center.
+   * Upstream: bvehicle.cpp:485-490
+   */
+  override getCraneCenter(): { hasCenter: boolean; x: number; y: number } {
+    return {
+      hasCenter: true,
+      x: this.position.x + 31,
+      y: this.position.y + 32,
+    };
+  }
 }

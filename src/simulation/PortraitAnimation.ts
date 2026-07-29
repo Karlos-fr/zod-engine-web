@@ -3,6 +3,8 @@
  */
 
 import type { GameEntity } from "./entities/GameEntity";
+import type { PlanetType, TeamType } from "./SimulationConstants";
+import { RobotType } from "./SimulationConstants";
 
 /**
  * Port of upstream `_ZPORTRAIT_H_`.
@@ -162,6 +164,63 @@ export class PortraitFrame {
 }
 
 /**
+ * Port of upstream `ZPortrait_Anim` frame list and duration fields.
+ * Role: Holds the frames and total duration for one portrait animation sequence.
+ * Upstream: zportrait.h:117-118
+ */
+export type PortraitAnimationState = {
+  frameList: PortraitFrame[];
+  totalDuration: number;
+};
+
+/**
+ * Port of upstream `ZPortrait_Anim::AddFrame`.
+ * Role: Adds a shifted hand-animation frame and refreshes the sequence duration.
+ * Upstream: zportrait.cpp:538-551
+ */
+export function addPortraitAnimationFrame(
+  state: PortraitAnimationState,
+  frame: PortraitFrame,
+): void {
+  frame.handX -= 4;
+  frame.handY -= 4;
+
+  const storedFrame = Object.assign(new PortraitFrame(), frame);
+  state.frameList.push(storedFrame);
+  state.totalDuration = state.frameList.reduce(
+    (duration, currentFrame) => duration + currentFrame.duration,
+    0,
+  );
+}
+
+/**
+ * Port of upstream `ZPortrait_Anim`.
+ * Role: Stores and updates one portrait animation sequence.
+ * Upstream: zportrait.h:110-129
+ */
+export class PortraitAnimation implements PortraitAnimationState {
+  frameList: PortraitFrame[] = [];
+  totalDuration = 0;
+
+  addFrame(frame: PortraitFrame): void {
+    addPortraitAnimationFrame(this, frame);
+  }
+
+  copyFrom(animation: PortraitAnimationState): this {
+    if (animation === this) {
+      return this;
+    }
+
+    this.frameList = animation.frameList.map((frame) =>
+      Object.assign(new PortraitFrame(), frame),
+    );
+    this.totalDuration = animation.totalDuration;
+
+    return this;
+  }
+}
+
+/**
  * Port of upstream `ZPortrait` reference id field.
  * Role: Holds the object reference associated with the active portrait.
  * Upstream: zportrait.h:156, zportrait.h:194
@@ -207,6 +266,189 @@ export function setPortraitDoRandomAnims(
   doRandomAnims: boolean,
 ): void {
   state.doRandomAnims = doRandomAnims;
+}
+
+/**
+ * Port of upstream `ZPortrait` over-map field.
+ * Role: Stores whether the portrait is rendered over the map.
+ * Upstream: zportrait.h:182
+ */
+export type PortraitOverMapState = {
+  overMap: boolean;
+};
+
+/**
+ * Port of upstream `ZPortrait` terrain field.
+ * Role: Stores the terrain palette used by portrait assets.
+ * Upstream: zportrait.h:166
+ */
+export type PortraitTerrainState = {
+  terrain: PlanetType;
+};
+
+/**
+ * Port of upstream `ZPortrait` in-vehicle field.
+ * Role: Stores whether the portrait subject is currently in a vehicle.
+ * Upstream: zportrait.h:172
+ */
+export type PortraitInVehicleState = {
+  inVehicle: boolean;
+};
+
+/**
+ * Port of upstream `ZPortrait` team field.
+ * Role: Stores the team palette used by portrait assets.
+ * Upstream: zportrait.h:173
+ */
+export type PortraitTeamState = {
+  team: TeamType | number;
+};
+
+/**
+ * Port of upstream `ZPortrait` robot id render state.
+ * Role: Stores the portrait robot type and whether the portrait needs rerendering.
+ * Upstream: zportrait.h:167, zportrait.h:181
+ */
+export type PortraitRobotIdState = {
+  oid: RobotType | number;
+  doRender: boolean;
+};
+
+/**
+ * Port of upstream `ZPortrait` current animation field.
+ * Role: Holds the active portrait animation id, or -1 when idle.
+ * Upstream: zportrait.h:177
+ */
+export type PortraitCurrentAnimationState = {
+  currentAnimation: PortraitAnimationType | number;
+};
+
+/**
+ * Port of upstream `ZPortrait` robot binding fields reset by `ClearRobotID`.
+ * Role: Captures the portrait subject, render frame, animation, and reference state.
+ * Upstream: zportrait.h:167, zportrait.h:172, zportrait.h:177-181, zportrait.h:194
+ */
+export type PortraitRobotClearState = {
+  oid: RobotType | number;
+  inVehicle: boolean;
+  doRender: boolean;
+  stillFrame: PortraitFrame;
+  renderFrame: PortraitFrame;
+  currentAnimation: PortraitAnimationType | number;
+  animationStartTime: number;
+  refId: number;
+};
+
+/**
+ * Port of upstream `ZPortrait` coordinate fields.
+ * Role: Stores the portrait render origin.
+ * Upstream: zportrait.cpp:114-118
+ */
+export type PortraitCoordinateState = {
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream `ZPortrait::SetCords`.
+ * Role: Updates the portrait render origin.
+ * Upstream: zportrait.cpp:114-118
+ */
+export function setPortraitCoordinates(
+  state: PortraitCoordinateState,
+  x: number,
+  y: number,
+): void {
+  state.x = x;
+  state.y = y;
+}
+
+/**
+ * Port of upstream `ZPortrait::SetOverMap`.
+ * Role: Updates whether the portrait is rendered over the map.
+ * Upstream: zportrait.cpp:120-123
+ */
+export function setPortraitOverMap(
+  state: PortraitOverMapState,
+  overMap: boolean,
+): void {
+  state.overMap = overMap;
+}
+
+/**
+ * Port of upstream `ZPortrait::SetTerrainType`.
+ * Role: Stores the portrait terrain palette.
+ * Upstream: zportrait.cpp:125-128
+ */
+export function setPortraitTerrainType(
+  state: PortraitTerrainState,
+  terrain: PlanetType,
+): void {
+  state.terrain = terrain;
+}
+
+/**
+ * Port of upstream `ZPortrait::SetInVehicle`.
+ * Role: Stores whether the portrait subject is in a vehicle.
+ * Upstream: zportrait.cpp:130-133
+ */
+export function setPortraitInVehicle(
+  state: PortraitInVehicleState,
+  inVehicle: boolean,
+): void {
+  state.inVehicle = inVehicle;
+}
+
+/**
+ * Port of upstream `ZPortrait::SetTeam`.
+ * Role: Stores the portrait team palette.
+ * Upstream: zportrait.cpp:135-138
+ */
+export function setPortraitTeam(state: PortraitTeamState, team: TeamType | number): void {
+  state.team = team;
+}
+
+/**
+ * Port of upstream `ZPortrait::SetRobotID`.
+ * Role: Stores the robot portrait id, invalidating render and clamping invalid ids.
+ * Upstream: zportrait.cpp:140-147
+ */
+export function setPortraitRobotId(
+  state: PortraitRobotIdState,
+  robotId: number,
+): void {
+  state.oid = robotId;
+  state.doRender = true;
+
+  if (state.oid < 0 || state.oid >= RobotType.Max) {
+    state.oid = RobotType.Grunt;
+  }
+}
+
+/**
+ * Port of upstream `ZPortrait::DoingAnim`.
+ * Role: Reports whether a portrait animation is currently active.
+ * Upstream: zportrait.cpp:225-228
+ */
+export function isPortraitDoingAnimation(
+  state: PortraitCurrentAnimationState,
+): boolean {
+  return state.currentAnimation !== -1;
+}
+
+/**
+ * Port of upstream `ZPortrait::ClearRobotID`.
+ * Role: Clears the active robot portrait binding and resets animation/render state.
+ * Upstream: zportrait.cpp:180-189
+ */
+export function clearPortraitRobotId(state: PortraitRobotClearState): void {
+  state.oid = RobotType.Grunt;
+  state.inVehicle = false;
+  state.doRender = false;
+  state.renderFrame = state.stillFrame;
+  state.currentAnimation = -1;
+  state.animationStartTime = 0;
+  state.refId = -1;
 }
 
 /**

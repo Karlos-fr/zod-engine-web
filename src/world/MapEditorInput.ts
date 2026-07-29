@@ -2,6 +2,8 @@
  * Upstream: map_editor.cpp
  */
 
+import { MAP_EDITOR_VIEW_SHIFT_SPEED } from "./WorldConstants";
+
 /**
  * Input state consumed by the ported map editor keyboard helpers.
  * Role: Stores the pressed state of directional and modifier keys for the map editor.
@@ -16,6 +18,33 @@ export type MapEditorModifierKeyState = {
   rightControlDown: boolean;
   leftShiftDown: boolean;
   rightShiftDown: boolean;
+};
+
+/**
+ * Port of upstream map editor scroll state globals.
+ * Role: Stores directional key state plus fractional scroll carry for editor camera movement.
+ * Upstream: map_editor.cpp:633-696
+ */
+export type MapEditorScrollState = Pick<
+  MapEditorModifierKeyState,
+  "upDown" | "downDown" | "rightDown" | "leftDown"
+> & {
+  lastVerticalScrollTime: number;
+  lastHorizontalScrollTime: number;
+  verticalScrollOverflow: number;
+  horizontalScrollOverflow: number;
+};
+
+/**
+ * Port of upstream `edit_map` scroll dependency surface.
+ * Role: Receives map editor camera movement requests produced by `ProcessScroll`.
+ * Upstream: map_editor.cpp:650, map_editor.cpp:664, map_editor.cpp:679, map_editor.cpp:693
+ */
+export type MapEditorScrollableMap = {
+  shiftViewUp(amount: number): boolean;
+  shiftViewDown(amount: number): boolean;
+  shiftViewRight(amount: number): boolean;
+  shiftViewLeft(amount: number): boolean;
 };
 
 /**
@@ -66,6 +95,95 @@ export function isControlDown(state: MapEditorModifierKeyState): boolean {
  */
 export function isShiftDown(state: MapEditorModifierKeyState): boolean {
   return state.leftShiftDown || state.rightShiftDown;
+}
+
+function processMapEditorAxisScroll(
+  timeDifference: number,
+  overflow: number,
+): { amount: number; overflow: number } | null {
+  const shift = timeDifference * MAP_EDITOR_VIEW_SHIFT_SPEED + overflow;
+  if (shift < 1) return null;
+
+  const amount = Math.trunc(shift);
+  return {
+    amount,
+    overflow: shift - amount,
+  };
+}
+
+/**
+ * Port of upstream `ProcessScroll`.
+ * Role: Applies pressed directional keys to the map editor camera while carrying sub-pixel scroll overflow.
+ * Upstream: map_editor.cpp:633-696
+ */
+export function processMapEditorScroll(
+  state: MapEditorScrollState,
+  editMap: MapEditorScrollableMap,
+  theTime: number,
+): MapEditorScrollState {
+  let nextState = state;
+
+  if (state.upDown && !state.downDown) {
+    const scroll = processMapEditorAxisScroll(
+      theTime - state.lastVerticalScrollTime,
+      state.verticalScrollOverflow,
+    );
+
+    if (scroll) {
+      editMap.shiftViewUp(scroll.amount);
+      nextState = {
+        ...nextState,
+        lastVerticalScrollTime: theTime,
+        verticalScrollOverflow: scroll.overflow,
+      };
+    }
+  } else if (!state.upDown && state.downDown) {
+    const scroll = processMapEditorAxisScroll(
+      theTime - state.lastVerticalScrollTime,
+      state.verticalScrollOverflow,
+    );
+
+    if (scroll) {
+      editMap.shiftViewDown(scroll.amount);
+      nextState = {
+        ...nextState,
+        lastVerticalScrollTime: theTime,
+        verticalScrollOverflow: scroll.overflow,
+      };
+    }
+  }
+
+  if (state.rightDown && !state.leftDown) {
+    const scroll = processMapEditorAxisScroll(
+      theTime - state.lastHorizontalScrollTime,
+      state.horizontalScrollOverflow,
+    );
+
+    if (scroll) {
+      editMap.shiftViewRight(scroll.amount);
+      nextState = {
+        ...nextState,
+        lastHorizontalScrollTime: theTime,
+        horizontalScrollOverflow: scroll.overflow,
+      };
+    }
+  } else if (!state.rightDown && state.leftDown) {
+    const scroll = processMapEditorAxisScroll(
+      theTime - state.lastHorizontalScrollTime,
+      state.horizontalScrollOverflow,
+    );
+
+    if (scroll) {
+      editMap.shiftViewLeft(scroll.amount);
+      nextState = {
+        ...nextState,
+        lastHorizontalScrollTime: theTime,
+        horizontalScrollOverflow: scroll.overflow,
+      };
+    }
+  }
+
+  return nextState;
 }
 
 /**

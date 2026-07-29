@@ -2,6 +2,9 @@
  * Upstream: ahutanimal.h
  */
 
+import { pointsWithinDistance } from "../Common";
+import { PlanetType } from "../SimulationConstants";
+
 /**
  * Port of upstream `_AHUTANIMAL_H_`.
  * Role: Marks an upstream compile-time boundary.
@@ -27,6 +30,48 @@ export type HutAnimalHomeCoordsState = {
   homeX: number;
   homeY: number;
 };
+
+/**
+ * Minimal state consumed by ported `AHutAnimal::SetStateNothing`.
+ * Role: Stores idle timing, current animation state, species type, and walk frame.
+ * Upstream: ahutanimal.h:48-56, ahutanimal.h:68-70
+ */
+export type HutAnimalStateNothingState = {
+  hutAnimalState: HutAnimalState;
+  nextNothingTime: number;
+  hutAnimalType: HutAnimalType | number;
+  walkIndex: number;
+  graphics: Array<{ walkToZero: boolean }>;
+};
+
+/**
+ * Minimal state consumed by ported `AHutAnimal::TileIsTooFar`.
+ * Role: Stores the home position and configured roam distance used to validate target tiles.
+ * Upstream: ahutanimal.h:57, ahutanimal.cpp:176-184
+ */
+export type HutAnimalRoamDistanceState = {
+  homeX: number;
+  homeY: number;
+  hutAnimalRoamDistance: number;
+};
+
+/**
+ * Minimal state consumed by ported `AHutAnimal::GoHome`.
+ * Role: Stores home pixel coordinates and the active return-home flag.
+ * Upstream: ahutanimal.h:57-58, ahutanimal.cpp:188-190
+ */
+export type HutAnimalGoHomeState = {
+  goingHome: boolean;
+  homeX: number;
+  homeY: number;
+};
+
+/**
+ * Port of upstream `AHutAnimal::animals_in_palette` dependency surface.
+ * Role: Stores which hut animal species may spawn for each planet palette.
+ * Upstream: ahutanimal.h:66
+ */
+export type HutAnimalsInPalette = readonly (readonly number[])[];
 
 /**
  * Port of upstream `hut_animal_type`.
@@ -98,4 +143,78 @@ export function setHutAnimalHomeCoords<
     homeX,
     homeY,
   };
+}
+
+/**
+ * Port of upstream `AHutAnimal::SetStateNothing`.
+ * Role: Switches a hut animal to idle state and schedules its next idle action.
+ * Upstream: ahutanimal.cpp:141-149
+ */
+export function setHutAnimalStateNothing(
+  state: HutAnimalStateNothingState,
+  now: number,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  state.hutAnimalState = HutAnimalState.Nothing;
+  state.nextNothingTime = now + 0.1 + randomInt(10) * 0.1;
+
+  if (state.graphics[state.hutAnimalType]?.walkToZero) {
+    state.walkIndex = 0;
+  }
+}
+
+/**
+ * Port of upstream `AHutAnimal::ChooseRandomAnimal`.
+ * Role: Selects a hut animal species from the palette-specific spawn table.
+ * Upstream: ahutanimal.cpp:127-139
+ */
+export function chooseRandomHutAnimal(
+  palette: number,
+  animalsInPalette: HutAnimalsInPalette,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): number {
+  if (palette < 0) return 0;
+  if (palette >= PlanetType.Max) return 0;
+
+  const paletteAnimals = animalsInPalette[palette];
+  if (!paletteAnimals?.length) return 0;
+
+  return paletteAnimals[randomInt(paletteAnimals.length) % paletteAnimals.length];
+}
+
+/**
+ * Port of upstream `AHutAnimal::GoHome`.
+ * Role: Marks the hut animal as returning home and targets its home tile.
+ * Upstream: ahutanimal.cpp:186-191
+ */
+export function sendHutAnimalHome(
+  state: HutAnimalGoHomeState,
+  gotoTile: (tileX: number, tileY: number) => void,
+): void {
+  state.goingHome = true;
+  gotoTile(state.homeX >> 4, state.homeY >> 4);
+}
+
+/**
+ * Port of upstream `AHutAnimal::TileIsTooFar`.
+ * Role: Reports whether a tile center is outside the hut animal roam radius from home.
+ * Upstream: ahutanimal.cpp:176-184
+ */
+export function isHutAnimalTileTooFar(
+  state: HutAnimalRoamDistanceState,
+  tileX: number,
+  tileY: number,
+): boolean {
+  const entityX = (tileX << 4) + 8;
+  const entityY = (tileY << 4) + 8;
+
+  return !pointsWithinDistance(
+    state.homeX,
+    state.homeY,
+    entityX,
+    entityY,
+    state.hutAnimalRoamDistance,
+  );
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ETOUGH_SMOKE_HEADER_GUARD_PORTED } from "../src/simulation/ToughSmokeEffect";
+import {
+  ETOUGH_SMOKE_HEADER_GUARD_PORTED,
+  initToughSmokeEffect,
+  processToughSmokeEffect,
+  TOUGH_SMOKE_FRAME_COUNT,
+  TOUGH_SMOKE_PROCESS_INTERVAL_SECONDS,
+  type ToughSmokeInitState,
+  type ToughSmokeProcessState,
+} from "../src/simulation/ToughSmokeEffect";
 
 describe("tough smoke effect", () => {
   it("adapts the etoughsmoke.h include guard to an ES module marker", async () => {
@@ -10,5 +18,78 @@ describe("tough smoke effect", () => {
     expect(secondImport.ETOUGH_SMOKE_HEADER_GUARD_PORTED).toBe(
       firstImport.ETOUGH_SMOKE_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports EToughSmoke Init as tough-smoke frame path initialization", () => {
+    const state: ToughSmokeInitState = {
+      renderImages: [],
+      finishedInit: false,
+    };
+
+    initToughSmokeEffect(state);
+
+    expect(state.finishedInit).toBe(true);
+    expect(state.renderImages).toHaveLength(TOUGH_SMOKE_FRAME_COUNT);
+    expect(state.renderImages[0]).toBe("assets/units/robots/tough/smoke_n00.png");
+    expect(state.renderImages[7]).toBe("assets/units/robots/tough/smoke_n07.png");
+  });
+
+  it("keeps killed tough smoke effects unchanged while processing", () => {
+    const state: ToughSmokeProcessState = {
+      killMe: true,
+      renderIndex: 2,
+      nextProcessTime: 10,
+    };
+
+    processToughSmokeEffect(state, 10);
+
+    expect(state).toEqual({
+      killMe: true,
+      renderIndex: 2,
+      nextProcessTime: 10,
+    });
+  });
+
+  it("keeps tough smoke unchanged before the next process time", () => {
+    const state: ToughSmokeProcessState = {
+      killMe: false,
+      renderIndex: 2,
+      nextProcessTime: 10,
+    };
+
+    processToughSmokeEffect(state, 9.99);
+
+    expect(state.renderIndex).toBe(2);
+    expect(state.nextProcessTime).toBe(10);
+    expect(state.killMe).toBe(false);
+  });
+
+  it("advances tough smoke frame and schedules the next process time", () => {
+    const state: ToughSmokeProcessState = {
+      killMe: false,
+      renderIndex: 2,
+      nextProcessTime: 10,
+    };
+
+    processToughSmokeEffect(state, 10);
+
+    expect(state.renderIndex).toBe(3);
+    expect(state.nextProcessTime).toBe(
+      10 + TOUGH_SMOKE_PROCESS_INTERVAL_SECONDS,
+    );
+    expect(state.killMe).toBe(false);
+  });
+
+  it("expires tough smoke after the final frame", () => {
+    const state: ToughSmokeProcessState = {
+      killMe: false,
+      renderIndex: TOUGH_SMOKE_FRAME_COUNT - 1,
+      nextProcessTime: 10,
+    };
+
+    processToughSmokeEffect(state, 10);
+
+    expect(state.renderIndex).toBe(TOUGH_SMOKE_FRAME_COUNT);
+    expect(state.killMe).toBe(true);
   });
 });

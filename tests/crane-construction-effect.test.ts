@@ -9,6 +9,7 @@ import {
   CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH,
   CraneConstructionItem,
   ECRANE_CONSTRUCTION_HEADER_GUARD_PORTED,
+  beginCraneConstructionDeath,
   compareCraneConstructionRenderItemBottom,
   moveCraneConstructionItemToDestination,
   setCraneConstructionItemReturn,
@@ -200,6 +201,34 @@ describe("crane construction effect", () => {
       startY: 75,
       width: 10,
     });
+  });
+
+  it("ports ECraneConco BeginDeath as return travel setup", () => {
+    const returns: Array<[number, number]> = [];
+    const state = {
+      travelBack: false,
+      travelTimeStart: 0,
+      travelTimeEnd: 0,
+      travelTimeWidth: CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH,
+      renderItems: [
+        { setReturn: (x: number, y: number) => returns.push([x, y]) },
+        { setReturn: (x: number, y: number) => returns.push([x, y]) },
+      ],
+    };
+
+    beginCraneConstructionDeath(state, 40, 70, 12.5);
+
+    expect(state).toEqual({
+      travelBack: true,
+      travelTimeStart: 12.5,
+      travelTimeEnd: 13.3,
+      travelTimeWidth: CRANE_CONSTRUCTION_TRAVEL_TIME_WIDTH,
+      renderItems: state.renderItems,
+    });
+    expect(returns).toEqual([
+      [56, 86],
+      [56, 86],
+    ]);
   });
 
   it("ports construction object offsets from ecraneconco.cpp", () => {

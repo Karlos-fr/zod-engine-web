@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { ItemType, TeamType } from "../src/simulation/SimulationConstants";
+import { MAP_ITEM_TYPE_COUNT } from "../src/world/WorldConstants";
 import {
   ObjectMapObject,
   OMAP_OBJECT_HEADER_GUARD_PORTED,
@@ -17,5 +19,95 @@ describe("object map object", () => {
 
   it("ports OMapObject IsDestroyableImpass as true", () => {
     expect(new ObjectMapObject().isDestroyableImpassable()).toBe(true);
+  });
+
+  it("ports OMapObject Process as a no-op result", () => {
+    expect(new ObjectMapObject().process()).toBe(0);
+  });
+
+  it("ports OMapObject Init as map-object image path initialization", () => {
+    const object = new ObjectMapObject();
+
+    object.init();
+
+    expect(object.mapObjectImages).toHaveLength(MAP_ITEM_TYPE_COUNT);
+    expect(object.mapObjectImages[0]).toBe(
+      "assets/other/map_items/map_object0.png",
+    );
+    expect(object.mapObjectImages[21]).toBe(
+      "assets/other/map_items/map_object21.png",
+    );
+  });
+
+  it("ports OMapObject SetType as bounded map-object identity", () => {
+    const object = new ObjectMapObject();
+
+    object.setType(ItemType.Map0 + 3);
+
+    expect(object.objectIndex).toBe(3);
+    expect(object.objectName).toBe("map_object3");
+    expect(object.objectId).toBe(ItemType.Map0 + 3);
+  });
+
+  it("clamps OMapObject SetType below the map-object range", () => {
+    const object = new ObjectMapObject();
+
+    object.setType(ItemType.Map0 - 1);
+
+    expect(object.objectIndex).toBe(0);
+    expect(object.objectName).toBe("map_object0");
+    expect(object.objectId).toBe(ItemType.Map0);
+  });
+
+  it("clamps OMapObject SetType above the map-object range", () => {
+    const object = new ObjectMapObject();
+
+    object.setType(ItemType.Map0 + MAP_ITEM_TYPE_COUNT);
+
+    expect(object.objectIndex).toBe(MAP_ITEM_TYPE_COUNT - 1);
+    expect(object.objectName).toBe(`map_object${MAP_ITEM_TYPE_COUNT - 1}`);
+    expect(object.objectId).toBe(ItemType.Map0 + MAP_ITEM_TYPE_COUNT - 1);
+  });
+
+  it("ports OMapObject CausesImpassAtCoord as coordinate equality", () => {
+    const object = new ObjectMapObject({ x: 32, y: 48 });
+
+    expect(object.causesImpassAtCoord(32, 48)).toBe(true);
+    expect(object.causesImpassAtCoord(31, 48)).toBe(false);
+    expect(object.causesImpassAtCoord(32, 49)).toBe(false);
+  });
+
+  it("ports OMapObject SetMapImpassables as tile impassable marking", () => {
+    const object = new ObjectMapObject({ x: 35, y: 50 });
+    const calls: Array<[number, number, boolean, boolean]> = [];
+
+    object.setMapImpassables({
+      setImpassable(tileX, tileY, impassable, destroyable) {
+        calls.push([tileX, tileY, impassable, destroyable]);
+      },
+    });
+
+    expect(calls).toEqual([[2, 3, true, true]]);
+  });
+
+  it("ports OMapObject UnSetMapImpassables as tile impassable clearing", () => {
+    const object = new ObjectMapObject({ x: 47, y: 65 });
+    const calls: Array<[number, number, boolean, boolean]> = [];
+
+    object.unsetMapImpassables({
+      setImpassable(tileX, tileY, impassable, destroyable) {
+        calls.push([tileX, tileY, impassable, destroyable]);
+      },
+    });
+
+    expect(calls).toEqual([[2, 4, false, true]]);
+  });
+
+  it("ports OMapObject SetOwner as a null-team no-op", () => {
+    const object = new ObjectMapObject();
+
+    object.setOwner(TeamType.Red);
+
+    expect(object.owner).toBe(TeamType.Null);
   });
 });

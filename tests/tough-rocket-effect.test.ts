@@ -3,6 +3,9 @@ import {
   ETOUGH_ROCKET_HEADER_GUARD_PORTED,
   calcToughRocketTimeD,
   calcToughRocketTimeD2,
+  initToughRocketEffect,
+  TOUGH_ROCKET_BULLET_FRAME_COUNT,
+  type ToughRocketInitState,
 } from "../src/simulation/ToughRocketEffect";
 
 describe("tough rocket effect", () => {
@@ -19,5 +22,21 @@ describe("tough rocket effect", () => {
   it("ports etoughrocket.cpp timing thresholds from missile speed", () => {
     expect(calcToughRocketTimeD(250)).toBe(0.024);
     expect(calcToughRocketTimeD2(250)).toBe(0.032);
+  });
+
+  it("ports EToughRocket Init as tough rocket bullet frame path initialization", () => {
+    const state: ToughRocketInitState = {
+      bulletFrames: [],
+      finishedInit: false,
+    };
+
+    initToughRocketEffect(state);
+
+    expect(state.finishedInit).toBe(true);
+    expect(state.bulletFrames).toHaveLength(TOUGH_ROCKET_BULLET_FRAME_COUNT);
+    expect(state.bulletFrames).toEqual([
+      "assets/units/robots/tough/bullet_n00.png",
+      "assets/units/robots/tough/bullet_n01.png",
+    ]);
   });
 });

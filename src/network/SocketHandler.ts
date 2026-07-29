@@ -57,6 +57,88 @@ export type SocketAddressIn = {
 };
 
 /**
+ * Port of upstream `SocketHandler::connected`.
+ * Role: Holds the numeric socket connection state used by the legacy network layer.
+ * Upstream: socket_handler.h:43
+ */
+export type SocketConnectionState = {
+  connected: number;
+};
+
+/**
+ * Port of upstream `SocketHandler::Disconnect` mutable fields.
+ * Role: Stores connection state, endpoint text, and an opaque socket handle.
+ * Upstream: socket_handler.cpp:57-77
+ */
+export type SocketDisconnectState<TSocket = unknown> = SocketConnectionState & {
+  socket: TSocket | null;
+  ipAddress: string;
+};
+
+/**
+ * Port of upstream `SocketHandler` fast-process buffer fields.
+ * Role: Tracks buffered packet bytes and the consumed prefix for fast processing.
+ * Upstream: socket_handler.h:35-37, socket_handler.cpp:285-300
+ */
+export type SocketFastProcessState = {
+  buffer: Uint8Array;
+  bufferSize: number;
+  fastProcessPointer: number;
+};
+
+/**
+ * Port of upstream `SocketHandler::Connected`.
+ * Role: Returns the numeric socket connection state.
+ * Upstream: socket_handler.cpp:52-55
+ */
+export function socketConnected(state: SocketConnectionState): number {
+  return state.connected;
+}
+
+/**
+ * Port of upstream `SocketHandler::Disconnect`.
+ * Role: Closes an active socket connection and clears endpoint state.
+ * Upstream: socket_handler.cpp:57-77
+ */
+export function disconnectSocket<TSocket, TState extends SocketDisconnectState<TSocket>>(
+  state: TState,
+  closeSocket: (socket: TSocket) => void = () => {},
+): number {
+  if (state.connected) {
+    if (state.socket !== null) {
+      closeSocket(state.socket);
+    }
+
+    state.connected = 0;
+    state.ipAddress = "";
+  }
+
+  return 1;
+}
+
+/**
+ * Port of upstream `SocketHandler::ResetFastProcess`.
+ * Role: Moves unprocessed bytes to the front of the receive buffer and resets the pointer.
+ * Upstream: socket_handler.cpp:285-300
+ */
+export function resetSocketFastProcess<TState extends SocketFastProcessState>(
+  state: TState,
+): TState {
+  if (!state.fastProcessPointer) return state;
+
+  const remainingSize = state.bufferSize - state.fastProcessPointer;
+
+  if (remainingSize > 0) {
+    state.buffer.copyWithin(0, state.fastProcessPointer, state.bufferSize);
+  }
+
+  state.bufferSize = remainingSize;
+  state.fastProcessPointer = 0;
+
+  return state;
+}
+
+/**
  * Port of upstream `max_wait`.
  * Role: Limits how long `pause_for_send` waits for a socket to become writable.
  * Upstream: socket_handler.cpp:394

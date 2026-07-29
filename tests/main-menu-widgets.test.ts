@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { FontType } from "../src/rendering/FontEngine";
 import {
   clearMainMenuListEntry,
+  clickMainMenuButton,
+  clickMainMenuRadio,
+  clickMainMenuTextBox,
   clickMainMenuWidget,
+  determineMainMenuButtonDimensions,
   MAIN_MENU_BUTTON_HEIGHT_PIXELS,
   MAIN_MENU_LABEL_HEIGHT_PIXELS,
   MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS,
@@ -22,39 +27,60 @@ import {
   MainMenuButtonState,
   MainMenuButtonType,
   MainMenuLabelJustifyType,
+  MainMenuListEntry,
   MainMenuListState,
   MainMenuWidgetFlag,
   MainMenuWidgetType,
   ZGUI_MAIN_MENU_WIDGETS_HEADER_GUARD_PORTED,
+  checkMainMenuListViewIndex,
   checkMainMenuRadioSelectedIndex,
+  getFirstSelectedMainMenuListEntry,
   getMainMenuWidgetHeight,
   getMainMenuRadioSelected,
   getMainMenuWidgetRefId,
   getMainMenuWidgetType,
   getMainMenuWidgetWidth,
+  initMainMenuRadio,
+  initMainMenuTextBox,
+  isMainMenuListEntryBefore,
   isMainMenuWidgetActive,
   keyPressMainMenuWidget,
+  makeMainMenuTextBoxImage,
+  moveDownMainMenuList,
   motionMainMenuWidget,
+  moveUpMainMenuList,
   processMainMenuWidget,
   setMainMenuButtonGreen,
   setMainMenuButtonText,
+  setMainMenuButtonType,
   setMainMenuLabelFont,
   setMainMenuLabelJustification,
+  setMainMenuLabelText,
+  setMainMenuListHeight,
+  setMainMenuListVisibleEntries,
+  setMainMenuRadioMaxSelections,
   setMainMenuRadioSelected,
   setMainMenuTextBoxGoodCharsOnly,
   setMainMenuTextBoxMaxText,
   setMainMenuTextBoxPassworded,
   setMainMenuTextBoxSelected,
   setMainMenuTextBoxText,
+  setMainMenuTeamColorTeam,
   setMainMenuWidgetActive,
   setMainMenuWidgetCoords,
   setMainMenuWidgetDimensions,
   toggleMainMenuWidgetActive,
+  unclickMainMenuButton,
+  unclickMainMenuList,
   unclickMainMenuWidget,
+  unselectAllMainMenuListEntries,
   wheelDownMainMenuList,
   wheelDownMainMenuWidget,
+  withinMainMenuListDownButton,
+  withinMainMenuListUpButton,
   wheelUpMainMenuList,
   wheelUpMainMenuWidget,
+  withinMainMenuWidgetDimensions,
 } from "../src/ui/MainMenuWidgets";
 
 describe("main menu widgets", () => {
@@ -136,6 +162,236 @@ describe("main menu widgets", () => {
     });
   });
 
+  it("ports mmlist_entry default construction through clear", () => {
+    expect(new MainMenuListEntry()).toEqual({
+      text: "",
+      refId: -1,
+      sortNumber: -1,
+      state: MainMenuListState.Normal,
+    });
+  });
+
+  it("ports mmlist_entry configured construction", () => {
+    expect(new MainMenuListEntry("Bravo", 12, 3)).toEqual({
+      text: "Bravo",
+      refId: 12,
+      sortNumber: 3,
+      state: MainMenuListState.Normal,
+    });
+  });
+
+  it("ports sort_mmlist_entry_func as sort-number ordering", () => {
+    expect(isMainMenuListEntryBefore({ sortNumber: 1 }, { sortNumber: 2 })).toBe(
+      true,
+    );
+    expect(isMainMenuListEntryBefore({ sortNumber: 2 }, { sortNumber: 1 })).toBe(
+      false,
+    );
+    expect(isMainMenuListEntryBefore({ sortNumber: 1 }, { sortNumber: 1 })).toBe(
+      false,
+    );
+  });
+
+  it("ports GMMWList::SetHeight as visible-entry height calculation", () => {
+    const state = { visibleEntries: 4, height: 0 };
+
+    setMainMenuListHeight(state);
+
+    expect(state.height).toBe(3 + 4 * MAIN_MENU_LIST_ENTRY_HEIGHT_PIXELS + 2);
+  });
+
+  it("ports GMMWList::SetVisibleEntries as clamped entry count and height refresh", () => {
+    const state = { visibleEntries: 4, height: 0 };
+
+    setMainMenuListVisibleEntries(state, 2);
+    expect(state).toEqual({
+      visibleEntries: MAIN_MENU_LIST_MIN_ENTRIES,
+      height: 3 + MAIN_MENU_LIST_MIN_ENTRIES * MAIN_MENU_LIST_ENTRY_HEIGHT_PIXELS + 2,
+    });
+
+    setMainMenuListVisibleEntries(state, 6);
+    expect(state).toEqual({
+      visibleEntries: 6,
+      height: 3 + 6 * MAIN_MENU_LIST_ENTRY_HEIGHT_PIXELS + 2,
+    });
+  });
+
+  it("ports GMMWList::GetFirstSelected as first pressed entry index", () => {
+    const entries = [
+      new MainMenuListEntry("Alpha", 1, 1),
+      new MainMenuListEntry("Bravo", 2, 2),
+      new MainMenuListEntry("Charlie", 3, 3),
+    ];
+
+    expect(getFirstSelectedMainMenuListEntry(entries)).toBe(-1);
+
+    entries[2].state = MainMenuListState.Pressed;
+    expect(getFirstSelectedMainMenuListEntry(entries)).toBe(2);
+
+    entries[1].state = MainMenuListState.Pressed;
+    expect(getFirstSelectedMainMenuListEntry(entries)).toBe(1);
+  });
+
+  it("ports GMMWList::UnSelectAll as clearing pressed entries except one", () => {
+    const entries = [
+      new MainMenuListEntry("Alpha", 1, 1),
+      new MainMenuListEntry("Bravo", 2, 2),
+      new MainMenuListEntry("Charlie", 3, 3),
+    ];
+    entries.forEach((entry) => {
+      entry.state = MainMenuListState.Pressed;
+    });
+
+    unselectAllMainMenuListEntries(entries, 1);
+
+    expect(entries.map((entry) => entry.state)).toEqual([
+      MainMenuListState.Normal,
+      MainMenuListState.Pressed,
+      MainMenuListState.Normal,
+    ]);
+  });
+
+  it("ports GMMWList::CheckViewI as first visible index clamping", () => {
+    const state = {
+      entries: [1, 2, 3, 4, 5],
+      visibleEntries: 3,
+      viewIndex: 4,
+    };
+
+    checkMainMenuListViewIndex(state);
+
+    expect(state.viewIndex).toBe(2);
+
+    state.viewIndex = -1;
+
+    checkMainMenuListViewIndex(state);
+
+    expect(state.viewIndex).toBe(0);
+
+    state.entries = [1, 2];
+    state.visibleEntries = 4;
+    state.viewIndex = 3;
+
+    checkMainMenuListViewIndex(state);
+
+    expect(state.viewIndex).toBe(0);
+  });
+
+  it("ports GMMWList::MoveUp as first visible index decrement with floor", () => {
+    const state = { viewIndex: 2 };
+
+    expect(moveUpMainMenuList(state)).toBe(true);
+    expect(state.viewIndex).toBe(1);
+
+    state.viewIndex = 0;
+
+    expect(moveUpMainMenuList(state)).toBe(false);
+    expect(state.viewIndex).toBe(0);
+  });
+
+  it("ports GMMWList::MoveDown as first visible index increment with ceiling", () => {
+    const state = {
+      entries: [1, 2, 3, 4, 5],
+      visibleEntries: 3,
+      viewIndex: 0,
+    };
+
+    expect(moveDownMainMenuList(state)).toBe(true);
+    expect(state.viewIndex).toBe(1);
+
+    state.viewIndex = 2;
+
+    expect(moveDownMainMenuList(state)).toBe(false);
+    expect(state.viewIndex).toBe(2);
+
+    state.entries = [1, 2];
+    state.visibleEntries = 4;
+    state.viewIndex = 0;
+
+    expect(moveDownMainMenuList(state)).toBe(false);
+    expect(state.viewIndex).toBe(0);
+  });
+
+  it("ports GMMWList::WithinUpButton as inclusive scroll-up button hit testing", () => {
+    const state = { width: 120 };
+    const buttonX = 120 - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS;
+    const buttonY = MAIN_MENU_LIST_UP_BUTTON_TOP_OFFSET_PIXELS;
+
+    expect(withinMainMenuListUpButton(state, buttonX, buttonY)).toBe(true);
+    expect(withinMainMenuListUpButton(state, buttonX + 11, buttonY + 8)).toBe(
+      true,
+    );
+    expect(withinMainMenuListUpButton(state, buttonX - 1, buttonY)).toBe(false);
+    expect(withinMainMenuListUpButton(state, buttonX, buttonY - 1)).toBe(false);
+    expect(withinMainMenuListUpButton(state, buttonX + 12, buttonY + 8)).toBe(
+      false,
+    );
+    expect(withinMainMenuListUpButton(state, buttonX + 11, buttonY + 9)).toBe(
+      false,
+    );
+  });
+
+  it("ports GMMWList::WithinDownButton as inclusive scroll-down button hit testing", () => {
+    const state = { width: 120, height: 90 };
+    const buttonX = 120 - MAIN_MENU_LIST_DOWN_BUTTON_RIGHT_OFFSET_PIXELS;
+    const buttonY = 90 - MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS;
+
+    expect(withinMainMenuListDownButton(state, buttonX, buttonY)).toBe(true);
+    expect(withinMainMenuListDownButton(state, buttonX + 11, buttonY + 8)).toBe(
+      true,
+    );
+    expect(withinMainMenuListDownButton(state, buttonX - 1, buttonY)).toBe(
+      false,
+    );
+    expect(withinMainMenuListDownButton(state, buttonX, buttonY - 1)).toBe(
+      false,
+    );
+    expect(withinMainMenuListDownButton(state, buttonX + 12, buttonY + 8)).toBe(
+      false,
+    );
+    expect(withinMainMenuListDownButton(state, buttonX + 11, buttonY + 9)).toBe(
+      false,
+    );
+  });
+
+  it("ports GMMWList::UnClick as scroll-button release handling", () => {
+    const state = {
+      x: 10,
+      y: 20,
+      width: 120,
+      height: 90,
+      entries: [1, 2, 3, 4, 5],
+      visibleEntries: 3,
+      viewIndex: 1,
+      upButtonState: MainMenuListState.Pressed,
+      downButtonState: MainMenuListState.Normal,
+    };
+
+    const upX = state.x + state.width - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS;
+    const upY = state.y + MAIN_MENU_LIST_UP_BUTTON_TOP_OFFSET_PIXELS;
+
+    expect(unclickMainMenuList(state, upX, upY)).toBe(true);
+    expect(state.viewIndex).toBe(0);
+    expect(state.upButtonState).toBe(MainMenuListState.Normal);
+    expect(state.downButtonState).toBe(MainMenuListState.Normal);
+
+    state.viewIndex = 0;
+    state.downButtonState = MainMenuListState.Pressed;
+
+    const downX =
+      state.x + state.width - MAIN_MENU_LIST_DOWN_BUTTON_RIGHT_OFFSET_PIXELS;
+    const downY =
+      state.y + state.height - MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS;
+
+    expect(unclickMainMenuList(state, downX, downY)).toBe(true);
+    expect(state.viewIndex).toBe(1);
+
+    state.downButtonState = MainMenuListState.Pressed;
+
+    expect(unclickMainMenuList(state, state.x, state.y)).toBe(false);
+    expect(state.downButtonState).toBe(MainMenuListState.Normal);
+  });
+
   it("ports mmbutton_type identifiers", () => {
     expect(MainMenuButtonType.Generic).toBe(0);
     expect(MainMenuButtonType.Close).toBe(1);
@@ -198,6 +454,17 @@ describe("main menu widgets", () => {
     setMainMenuWidgetCoords(state, 30, 40);
 
     expect(state).toEqual({ x: 30, y: 40 });
+  });
+
+  it("ports ZGMMWidget::WithinDimensions as inclusive widget hit testing", () => {
+    const state = { x: 10, y: 20, width: 30, height: 40 };
+
+    expect(withinMainMenuWidgetDimensions(state, 10, 20)).toBe(true);
+    expect(withinMainMenuWidgetDimensions(state, 40, 60)).toBe(true);
+    expect(withinMainMenuWidgetDimensions(state, 9, 20)).toBe(false);
+    expect(withinMainMenuWidgetDimensions(state, 10, 19)).toBe(false);
+    expect(withinMainMenuWidgetDimensions(state, 41, 60)).toBe(false);
+    expect(withinMainMenuWidgetDimensions(state, 40, 61)).toBe(false);
   });
 
   it("ports ZGMMWidget::Click as a default unhandled click", () => {
@@ -280,12 +547,108 @@ describe("main menu widgets", () => {
     expect(state).toEqual({ text: "Launch", rerenderText: true });
   });
 
+  it("ports GMMWButton::DetermineDimensions as close-button sizing", () => {
+    const closeButton = {
+      type: MainMenuButtonType.Close,
+      width: 80,
+      height: 15,
+    };
+    const genericButton = {
+      type: MainMenuButtonType.Generic,
+      width: 80,
+      height: 15,
+    };
+
+    determineMainMenuButtonDimensions(closeButton);
+    determineMainMenuButtonDimensions(genericButton);
+
+    expect(closeButton).toEqual({
+      type: MainMenuButtonType.Close,
+      width: 12,
+      height: 12,
+    });
+    expect(genericButton).toEqual({
+      type: MainMenuButtonType.Generic,
+      width: 80,
+      height: 15,
+    });
+  });
+
+  it("ports GMMWButton::SetType as type assignment with dimension refresh", () => {
+    const state = {
+      type: MainMenuButtonType.Generic,
+      width: 80,
+      height: 15,
+    };
+
+    setMainMenuButtonType(state, MainMenuButtonType.Close);
+
+    expect(state).toEqual({
+      type: MainMenuButtonType.Close,
+      width: 12,
+      height: 12,
+    });
+  });
+
+  it("ports GMMWButton::Click as active bounds check and pressed state", () => {
+    const state = {
+      active: true,
+      x: 10,
+      y: 20,
+      width: 30,
+      height: 15,
+      state: MainMenuButtonState.Normal,
+    };
+
+    expect(clickMainMenuButton(state, 10, 20)).toBe(true);
+    expect(state.state).toBe(MainMenuButtonState.Pressed);
+
+    state.state = MainMenuButtonState.Normal;
+    expect(clickMainMenuButton(state, 41, 20)).toBe(false);
+    expect(state.state).toBe(MainMenuButtonState.Normal);
+
+    state.active = false;
+    expect(clickMainMenuButton(state, 10, 20)).toBe(false);
+    expect(state.state).toBe(MainMenuButtonState.Normal);
+  });
+
+  it("ports GMMWButton::UnClick as release reset with completed click detection", () => {
+    const state = {
+      active: true,
+      x: 10,
+      y: 20,
+      width: 30,
+      height: 15,
+      state: MainMenuButtonState.Pressed,
+    };
+
+    expect(unclickMainMenuButton(state, 10, 20)).toBe(true);
+    expect(state.state).toBe(MainMenuButtonState.Normal);
+
+    state.state = MainMenuButtonState.Pressed;
+    expect(unclickMainMenuButton(state, 41, 20)).toBe(false);
+    expect(state.state).toBe(MainMenuButtonState.Normal);
+
+    state.state = MainMenuButtonState.Pressed;
+    state.active = false;
+    expect(unclickMainMenuButton(state, 10, 20)).toBe(false);
+    expect(state.state).toBe(MainMenuButtonState.Normal);
+  });
+
   it("ports GMMWTextBox::SetText as text-box text with rerender", () => {
     const state = { text: "", doRerender: false };
 
     setMainMenuTextBoxText(state, "hello");
 
     expect(state).toEqual({ text: "hello", doRerender: true });
+  });
+
+  it("ports GMMWTextBox::Click as text-box hit testing", () => {
+    const state = { x: 5, y: 6, width: 20, height: 10 };
+
+    expect(clickMainMenuTextBox(state, 5, 6)).toBe(true);
+    expect(clickMainMenuTextBox(state, 25, 16)).toBe(true);
+    expect(clickMainMenuTextBox(state, 26, 16)).toBe(false);
   });
 
   it("ports GMMWTextBox::SetSelected as text-box selection with rerender", () => {
@@ -323,6 +686,53 @@ describe("main menu widgets", () => {
     expect(state).toEqual({ goodCharsOnly: false, doRerender: true });
   });
 
+  it("ports GMMWTextBox::Init as frame image initialization", () => {
+    const state = {
+      topImage: null,
+      leftImage: null,
+      rightImage: null,
+      bottomImage: null,
+      finishedInit: false,
+    };
+
+    initMainMenuTextBox(state);
+
+    expect(state).toEqual({
+      topImage: "assets/other/main_menu_gui/textbox/textbox_top.png",
+      leftImage: "assets/other/main_menu_gui/textbox/textbox_left.png",
+      rightImage: "assets/other/main_menu_gui/textbox/textbox_right.png",
+      bottomImage: "assets/other/main_menu_gui/textbox/textbox_bottom.png",
+      finishedInit: true,
+    });
+  });
+
+  it("ports GMMWTextBox::MakeTextImage as text rendering state refresh", () => {
+    const renderCalls: Array<{ font: FontType; text: string }> = [];
+    const state = {
+      selected: true,
+      text: "secret",
+      passworded: true,
+      textImage: null as { textureId: string } | null,
+      doRerender: true,
+    };
+
+    makeMainMenuTextBoxImage(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([
+      { font: FontType.SmallWhite, text: "******{" },
+    ]);
+    expect(state).toEqual({
+      selected: true,
+      text: "secret",
+      passworded: true,
+      textImage: { textureId: "******{" },
+      doRerender: false,
+    });
+  });
+
   it("ports GMMWLabel::SetJustification as label alignment state", () => {
     const state = { justification: MainMenuLabelJustifyType.Normal };
 
@@ -337,6 +747,64 @@ describe("main menu widgets", () => {
     setMainMenuLabelFont(state, 3);
 
     expect(state.font).toBe(3);
+  });
+
+  it("ports GMMWLabel::SetText as label text with rerender when stale", () => {
+    const state = { text: "", renderedText: "old", rerenderText: false };
+
+    setMainMenuLabelText(state, "new");
+
+    expect(state).toEqual({
+      text: "new",
+      renderedText: "old",
+      rerenderText: true,
+    });
+  });
+
+  it("ports GMMWLabel::SetText as a no-op when text is already rendered", () => {
+    const state = { text: "draft", renderedText: "same", rerenderText: false };
+
+    setMainMenuLabelText(state, "same");
+
+    expect(state).toEqual({
+      text: "draft",
+      renderedText: "same",
+      rerenderText: false,
+    });
+  });
+
+  it("ports GMMWTeamColor::SetTeam as team assignment with bounds clamp", () => {
+    const state = { team: 0 };
+
+    setMainMenuTeamColorTeam(state, 2);
+    expect(state.team).toBe(2);
+
+    setMainMenuTeamColorTeam(state, -1);
+    expect(state.team).toBe(0);
+
+    setMainMenuTeamColorTeam(state, 9);
+    expect(state.team).toBe(0);
+  });
+
+  it("ports GMMWRadio::Init as radio image initialization", () => {
+    const state = {
+      radioLeftImage: null,
+      radioCenterImage: null,
+      radioRightImage: null,
+      radioSelectorImage: null,
+      finishedInit: false,
+    };
+
+    initMainMenuRadio(state);
+
+    expect(state).toEqual({
+      radioLeftImage: "assets/other/main_menu_gui/radio/radio_left.png",
+      radioCenterImage: "assets/other/main_menu_gui/radio/radio_center.png",
+      radioRightImage: "assets/other/main_menu_gui/radio/radio_right.png",
+      radioSelectorImage:
+        "assets/other/main_menu_gui/radio/radio_selector.png",
+      finishedInit: true,
+    });
   });
 
   it("ports GMMWRadio::GetSelected as selected radio index read", () => {
@@ -365,6 +833,78 @@ describe("main menu widgets", () => {
 
     setMainMenuRadioSelected(state, 4);
     expect(state.selectedIndex).toBe(0);
+  });
+
+  it("ports GMMWRadio::SetMaxSelections as count clamp, width refresh, and selection validation", () => {
+    const state = { selections: 4, width: 0, selectedIndex: 3 };
+
+    setMainMenuRadioMaxSelections(state, 1);
+    expect(state).toEqual({
+      selections: MAIN_MENU_RADIO_MIN_SELECTIONS,
+      width:
+        MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+        (MAIN_MENU_RADIO_MIN_SELECTIONS - 2) *
+          MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+        MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+      selectedIndex: 0,
+    });
+
+    state.selectedIndex = 2;
+    setMainMenuRadioMaxSelections(state, 5);
+    expect(state).toEqual({
+      selections: 5,
+      width:
+        MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+        3 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+        MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+      selectedIndex: 2,
+    });
+  });
+
+  it("ports GMMWRadio::Click as bounds check and radio segment selection", () => {
+    const flags = new MainMenuWidgetFlag();
+    const state = {
+      x: 10,
+      y: 20,
+      width:
+        MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+        3 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+        MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+      height: MAIN_MENU_RADIO_HEIGHT_PIXELS,
+      selections: 5,
+      flags,
+    };
+
+    flags.listEntrySelected = 4;
+    flags.radioSelectionIndexSelected = 2;
+    expect(clickMainMenuRadio(state, 9, 20)).toBe(false);
+    expect(flags).toEqual({
+      listEntrySelected: -1,
+      radioSelectionIndexSelected: -1,
+    });
+
+    expect(clickMainMenuRadio(state, state.x, state.y)).toBe(true);
+    expect(flags.radioSelectionIndexSelected).toBe(0);
+
+    expect(
+      clickMainMenuRadio(
+        state,
+        state.x +
+          MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+          2 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS,
+        state.y + state.height,
+      ),
+    ).toBe(true);
+    expect(flags.radioSelectionIndexSelected).toBe(3);
+
+    expect(
+      clickMainMenuRadio(
+        state,
+        state.x + state.width - MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS + 1,
+        state.y,
+      ),
+    ).toBe(true);
+    expect(flags.radioSelectionIndexSelected).toBe(4);
   });
 
   it("adapts list widget layout constants", () => {

@@ -161,6 +161,15 @@ export type MainMenuTypeState = {
 };
 
 /**
+ * Port of upstream `ZGuiMainMenuBase::ProcessWidgets` call target.
+ * Role: Provides the minimal main-menu API needed by the base process wrapper.
+ * Upstream: zgui_main_menu_base.cpp:56
+ */
+export type MainMenuWidgetProcessor = {
+  processWidgets(): void;
+};
+
+/**
  * Port of upstream `sound_setting` reference.
  * Role: Holds a mutable audio setting referenced by the main menu base.
  * Upstream: zgui_main_menu_base.h:145, zgui_main_menu_base.h:181
@@ -261,6 +270,14 @@ export type MainMenuDimensionState = {
 };
 
 /**
+ * Port of upstream `ZGuiMainMenuBase` bounds fields.
+ * Role: Holds the main-menu base origin and dimensions used for hit testing.
+ * Upstream: zgui_main_menu_base.h:139-140, zgui_main_menu_base.cpp:68-76
+ */
+export type MainMenuBoundsState = MainMenuCoordinateState &
+  MainMenuDimensionState;
+
+/**
  * Port of upstream `GetDimensions` output.
  * Role: Carries the main-menu base dimensions.
  * Upstream: zgui_main_menu_base.h:140
@@ -286,6 +303,15 @@ export type MainMenuWarningFlagsState = {
  */
 export function getMainMenuType(state: MainMenuTypeState): MainMenuType {
   return state.menuType;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::Process`.
+ * Role: Delegates per-frame menu processing to widget processing.
+ * Upstream: zgui_main_menu_base.cpp:54-57
+ */
+export function processMainMenuBase(menu: MainMenuWidgetProcessor): void {
+  menu.processWidgets();
 }
 
 /**
@@ -321,6 +347,39 @@ export function getMainMenuCoords(
 }
 
 /**
+ * Port of upstream `ZGuiMainMenuBase::SetCenterCoords`.
+ * Role: Positions the main-menu base so its bounds are centered on a point.
+ * Upstream: zgui_main_menu_base.cpp:48-52
+ */
+export function setMainMenuCenterCoords(
+  state: MainMenuBoundsState,
+  centerX: number,
+  centerY: number,
+): void {
+  state.x = centerX - (state.width >> 1);
+  state.y = centerY - (state.height >> 1);
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::Move`.
+ * Role: Scales the menu center point and updates the origin to keep dimensions centered.
+ * Upstream: zgui_main_menu_base.cpp:86-98
+ */
+export function moveMainMenuBase(
+  state: MainMenuBoundsState,
+  px: number,
+  py: number,
+): void {
+  const halfWidth = state.width >> 1;
+  const halfHeight = state.height >> 1;
+  const centerX = (state.x + halfWidth) * px;
+  const centerY = (state.y + halfHeight) * py;
+
+  state.x = centerX - halfWidth;
+  state.y = centerY - halfHeight;
+}
+
+/**
  * Port of upstream `GetDimensions`.
  * Role: Returns the main-menu base dimensions.
  * Upstream: zgui_main_menu_base.h:140
@@ -332,6 +391,40 @@ export function getMainMenuDimensions(
     width: state.width,
     height: state.height,
   };
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::WithinDimensions`.
+ * Role: Tests whether a point is within the main-menu base's inclusive bounds.
+ * Upstream: zgui_main_menu_base.cpp:68-76
+ */
+export function withinMainMenuDimensions(
+  state: MainMenuBoundsState,
+  x: number,
+  y: number,
+): boolean {
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x > state.x + state.width) return false;
+  if (y > state.y + state.height) return false;
+
+  return true;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::IsOverHUD`.
+ * Role: Reports whether the menu bounds overlap the HUD left or top boundary.
+ * Upstream: zgui_main_menu_base.cpp:78-84
+ */
+export function isMainMenuOverHud(
+  state: MainMenuBoundsState,
+  hudLeft: number,
+  hudTop: number,
+): boolean {
+  if (state.x + state.width >= hudLeft) return true;
+  if (state.y + state.height >= hudTop) return true;
+
+  return false;
 }
 
 /**

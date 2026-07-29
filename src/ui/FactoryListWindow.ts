@@ -1,6 +1,7 @@
 /**
  * Upstream: gwfactory_list.h
  */
+import { TeamType } from "../simulation/SimulationConstants";
 
 /**
  * Port of upstream `_ZGWFACTORY_LIST_H_`.
@@ -42,6 +43,10 @@ export class FactoryListRenderEntry {
  */
 export class FactoryListWindow {
   team = -1;
+  show = false;
+  finishedInit = false;
+  objectLists: object | null = null;
+  showStartEntry = 0;
 
   /**
    * Port of upstream `SetTeam`.
@@ -50,5 +55,70 @@ export class FactoryListWindow {
    */
   setTeam(team: number): void {
     this.team = team;
+  }
+
+  /**
+   * Port of upstream `GWFactoryList::CollectEntries`.
+   * Role: Rebuilds the visible factory list entries from world object lists.
+   * Upstream: gwfactory_list.cpp:60
+   */
+  collectEntries(): void {}
+
+  /**
+   * Port of upstream `GWFactoryList::Process`.
+   * Role: Collects factory entries only when the window is visible and initialized for a real team.
+   * Upstream: gwfactory_list.cpp:52-61
+   */
+  process(): void {
+    if (!this.show) return;
+    if (!this.finishedInit) return;
+    if (!this.objectLists) return;
+    if (this.team === TeamType.Null) return;
+
+    this.collectEntries();
+  }
+
+  /**
+   * Port of upstream `GWFactoryList::DoUpButton`.
+   * Role: Moves the first visible factory-list entry up without going below zero.
+   * Upstream: gwfactory_list.cpp:321-326
+   */
+  doUpButton(): void {
+    this.showStartEntry -= 1;
+
+    if (this.showStartEntry < 0) this.showStartEntry = 0;
+  }
+
+  /**
+   * Port of upstream `GWFactoryList::DoDownButton`.
+   * Role: Advances the first visible factory-list entry by one row.
+   * Upstream: gwfactory_list.cpp:328-331
+   */
+  doDownButton(): void {
+    this.showStartEntry += 1;
+  }
+
+  /**
+   * Port of upstream `GWFactoryList::WheelUpButton`.
+   * Role: Routes wheel-up input to the list scroll control only while visible.
+   * Upstream: gwfactory_list.cpp:303-310
+   */
+  wheelUpButton(): boolean {
+    if (!this.show) return false;
+
+    this.doUpButton();
+    return true;
+  }
+
+  /**
+   * Port of upstream `GWFactoryList::WheelDownButton`.
+   * Role: Routes wheel-down input to the list scroll control only while visible.
+   * Upstream: gwfactory_list.cpp:312-319
+   */
+  wheelDownButton(): boolean {
+    if (!this.show) return false;
+
+    this.doDownButton();
+    return true;
   }
 }

@@ -249,7 +249,7 @@ function fromTableRow(row: TableRow): LedgerRow {
 }
 
 function stableKey(row: LedgerRow): string {
-  return `${row.type}:${row.file}:${row.symbol}`;
+  return `${row.type}:${row.file}:${row.symbol}:${row.lines}`;
 }
 
 function countByStatus(rows: LedgerRow[]): Map<string, number> {

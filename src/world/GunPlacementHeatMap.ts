@@ -2,6 +2,10 @@
  * Upstream: zgun_placement_heatmap.h / zgun_placement_heatmap.cpp
  */
 
+import type { GameMap } from "./GameMap";
+import type { MapZoneInfo } from "./MapFormat";
+import type { GameEntity } from "../simulation/entities/GameEntity";
+
 /**
  * Marker exported from the gun placement heatmap module.
  * Role: Marks an upstream header boundary.
@@ -16,7 +20,44 @@ export const ZGUN_PLACEMENT_HEATMAP_HEADER_GUARD_PORTED = true;
  */
 export type HeatMapBaseState = {
   heatMapSize: number;
+  heatMap?: { [index: number]: number; length: number };
+  lastTeam?: number;
 };
+
+/**
+ * Port of upstream `ZCore` forward declaration.
+ * Role: References the game core passed into gun placement searches.
+ * Upstream: zgun_placement_heatmap.h:10
+ */
+export type GunPlacementCoreReference = object;
+
+/**
+ * Port of upstream `ZObject` forward declaration.
+ * Role: References the simulation object evaluated by gun placement searches.
+ * Upstream: zgun_placement_heatmap.h:11
+ */
+export type GunPlacementObjectReference = GameEntity;
+
+/**
+ * Port of upstream `ZMap` forward declaration.
+ * Role: References the game map used by gun placement heatmap processing.
+ * Upstream: zgun_placement_heatmap.h:12
+ */
+export type GunPlacementMapReference = GameMap;
+
+/**
+ * Port of upstream `map_zone_info` forward declaration.
+ * Role: References map zone metadata while evaluating cannon placement.
+ * Upstream: zgun_placement_heatmap.h:15
+ */
+export type GunPlacementMapZoneInfoReference = MapZoneInfo;
+
+/**
+ * Port of upstream `ZOLists` forward declaration.
+ * Role: References the object-list container used by heatmap processing.
+ * Upstream: zgun_placement_heatmap.h:14
+ */
+export type GunPlacementObjectListsReference = object;
 
 /**
  * Port of upstream `process_time_inc`.
@@ -87,4 +128,68 @@ export const UNIT_HISTORY_HEATMAP_CLEAR_THRESHOLD = Math.pow(
  */
 export function getHeatMapSize(state: HeatMapBaseState): number {
   return state.heatMapSize;
+}
+
+/**
+ * Port of upstream `ZHeatMapBase::ShouldClear`.
+ * Role: Reports whether cached heatmap data belongs to a different team.
+ * Upstream: zgun_placement_heatmap.cpp:395-400
+ */
+export function shouldClearHeatMap(
+  state: Pick<HeatMapBaseState, "lastTeam">,
+  ourTeam: number,
+): boolean {
+  return state.lastTeam !== ourTeam;
+}
+
+/**
+ * Port of upstream `ZHeatMapBase::ShouldReset`.
+ * Role: Reports whether the cached heatmap size no longer matches the map dimensions.
+ * Upstream: zgun_placement_heatmap.cpp:368-373
+ */
+export function shouldResetHeatMap(
+  state: Pick<HeatMapBaseState, "heatMapSize">,
+  mapBasics: Pick<GameMap, "width" | "height">,
+): boolean {
+  return mapBasics.width * mapBasics.height !== state.heatMapSize;
+}
+
+/**
+ * Port of upstream `ZHeatMapBase::DoReset`.
+ * Role: Reallocates heatmap storage to match the current map dimensions.
+ * Upstream: zgun_placement_heatmap.cpp:375-393
+ */
+export function resetHeatMap(
+  state: HeatMapBaseState,
+  mapBasics: Pick<GameMap, "width" | "height">,
+): void {
+  state.heatMapSize = mapBasics.width * mapBasics.height;
+
+  if (state.heatMapSize < 0) {
+    state.heatMapSize = 0;
+  }
+
+  state.heatMap = undefined;
+
+  if (state.heatMapSize) {
+    state.heatMap = Array.from({ length: state.heatMapSize }, () => 0);
+    clearHeatMap(state, -1);
+  }
+}
+
+/**
+ * Port of upstream `ZHeatMapBase::DoClear`.
+ * Role: Clears heatmap data and records the team the cleared data belongs to.
+ * Upstream: zgun_placement_heatmap.cpp:402-410
+ */
+export function clearHeatMap(state: HeatMapBaseState, ourTeam: number): void {
+  if (state.heatMap) {
+    for (let i = 0; i < state.heatMapSize && i < state.heatMap.length; i += 1) {
+      state.heatMap[i] = 0;
+    }
+  }
+
+  if (ourTeam !== -1) {
+    state.lastTeam = ourTeam;
+  }
 }

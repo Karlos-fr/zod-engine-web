@@ -19,6 +19,7 @@ import {
   isBatchableConstant,
   selectConstantBatch,
   selectNext,
+  selectRecoveryCandidates,
 } from "./task-selector.ts";
 import { upstreamSourceRoot } from "./config.ts";
 import { extractRange } from "./symbol-extractor.ts";
@@ -56,6 +57,9 @@ function run(commandName = "help", argsList: string[]): void {
       return inspect(argsList);
     case "next":
       return next();
+    case "candidates":
+    case "cycle-candidates":
+      return candidates(argsList);
     case "start":
       return mark(requiredArg(argsList, 0, "id"), { status: "in_progress" });
     case "done":
@@ -187,6 +191,30 @@ function next(): void {
   console.log(`${row.id} ${row.decision} ${row.targetDomain} ${row.file} ${row.symbol}`);
   if (row.batch) {
     console.log(`batch_hint=${row.batch}`);
+  }
+}
+
+function candidates(argsList: string[]): void {
+  const options = parseOptions(argsList);
+  const rows = selectRecoveryCandidates(readLedger(), {
+    limit: parseLimit(options.limit),
+    domain: options.domain,
+    file: options.file,
+  });
+
+  if (!rows.length) {
+    console.log("No recovery candidates found.");
+    return;
+  }
+
+  for (const candidate of rows) {
+    const row = candidate.row;
+    console.log(
+      `${row.id} ${row.decision} ${row.targetDomain} ${row.file}:${row.lines} ${row.symbol}`,
+    );
+    console.log(`  reason=${candidate.reason}`);
+    console.log(`  blocked_by=${candidate.blockedBy.join(",")}`);
+    console.log(`  next=npm run zport -- deps ${row.id}`);
   }
 }
 
@@ -485,6 +513,10 @@ function help(): void {
   batch constants [--limit 10] [--file relative-upstream-file] [--domain value] [--apply-plan]
       Propose a homogeneous batch of unblocked one-line constants/macros.
       Functions, methods, classes, structs and enums remain one-symbol tasks.
+  candidates [--limit 20] [--domain value] [--file text]
+      List blocked but promising recovery candidates, including direct cycles.
+  cycle-candidates [--limit 20] [--domain value] [--file text]
+      Alias for candidates.
   inspect-file <relative-upstream-file>
   next
   start <id>
