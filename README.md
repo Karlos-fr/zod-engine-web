@@ -1,7 +1,7 @@
 # zod-engine-web
 
 Portage progressif de Zod Engine vers une application navigateur en
-TypeScript, Vite et Three.js.
+TypeScript, Vite et Canvas2D.
 
 Le projet ne vise pas une traduction mécanique du C++ historique. Le snapshot
 upstream sert de référence fonctionnelle pour reconstruire le jeu avec une
@@ -12,10 +12,10 @@ architecture Web maintenable.
 - Snapshot SourceForge Mercurial récupéré dans `download/`.
 - Sources upstream extraites dans
   `download/zod-zod_engine-6f2d1f82a95c7e2bcbb8338770d03e2b70b3e0b5/`.
-- Socle Vite/TypeScript/Three.js en place.
+- Socle Vite/TypeScript/Canvas2D en place.
 - Boucle de jeu à pas fixe.
 - Simulation séparée du rendu.
-- Scène Three.js minimale avec terrain, entité et ordre de déplacement au clic.
+- Rendu Canvas2D minimal avec terrain, entité et ordre de déplacement au clic.
 - CLI de portage `zport`.
 - Référentiel Markdown de portage généré.
 - Gestion bloquante des dépendances entre symboles.
@@ -336,7 +336,7 @@ src/
   app/          composition, boucle, état applicatif
   simulation/   monde, entités, systèmes, événements
   world/        carte, tuiles, zones, navigation
-  rendering/    Three.js, caméra, vues terrain/entités
+  rendering/    Canvas2D, surfaces, sprites, textes, vues terrain/entités
   input/        entrées joueur
   assets/       manifests et chargement assets
   audio/        audio Web
@@ -346,7 +346,7 @@ src/
 
 Règles :
 
-- `simulation`, `world` et `data` ne dépendent pas de Three.js.
+- `simulation`, `world` et `data` ne dépendent pas du navigateur ni du canvas.
 - Le rendu observe l'état de simulation.
 - SDL/OpenGL/Windows sont remplacés ou ignorés selon les cas.
 - Le réseau natif est reporté.

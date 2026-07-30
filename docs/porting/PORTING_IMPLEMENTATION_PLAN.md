@@ -16,7 +16,7 @@ relire les gros fichiers à chaque tâche.
 | 4 | Politique gros fichiers | done | `tools/zport/large-file-policy.ts` |
 | 5 | Construire la CLI `zport` | done | `tools/zport/cli.ts` |
 | 6 | Graphe de dépendances et tri par lots indicatifs | done | `tools/zport/dependency-graph.ts`, `tools/zport/task-selector.ts`, `docs/porting/UPSTREAM_MODULES.md` |
-| 7 | Socle TypeScript/Vite/Three.js | done | `package.json`, `tsconfig.json`, `vite.config.ts`, `src/` |
+| 7 | Socle TypeScript/Vite/Canvas2D | done | `package.json`, `tsconfig.json`, `vite.config.ts`, `src/` |
 | 8 | Tranche verticale de validation | done | modules minimaux carte/rendu/entité/input, `docs/porting/VERTICAL_SLICE.md` |
 | 9 | Cycle de travail Codex | done | commandes `zport context`, `start`, `done`, `block`, `ignore` |
 | 10 | Ordre d'exécution recommandé | done | validation build/tests/CLI |
@@ -29,7 +29,7 @@ relire les gros fichiers à chaque tâche.
   et marquer les éléments portés.
 - Gérer les gros fichiers C++ par extraction ciblée de symboles et dépendances,
   jamais par lecture complète comme unité de travail.
-- Mettre en place le socle TypeScript/Vite/Three.js avant le portage massif.
+- Mettre en place le socle TypeScript/Vite/Canvas2D avant le portage massif.
 - Valider l'architecture par une tranche verticale minimale : carte, rendu,
   entité, sélection, ordre, navigation et déplacement.
 
@@ -70,13 +70,13 @@ src/
   world/
     GameMap.ts
     Tile.ts
-    Zone.ts
-    NavigationGrid.ts
+    MapFormat.ts
+    navigation/
   rendering/
-    ThreeRenderer.ts
-    CameraController.ts
-    TerrainView.ts
-    EntityView.ts
+    Canvas2DRenderer.ts
+    SurfaceLifecycle.ts
+    SurfacePixels.ts
+    ImageScaling.ts
   input/
   assets/
   audio/
@@ -141,7 +141,7 @@ Exemple :
 | ID | Type | Symbole source | Fichier source | Lignes | Décision | Domaine cible | Statut | Lot | Symbole cible | Fichier cible | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | ZOBJ-0001 | class | `ZObject` | `src/zobject.h` | `32-210` | PORTER | simulation | todo | entity-core | `GameEntity` | `src/simulation/entities/GameEntity.ts` | Base comportementale des objets |
-| ZSDL-0001 | method | `ZSDL::Render` | `src/zsdl.cpp` | `80-155` | REPLACE | rendering | ignored | rendering-web | `src/rendering/ThreeRenderer.ts` | Remplacé par Three.js |
+| ZSDL-0001 | method | `ZSDL::Render` | `src/zsdl.cpp` | `80-155` | REPLACE | rendering | ignored | rendering-web | `src/rendering/Canvas2DRenderer.ts` | Remplacé par Canvas2D |
 ```
 
 Règles :
@@ -263,7 +263,7 @@ npm run zport -- next
 npm run zport -- start ZOBJ-0001
 npm run zport -- done ZOBJ-0001 --target src/simulation/entities/GameEntity.ts
 npm run zport -- block ZOBJ-0001 --note "format dependency missing"
-npm run zport -- ignore ZSDL-0001 --note "SDL rendering replaced by Three.js"
+npm run zport -- ignore ZSDL-0001 --note "SDL rendering replaced by Canvas2D"
 ```
 
 Comportement attendu :
@@ -352,7 +352,7 @@ Stack :
 
 - TypeScript strict.
 - Vite.
-- Three.js.
+- Canvas2D.
 - Vitest.
 - ESLint.
 - Web Audio API plus tard.
@@ -362,15 +362,15 @@ Modules de base :
 - `GameApplication` : composition des services.
 - `GameLoop` : pas fixe de simulation, rendu interpolé.
 - `GameState` : état de session.
-- `World` : conteneur simulation sans dépendance Three.js.
-- `GameMap`, `Tile`, `Zone`, `NavigationGrid`.
-- `ThreeRenderer`, `TerrainView`, `EntityView`, `CameraController`.
-- `AssetManifest`, `AssetLoader`.
+- `World` : conteneur simulation sans dépendance navigateur/canvas.
+- `GameMap`, `Tile`, `MapFormat`, `PathFindingEngine`.
+- `Canvas2DRenderer`.
+- `GraphicsArchive`.
 - `InputController`.
 
 Règles d'architecture :
 
-- `simulation`, `world` et `data` ne dépendent jamais de Three.js.
+- `simulation`, `world` et `data` ne dépendent jamais du navigateur ni du canvas.
 - Le rendu observe l'état, il ne possède pas les règles de gameplay.
 - Les assets sont référencés via manifests, pas par chemins éparpillés.
 - La simulation utilise un pas fixe.
@@ -381,7 +381,7 @@ Critères de validation :
 
 - `npm run build` passe.
 - `npm test` passe.
-- Une page Vite affiche un canvas Three.js non vide.
+- Une page Vite affiche un canvas 2D non vide.
 - La simulation peut tourner sans renderer dans un test Vitest.
 
 ## Phase 8 - Tranche verticale de validation
@@ -393,7 +393,7 @@ Périmètre :
 
 1. Charger une carte upstream.
 2. Construire un `GameMap`.
-3. Afficher un terrain minimal dans Three.js.
+3. Afficher un terrain minimal dans Canvas2D.
 4. Créer une entité robot.
 5. Afficher le robot.
 6. Sélectionner le robot à la souris.
@@ -481,7 +481,7 @@ Le dispositif est prêt pour le portage régulier lorsque :
 - `zport scan` est idempotent.
 - `zport show`, `context`, `next`, `start`, `done`, `block`, `ignore` existent.
 - Les gros fichiers sont signalés et jamais exportés complets par `context`.
-- Le socle Vite/TypeScript/Three.js compile.
+- Le socle Vite/TypeScript/Canvas2D compile.
 - Vitest vérifie au moins la CLI ledger et une simulation minimale.
 - La première tâche Codex peut être exécutée avec moins de 200 lignes de
   contexte utile hors tests.

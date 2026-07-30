@@ -5,6 +5,7 @@ import {
   PathFindingRegionInfo,
   PathFindingResponse,
   PathFindingThreadEntry,
+  type PathFindingThreadHandle,
 } from "../src/world/navigation/PathFindingEngine";
 import { PathFindingPoint } from "../src/world/navigation/AStar";
 import {
@@ -736,24 +737,25 @@ describe("PathFindingEngine", () => {
     expect(engine.findPath(0, 8, 48, 8, true, false, 77)).toBe(1);
 
     expect(threadLauncher).toHaveBeenCalledOnce();
-    expect(capturedResponse?.pathFinder).toBe(engine);
-    expect(capturedResponse?.threadId).toBe(1);
-    expect(capturedResponse?.objectRefId).toBe(77);
-    expect(capturedResponse?.startX).toBe(0);
-    expect(capturedResponse?.startY).toBe(8);
-    expect(capturedResponse?.endX).toBe(48);
-    expect(capturedResponse?.endY).toBe(8);
-    expect(capturedResponse?.isRobot).toBe(true);
-    expect(capturedResponse?.killThread).toBe(false);
-    expect(capturedResponse?.width).toBe(4);
-    expect(capturedResponse?.height).toBe(3);
-    expect(capturedResponse?.tileInfo).toBe(tileSet.robotTiles);
+    const response = capturedResponse as unknown as PathFindingResponse;
+    expect(response.pathFinder).toBe(engine);
+    expect(response.threadId).toBe(1);
+    expect(response.objectRefId).toBe(77);
+    expect(response.startX).toBe(0);
+    expect(response.startY).toBe(8);
+    expect(response.endX).toBe(48);
+    expect(response.endY).toBe(8);
+    expect(response.isRobot).toBe(true);
+    expect(response.killThread).toBe(false);
+    expect(response.width).toBe(4);
+    expect(response.height).toBe(3);
+    expect(response.tileInfo).toBe(tileSet.robotTiles);
     expect(engine.threadList).toHaveLength(1);
     expect(engine.threadList[0].threadId).toBe(1);
     expect(engine.threadList[0].thread).toEqual({ wait });
-    expect(engine.threadList[0].response).toBe(capturedResponse);
+    expect(engine.threadList[0].response).toBe(response);
 
-    capturedResponse?.dispose();
+    response.dispose();
   });
 
   it("ports ZPath_Finding_Engine::Find_Path as no-rock tile selection", () => {
@@ -775,9 +777,10 @@ describe("PathFindingEngine", () => {
     );
 
     expect(engine.findPath(0, 8, 48, 8, true, true, 77)).toBe(1);
-    expect(capturedResponse?.tileInfo).toBe(tileSet.robotNoRocksTiles);
+    const response = capturedResponse as unknown as PathFindingResponse;
+    expect(response.tileInfo).toBe(tileSet.robotNoRocksTiles);
 
-    capturedResponse?.dispose();
+    response.dispose();
   });
 
   it("ports ZPath_Finding_Engine::Find_Path as no request across regions", () => {
@@ -1021,7 +1024,7 @@ describe("PathFindingThreadEntry", () => {
   it("stores the upstream thread entry fields", () => {
     PathFindingResponse.existingResponses = 0;
     const response = new PathFindingResponse();
-    const thread = { id: "worker-7" };
+    const thread: PathFindingThreadHandle = { wait: () => undefined };
 
     const entry = new PathFindingThreadEntry(7, thread, response);
 

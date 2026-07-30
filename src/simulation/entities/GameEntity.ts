@@ -689,7 +689,15 @@ export class GameEntity {
    * Role: Base hook for revive effects when health changes from dead to alive.
    * Upstream: zobject.cpp:261-264
    */
-  doReviveEffect(): void {}
+  doReviveEffect(
+    currentTime?: number,
+    effectList?: unknown,
+    randomInt?: (maxExclusive: number) => number,
+  ): void {
+    void currentTime;
+    void effectList;
+    void randomInt;
+  }
 
   /**
    * Port of upstream `ZObject::GetMaxHealth`.
@@ -2286,9 +2294,16 @@ export class GameEntity {
    * Role: Provides the base death effect hook for object subclasses.
    * Upstream: zobject.cpp:256-259
    */
-  doDeathEffect(doFireDeath: boolean, doMissileDeath: boolean): void {
+  doDeathEffect(
+    doFireDeath: boolean,
+    doMissileDeath: boolean,
+    effectList?: unknown,
+    randomInt?: (maxExclusive: number) => number,
+  ): void {
     void doFireDeath;
     void doMissileDeath;
+    void effectList;
+    void randomInt;
   }
 
   /**

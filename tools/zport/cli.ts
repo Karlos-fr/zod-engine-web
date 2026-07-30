@@ -8,6 +8,7 @@ import {
   findLedgerRow,
   findLedgerRows,
   readLedger,
+  toTableRow,
   updateEquivalentLedgerRows,
   updateEquivalentLedgerRowsByLines,
   updateLedgerRow,
@@ -22,6 +23,7 @@ import {
   selectRecoveryCandidates,
 } from "./task-selector.ts";
 import { upstreamSourceRoot } from "./config.ts";
+import { ledgerColumns } from "./markdown-table.ts";
 import { extractRange } from "./symbol-extractor.ts";
 import { resolveDependencies } from "./dependencies.ts";
 import { findExistingSourceMatches } from "./source-search.ts";
@@ -43,6 +45,8 @@ function run(commandName = "help", argsList: string[]): void {
       return list(argsList);
     case "status":
       return status();
+    case "export-csv":
+      return exportCsv(argsList);
     case "show":
       return show(requiredArg(argsList, 0, "id"));
     case "brief":
@@ -107,6 +111,29 @@ function status(): void {
   printCounts(byStatus);
   console.log("decision:");
   printCounts(byDecision);
+}
+
+function exportCsv(argsList: string[]): void {
+  const options = parseOptions(argsList);
+  const output = options.output || "docs/porting/PORTING_LEDGER.csv";
+  const separator = options.separator || ";";
+  if (separator.length !== 1) {
+    throw new Error("--separator must be a single character");
+  }
+
+  const rows = readLedger().map(toTableRow);
+  const content = [
+    ledgerColumns.map((column) => escapeCsvCell(column, separator)).join(separator),
+    ...rows.map((row) =>
+      ledgerColumns
+        .map((column) => escapeCsvCell(row[column] || "", separator))
+        .join(separator),
+    ),
+  ].join("\n");
+
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, `${content}\n`, "utf8");
+  console.log(`exported ${rows.length} rows to ${output}`);
 }
 
 function show(id: string): void {
@@ -471,6 +498,18 @@ function parseLimit(value: string | undefined): number | undefined {
   return limit;
 }
 
+function escapeCsvCell(value: string, separator: string): string {
+  const normalized = value.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+  if (
+    normalized.includes(separator) ||
+    normalized.includes("\"") ||
+    normalized.includes("\n")
+  ) {
+    return `"${normalized.replaceAll("\"", "\"\"")}"`;
+  }
+  return normalized;
+}
+
 function countBy(rows: LedgerRow[], getKey: (row: LedgerRow) => string): Map<string, number> {
   const counts = new Map<string, number>();
   for (const row of rows) {
@@ -508,6 +547,7 @@ function help(): void {
   scan
   list [--status value] [--decision value] [--domain value] [--file text] [--batch value]
   status
+  export-csv [--output docs/porting/PORTING_LEDGER.csv] [--separator ;]
   show <id>
   brief <id>
   context <id>

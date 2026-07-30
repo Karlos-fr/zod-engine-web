@@ -56,7 +56,7 @@ export enum HudButton {
  * Role: Maps HUD button identifiers to their asset-name stem.
  * Upstream: zhud.h:20-23
  */
-export const HUD_BUTTON_NAMES = [
+export const HUD_BUTTON_NAMES: readonly string[] = [
   "a_button",
   "b_button",
   "d_button",

@@ -16,6 +16,7 @@ import {
   setZsdlSurfaceUseOpenGL,
   unloadZsdlSurface,
   useZsdlSurfaceDisplayFormat,
+  type SurfaceTextureSource,
 } from "../src/rendering/SurfaceLifecycle";
 
 describe("surface lifecycle", () => {
@@ -620,7 +621,7 @@ describe("surface lifecycle", () => {
 
   it("preserves LoadGLtexture false result without a software surface", () => {
     const state = {
-      surface: { current: null as null },
+      surface: { current: null as SurfaceTextureSource | null },
       texture: 3,
       textureLoaded: true,
     };

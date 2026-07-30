@@ -10,9 +10,8 @@ valide les frontières techniques nécessaires au portage régulier.
 - `World` contient une `GameMap` et des entités.
 - `GameMap.createFlat` crée une carte plate de validation.
 - `GameEntity` accepte un ordre de déplacement et avance vers sa cible.
-- `ThreeRenderer` observe l'état de `World`.
-- `TerrainView` affiche un terrain minimal.
-- `EntityView` affiche les entités.
+- `Canvas2DRenderer` observe l'état de `World`.
+- `Canvas2DRenderer` affiche un terrain minimal et les entités.
 - `InputController` envoie un ordre de déplacement de test au clic.
 
 ## Ce qui reste à porter depuis l'upstream

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
+  TEAM_RENDERING_COLORS,
   TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE,
   TEAM_RENDERING_BASE_TEAM,
   TEAM_RENDERING_PALETTE_MAX,
@@ -25,6 +26,14 @@ describe("team rendering", () => {
 
   it("adapts the team palette replacement slot count", () => {
     expect(TEAM_RENDERING_PALETTE_MAX).toBe(16);
+  });
+
+  it("ports base team render colors", () => {
+    expect(TEAM_RENDERING_COLORS[TeamType.Null]).toEqual({ red: 115, green: 115, blue: 115 });
+    expect(TEAM_RENDERING_COLORS[TeamType.Red]).toEqual({ red: 223, green: 0, blue: 0 });
+    expect(TEAM_RENDERING_COLORS[TeamType.Blue]).toEqual({ red: 19, green: 55, blue: 251 });
+    expect(TEAM_RENDERING_COLORS[TeamType.Green]).toEqual({ red: 23, green: 143, blue: 19 });
+    expect(TEAM_RENDERING_COLORS[TeamType.Yellow]).toEqual({ red: 203, green: 99, blue: 47 });
   });
 
   it("ports ZTeam_Palette AddColor as unsupported vector-storage guard", () => {

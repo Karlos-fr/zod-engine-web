@@ -26,6 +26,8 @@ import {
   isProductionActive,
   type ProductionBuildingReference,
   type ProductionObjectReference,
+  type ProductionPlaceButtonState,
+  type ProductionUnitSelectorInitState,
   PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH,
   PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
   ProductionBuildingState,
@@ -212,7 +214,7 @@ describe("production window", () => {
     const loadedFilenames: string[] = [];
     const percentageBarSurfaces: string[] = [];
     const yellowPercentageBarSurfaces: string[] = [];
-    const state = {
+    const state: ProductionUnitSelectorInitState = {
       percentageBarImage: { imageFilename: "" },
       yellowPercentageBarImage: { imageFilename: "" },
       finishedInit: false,
@@ -991,7 +993,7 @@ describe("production window", () => {
       ctop: 0,
       cbottom: 0,
     };
-    const state = {
+    const state: ProductionPlaceButtonState = {
       buildingObject: null,
       killme: false,
       flags,

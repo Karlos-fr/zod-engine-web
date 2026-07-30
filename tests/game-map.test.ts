@@ -487,10 +487,10 @@ describe("GameMap", () => {
       paletteTileInfo: [
         [],
         [
-          { isRoad: false },
-          { isRoad: false },
-          { isRoad: true },
-          { isRoad: false },
+          { ...paletteTileInfo, isRoad: false },
+          { ...paletteTileInfo, isRoad: false },
+          { ...paletteTileInfo, isRoad: true },
+          { ...paletteTileInfo, isRoad: false },
         ],
       ],
     });
@@ -531,12 +531,12 @@ describe("GameMap", () => {
       paletteTileInfo: [
         [],
         [
-          { craterType: 0 },
-          { craterType: 1 },
-          { craterType: 2 },
-          { craterType: 3 },
-          { craterType: 4 },
-          { craterType: 5 },
+          { ...paletteTileInfo, craterType: 0 },
+          { ...paletteTileInfo, craterType: 1 },
+          { ...paletteTileInfo, craterType: 2 },
+          { ...paletteTileInfo, craterType: 3 },
+          { ...paletteTileInfo, craterType: 4 },
+          { ...paletteTileInfo, craterType: 5 },
         ],
       ],
     });
@@ -572,10 +572,10 @@ describe("GameMap", () => {
       terrainType: 0,
       paletteTileInfo: [
         [
-          { isPassable: false, isRoad: false, isWater: false },
-          { isPassable: true, isRoad: true, isWater: false },
-          { isPassable: true, isRoad: false, isWater: true },
-          { isPassable: true, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: false, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: true, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: true },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: false },
         ],
       ],
     });
@@ -595,10 +595,10 @@ describe("GameMap", () => {
       terrainType: 0,
       paletteTileInfo: [
         [
-          { isPassable: true, isRoad: false, isWater: false },
-          { isPassable: true, isRoad: false, isWater: false },
-          { isPassable: true, isRoad: true, isWater: false },
-          { isPassable: true, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: true, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: false },
         ],
       ],
       shiftX: 4,
@@ -720,8 +720,8 @@ describe("GameMap", () => {
       terrainType: 0,
       paletteTileInfo: [
         [
-          { isPassable: true, isRoad: false, isWater: false },
-          { isPassable: true, isRoad: false, isWater: true },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: true },
         ],
       ],
       fileLoaded: true,
@@ -742,8 +742,8 @@ describe("GameMap", () => {
       terrainType: 0,
       paletteTileInfo: [
         [
-          { isPassable: true, isRoad: false, isWater: false },
-          { isPassable: true, isRoad: false, isWater: true },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: false },
+          { ...paletteTileInfo, isPassable: true, isRoad: false, isWater: true },
         ],
       ],
       fileLoaded: true,

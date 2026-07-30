@@ -37,6 +37,23 @@ export type TeamPaletteColor = {
 };
 
 /**
+ * Port of upstream `team_color`.
+ * Role: Provides the base RGB color used by simple team-colored render effects.
+ * Upstream: zteam.cpp:206-239
+ */
+export const TEAM_RENDERING_COLORS: Readonly<Record<TeamType, TeamPaletteColor>> = {
+  [TeamType.Null]: { red: 115, green: 115, blue: 115 },
+  [TeamType.Red]: { red: 223, green: 0, blue: 0 },
+  [TeamType.Blue]: { red: 19, green: 55, blue: 251 },
+  [TeamType.Green]: { red: 23, green: 143, blue: 19 },
+  [TeamType.Yellow]: { red: 203, green: 99, blue: 47 },
+  [TeamType.Purple]: { red: 223, green: 0, blue: 0 },
+  [TeamType.Teal]: { red: 223, green: 0, blue: 0 },
+  [TeamType.White]: { red: 223, green: 0, blue: 0 },
+  [TeamType.Black]: { red: 223, green: 0, blue: 0 },
+};
+
+/**
  * Port of upstream `ZTeam_Palette` color arrays used by `AddColor`.
  * Role: Holds base and replacement color entries for team recoloring.
  * Upstream: zteam.cpp:132-138

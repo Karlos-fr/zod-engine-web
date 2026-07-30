@@ -70,7 +70,7 @@ describe("socket handler", () => {
       ipAddress: "192.0.2.10",
     };
 
-    const result = disconnectSocket(state, (closedSocket) => {
+    const result = disconnectSocket<typeof socket, SocketDisconnectState<typeof socket>>(state, (closedSocket) => {
       closed.push(closedSocket);
     });
 
@@ -89,7 +89,7 @@ describe("socket handler", () => {
       ipAddress: "192.0.2.10",
     };
 
-    const result = disconnectSocket(state, (closedSocket) => {
+    const result = disconnectSocket<typeof socket, SocketDisconnectState<typeof socket>>(state, (closedSocket) => {
       closed.push(closedSocket);
     });
 

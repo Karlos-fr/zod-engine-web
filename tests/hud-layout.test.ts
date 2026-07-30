@@ -33,6 +33,8 @@ import {
 } from "../src/ui/HudLayout";
 
 describe("HUD layout", () => {
+  type TestSelectedObject = { refId: number };
+
   it("adapts the zhud.h include guard to an ES module marker", async () => {
     const firstImport = await import("../src/ui/HudLayout");
     const secondImport = await import("../src/ui/HudLayout");
@@ -240,11 +242,11 @@ describe("HUD layout", () => {
   });
 
   it("ports ZHud::DeleteObject as selected object cleanup", () => {
-    const selectedObject = { refId: 42 };
-    const calls: Array<typeof selectedObject | null> = [];
+    const selectedObject: TestSelectedObject = { refId: 42 };
+    const calls: Array<TestSelectedObject | null> = [];
     const state = {
-      selectedObject,
-      setSelectedObject(selectedObject_: typeof selectedObject | null) {
+      selectedObject: selectedObject as TestSelectedObject | null,
+      setSelectedObject(selectedObject_: TestSelectedObject | null) {
         calls.push(selectedObject_);
         this.selectedObject = selectedObject_;
       },
@@ -257,12 +259,12 @@ describe("HUD layout", () => {
   });
 
   it("keeps ZHud::DeleteObject unchanged for unselected objects", () => {
-    const selectedObject = { refId: 42 };
+    const selectedObject: TestSelectedObject = { refId: 42 };
     const deletedObject = { refId: 7 };
-    const calls: Array<typeof selectedObject | null> = [];
+    const calls: Array<TestSelectedObject | null> = [];
     const state = {
-      selectedObject,
-      setSelectedObject(selectedObject_: typeof selectedObject | null) {
+      selectedObject: selectedObject as TestSelectedObject | null,
+      setSelectedObject(selectedObject_: TestSelectedObject | null) {
         calls.push(selectedObject_);
         this.selectedObject = selectedObject_;
       },
@@ -303,14 +305,14 @@ describe("HUD layout", () => {
   });
 
   it("ports ZHud::ResetGame as transient HUD state cleanup", () => {
-    const selectedObject = { refId: 42 };
-    const calls: Array<typeof selectedObject | null | "unload"> = [];
+    const selectedObject: TestSelectedObject = { refId: 42 };
+    const calls: Array<TestSelectedObject | null | "unload"> = [];
     const state = {
       doEndAnimations: true,
       endAnimations: [new HudEndUnit(1, 2, 3)],
       activeRefId: 77,
-      selectedObject,
-      setSelectedObject(selectedObject_: typeof selectedObject | null) {
+      selectedObject: selectedObject as TestSelectedObject | null,
+      setSelectedObject(selectedObject_: TestSelectedObject | null) {
         calls.push(selectedObject_);
         this.selectedObject = selectedObject_;
       },

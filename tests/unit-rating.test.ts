@@ -12,6 +12,7 @@ import {
   isUnitForRating,
   populateUnitCrossReferenceTable,
   UnitCrossReference,
+  type UnitCrossReferenceTable,
   ZUNITRATING_HEADER_GUARD_PORTED,
 } from "../src/simulation/UnitRating";
 import { MapObjectType } from "../src/world/MapFormat";
@@ -46,7 +47,9 @@ describe("unit rating", () => {
   });
 
   it("ports ZUnitRating::InitMallocUCR as even-filled matchup table allocation", () => {
-    const state = { unitCrossReferences: null };
+    const state: { unitCrossReferences: UnitCrossReferenceTable | null } = {
+      unitCrossReferences: null,
+    };
 
     initUnitCrossReferenceTable(state);
 

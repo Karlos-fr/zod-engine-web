@@ -21,9 +21,9 @@ Rendering observes Simulation
 | map-format | `src/zmap.*`, fichiers `.map` | `src/world/` |
 | entity-core | `src/zobject.*` | `src/simulation/entities/` |
 | robot-basic | `src/zrobot.*`, `src/r*.{h,cpp}` | `src/simulation/entities/` |
-| navigation-basic | `src/zpath_finding*` | `src/world/NavigationGrid.ts` |
-| movement-basic | `zobject`, `zvehicle`, `zrobot` | `src/simulation/systems/` |
+| navigation-basic | `src/zpath_finding*` | `src/world/navigation/` |
+| movement-basic | `zobject`, `zvehicle`, `zrobot` | `src/simulation/entities/`, `src/simulation/World.ts` |
 | rendering-basic | `zsdl*`, render methods | `src/rendering/` |
-| selection-orders | cursor, orders, player input | `src/input/`, `src/simulation/events/` |
+| selection-orders | cursor, orders, player input | `src/input/`, `src/simulation/PlayerEvents.ts` |
 | audio | `zsound_engine`, `zmusic_engine` | `src/audio/` |
 | network | `zserver`, `zclient` | deferred |

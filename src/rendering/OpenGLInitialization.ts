@@ -1,11 +1,9 @@
-import * as THREE from "three";
-
 /**
  * Upstream: zsdl_opengl.cpp, zsdl_opengl.h
  */
 
 export type RendererInitializationTarget = {
-  setClearColor(color: THREE.ColorRepresentation, alpha?: number): void;
+  setClearColor(color: number | string, alpha?: number): void;
   setClearAlpha(alpha: number): void;
   autoClear: boolean;
 };
