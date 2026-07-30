@@ -23,6 +23,8 @@ const ZMAP_PLANET_TYPE_ASSET_NAMES = [
   "jungle",
   "city",
 ] as const;
+const ZMAP_PLANET_TYPE_DEBUG_NAMES: readonly string[] =
+  ZMAP_PLANET_TYPE_ASSET_NAMES;
 
 type GameMapPaletteTileInfo = Pick<
   PaletteTileInfo,
@@ -95,7 +97,10 @@ export class GameMap {
   readonly tiles: Tile[];
   readonly mapTiles: readonly MapTile[];
   readonly objectList: MapObject[];
+  mapName: string;
   terrainType: number;
+  playerCount: number;
+  zoneCount: number;
   paletteTileInfo: readonly (readonly GameMapPaletteTileInfo[])[];
   submergeInfoSetup: boolean;
   submergeAmounts: readonly (readonly number[])[];
@@ -123,7 +128,10 @@ export class GameMap {
     tiles: Tile[];
     mapTiles?: readonly MapTile[];
     objectList?: MapObject[];
+    mapName?: string;
     terrainType?: number;
+    playerCount?: number;
+    zoneCount?: number;
     paletteTileInfo?: readonly (readonly GameMapPaletteTileInfo[])[];
     submergeInfoSetup?: boolean;
     submergeAmounts?: readonly (readonly number[])[];
@@ -152,7 +160,10 @@ export class GameMap {
       options.mapTiles ??
       Array.from({ length: options.width * options.height }, () => ({ tile: 0 }));
     this.objectList = options.objectList ?? [];
+    this.mapName = options.mapName ?? "";
     this.terrainType = options.terrainType ?? 0;
+    this.playerCount = options.playerCount ?? 0;
+    this.zoneCount = options.zoneCount ?? 0;
     this.paletteTileInfo = options.paletteTileInfo ?? [];
     this.submergeInfoSetup = options.submergeInfoSetup ?? false;
     this.submergeAmounts = options.submergeAmounts ?? [];
@@ -217,6 +228,30 @@ export class GameMap {
    */
   loaded(): boolean {
     return this.fileLoaded;
+  }
+
+  /**
+   * Port of upstream `ZMap::DebugMapInfo`.
+   * Role: Builds diagnostic map metadata lines for debugging loaded maps.
+   * Upstream: zmap.cpp:345-363
+   */
+  debugMapInfo(): string[] {
+    if (!this.fileLoaded) {
+      return ["DebugMapInfo::map not loaded"];
+    }
+
+    return [
+      "",
+      "DebugMapInfo...",
+      `Map name:${this.mapName}`,
+      `Map width:${this.width}`,
+      `Map height:${this.height}`,
+      `Map player_count:${this.playerCount}`,
+      `Map object_count:${this.objectList.length}`,
+      `Map zone_count:${this.zoneCount}`,
+      `Map terrain_type:${ZMAP_PLANET_TYPE_DEBUG_NAMES[this.terrainType] ?? String(this.terrainType)}`,
+      "",
+    ];
   }
 
   /**

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
+  saveAllTeamPalettes,
   TEAM_RENDERING_COLORS,
   TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE,
   TEAM_RENDERING_BASE_TEAM,
@@ -56,5 +57,23 @@ describe("team rendering", () => {
       baseColor: [{ red: 1, green: 2, blue: 3 }],
       replaceColor: [{ red: 4, green: 5, blue: 6 }],
     });
+  });
+
+  it("ports ZTeam SaveAllPalettes over every active team slot", () => {
+    const savedTeams: number[] = [];
+
+    saveAllTeamPalettes((team) => savedTeams.push(team));
+
+    expect(savedTeams).toEqual([
+      TeamType.Null,
+      TeamType.Red,
+      TeamType.Blue,
+      TeamType.Green,
+      TeamType.Yellow,
+      TeamType.Purple,
+      TeamType.Teal,
+      TeamType.White,
+      TeamType.Black,
+    ]);
   });
 });

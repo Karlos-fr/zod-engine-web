@@ -69,6 +69,7 @@ import {
   setPlayerSelectionZTime,
   setPlayerSelectionGroup,
   setPlayerSoundsOff,
+  setPlayerCanvasRendering,
   setupPlayerSelectionGroupDetails,
   showPlayerPlacementCursor,
   SpaceBarEvent,
@@ -395,6 +396,16 @@ describe("player presentation constants", () => {
     setPlayerLoginPassword(state, "secret");
 
     expect(state).toEqual({ loginName: "player", loginPassword: "secret" });
+  });
+
+  it("replaces ZPlayer SetUseOpenGL as player Canvas rendering path assignment", () => {
+    const state = { useCanvasRendering: false };
+
+    setPlayerCanvasRendering(state, true);
+    expect(state.useCanvasRendering).toBe(true);
+
+    setPlayerCanvasRendering(state, false);
+    expect(state.useCanvasRendering).toBe(false);
   });
 
   it("ports ZPlayer ClearAsciiStates over the tracked ASCII range", () => {

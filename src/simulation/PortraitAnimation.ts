@@ -324,6 +324,18 @@ export type PortraitCurrentAnimationState = {
 };
 
 /**
+ * Port of upstream `ZPortrait` animation start fields.
+ * Role: Stores animation data and active frame state used when starting an animation.
+ * Upstream: zportrait.h:176-179
+ */
+export type PortraitStartAnimationState = {
+  animInfo: PortraitAnimationState[];
+  currentAnimation: PortraitAnimationType | number;
+  renderFrame: PortraitFrame;
+  animationStartTime: number;
+};
+
+/**
  * Port of upstream `ZPortrait` robot binding fields reset by `ClearRobotID`.
  * Role: Captures the portrait subject, render frame, animation, and reference state.
  * Upstream: zportrait.h:167, zportrait.h:172, zportrait.h:177-181, zportrait.h:194
@@ -434,6 +446,29 @@ export function isPortraitDoingAnimation(
   state: PortraitCurrentAnimationState,
 ): boolean {
   return state.currentAnimation !== -1;
+}
+
+/**
+ * Port of upstream `ZPortrait::StartAnim`.
+ * Role: Starts an animation at its first frame and triggers its voice line.
+ * Upstream: zportrait.cpp:191-201
+ */
+export function startPortraitAnimation(
+  state: PortraitStartAnimationState,
+  animation: PortraitAnimationType | number,
+  currentTime: () => number,
+  playAnimSound: () => void,
+): void {
+  const firstFrame = state.animInfo[animation]?.frameList[0];
+
+  if (!firstFrame) {
+    return;
+  }
+
+  state.currentAnimation = animation;
+  state.renderFrame = firstFrame;
+  state.animationStartTime = currentTime();
+  playAnimSound();
 }
 
 /**

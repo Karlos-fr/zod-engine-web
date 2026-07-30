@@ -5,7 +5,7 @@ import type { DriverHitPacket } from "./EventHandler";
 
 /**
  * Port of upstream `ZPlayer::ProcessPlayerID` call target.
- * Role: Provides the minimal player API needed by the player-id event wrapper.
+ * Role: Describes player processing for player-id events.
  * Upstream: zplayer_events.cpp:1229
  */
 export type PlayerIdProcessor = {
@@ -14,7 +14,7 @@ export type PlayerIdProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSelectableMapList` call target.
- * Role: Provides the minimal player API needed by the selectable-map-list event wrapper.
+ * Role: Describes player processing for selectable-map-list events.
  * Upstream: zplayer_events.cpp:1234
  */
 export type PlayerSelectableMapListProcessor = {
@@ -26,7 +26,7 @@ export type PlayerSelectableMapListProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSetLPlayerName` call target.
- * Role: Provides the minimal player API needed by the player-name event wrapper.
+ * Role: Describes player processing for player-name events.
  * Upstream: zplayer_events.cpp:1174
  */
 export type PlayerNameProcessor = {
@@ -35,7 +35,7 @@ export type PlayerNameProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSetLPlayerTeam` call target.
- * Role: Provides the minimal player API needed by the player-team event wrapper.
+ * Role: Describes player processing for player-team events.
  * Upstream: zplayer_events.cpp:1179
  */
 export type PlayerTeamProcessor = {
@@ -44,7 +44,7 @@ export type PlayerTeamProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSetLPlayerMode` call target.
- * Role: Provides the minimal player API needed by the player-mode event wrapper.
+ * Role: Describes player processing for player-mode events.
  * Upstream: zplayer_events.cpp:1184
  */
 export type PlayerModeProcessor = {
@@ -53,7 +53,7 @@ export type PlayerModeProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSetLPlayerIgnored` call target.
- * Role: Provides the minimal player API needed by the player-ignored event wrapper.
+ * Role: Describes player processing for player-ignored events.
  * Upstream: zplayer_events.cpp:1189
  */
 export type PlayerIgnoredProcessor = {
@@ -65,7 +65,7 @@ export type PlayerIgnoredProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSetLPlayerLogInfo` call target.
- * Role: Provides the minimal player API needed by the player-log-info event wrapper.
+ * Role: Describes player processing for player-log-info events.
  * Upstream: zplayer_events.cpp:1194
  */
 export type PlayerLogInfoProcessor = {
@@ -77,7 +77,7 @@ export type PlayerLogInfoProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessUpdateGamePaused` call target.
- * Role: Provides the minimal player API needed by the pause-state event wrapper.
+ * Role: Describes player processing for pause-state events.
  * Upstream: zplayer_events.cpp:1209
  */
 export type PlayerGamePausedProcessor = {
@@ -86,7 +86,7 @@ export type PlayerGamePausedProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessUpdateGameSpeed` call target.
- * Role: Provides the minimal player API needed by the game-speed event wrapper.
+ * Role: Describes player processing for game-speed events.
  * Upstream: zplayer_events.cpp:1214
  */
 export type PlayerGameSpeedProcessor = {
@@ -95,7 +95,7 @@ export type PlayerGameSpeedProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessZSettings` call target.
- * Role: Provides the minimal player API needed by the settings event wrapper.
+ * Role: Describes player processing for settings events.
  * Upstream: zplayer_events.cpp:1097
  */
 export type PlayerSettingsProcessor = {
@@ -104,7 +104,7 @@ export type PlayerSettingsProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessZoneInfo` call target.
- * Role: Provides the minimal player API needed by the zone-info event wrapper.
+ * Role: Describes player processing for zone-info events.
  * Upstream: zplayer_events.cpp:678
  */
 export type PlayerZoneInfoProcessor = {
@@ -113,7 +113,7 @@ export type PlayerZoneInfoProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessSetTeam` call target.
- * Role: Provides the minimal player API needed by the team event wrapper.
+ * Role: Describes player processing for team events.
  * Upstream: zplayer_events.cpp:1367
  */
 export type PlayerTeamAssignmentProcessor = {
@@ -122,7 +122,7 @@ export type PlayerTeamAssignmentProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessFireMissile` call target.
- * Role: Provides the minimal player API needed by the missile-fire event wrapper.
+ * Role: Describes player processing for missile-fire events.
  * Upstream: zplayer_events.cpp:868
  */
 export type PlayerFireMissileProcessor = {
@@ -140,7 +140,7 @@ export type PlayerWaypointObject = {
 
 /**
  * Port of upstream `ZPlayer::ProcessWaypointData` call target.
- * Role: Provides the minimal player API needed by the object-waypoints event wrapper.
+ * Role: Describes player processing for object-waypoints events.
  * Upstream: zplayer_events.cpp:743
  */
 export type PlayerWaypointProcessor<TObject extends PlayerWaypointObject = PlayerWaypointObject> = {
@@ -152,7 +152,7 @@ export type PlayerWaypointProcessor<TObject extends PlayerWaypointObject = Playe
 
 /**
  * Port of upstream `ZPlayer::ProcessRallypointData` call target.
- * Role: Provides the minimal player API needed by the object-rallypoints event wrapper.
+ * Role: Describes player processing for object-rallypoints events.
  * Upstream: zplayer_events.cpp:756
  */
 export type PlayerRallypointProcessor = {
@@ -173,7 +173,7 @@ export type PlayerObjectHealthObject = {
 
 /**
  * Port of upstream `ZPlayer::ProcessObjectHealthTeam` call target.
- * Role: Provides the minimal player API needed by the object-health event wrapper.
+ * Role: Describes player processing for object-health events.
  * Upstream: zplayer_events.cpp:849
  */
 export type PlayerObjectHealthTeamProcessor<
@@ -208,7 +208,7 @@ export type PlayerDriverHitEffectState<
 
 /**
  * Port of upstream `ZPlayer::ProcessBuildingCannonList` call target.
- * Role: Provides the minimal player API needed by the building-cannon-list event wrapper.
+ * Role: Describes player processing for building-cannon-list events.
  * Upstream: zplayer_events.cpp:986
  */
 export type PlayerBuildingCannonListProcessor = {
@@ -220,7 +220,7 @@ export type PlayerBuildingCannonListProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessBuildingState` call target.
- * Role: Provides the minimal player API needed by the building-state event wrapper.
+ * Role: Describes player processing for building-state events.
  * Upstream: zplayer_events.cpp:979
  */
 export type PlayerBuildingStateProcessor = {
@@ -232,7 +232,7 @@ export type PlayerBuildingStateProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessBuildingQueueList` call target.
- * Role: Provides the minimal player API needed by the build-queue-list event wrapper.
+ * Role: Describes player processing for build-queue-list events.
  * Upstream: zplayer_events.cpp:1446
  */
 export type PlayerBuildingQueueListProcessor = {
@@ -244,7 +244,7 @@ export type PlayerBuildingQueueListProcessor = {
 
 /**
  * Port of upstream `ZPlayer::AddNewsEntry` call target.
- * Role: Provides the minimal player API needed by disconnect handling.
+ * Role: Accepts player news messages for disconnect handling.
  * Upstream: zplayer.cpp:595
  */
 export type PlayerNewsEntrySink = {
@@ -253,7 +253,7 @@ export type PlayerNewsEntrySink = {
 
 /**
  * Port of upstream `ZPlayer::ProcessAddLPlayer` call target.
- * Role: Provides the minimal player API needed by the add-player event wrapper.
+ * Role: Describes player processing for add-player events.
  * Upstream: zplayer_events.cpp:1164
  */
 export type PlayerAddPlayerProcessor = {
@@ -262,7 +262,7 @@ export type PlayerAddPlayerProcessor = {
 
 /**
  * Port of upstream `ZPlayer::ProcessDeleteLPlayer` call target.
- * Role: Provides the minimal player API needed by the delete-player event wrapper.
+ * Role: Describes player processing for delete-player events.
  * Upstream: zplayer_events.cpp:1169
  */
 export type PlayerDeletePlayerProcessor = {

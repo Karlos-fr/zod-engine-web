@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ZSettings } from "../src/data/ZSettingsData";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
   canCannonSetWaypoints,
@@ -21,6 +22,11 @@ import {
   MISSILE_CANNON_UNIT_Y_PIXELS,
   ZCANNON_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/CannonTypes";
+import {
+  MAX_UNIT_HEALTH,
+  RobotType,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 
 describe("cannon types", () => {
   it("adapts the cgatling header guard to module boundaries", async () => {
@@ -120,6 +126,45 @@ describe("cannon types", () => {
     cannon.setEjectableCannon(false);
 
     expect(cannon.canEjectDrivers()).toBe(false);
+  });
+
+  it("ports ZCannon SetInitialDrivers as no drivers for neutral cannons", () => {
+    const cannon = new CannonEntity({
+      id: "cannon-initial-drivers-neutral",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Null,
+    });
+    let resetCount = 0;
+    cannon.driverType = RobotType.Psycho;
+    cannon.driverInfo.push({ health: 10, nextAttackTime: 5 });
+    cannon.resetDamageInfo = () => {
+      resetCount += 1;
+    };
+
+    cannon.setInitialDrivers(new ZSettings());
+
+    expect(cannon.driverType).toBe(RobotType.Grunt);
+    expect(cannon.driverInfo).toEqual([]);
+    expect(resetCount).toBe(1);
+  });
+
+  it("ports ZCannon SetInitialDrivers as grunt driver for owned cannons", () => {
+    const cannon = new CannonEntity({
+      id: "cannon-initial-drivers-owned",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+    const settings = new ZSettings();
+    settings.robotSettings[RobotType.Grunt].health = 0.35;
+
+    cannon.setInitialDrivers(settings);
+
+    expect(cannon.driverType).toBe(RobotType.Grunt);
+    expect(cannon.driverInfo).toEqual([
+      { health: 0.35 * MAX_UNIT_HEALTH, nextAttackTime: 0 },
+    ]);
   });
 
   it("ports ZCannon CanBeSniped as sniped flag, driver, and ejectable checks", () => {

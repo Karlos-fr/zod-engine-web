@@ -21,6 +21,7 @@ import {
   deleteHudObject,
   getHudARefId,
   giveHudSelectedCommand,
+  overHudMiniMap,
   overHudPortrait,
   resetHudGame,
   setHudARefId,
@@ -162,6 +163,61 @@ describe("HUD layout", () => {
       miniY: 5,
       jumpRefId: -1,
     });
+  });
+
+  it("ports ZHud OverMiniMap as HUD-strip minimap click conversion", () => {
+    const calls: Array<{ x: number; y: number }> = [];
+    const result = overHudMiniMap(
+      {
+        clickedMap(x, y) {
+          calls.push({ x, y });
+          return { mapX: 320, mapY: 640 };
+        },
+      },
+      760,
+      500,
+      800,
+      600,
+    );
+
+    expect(calls).toEqual([{ x: 53, y: 85 }]);
+    expect(result).toEqual({ miniX: 320, miniY: 640 });
+  });
+
+  it("ports ZHud OverMiniMap as rejection outside the HUD strip", () => {
+    let called = false;
+
+    expect(
+      overHudMiniMap(
+        {
+          clickedMap() {
+            called = true;
+            return { mapX: 0, mapY: 0 };
+          },
+        },
+        699,
+        500,
+        800,
+        600,
+      ),
+    ).toBeNull();
+    expect(called).toBe(false);
+  });
+
+  it("ports ZHud OverMiniMap as rejection when the minimap misses", () => {
+    expect(
+      overHudMiniMap(
+        {
+          clickedMap() {
+            return null;
+          },
+        },
+        760,
+        500,
+        800,
+        600,
+      ),
+    ).toBeNull();
   });
 
   it("ports HUD end-unit identifiers", () => {

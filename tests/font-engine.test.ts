@@ -3,6 +3,7 @@ import {
   FONT_MAX_CHARACTERS,
   FontType,
   type FontState,
+  initFont,
   setFontType,
   ZFONT_ENGINE_HEADER_GUARD_PORTED,
   ZFONT_HEADER_GUARD_PORTED,
@@ -38,6 +39,29 @@ describe("font engine", () => {
     setFontType(state, FontType.YellowMenu);
 
     expect(state.type).toBe(FontType.YellowMenu);
+  });
+
+  it("ports ZFont Init as character image loading for the selected atlas", () => {
+    const state: FontState = { type: FontType.GreenBuilding };
+    const loadedFilenames: string[] = [];
+
+    initFont(state, (filename) => {
+      loadedFilenames.push(filename);
+      return { filename };
+    });
+
+    expect(state.finishedInit).toBe(true);
+    expect(state.charImages).toHaveLength(FONT_MAX_CHARACTERS);
+    expect(loadedFilenames).toHaveLength(FONT_MAX_CHARACTERS);
+    expect(loadedFilenames[0]).toBe(
+      "assets/fonts/green_building/char_000.png",
+    );
+    expect(loadedFilenames[254]).toBe(
+      "assets/fonts/green_building/char_254.png",
+    );
+    expect(state.charImages?.[0]).toEqual({
+      filename: "assets/fonts/green_building/char_000.png",
+    });
   });
 
   it("adapts the zfont_engine.h include guard to an ES module marker", async () => {

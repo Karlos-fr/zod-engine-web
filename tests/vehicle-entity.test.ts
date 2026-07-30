@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { ZSettings } from "../src/data/ZSettingsData";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import { VehicleEntity } from "../src/simulation/entities/VehicleEntity";
+import {
+  MAX_UNIT_HEALTH,
+  RobotType,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 
 describe("vehicle entity", () => {
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {
@@ -87,6 +93,45 @@ describe("vehicle entity", () => {
 
     entity.setLidState(true);
     expect(entity.canBeSniped()).toBe(true);
+  });
+
+  it("ports ZVehicle SetInitialDrivers as no drivers for neutral vehicles", () => {
+    const entity = new VehicleEntity({
+      id: "vehicle-initial-drivers-neutral",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Null,
+    });
+    let resetCount = 0;
+    entity.driverType = RobotType.Psycho;
+    entity.driverInfo.push({ health: 10, nextAttackTime: 5 });
+    entity.resetDamageInfo = () => {
+      resetCount += 1;
+    };
+
+    entity.setInitialDrivers(new ZSettings());
+
+    expect(entity.driverType).toBe(RobotType.Grunt);
+    expect(entity.driverInfo).toEqual([]);
+    expect(resetCount).toBe(1);
+  });
+
+  it("ports ZVehicle SetInitialDrivers as grunt driver for owned vehicles", () => {
+    const entity = new VehicleEntity({
+      id: "vehicle-initial-drivers-owned",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Red,
+    });
+    const settings = new ZSettings();
+    settings.robotSettings[RobotType.Grunt].health = 0.42;
+
+    entity.setInitialDrivers(settings);
+
+    expect(entity.driverType).toBe(RobotType.Grunt);
+    expect(entity.driverInfo).toEqual([
+      { health: 0.42 * MAX_UNIT_HEALTH, nextAttackTime: 0 },
+    ]);
   });
 
   it("ports ZVehicle SetAttackObject as target assignment and direction refresh", () => {

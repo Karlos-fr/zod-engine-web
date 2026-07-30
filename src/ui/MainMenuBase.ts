@@ -162,7 +162,7 @@ export type MainMenuTypeState = {
 
 /**
  * Port of upstream `ZGuiMainMenuBase::ProcessWidgets` call target.
- * Role: Provides the minimal main-menu API needed by the base process wrapper.
+ * Role: Processes widgets for the base main-menu loop.
  * Upstream: zgui_main_menu_base.cpp:56
  */
 export type MainMenuWidgetProcessor = {
@@ -295,6 +295,61 @@ export type MainMenuDimensionsResult = {
 export type MainMenuWarningFlagsState = {
   warningFlags: MainMenuWarningFlag;
 };
+
+export type MainMenuBaseImageName =
+  | "topLeft"
+  | "topRight"
+  | "top"
+  | "left"
+  | "right"
+  | "bottom"
+  | "center"
+  | "warning";
+
+export type MainMenuBaseImageState = {
+  images?: Partial<Record<MainMenuBaseImageName, unknown | null>>;
+  finishedInit?: boolean;
+};
+
+export type MainMenuBaseImageLoader = (filename: string) => unknown | null;
+
+const MAIN_MENU_BASE_IMAGE_FILES: ReadonlyArray<{
+  name: MainMenuBaseImageName;
+  filename: string;
+}> = [
+  {
+    name: "topLeft",
+    filename: "assets/other/main_menu_gui/menu_top_left.png",
+  },
+  {
+    name: "topRight",
+    filename: "assets/other/main_menu_gui/menu_top_right.png",
+  },
+  { name: "top", filename: "assets/other/main_menu_gui/menu_top.png" },
+  { name: "left", filename: "assets/other/main_menu_gui/menu_left.png" },
+  { name: "right", filename: "assets/other/main_menu_gui/menu_right.png" },
+  { name: "bottom", filename: "assets/other/main_menu_gui/menu_bottom.png" },
+  { name: "center", filename: "assets/other/main_menu_gui/menu_center.png" },
+  { name: "warning", filename: "assets/other/main_menu_gui/menu_warning.png" },
+];
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::Init`.
+ * Role: Loads static main-menu chrome images and marks the shared menu base initialized.
+ * Upstream: zgui_main_menu_base.cpp:29-41
+ */
+export function initMainMenuBase(
+  state: MainMenuBaseImageState,
+  loadImage: MainMenuBaseImageLoader,
+): void {
+  state.images = {};
+
+  for (const image of MAIN_MENU_BASE_IMAGE_FILES) {
+    state.images[image.name] = loadImage(image.filename);
+  }
+
+  state.finishedInit = true;
+}
 
 /**
  * Port of upstream `GetMenuType`.
@@ -506,4 +561,42 @@ export enum MainMenuEventType {
   WheelUp = 5,
   WheelDown = 6,
   MacGmmEvents = 7,
+}
+
+export const MAIN_MENU_EVENT_TYPE_NAMES: readonly string[] = [
+  "unknown",
+  "click",
+  "unclick",
+  "motion",
+  "keypress",
+  "wheelup",
+  "wheeldown",
+];
+
+export type MainMenuWidgetEventTarget = {
+  widgetType: number;
+  refId: number;
+};
+
+export type MainMenuWidgetEventLogger = (message: string) => void;
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::HandleWidgetEvent`.
+ * Role: Validates a base widget event and reports the same debug line as upstream `printf`.
+ * Upstream: zgui_main_menu_base.cpp:243-250
+ */
+export function handleMainMenuBaseWidgetEvent(
+  eventType: MainMenuEventType | number,
+  eventWidget: MainMenuWidgetEventTarget | null | undefined,
+  log: MainMenuWidgetEventLogger = (): void => undefined,
+): void {
+  if (!eventWidget) return;
+  if (eventType < 0) return;
+  if (eventType >= MainMenuEventType.MacGmmEvents) return;
+
+  log(
+    `ZGuiMainMenuBase::HandleWidgetEvent::${eventType}:${
+      MAIN_MENU_EVENT_TYPE_NAMES[eventType] ?? ""
+    } widget_type:${eventWidget.widgetType} ref_id:${eventWidget.refId}`,
+  );
 }

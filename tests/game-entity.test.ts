@@ -23,8 +23,11 @@ import {
 } from "../src/simulation/SimulationConstants";
 import { ZSettings } from "../src/data/ZSettingsData";
 import { MapObjectType, type MapZoneInfo } from "../src/world/MapFormat";
+import type { GameMap } from "../src/world/GameMap";
 import { PathFindingResponse } from "../src/world/navigation/PathFindingEngine";
 import { PathFindingPoint } from "../src/world/navigation/AStar";
+import { BuildList } from "../src/simulation/entities/BuildList";
+import { PortraitAnimationType } from "../src/simulation/PortraitAnimation";
 
 describe("GameEntity", () => {
   it("sorts objects by bottom pixel render depth", () => {
@@ -56,6 +59,33 @@ describe("GameEntity", () => {
 
     expect(entity.position).toEqual({ x: 2, y: 3 });
     expect(entity.target).toBeNull();
+  });
+
+  it("ports ZObject PlaySelectedAnim as selection portrait animation choice", () => {
+    const entity = new GameEntity({
+      id: "robot-selected-anim",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const startedAnimations: PortraitAnimationType[] = [];
+
+    for (const randomValue of [0, 1, 2, 3]) {
+      entity.playSelectedAnim(
+        {
+          startAnim(animation) {
+            startedAnimations.push(animation);
+          },
+        },
+        () => randomValue,
+      );
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
   });
 
   it("keeps the base acknowledge sound hook as a no-op", () => {
@@ -96,6 +126,133 @@ describe("GameEntity", () => {
 
     expect(entity.position).toEqual({ x: 3, y: 4 });
     expect(entity.serverFlags.firedMissile).toBe(false);
+  });
+
+  it("ports ZObject SetMap as map reference assignment", () => {
+    const entity = new GameEntity({
+      id: "robot-map",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.setMap(zmap);
+    expect(entity.zmap).toBe(zmap);
+
+    entity.setMap(null);
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("keeps the base map impassable clearing hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-unset-map-impassables",
+      kind: "robot",
+      position: { x: 2, y: 3 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.unsetMapImpassables(zmap);
+
+    expect(entity.position).toEqual({ x: 2, y: 3 });
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("keeps the base map impassable marking hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-set-map-impassables",
+      kind: "robot",
+      position: { x: 4, y: 5 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.setMapImpassables(zmap);
+
+    expect(entity.position).toEqual({ x: 4, y: 5 });
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("keeps the base destroy map impassable marking hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-set-destroy-map-impassables",
+      kind: "robot",
+      position: { x: 6, y: 7 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.setDestroyMapImpassables(zmap);
+
+    expect(entity.position).toEqual({ x: 6, y: 7 });
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("keeps the base destroy map impassable clearing hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-unset-destroy-map-impassables",
+      kind: "robot",
+      position: { x: 8, y: 9 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.unsetDestroyMapImpassables(zmap);
+
+    expect(entity.position).toEqual({ x: 8, y: 9 });
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("keeps the base creation map effects hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-creation-map-effects",
+      kind: "robot",
+      position: { x: 10, y: 11 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.creationMapEffects(zmap);
+
+    expect(entity.position).toEqual({ x: 10, y: 11 });
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("keeps the base death map effects hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-death-map-effects",
+      kind: "robot",
+      position: { x: 12, y: 13 },
+    });
+    const zmap = { marker: "map-reference" } as unknown as GameMap;
+
+    entity.deathMapEffects(zmap);
+
+    expect(entity.position).toEqual({ x: 12, y: 13 });
+    expect(entity.zmap).toBeNull();
+  });
+
+  it("ports ZObject SetBuildList as build-list reference assignment", () => {
+    const entity = new GameEntity({
+      id: "robot-build-list",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const buildList = new BuildList();
+
+    entity.setBuildList(buildList);
+    expect(entity.buildList).toBe(buildList);
+
+    entity.setBuildList(null);
+    expect(entity.buildList).toBeNull();
+  });
+
+  it("keeps the base after-effects hook as a no-op", () => {
+    const entity = new GameEntity({
+      id: "robot-after-effects",
+      kind: "robot",
+      position: { x: 16, y: 17 },
+    });
+
+    entity.doAfterEffects({ map: true }, { destination: true }, 4, 8);
+
+    expect(entity.position).toEqual({ x: 16, y: 17 });
+    expect(entity.target).toBeNull();
   });
 
   it("does not estimate a missile target without missile speed", () => {
@@ -231,6 +388,28 @@ describe("GameEntity", () => {
 
     entity.attemptStartRunTo(16, 20, () => 1);
     expect(entity.isRunning).toBe(true);
+  });
+
+  it("ports ZObject InitRealMoveSpeed as terrain-adjusted center speed", () => {
+    const entity = new GameEntity({
+      id: "robot-real-move-speed",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const calls: Array<{ x: number; y: number }> = [];
+    entity.centerX = 24;
+    entity.centerY = 40;
+    entity.moveSpeed = 8;
+
+    entity.initRealMoveSpeed({
+      getTileWalkSpeed(x, y) {
+        calls.push({ x, y });
+        return 0.75;
+      },
+    });
+
+    expect(calls).toEqual([{ x: 24, y: 40 }]);
+    expect(entity.realMoveSpeed).toBe(6);
   });
 
   it("drains running stamina and stops when depleted", () => {
@@ -2880,6 +3059,69 @@ describe("GameEntity", () => {
     expect(driver.nextAttackTime).toBe(9);
   });
 
+  it("ports ZObject ClearDrivers as driver removal with damage reset", () => {
+    const entity = new GameEntity({
+      id: "vehicle-clear-drivers",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+    });
+    let resetCount = 0;
+    entity.driverInfo.push(
+      { health: 40, nextAttackTime: 9 },
+      { health: 20, nextAttackTime: 3 },
+    );
+    entity.resetDamageInfo = () => {
+      resetCount += 1;
+    };
+
+    entity.clearDrivers();
+
+    expect(entity.driverInfo).toEqual([]);
+    expect(resetCount).toBe(1);
+  });
+
+  it("ports ZObject SetInitialDrivers as grunt driver reset", () => {
+    const entity = new GameEntity({
+      id: "vehicle-initial-drivers",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+    });
+    let resetCount = 0;
+    entity.driverType = RobotType.Psycho;
+    entity.driverInfo.push({ health: 40, nextAttackTime: 9 });
+    entity.resetDamageInfo = () => {
+      resetCount += 1;
+    };
+
+    entity.setInitialDrivers();
+
+    expect(entity.driverType).toBe(RobotType.Grunt);
+    expect(entity.driverInfo).toEqual([]);
+    expect(resetCount).toBe(1);
+  });
+
+  it("ports ZObject SetDriverType as clamped driver type assignment", () => {
+    const entity = new GameEntity({
+      id: "vehicle-set-driver-type",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+    });
+    let resetCount = 0;
+    entity.resetDamageInfo = () => {
+      resetCount += 1;
+    };
+
+    entity.setDriverType(RobotType.Sniper);
+    expect(entity.driverType).toBe(RobotType.Sniper);
+
+    entity.setDriverType(-3);
+    expect(entity.driverType).toBe(0);
+
+    entity.setDriverType(RobotType.Max + 5);
+    expect(entity.driverType).toBe(RobotType.Max - 1);
+    expect(resetCount).toBe(3);
+  });
+
   it("gets the first driver health", () => {
     const entity = new GameEntity({
       id: "vehicle-driver-health",
@@ -3183,6 +3425,34 @@ describe("GameEntity", () => {
 
     entity.setConnectedZone(null);
     expect(entity.connectedZone).toBeNull();
+  });
+
+  it("ports ZObject SetConnectedZone from map as current-location zone lookup", () => {
+    const entity = new GameEntity({
+      id: "robot-connected-zone-map",
+      kind: "robot",
+      position: { x: 14, y: 15 },
+    });
+    const zone: MapZoneInfo = {
+      owner: TeamType.Red,
+      tiles: [],
+      x: 10,
+      y: 12,
+      width: 8,
+      height: 6,
+      id: 9,
+    };
+    const calls: Array<{ x: number; y: number }> = [];
+
+    entity.setConnectedZoneFromMap({
+      getZone(x, y) {
+        calls.push({ x, y });
+        return zone;
+      },
+    });
+
+    expect(calls).toEqual([{ x: 14, y: 15 }]);
+    expect(entity.connectedZone).toBe(zone);
   });
 
   it("sets the shared damage missile list by reference", () => {

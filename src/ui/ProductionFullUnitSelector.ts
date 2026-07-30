@@ -36,3 +36,71 @@ export const PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_WIDTH_PIXELS = 45;
  * Upstream: gwproduction_fus.cpp:29
  */
 export const PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_HEIGHT_PIXELS = 51;
+
+export type ProductionFullUnitSelectorImageName =
+  | "topLeft"
+  | "topRight"
+  | "bottomLeft"
+  | "bottomRight"
+  | "top"
+  | "bottom"
+  | "left"
+  | "right"
+  | "objectBack";
+
+export type ProductionFullUnitSelectorImageState = {
+  images?: Partial<Record<ProductionFullUnitSelectorImageName, unknown | null>>;
+  finishedInit?: boolean;
+};
+
+export type ProductionFullUnitSelectorImageLoader = (
+  filename: string,
+) => unknown | null;
+
+const PRODUCTION_FULL_UNIT_SELECTOR_IMAGE_FILES: ReadonlyArray<{
+  name: ProductionFullUnitSelectorImageName;
+  filename: string;
+}> = [
+  {
+    name: "topLeft",
+    filename: "assets/other/production_gui/fus_top_left.png",
+  },
+  {
+    name: "topRight",
+    filename: "assets/other/production_gui/fus_top_right.png",
+  },
+  {
+    name: "bottomLeft",
+    filename: "assets/other/production_gui/fus_bottom_left.png",
+  },
+  {
+    name: "bottomRight",
+    filename: "assets/other/production_gui/fus_bottom_right.png",
+  },
+  { name: "top", filename: "assets/other/production_gui/fus_top.png" },
+  { name: "bottom", filename: "assets/other/production_gui/fus_bottom.png" },
+  { name: "left", filename: "assets/other/production_gui/fus_left.png" },
+  { name: "right", filename: "assets/other/production_gui/fus_right.png" },
+  {
+    name: "objectBack",
+    filename: "assets/other/production_gui/object_back.png",
+  },
+];
+
+/**
+ * Port of upstream `GWPFullUnitSelector::Init`.
+ * Role: Loads static production selector frame images and marks the selector initialized.
+ * Upstream: gwproduction_fus.cpp:65-79
+ */
+export function initProductionFullUnitSelector(
+  state: ProductionFullUnitSelectorImageState,
+  loadImage: ProductionFullUnitSelectorImageLoader,
+): void {
+  state.images = {};
+
+  for (const image of PRODUCTION_FULL_UNIT_SELECTOR_IMAGE_FILES) {
+    state.images[image.name] = loadImage(image.filename);
+  }
+
+  state.finishedInit = true;
+}

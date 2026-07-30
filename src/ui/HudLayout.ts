@@ -209,6 +209,42 @@ export class HudClickResponse {
   }
 }
 
+export type HudMiniMapClickTarget = {
+  clickedMap(x: number, y: number): { mapX: number; mapY: number } | null;
+};
+
+/**
+ * Port of upstream `ZHud::OverMiniMap`.
+ * Role: Converts a HUD minimap click into map coordinates when the cursor is over the HUD strip.
+ * Upstream: zhud.cpp:305-322
+ */
+export function overHudMiniMap(
+  miniMap: HudMiniMapClickTarget,
+  x: number,
+  y: number,
+  screenWidth: number,
+  screenHeight: number,
+): { miniX: number; miniY: number } | null {
+  if (x < screenWidth - HUD_WIDTH_PIXELS) {
+    return null;
+  }
+
+  const offsetX = screenWidth - 648;
+  const offsetY = screenHeight - 484;
+  const rx = x - offsetX;
+  const ry = y - offsetY;
+  const clicked = miniMap.clickedMap(rx - 555, ry - 299);
+
+  if (!clicked) {
+    return null;
+  }
+
+  return {
+    miniX: clicked.mapX,
+    miniY: clicked.mapY,
+  };
+}
+
 /**
  * Port of upstream `zhud_end_unit`.
  * Role: Stores object identifiers shown in the HUD end-unit sequence.

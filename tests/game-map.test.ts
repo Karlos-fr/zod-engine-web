@@ -124,6 +124,50 @@ describe("GameMap", () => {
     ).toBe(true);
   });
 
+  it("ports ZMap::DebugMapInfo as unloaded map diagnostic text", () => {
+    const map = GameMap.createFlat({ width: 1, height: 1 });
+
+    expect(map.debugMapInfo()).toEqual(["DebugMapInfo::map not loaded"]);
+  });
+
+  it("ports ZMap::DebugMapInfo as loaded map metadata text", () => {
+    const map = new GameMap({
+      width: 32,
+      height: 24,
+      tiles: Array.from({ length: 32 * 24 }, () => ({ terrain: "plain" })),
+      objectList: [
+        {
+          x: 1,
+          y: 2,
+          owner: 3,
+          objectType: MapObjectType.Robot,
+          objectId: 4,
+          buildingLevel: 0,
+          extraLinks: 0,
+          healthPercent: 1,
+        },
+      ],
+      mapName: "river",
+      terrainType: 2,
+      playerCount: 3,
+      zoneCount: 4,
+      fileLoaded: true,
+    });
+
+    expect(map.debugMapInfo()).toEqual([
+      "",
+      "DebugMapInfo...",
+      "Map name:river",
+      "Map width:32",
+      "Map height:24",
+      "Map player_count:3",
+      "Map object_count:1",
+      "Map zone_count:4",
+      "Map terrain_type:arctic",
+      "",
+    ]);
+  });
+
   it("ports ZMap::GetMapData as retained raw map-data read", () => {
     const data = new Uint8Array([1, 2, 3, 4]);
     const map = new GameMap({

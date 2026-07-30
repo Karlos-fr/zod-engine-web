@@ -5,9 +5,12 @@ import {
   getMainMenuCoords,
   getMainMenuDimensions,
   getMainMenuType,
+  handleMainMenuBaseWidgetEvent,
+  initMainMenuBase,
   isMainMenuOverHud,
   isMainMenuKilled,
   killMainMenu,
+  type MainMenuBaseImageState,
   MAIN_MENU_BOTTOM_MARGIN_PIXELS,
   MAIN_MENU_SIDE_MARGIN_PIXELS,
   MAIN_MENU_TITLE_HEIGHT_PIXELS,
@@ -182,6 +185,38 @@ describe("main menu base", () => {
     });
   });
 
+  it("ports ZGuiMainMenuBase Init as static chrome image loading", () => {
+    const state: MainMenuBaseImageState = { finishedInit: false };
+    const filenames: string[] = [];
+
+    initMainMenuBase(state, (filename) => {
+      filenames.push(filename);
+      return { filename };
+    });
+
+    expect(filenames).toEqual([
+      "assets/other/main_menu_gui/menu_top_left.png",
+      "assets/other/main_menu_gui/menu_top_right.png",
+      "assets/other/main_menu_gui/menu_top.png",
+      "assets/other/main_menu_gui/menu_left.png",
+      "assets/other/main_menu_gui/menu_right.png",
+      "assets/other/main_menu_gui/menu_bottom.png",
+      "assets/other/main_menu_gui/menu_center.png",
+      "assets/other/main_menu_gui/menu_warning.png",
+    ]);
+    expect(state.finishedInit).toBe(true);
+    expect(state.images).toEqual({
+      topLeft: { filename: "assets/other/main_menu_gui/menu_top_left.png" },
+      topRight: { filename: "assets/other/main_menu_gui/menu_top_right.png" },
+      top: { filename: "assets/other/main_menu_gui/menu_top.png" },
+      left: { filename: "assets/other/main_menu_gui/menu_left.png" },
+      right: { filename: "assets/other/main_menu_gui/menu_right.png" },
+      bottom: { filename: "assets/other/main_menu_gui/menu_bottom.png" },
+      center: { filename: "assets/other/main_menu_gui/menu_center.png" },
+      warning: { filename: "assets/other/main_menu_gui/menu_warning.png" },
+    });
+  });
+
   it("ports the menu type getter", () => {
     const state: MainMenuTypeState = { menuType: MainMenuType.Options };
 
@@ -346,5 +381,36 @@ describe("main menu base", () => {
     expect(MainMenuEventType.WheelUp).toBe(5);
     expect(MainMenuEventType.WheelDown).toBe(6);
     expect(MainMenuEventType.MacGmmEvents).toBe(7);
+  });
+
+  it("ports ZGuiMainMenuBase HandleWidgetEvent as guarded debug logging", () => {
+    const messages: string[] = [];
+
+    handleMainMenuBaseWidgetEvent(
+      MainMenuEventType.Click,
+      { widgetType: 3, refId: 42 },
+      (message) => messages.push(message),
+    );
+
+    expect(messages).toEqual([
+      "ZGuiMainMenuBase::HandleWidgetEvent::1:click widget_type:3 ref_id:42",
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase HandleWidgetEvent early returns", () => {
+    const messages: string[] = [];
+    const log = (message: string): void => {
+      messages.push(message);
+    };
+
+    handleMainMenuBaseWidgetEvent(MainMenuEventType.Click, null, log);
+    handleMainMenuBaseWidgetEvent(-1, { widgetType: 1, refId: 2 }, log);
+    handleMainMenuBaseWidgetEvent(
+      MainMenuEventType.MacGmmEvents,
+      { widgetType: 1, refId: 2 },
+      log,
+    );
+
+    expect(messages).toEqual([]);
   });
 });

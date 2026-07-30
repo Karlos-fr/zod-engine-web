@@ -1,7 +1,7 @@
 import type { RgbaSurface } from "./ImageScaling";
 import {
   type SurfaceDisplayFormatState,
-  useZsdlSurfaceDisplayFormat,
+  useRenderableSurfaceDisplayFormat,
 } from "./SurfaceLifecycle";
 
 /**
@@ -54,7 +54,7 @@ export type SurfaceFillRectRegion = {
 };
 
 export type SurfaceFillCacheState<TRotozoomSurface, TTexture> = {
-  useOpenGL: boolean;
+  useRenderCommands: boolean;
   rotozoomSurface: TRotozoomSurface | null;
   rotozoomLoaded: boolean;
   texture: TTexture | null;
@@ -67,7 +67,7 @@ export type SurfaceAlphableState<TSurface extends RgbaSurface> =
 export type RenderableSurfaceBlitState<TTexture> = {
   surface: RgbaSurface | null;
   screen: RgbaSurface | null;
-  useOpenGL: boolean;
+  useRenderCommands: boolean;
   texture: TTexture | null;
   textureLoaded: boolean;
   size: number;
@@ -205,12 +205,12 @@ export function makeRgbaSurfaceAlphable<TSurface extends RgbaSurface>(
   applyAlpha: (surface: TSurface, alpha: number) => void = (): void =>
     undefined,
 ): void {
-  if (!state.surface.current || state.useOpenGL) {
+  if (!state.surface.current || state.useRenderCommands) {
     return;
   }
 
   replaceOpaqueBlackPixels(state.surface.current);
-  useZsdlSurfaceDisplayFormat(
+  useRenderableSurfaceDisplayFormat(
     state,
     convertSurface,
     disposeSurface,
@@ -351,7 +351,7 @@ export function blitRgbaSurfaceOnToMe<TRotozoomSurface, TTexture>(
     cacheState.textureLoaded = false;
   }
 
-  if (!cacheState.useOpenGL) {
+  if (!cacheState.useRenderCommands) {
     if (cacheState.rotozoomSurface !== null) {
       disposeRotozoomSurface(cacheState.rotozoomSurface);
     }
@@ -397,7 +397,7 @@ export function blitRenderableRgbaSurface<TRotozoomSurface, TTexture>(
     return;
   }
 
-  if (state.useOpenGL) {
+  if (state.useRenderCommands) {
     if (!state.textureLoaded && !loadTexture()) {
       return;
     }
@@ -472,7 +472,7 @@ export function blitRgbaHitSurface<TRotozoomSurface, TTexture>(
 
       zsdFillRgbaRect(
         state.screen,
-        state.useOpenGL,
+        state.useRenderCommands,
         {
           x: destinationX + x - clippedSource.x,
           y: destinationY + y - clippedSource.y,
@@ -736,7 +736,7 @@ export function renderRgbaSurface<TRotozoomSurface, TTexture>(
     return;
   }
 
-  if (state.useOpenGL) {
+  if (state.useRenderCommands) {
     if (renderHit) {
       blitRgbaHitSurface(
         state,
@@ -805,7 +805,7 @@ export function renderRgbaSurface<TRotozoomSurface, TTexture>(
 
   if (renderHit) {
     blitRgbaHitSurface(
-      { ...state, surface: renderSurface, useOpenGL: false },
+      { ...state, surface: renderSurface, useRenderCommands: false },
       blitInfo.sourceRegion,
       destinationRegion,
       null,
@@ -966,7 +966,7 @@ export function blitRgbaTileSurface(
  */
 export function fillRenderableRgbaSurface<TRotozoomSurface, TTexture>(
   screen: RgbaSurface | null,
-  useOpenGL: boolean,
+  useRenderCommands: boolean,
   region: SurfaceFillRectRegion | null,
   color: Omit<SurfacePixelColor, "alpha">,
   destination: SurfaceBlitTarget<TRotozoomSurface, TTexture> | null,
@@ -988,7 +988,7 @@ export function fillRenderableRgbaSurface<TRotozoomSurface, TTexture>(
     return;
   }
 
-  if (useOpenGL) {
+  if (useRenderCommands) {
     renderFill({
       region,
       color: {
@@ -1012,7 +1012,7 @@ export function fillRenderableRgbaSurface<TRotozoomSurface, TTexture>(
  */
 export function zsdFillRgbaRect<TRotozoomSurface, TTexture>(
   screen: RgbaSurface | null,
-  useOpenGL: boolean,
+  useRenderCommands: boolean,
   region: SurfaceFillRectRegion | null,
   color: Omit<SurfacePixelColor, "alpha">,
   destination: SurfaceBlitTarget<TRotozoomSurface, TTexture> | null = null,
@@ -1024,7 +1024,7 @@ export function zsdFillRgbaRect<TRotozoomSurface, TTexture>(
 ): void {
   fillRenderableRgbaSurface(
     screen,
-    useOpenGL,
+    useRenderCommands,
     region,
     color,
     destination,
@@ -1041,7 +1041,7 @@ export function zsdFillRgbaRect<TRotozoomSurface, TTexture>(
  */
 export function drawRgbaSurfaceBox<TRotozoomSurface, TTexture>(
   screen: RgbaSurface | null,
-  useOpenGL: boolean,
+  useRenderCommands: boolean,
   region: SurfaceFillRectRegion,
   color: Omit<SurfacePixelColor, "alpha">,
   maxX: number,
@@ -1077,7 +1077,7 @@ export function drawRgbaSurfaceBox<TRotozoomSurface, TTexture>(
   for (const line of lines) {
     zsdFillRgbaRect(
       screen,
-      useOpenGL,
+      useRenderCommands,
       line,
       color,
       destination,
@@ -1095,7 +1095,7 @@ export function drawRgbaSurfaceBox<TRotozoomSurface, TTexture>(
  */
 export function drawRgbaSelectionBox<TRotozoomSurface, TTexture>(
   screen: RgbaSurface | null,
-  useOpenGL: boolean,
+  useRenderCommands: boolean,
   region: SurfaceFillRectRegion,
   color: Omit<SurfacePixelColor, "alpha">,
   maxX: number,
@@ -1174,7 +1174,7 @@ export function drawRgbaSelectionBox<TRotozoomSurface, TTexture>(
 
     zsdFillRgbaRect(
       screen,
-      useOpenGL,
+      useRenderCommands,
       clippedLine,
       color,
       destination,
@@ -1230,7 +1230,7 @@ export function fillRgbaSurfaceRect<TRotozoomSurface, TTexture>(
     cacheState.textureLoaded = false;
   }
 
-  if (!cacheState.useOpenGL) {
+  if (!cacheState.useRenderCommands) {
     if (cacheState.rotozoomSurface !== null) {
       disposeRotozoomSurface(cacheState.rotozoomSurface);
     }

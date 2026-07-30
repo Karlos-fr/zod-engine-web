@@ -12,7 +12,7 @@ export type RendererViewportTarget = {
   setSize(width: number, height: number, updateStyle?: boolean): void;
 };
 
-export type OpenGlViewport = {
+export type CanvasViewport = {
   x: number;
   y: number;
   width: number;
@@ -54,7 +54,7 @@ export type ScreenDimensionFallback = {
  * Role: Applies the default renderer state needed before drawing a frame.
  * Upstream: zsdl_opengl.cpp:8-28
  */
-export function initializeOpenGlRendering(
+export function initializeCanvasRendering(
   renderer: RendererInitializationTarget,
 ): void {
   renderer.setClearColor(0x000000, 0);
@@ -67,11 +67,11 @@ export function initializeOpenGlRendering(
  * Role: Resizes the render viewport before drawing with the current projection.
  * Upstream: zsdl_opengl.cpp:30-43
  */
-export function resetOpenGlViewport(
+export function resetCanvasViewport(
   renderer: RendererViewportTarget,
   width: number,
   height: number,
-): OpenGlViewport {
+): CanvasViewport {
   renderer.setSize(width, height, false);
 
   return {

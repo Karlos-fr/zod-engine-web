@@ -260,7 +260,7 @@ export function botTestEvent(
 
 /**
  * Port of upstream `ZBot::ProcessMapDownload` call target.
- * Role: Provides the minimal bot API needed by the store-map event wrapper.
+ * Role: Describes bot processing for store-map events.
  * Upstream: zbot_events.cpp:95
  */
 export type BotMapDownloadProcessor = {
@@ -352,7 +352,7 @@ export function botSetRepairBuildingAnimEvent(
 
 /**
  * Port of upstream `ZBot::ProcessZSettings` call target.
- * Role: Provides the minimal bot API needed by the settings event wrapper.
+ * Role: Describes bot processing for settings events.
  * Upstream: zbot_events.cpp:286
  */
 export type BotSettingsProcessor = {
@@ -361,7 +361,7 @@ export type BotSettingsProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessObjectLidState` call target.
- * Role: Provides the minimal bot API needed by the lid-open event wrapper.
+ * Role: Describes bot processing for lid-open events.
  * Upstream: zbot_events.cpp:293
  */
 export type BotObjectLidStateProcessor = {
@@ -373,7 +373,7 @@ export type BotObjectLidStateProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessBuildingCannonList` call target.
- * Role: Provides the minimal bot API needed by the building-cannon-list event wrapper.
+ * Role: Describes bot processing for building-cannon-list events.
  * Upstream: zbot_events.cpp:259
  */
 export type BotBuildingCannonListProcessor = {
@@ -385,7 +385,7 @@ export type BotBuildingCannonListProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessObjectGroupInfo` call target.
- * Role: Provides the minimal bot API needed by the object-group-info event wrapper.
+ * Role: Describes bot processing for object-group-info events.
  * Upstream: zbot_events.cpp:271
  */
 export type BotObjectGroupInfoProcessor = {
@@ -397,7 +397,7 @@ export type BotObjectGroupInfoProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessObjectHealthTeam` call target.
- * Role: Provides the minimal bot API needed by the object-health event wrapper.
+ * Role: Describes bot processing for object-health events.
  * Upstream: zbot_events.cpp:191
  */
 export type BotObjectHealthTeamProcessor = {
@@ -409,7 +409,7 @@ export type BotObjectHealthTeamProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessObjectTeam` call target.
- * Role: Provides the minimal bot API needed by the object-team event wrapper.
+ * Role: Describes bot processing for object-team events.
  * Upstream: zbot_events.cpp:163
  */
 export type BotObjectTeamProcessor = {
@@ -418,7 +418,7 @@ export type BotObjectTeamProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessBuildingState` call target.
- * Role: Provides the minimal bot API needed by the building-state event wrapper.
+ * Role: Describes bot processing for building-state events.
  * Upstream: zbot_events.cpp:252
  */
 export type BotBuildingStateProcessor = {
@@ -430,7 +430,7 @@ export type BotBuildingStateProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessObjectLoc` call target.
- * Role: Provides the minimal bot API needed by the object-location event wrapper.
+ * Role: Describes bot processing for object-location events.
  * Upstream: zbot_events.cpp:156
  */
 export type BotObjectLocationProcessor = {
@@ -439,7 +439,7 @@ export type BotObjectLocationProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessWaypointData` call target.
- * Role: Provides the minimal bot API needed by the object-waypoints event wrapper.
+ * Role: Describes bot processing for object-waypoints events.
  * Upstream: zbot_events.cpp:136
  */
 export type BotObjectWaypointsProcessor = {
@@ -451,7 +451,7 @@ export type BotObjectWaypointsProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessRallypointData` call target.
- * Role: Provides the minimal bot API needed by the object-rallypoints event wrapper.
+ * Role: Describes bot processing for object-rallypoints events.
  * Upstream: zbot_events.cpp:146
  */
 export type BotObjectRallypointsProcessor = {
@@ -463,7 +463,7 @@ export type BotObjectRallypointsProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessObjectAttackObject` call target.
- * Role: Provides the minimal bot API needed by the object-attack-object event wrapper.
+ * Role: Describes bot processing for object-attack-object events.
  * Upstream: zbot_events.cpp:170
  */
 export type BotObjectAttackObjectProcessor = {
@@ -497,7 +497,7 @@ export type BotDeleteObjectProcessor<TObject = unknown> = {
 
 /**
  * Port of upstream `ZBot::ProcessBuildingQueueList` call target.
- * Role: Provides the minimal bot API needed by the build-queue-list event wrapper.
+ * Role: Describes bot processing for build-queue-list events.
  * Upstream: zbot_events.cpp:395
  */
 export type BotBuildingQueueListProcessor = {
@@ -769,7 +769,7 @@ export type BotPlayerInfoState<TPlayerInfo = unknown> = {
 
 /**
  * Port of upstream `ZBot::ProcessAddLPlayer` call target.
- * Role: Provides the minimal bot API needed by the add-player event wrapper.
+ * Role: Describes bot processing for add-player events.
  * Upstream: zbot_events.cpp:313
  */
 export type BotAddPlayerProcessor = {
@@ -778,7 +778,7 @@ export type BotAddPlayerProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessDeleteLPlayer` call target.
- * Role: Provides the minimal bot API needed by the delete-player event wrapper.
+ * Role: Describes bot processing for delete-player events.
  * Upstream: zbot_events.cpp:318
  */
 export type BotDeletePlayerProcessor = {
@@ -787,7 +787,7 @@ export type BotDeletePlayerProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessPlayerID` call target.
- * Role: Provides the minimal bot API needed by the player-id event wrapper.
+ * Role: Describes bot processing for player-id events.
  * Upstream: zbot_events.cpp:368
  */
 export type BotPlayerIdProcessor = {
@@ -796,7 +796,7 @@ export type BotPlayerIdProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSelectableMapList` call target.
- * Role: Provides the minimal bot API needed by the selectable-map-list event wrapper.
+ * Role: Describes bot processing for selectable-map-list events.
  * Upstream: zbot_events.cpp:373
  */
 export type BotSelectableMapListProcessor = {
@@ -808,7 +808,7 @@ export type BotSelectableMapListProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetLPlayerName` call target.
- * Role: Provides the minimal bot API needed by the player-name event wrapper.
+ * Role: Describes bot processing for player-name events.
  * Upstream: zbot_events.cpp:323
  */
 export type BotPlayerNameProcessor = {
@@ -817,7 +817,7 @@ export type BotPlayerNameProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetLPlayerTeam` call target.
- * Role: Provides the minimal bot API needed by the player-team event wrapper.
+ * Role: Describes bot processing for player-team events.
  * Upstream: zbot_events.cpp:328
  */
 export type BotPlayerTeamProcessor = {
@@ -826,7 +826,7 @@ export type BotPlayerTeamProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetLPlayerMode` call target.
- * Role: Provides the minimal bot API needed by the player-mode event wrapper.
+ * Role: Describes bot processing for player-mode events.
  * Upstream: zbot_events.cpp:333
  */
 export type BotPlayerModeProcessor = {
@@ -835,7 +835,7 @@ export type BotPlayerModeProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetLPlayerIgnored` call target.
- * Role: Provides the minimal bot API needed by the player-ignored event wrapper.
+ * Role: Describes bot processing for player-ignored events.
  * Upstream: zbot_events.cpp:338
  */
 export type BotPlayerIgnoredProcessor = {
@@ -847,7 +847,7 @@ export type BotPlayerIgnoredProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetLPlayerLogInfo` call target.
- * Role: Provides the minimal bot API needed by the player-log-info event wrapper.
+ * Role: Describes bot processing for player-log-info events.
  * Upstream: zbot_events.cpp:343
  */
 export type BotPlayerLogInfoProcessor = {
@@ -859,7 +859,7 @@ export type BotPlayerLogInfoProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetLPlayerVoteInfo` call target.
- * Role: Provides the minimal bot API needed by the player-vote-info event wrapper.
+ * Role: Describes bot processing for player-vote-info events.
  * Upstream: zbot_events.cpp:348
  */
 export type BotPlayerVoteInfoProcessor = {
@@ -871,7 +871,7 @@ export type BotPlayerVoteInfoProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessUpdateGamePaused` call target.
- * Role: Provides the minimal bot API needed by the pause-state event wrapper.
+ * Role: Describes bot processing for pause-state events.
  * Upstream: zbot_events.cpp:353
  */
 export type BotGamePausedProcessor = {
@@ -880,7 +880,7 @@ export type BotGamePausedProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessUpdateGameSpeed` call target.
- * Role: Provides the minimal bot API needed by the game-speed event wrapper.
+ * Role: Describes bot processing for game-speed events.
  * Upstream: zbot_events.cpp:358
  */
 export type BotGameSpeedProcessor = {
@@ -889,7 +889,7 @@ export type BotGameSpeedProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessVoteInfo` call target.
- * Role: Provides the minimal bot API needed by the vote-info event wrapper.
+ * Role: Describes bot processing for vote-info events.
  * Upstream: zbot_events.cpp:363
  */
 export type BotVoteInfoProcessor = {
@@ -898,7 +898,7 @@ export type BotVoteInfoProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetTeam` call target.
- * Role: Provides the minimal bot API needed by the team event wrapper.
+ * Role: Describes bot processing for team events.
  * Upstream: zbot_events.cpp:388
  */
 export type BotTeamProcessor = {
@@ -907,7 +907,7 @@ export type BotTeamProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessSetGrenadeState` call target.
- * Role: Provides the minimal bot API needed by the grenade-state event wrapper.
+ * Role: Describes bot processing for grenade-state events.
  * Upstream: zbot_events.cpp:383
  */
 export type BotGrenadeStateProcessor = {
@@ -916,7 +916,7 @@ export type BotGrenadeStateProcessor = {
 
 /**
  * Port of upstream `ZBot::ProcessZoneInfo` call target.
- * Role: Provides the minimal bot API needed by the zone-info event wrapper.
+ * Role: Describes bot processing for zone-info events.
  * Upstream: zbot_events.cpp:124
  */
 export type BotZoneInfoProcessor = {

@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  freeSdlSurface,
+  releaseSurfaceReference,
   loadRotateCacheBaseImage,
   loadRotozoomCacheBaseImage,
   loadZoomCacheBaseImage,
-  loadZsdlBaseImageFromFile,
-  loadZsdlBaseImageSurface,
-  loadZsdlNewSurface,
-  loadZsdlRotozoomSurface,
-  loadZsdlSurfaceGlTexture,
+  loadBaseImageFromFile,
+  loadBaseImageSurface,
+  loadNewRenderableSurface,
+  loadRotozoomSurfaceCache,
+  loadSurfaceTexture,
   setMainSoftwareSurface,
   setRotozoomSurfaceAngle,
   setRotozoomSurfaceSize,
-  setZsdlSurfaceAlpha,
-  setZsdlSurfaceUseOpenGL,
-  unloadZsdlSurface,
-  useZsdlSurfaceDisplayFormat,
+  setRenderableSurfaceAlpha,
+  setSurfaceUseRenderCommands,
+  unloadRenderableSurface,
+  useRenderableSurfaceDisplayFormat,
   type SurfaceTextureSource,
 } from "../src/rendering/SurfaceLifecycle";
 
@@ -24,7 +24,7 @@ describe("surface lifecycle", () => {
     const released: string[] = [];
     const surface = { current: { id: "surface-1" } };
 
-    freeSdlSurface(surface, (value) => {
+    releaseSurfaceReference(surface, (value) => {
       released.push(value.id);
     });
 
@@ -36,7 +36,7 @@ describe("surface lifecycle", () => {
     const released: string[] = [];
     const surface = { current: null as { id: string } | null };
 
-    freeSdlSurface(surface, (value) => {
+    releaseSurfaceReference(surface, (value) => {
       released.push(value.id);
     });
 
@@ -56,13 +56,13 @@ describe("surface lifecycle", () => {
   });
 
   it("replaces ZSDL_Surface::SetUseOpenGL as rendering path assignment", () => {
-    const state = { useOpenGL: false };
+    const state = { useRenderCommands: false };
 
-    setZsdlSurfaceUseOpenGL(state, true);
-    expect(state.useOpenGL).toBe(true);
+    setSurfaceUseRenderCommands(state, true);
+    expect(state.useRenderCommands).toBe(true);
 
-    setZsdlSurfaceUseOpenGL(state, false);
-    expect(state.useOpenGL).toBe(false);
+    setSurfaceUseRenderCommands(state, false);
+    expect(state.useRenderCommands).toBe(false);
   });
 
   it("replaces ZSDL_Surface::LoadBaseImage filename overload by loading and forwarding the surface", () => {
@@ -70,7 +70,7 @@ describe("surface lifecycle", () => {
     const forwardedSurfaces: Array<{ id: string } | null> = [];
     const state = { imageFilename: "" };
 
-    loadZsdlBaseImageFromFile(
+    loadBaseImageFromFile(
       state,
       "assets/unit.png",
       (filename) => {
@@ -89,7 +89,7 @@ describe("surface lifecycle", () => {
     const forwardedSurfaces: Array<{ id: string } | null> = [];
     const state = { imageFilename: "" };
 
-    loadZsdlBaseImageFromFile(
+    loadBaseImageFromFile(
       state,
       "missing.png",
       () => null,
@@ -135,7 +135,7 @@ describe("surface lifecycle", () => {
       color: [number, number, number];
     }> = [];
 
-    const surface = loadZsdlNewSurface(
+    const surface = loadNewRenderableSurface(
       8,
       6,
       (request) => {
@@ -170,7 +170,7 @@ describe("surface lifecycle", () => {
     const loadedSurfaces: Array<{ id: string } | null> = [];
     const fills: Array<unknown> = [];
 
-    const surface = loadZsdlNewSurface(
+    const surface = loadNewRenderableSurface(
       8,
       6,
       () => null,
@@ -196,7 +196,7 @@ describe("surface lifecycle", () => {
     };
     const sourceSurface = { id: "loaded" };
 
-    loadZsdlBaseImageSurface(
+    loadBaseImageSurface(
       state,
       sourceSurface,
       true,
@@ -228,7 +228,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: false,
     };
 
-    loadZsdlBaseImageSurface(
+    loadBaseImageSurface(
       state,
       { id: "loaded" },
       false,
@@ -251,7 +251,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: true,
     };
 
-    loadZsdlBaseImageSurface(
+    loadBaseImageSurface(
       state,
       null,
       true,
@@ -267,7 +267,7 @@ describe("surface lifecycle", () => {
   it("replaces ZSDL_Surface::SetAngle by invalidating changed software rotozoom cache", () => {
     const released: string[] = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       angle: 10,
       rotozoomSurface: { current: { id: "rotated" } },
       rotozoomLoaded: true,
@@ -279,7 +279,7 @@ describe("surface lifecycle", () => {
 
     expect(released).toEqual(["rotated"]);
     expect(state).toEqual({
-      useOpenGL: false,
+      useRenderCommands: false,
       angle: 20,
       rotozoomSurface: { current: null },
       rotozoomLoaded: false,
@@ -289,7 +289,7 @@ describe("surface lifecycle", () => {
   it("keeps rotozoom cache when SetAngle receives the current angle", () => {
     const released: string[] = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       angle: 10,
       rotozoomSurface: { current: { id: "rotated" } },
       rotozoomLoaded: true,
@@ -304,10 +304,10 @@ describe("surface lifecycle", () => {
     expect(state.rotozoomLoaded).toBe(true);
   });
 
-  it("keeps rotozoom cache when SetAngle runs through the OpenGL path", () => {
+  it("keeps rotozoom cache when SetAngle runs through the render-command path", () => {
     const released: string[] = [];
     const state = {
-      useOpenGL: true,
+      useRenderCommands: true,
       angle: 10,
       rotozoomSurface: { current: { id: "rotated" } },
       rotozoomLoaded: true,
@@ -326,7 +326,7 @@ describe("surface lifecycle", () => {
   it("replaces ZSDL_Surface::SetSize by invalidating changed software rotozoom cache", () => {
     const released: string[] = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       size: 1,
       rotozoomSurface: { current: { id: "rotated" } },
       rotozoomLoaded: true,
@@ -338,7 +338,7 @@ describe("surface lifecycle", () => {
 
     expect(released).toEqual(["rotated"]);
     expect(state).toEqual({
-      useOpenGL: false,
+      useRenderCommands: false,
       size: 2,
       rotozoomSurface: { current: null },
       rotozoomLoaded: false,
@@ -348,7 +348,7 @@ describe("surface lifecycle", () => {
   it("keeps rotozoom cache when SetSize receives the current size", () => {
     const released: string[] = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       size: 1,
       rotozoomSurface: { current: { id: "rotated" } },
       rotozoomLoaded: true,
@@ -363,10 +363,10 @@ describe("surface lifecycle", () => {
     expect(state.rotozoomLoaded).toBe(true);
   });
 
-  it("keeps rotozoom cache when SetSize runs through the OpenGL path", () => {
+  it("keeps rotozoom cache when SetSize runs through the render-command path", () => {
     const released: string[] = [];
     const state = {
-      useOpenGL: true,
+      useRenderCommands: true,
       size: 1,
       rotozoomSurface: { current: { id: "rotated" } },
       rotozoomLoaded: true,
@@ -385,13 +385,13 @@ describe("surface lifecycle", () => {
   it("replaces ZSDL_Surface::SetAlpha by applying alpha to software surfaces", () => {
     const applied: Array<[string, number]> = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       alpha: 255,
       surface: { current: { id: "base" } },
       rotozoomSurface: { current: { id: "rotated" } },
     };
 
-    setZsdlSurfaceAlpha(state, 128, (surface, alpha) => {
+    setRenderableSurfaceAlpha(state, 128, (surface, alpha) => {
       applied.push([surface.id, alpha]);
     });
 
@@ -402,16 +402,16 @@ describe("surface lifecycle", () => {
     ]);
   });
 
-  it("stores SetAlpha without applying it through the OpenGL path", () => {
+  it("stores SetAlpha without applying it through the render-command path", () => {
     const applied: Array<[string, number]> = [];
     const state = {
-      useOpenGL: true,
+      useRenderCommands: true,
       alpha: 255,
       surface: { current: { id: "base" } },
       rotozoomSurface: { current: { id: "rotated" } },
     };
 
-    setZsdlSurfaceAlpha(state, 64, (surface, alpha) => {
+    setRenderableSurfaceAlpha(state, 64, (surface, alpha) => {
       applied.push([surface.id, alpha]);
     });
 
@@ -423,13 +423,13 @@ describe("surface lifecycle", () => {
     const disposed: string[] = [];
     const applied: Array<[string, number]> = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       alpha: 128,
       surface: { current: { id: "base" } },
       rotozoomSurface: { current: null as { id: string } | null },
     };
 
-    useZsdlSurfaceDisplayFormat(
+    useRenderableSurfaceDisplayFormat(
       state,
       (surface) => ({ id: `${surface.id}-display` }),
       (surface) => disposed.push(surface.id),
@@ -443,13 +443,13 @@ describe("surface lifecycle", () => {
 
   it("keeps UseDisplayFormat as a no-op without a software surface", () => {
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       alpha: 128,
       surface: { current: null as { id: string } | null },
       rotozoomSurface: { current: null as { id: string } | null },
     };
 
-    useZsdlSurfaceDisplayFormat(
+    useRenderableSurfaceDisplayFormat(
       state,
       (surface) => ({ id: `${surface.id}-display` }),
     );
@@ -457,16 +457,16 @@ describe("surface lifecycle", () => {
     expect(state.surface.current).toBeNull();
   });
 
-  it("keeps UseDisplayFormat as a no-op through the OpenGL path", () => {
+  it("keeps UseDisplayFormat as a no-op through the render-command path", () => {
     const converted: string[] = [];
     const state = {
-      useOpenGL: true,
+      useRenderCommands: true,
       alpha: 128,
       surface: { current: { id: "base" } },
       rotozoomSurface: { current: null as { id: string } | null },
     };
 
-    useZsdlSurfaceDisplayFormat(state, (surface) => {
+    useRenderableSurfaceDisplayFormat(state, (surface) => {
       converted.push(surface.id);
       return { id: `${surface.id}-display` };
     });
@@ -485,7 +485,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: false,
     };
 
-    const loaded = loadZsdlRotozoomSurface(
+    const loaded = loadRotozoomSurfaceCache(
       state,
       (surface, angle, size) => ({
         id: `${surface.id}:${angle}:${size}`,
@@ -508,7 +508,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: true,
     };
 
-    const loaded = loadZsdlRotozoomSurface(
+    const loaded = loadRotozoomSurfaceCache(
       state,
       (surface) => ({ id: surface.id }),
     );
@@ -528,7 +528,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: true,
     };
 
-    const loaded = loadZsdlRotozoomSurface(
+    const loaded = loadRotozoomSurfaceCache(
       state,
       () => null,
       (surface) => disposed.push(surface.id),
@@ -568,7 +568,7 @@ describe("surface lifecycle", () => {
       textureLoaded: true,
     };
 
-    const loaded = loadZsdlSurfaceGlTexture(
+    const loaded = loadSurfaceTexture(
       state,
       (surface) => surface,
       () => 9,
@@ -608,7 +608,7 @@ describe("surface lifecycle", () => {
       textureLoaded: false,
     };
 
-    const loaded = loadZsdlSurfaceGlTexture(
+    const loaded = loadSurfaceTexture(
       state,
       (surface) => surface,
       () => 5,
@@ -626,7 +626,7 @@ describe("surface lifecycle", () => {
       textureLoaded: true,
     };
 
-    const loaded = loadZsdlSurfaceGlTexture(
+    const loaded = loadSurfaceTexture(
       state,
       (surface) => surface,
       () => 9,
@@ -653,7 +653,7 @@ describe("surface lifecycle", () => {
       textureLoaded: false,
     };
 
-    const loaded = loadZsdlSurfaceGlTexture(
+    const loaded = loadSurfaceTexture(
       state,
       (surface) => surface,
       () => 9,
@@ -676,7 +676,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: true,
     };
 
-    unloadZsdlSurface(
+    unloadRenderableSurface(
       state,
       (surface) => releasedSurfaces.push(surface.id),
       (texture) => deletedTextures.push(texture),
@@ -703,7 +703,7 @@ describe("surface lifecycle", () => {
       rotozoomLoaded: true,
     };
 
-    unloadZsdlSurface(
+    unloadRenderableSurface(
       state,
       () => undefined,
       (texture) => deletedTextures.push(texture),

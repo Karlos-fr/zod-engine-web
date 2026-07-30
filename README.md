@@ -112,6 +112,49 @@ Par défaut, le portage se fait strictement **un symbole à la fois**.
 Le champ `Lot` du référentiel est seulement un indicateur de tri. Il ne donne
 jamais l'autorisation de porter plusieurs symboles dans une même tâche.
 
+### Portage des symboles de rendu
+
+Les symboles marqués `REPLACE rendering` ne doivent pas être traduits en appels
+Canvas2D directs dispersés dans les classes portées. La décision
+d'architecture est de séparer le portage du comportement rendu et son exécution
+navigateur :
+
+1. La couche de portage produit des commandes de rendu typées ou délègue à des
+   helpers qui en produisent. Les types existants comme
+   `SurfaceFillRenderCommand`, `TexturedSurfaceRenderCommand` et les helpers de
+   `src/rendering/SurfacePixels.ts` sont la base à réutiliser.
+2. La couche backend Canvas2D exécute ces commandes : primitives de remplissage,
+   images/textures, répétitions, masques, alpha, transformations et viewport.
+   `Canvas2DRenderer` doit évoluer comme exécuteur de commandes, pas comme
+   dépendance directe de chaque port C++.
+
+Règles pour porter un symbole de rendu :
+
+- si le C++ appelle `RenderSurface`, `BlitSurface`, `RenderZSurface` ou une
+  variante SDL/OpenGL, porter l'effet visible en commande de rendu ou en helper
+  pur dans `src/rendering/` ;
+- si le C++ dessine une primitive simple, retourner une commande dédiée plutôt
+  que dessiner immédiatement ;
+- conserver les calculs amont utiles : coordonnées, clipping, offsets de carte,
+  alpha, angle, échelle, sélection, état hit-mask ;
+- remplacer SDL/OpenGL par des concepts navigateur explicites, sans conserver
+  de dépendance factice à ces backends ;
+- nommer les nouvelles cibles TypeScript avec le vocabulaire navigateur
+  (`Canvas`, `RgbaSurface`, `Image`, `render command`, etc.) plutôt qu'avec les
+  noms SDL/OpenGL historiques. Les noms SDL/OpenGL restent acceptables dans les
+  références `Port of upstream` / `Replacement for upstream`, car elles
+  identifient le symbole source ;
+- tester prioritairement les commandes produites et les décisions de clipping.
+  Les tests pixel/canvas doivent rester l'exception, réservée aux adaptateurs
+  backend ;
+- marquer le symbole avec le nom de l'adaptation TypeScript qui porte le
+  comportement visible, même si le nom ne correspond pas mécaniquement au nom
+  C++.
+
+Cette règle permet de traiter les candidats `REPLACE rendering` un symbole à la
+fois, tout en évitant de créer une API de rendu différente pour chaque classe
+historique.
+
 ### Lots de constantes simples
 
 Exception : les constantes et macros scalaires indépendantes peuvent être

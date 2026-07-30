@@ -6,6 +6,7 @@ import {
   type SimulationEffectListState,
   type SimulationEffectSettingsState,
   processSimulationEffect,
+  renderSimulationEffect,
   setSimulationEffectList,
   setSimulationEffectSettings,
   simulationEffectKillMe,
@@ -85,6 +86,10 @@ describe("simulation effect", () => {
 
   it("ports ZEffect Process as the empty base effect hook", () => {
     expect(processSimulationEffect()).toBeUndefined();
+  });
+
+  it("replaces ZEffect DoRender as the empty base render command list", () => {
+    expect(renderSimulationEffect()).toEqual([]);
   });
 
   it("ports ZEffect KillMe as killme state read", () => {

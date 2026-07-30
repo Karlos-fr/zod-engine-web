@@ -1,4 +1,4 @@
-import { TeamType } from "./SimulationConstants";
+import { ACTIVE_TEAM_TYPE_COUNT, TeamType } from "./SimulationConstants";
 
 /**
  * Upstream: zteam.h
@@ -82,4 +82,15 @@ export function addTeamPaletteColor(
   void replaceColor;
   log(TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE);
   return false;
+}
+
+/**
+ * Port of upstream `ZTeam::SaveAllPalettes`.
+ * Role: Delegates palette saving once for every active team slot.
+ * Upstream: zteam.cpp:300-306
+ */
+export function saveAllTeamPalettes(savePalette: (team: TeamType | number) => void): void {
+  for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    savePalette(team);
+  }
 }

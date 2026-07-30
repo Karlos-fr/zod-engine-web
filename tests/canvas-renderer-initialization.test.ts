@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   getScreenDimensions,
-  initializeOpenGlRendering,
-  resetOpenGlViewport,
-} from "../src/rendering/OpenGLInitialization";
+  initializeCanvasRendering,
+  resetCanvasViewport,
+} from "../src/rendering/CanvasRendererInitialization";
 
-describe("OpenGL renderer initialization", () => {
+describe("Canvas renderer initialization", () => {
   it("replaces the zsdl_opengl header guard with module boundaries", async () => {
-    const firstImport = await import("../src/rendering/OpenGLInitialization");
-    const secondImport = await import("../src/rendering/OpenGLInitialization");
+    const firstImport = await import("../src/rendering/CanvasRendererInitialization");
+    const secondImport = await import("../src/rendering/CanvasRendererInitialization");
 
-    expect(typeof firstImport.initializeOpenGlRendering).toBe("function");
-    expect(secondImport.resetOpenGlViewport).toBe(firstImport.resetOpenGlViewport);
+    expect(typeof firstImport.initializeCanvasRendering).toBe("function");
+    expect(secondImport.resetCanvasViewport).toBe(firstImport.resetCanvasViewport);
   });
 
   it("replaces InitOpenGL with renderer-local clear defaults", () => {
@@ -26,7 +26,7 @@ describe("OpenGL renderer initialization", () => {
       },
     };
 
-    initializeOpenGlRendering(renderer);
+    initializeCanvasRendering(renderer);
 
     expect(calls).toEqual([
       ["setClearColor", 0x000000, 0],
@@ -43,7 +43,7 @@ describe("OpenGL renderer initialization", () => {
       },
     };
 
-    const viewport = resetOpenGlViewport(renderer, 640, 480);
+    const viewport = resetCanvasViewport(renderer, 640, 480);
 
     expect(calls).toEqual([["setSize", 640, 480, false]]);
     expect(viewport).toEqual({ x: 0, y: 0, width: 640, height: 480 });

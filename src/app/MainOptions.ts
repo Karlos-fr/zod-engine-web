@@ -136,9 +136,9 @@ export function displayMainHelp(shellCommand: string): string {
  * Role: Builds the startup version and credits text for the main game executable.
  * Upstream: main.cpp:210-219
  */
-export function displayMainVersion(useOpenGl = true): string {
+export function displayMainVersion(useCanvasRenderer = true): string {
   return [
-    useOpenGl
+    useCanvasRenderer
       ? "\nZod: A Zed Engine, Version Alpha"
       : "\nZod: A Zed Engine, Version Alpha (OpenGL Disabled)",
     "By Michael Bok",

@@ -12,14 +12,14 @@ export type SurfaceReference<TSurface> = {
 };
 
 export type RotozoomSurfaceAngleState<TSurface> = {
-  useOpenGL: boolean;
+  useRenderCommands: boolean;
   angle: number;
   rotozoomSurface: SurfaceReference<TSurface>;
   rotozoomLoaded: boolean;
 };
 
 export type RotozoomSurfaceSizeState<TSurface> = {
-  useOpenGL: boolean;
+  useRenderCommands: boolean;
   size: number;
   rotozoomSurface: SurfaceReference<TSurface>;
   rotozoomLoaded: boolean;
@@ -59,7 +59,7 @@ export type BaseImageFileLoadState = {
 };
 
 export type BaseImageSurfaceLoadState<TSurface, TTexture> =
-  ZsdlSurfaceUnloadState<TSurface, TTexture> & {
+  RenderableSurfaceUnloadState<TSurface, TTexture> & {
     imageFilename: string;
   };
 
@@ -74,7 +74,7 @@ export type NewSurfaceRequest = {
 };
 
 export type SurfaceAlphaState<TSurface> = {
-  useOpenGL: boolean;
+  useRenderCommands: boolean;
   alpha: number;
   surface: SurfaceReference<TSurface>;
   rotozoomSurface: SurfaceReference<TSurface>;
@@ -83,7 +83,7 @@ export type SurfaceAlphaState<TSurface> = {
 export type SurfaceDisplayFormatState<TSurface> = SurfaceAlphaState<TSurface>;
 
 export type SurfaceRenderingModeState = {
-  useOpenGL: boolean;
+  useRenderCommands: boolean;
 };
 
 export type SurfaceTextureFormat = "RGBA" | "BGRA" | "RGB" | "BGR";
@@ -105,13 +105,13 @@ export type SurfaceTextureUpload<TTexture> = {
   pixels: ArrayBufferView;
 };
 
-export type ZsdlSurfaceTextureState<TSurface, TTexture> = {
+export type RenderableSurfaceTextureState<TSurface, TTexture> = {
   surface: SurfaceReference<TSurface>;
   texture: TTexture | null;
   textureLoaded: boolean;
 };
 
-export type ZsdlSurfaceUnloadState<TSurface, TTexture> = {
+export type RenderableSurfaceUnloadState<TSurface, TTexture> = {
   surface: SurfaceReference<TSurface>;
   rotozoomSurface: SurfaceReference<TSurface>;
   texture: TTexture | null;
@@ -124,7 +124,7 @@ export type ZsdlSurfaceUnloadState<TSurface, TTexture> = {
  * Role: Releases the current surface, when present, and clears the observable reference.
  * Upstream: zsdl.cpp:749-756
  */
-export function freeSdlSurface<TSurface>(
+export function releaseSurfaceReference<TSurface>(
   surface: SurfaceReference<TSurface>,
   disposeSurface: (surface: TSurface) => void = (): void => undefined,
 ): void {
@@ -150,14 +150,14 @@ export function setMainSoftwareSurface<TSurface>(
 
 /**
  * Replacement for upstream `ZSDL_Surface::SetUseOpenGL`.
- * Role: Stores whether this surface should use the OpenGL rendering path.
+ * Role: Stores whether this surface should use the render-command rendering path.
  * Upstream: zsdl_opengl.cpp:262-265
  */
-export function setZsdlSurfaceUseOpenGL(
+export function setSurfaceUseRenderCommands(
   state: SurfaceRenderingModeState,
-  useOpenGL: boolean,
+  useRenderCommands: boolean,
 ): void {
-  state.useOpenGL = useOpenGL;
+  state.useRenderCommands = useRenderCommands;
 }
 
 /**
@@ -170,8 +170,8 @@ export function setRotozoomSurfaceAngle<TSurface>(
   angle: number,
   disposeSurface: (surface: TSurface) => void = (): void => undefined,
 ): void {
-  if (!state.useOpenGL && state.angle !== angle) {
-    freeSdlSurface(state.rotozoomSurface, disposeSurface);
+  if (!state.useRenderCommands && state.angle !== angle) {
+    releaseSurfaceReference(state.rotozoomSurface, disposeSurface);
     state.rotozoomLoaded = false;
   }
 
@@ -188,8 +188,8 @@ export function setRotozoomSurfaceSize<TSurface>(
   size: number,
   disposeSurface: (surface: TSurface) => void = (): void => undefined,
 ): void {
-  if (!state.useOpenGL && state.size !== size) {
-    freeSdlSurface(state.rotozoomSurface, disposeSurface);
+  if (!state.useRenderCommands && state.size !== size) {
+    releaseSurfaceReference(state.rotozoomSurface, disposeSurface);
     state.rotozoomLoaded = false;
   }
 
@@ -201,7 +201,7 @@ export function setRotozoomSurfaceSize<TSurface>(
  * Role: Stores surface alpha and applies it to software surfaces when not using GL rendering.
  * Upstream: zsdl_opengl.cpp:315-324
  */
-export function setZsdlSurfaceAlpha<TSurface>(
+export function setRenderableSurfaceAlpha<TSurface>(
   state: SurfaceAlphaState<TSurface>,
   alpha: number,
   applyAlpha: (surface: TSurface, alpha: number) => void = (): void =>
@@ -209,7 +209,7 @@ export function setZsdlSurfaceAlpha<TSurface>(
 ): void {
   state.alpha = alpha;
 
-  if (state.useOpenGL) {
+  if (state.useRenderCommands) {
     return;
   }
 
@@ -226,21 +226,21 @@ export function setZsdlSurfaceAlpha<TSurface>(
  * Role: Converts the software surface to display format and reapplies its alpha state.
  * Upstream: zsdl_opengl.cpp:158-171
  */
-export function useZsdlSurfaceDisplayFormat<TSurface>(
+export function useRenderableSurfaceDisplayFormat<TSurface>(
   state: SurfaceDisplayFormatState<TSurface>,
   convertSurface: (surface: TSurface) => TSurface,
   disposeSurface: (surface: TSurface) => void = (): void => undefined,
   applyAlpha: (surface: TSurface, alpha: number) => void = (): void =>
     undefined,
 ): void {
-  if (!state.surface.current || state.useOpenGL) {
+  if (!state.surface.current || state.useRenderCommands) {
     return;
   }
 
   const previousSurface = state.surface.current;
   state.surface.current = convertSurface(previousSurface);
   disposeSurface(previousSurface);
-  setZsdlSurfaceAlpha(state, state.alpha, applyAlpha);
+  setRenderableSurfaceAlpha(state, state.alpha, applyAlpha);
 }
 
 /**
@@ -248,7 +248,7 @@ export function useZsdlSurfaceDisplayFormat<TSurface>(
  * Role: Loads an image file and forwards the resulting surface to the base image loader.
  * Upstream: zsdl_opengl.cpp:105-113
  */
-export function loadZsdlBaseImageFromFile<TSurface>(
+export function loadBaseImageFromFile<TSurface>(
   state: BaseImageFileLoadState,
   filename: string,
   loadImage: (filename: string) => TSurface | null,
@@ -269,7 +269,7 @@ export function loadRotozoomCacheBaseImage<TSurface>(
   loadImage: (filename: string) => TSurface | null,
   loadBaseImage: (surface: TSurface | null) => void,
 ): void {
-  loadZsdlBaseImageFromFile(state, filename, loadImage, loadBaseImage);
+  loadBaseImageFromFile(state, filename, loadImage, loadBaseImage);
 }
 
 /**
@@ -283,7 +283,7 @@ export function loadZoomCacheBaseImage<TSurface>(
   loadImage: (filename: string) => TSurface | null,
   loadBaseImage: (surface: TSurface | null) => void,
 ): void {
-  loadZsdlBaseImageFromFile(state, filename, loadImage, loadBaseImage);
+  loadBaseImageFromFile(state, filename, loadImage, loadBaseImage);
 }
 
 /**
@@ -297,7 +297,7 @@ export function loadRotateCacheBaseImage<TSurface>(
   loadImage: (filename: string) => TSurface | null,
   loadBaseImage: (surface: TSurface | null) => void,
 ): void {
-  loadZsdlBaseImageFromFile(state, filename, loadImage, loadBaseImage);
+  loadBaseImageFromFile(state, filename, loadImage, loadBaseImage);
 }
 
 /**
@@ -305,7 +305,7 @@ export function loadRotateCacheBaseImage<TSurface>(
  * Role: Creates a blank 32-bit surface, stores it as the base image, and clears it to black.
  * Upstream: zsdl_opengl.cpp:115-129
  */
-export function loadZsdlNewSurface<TSurface>(
+export function loadNewRenderableSurface<TSurface>(
   width: number,
   height: number,
   createSurface: (request: NewSurfaceRequest) => TSurface | null,
@@ -341,7 +341,7 @@ export function loadZsdlNewSurface<TSurface>(
  * Role: Replaces the base software surface with an alpha-capable image surface.
  * Upstream: zsdl_opengl.cpp:131-156
  */
-export function loadZsdlBaseImageSurface<TSurface, TTexture>(
+export function loadBaseImageSurface<TSurface, TTexture>(
   state: BaseImageSurfaceLoadState<TSurface, TTexture>,
   surface: TSurface | null,
   deleteSurface: boolean,
@@ -349,7 +349,7 @@ export function loadZsdlBaseImageSurface<TSurface, TTexture>(
   disposeSurface: (surface: TSurface) => void = (): void => undefined,
   deleteTexture: (texture: TTexture) => void = (): void => undefined,
 ): void {
-  unloadZsdlSurface(state, disposeSurface, deleteTexture);
+  unloadRenderableSurface(state, disposeSurface, deleteTexture);
   state.surface.current = surface;
 
   if (!state.surface.current) {
@@ -368,7 +368,7 @@ export function loadZsdlBaseImageSurface<TSurface, TTexture>(
  * Role: Creates and stores a rotated/scaled software surface cache.
  * Upstream: zsdl_opengl.cpp:185-206
  */
-export function loadZsdlRotozoomSurface<TSurface>(
+export function loadRotozoomSurfaceCache<TSurface>(
   state: RotozoomSurfaceLoadState<TSurface>,
   createRotozoomSurface: (
     surface: TSurface,
@@ -381,7 +381,7 @@ export function loadZsdlRotozoomSurface<TSurface>(
     return false;
   }
 
-  freeSdlSurface(state.rotozoomSurface, disposeSurface);
+  releaseSurfaceReference(state.rotozoomSurface, disposeSurface);
 
   const rotozoomSurface = createRotozoomSurface(
     state.surface.current,
@@ -404,8 +404,8 @@ export function loadZsdlRotozoomSurface<TSurface>(
  * Role: Creates a browser texture from the software surface and records texture ownership.
  * Upstream: zsdl_opengl.cpp:208-260
  */
-export function loadZsdlSurfaceGlTexture<TSurface, TTexture>(
-  state: ZsdlSurfaceTextureState<TSurface, TTexture>,
+export function loadSurfaceTexture<TSurface, TTexture>(
+  state: RenderableSurfaceTextureState<TSurface, TTexture>,
   getTextureSource: (surface: TSurface) => SurfaceTextureSource,
   createTexture: () => TTexture,
   uploadTexture: (upload: SurfaceTextureUpload<TTexture>) => void,
@@ -456,16 +456,16 @@ function getSurfaceTextureFormat(
 
 /**
  * Replacement for upstream `ZSDL_Surface::Unload`.
- * Role: Releases software surfaces and GL texture state owned by a renderable surface.
+ * Role: Releases software surfaces and texture state owned by a renderable surface.
  * Upstream: zsdl_opengl.cpp:86-98
  */
-export function unloadZsdlSurface<TSurface, TTexture>(
-  state: ZsdlSurfaceUnloadState<TSurface, TTexture>,
+export function unloadRenderableSurface<TSurface, TTexture>(
+  state: RenderableSurfaceUnloadState<TSurface, TTexture>,
   disposeSurface: (surface: TSurface) => void = (): void => undefined,
   deleteTexture: (texture: TTexture) => void = (): void => undefined,
 ): void {
-  freeSdlSurface(state.surface, disposeSurface);
-  freeSdlSurface(state.rotozoomSurface, disposeSurface);
+  releaseSurfaceReference(state.surface, disposeSurface);
+  releaseSurfaceReference(state.rotozoomSurface, disposeSurface);
 
   if (state.textureLoaded && state.texture !== null) {
     deleteTexture(state.texture);

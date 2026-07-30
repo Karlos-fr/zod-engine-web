@@ -83,7 +83,7 @@ export type PlayerMouseButtonState = {
 
 /**
  * Port of upstream `ZPlayer::LoadMainMenu` call target.
- * Role: Provides the minimal player UI action needed by menu button handling.
+ * Role: Opens main-menu screens from player UI actions.
  * Upstream: zplayer.cpp:1623
  */
 export type PlayerMainMenuLoader = {
@@ -92,7 +92,7 @@ export type PlayerMainMenuLoader = {
 
 /**
  * Port of upstream `ZGuiMainMenuBase::Move` call target.
- * Role: Provides the minimal main-menu API needed by player main-menu movement.
+ * Role: Moves a main-menu entry during player viewport scaling.
  * Upstream: zplayer.cpp:3131-3132
  */
 export type PlayerMainMenuMover = {
@@ -110,11 +110,20 @@ export type PlayerMainMenuMoveState = {
 
 /**
  * Port of upstream `sound_setting` field usage in `ZPlayer`.
- * Role: Provides the minimal player audio state needed by sound-setting helpers.
+ * Role: Holds the player sound setting state.
  * Upstream: zplayer.cpp:3901
  */
 export type PlayerSoundSettingState = {
   soundSetting: SoundSetting;
+};
+
+/**
+ * Port of upstream `use_opengl` rendering flag in `ZPlayer`.
+ * Role: Stores whether player rendering uses Canvas command output.
+ * Upstream: zplayer.cpp:262-265
+ */
+export type PlayerCanvasRenderingState = {
+  useCanvasRendering: boolean;
 };
 
 export type PlayerInfoListState<TPlayerInfo = unknown> = {
@@ -131,7 +140,7 @@ export type PlayerMouseScrollState = {
 
 /**
  * Port of upstream `mouse_x`, `mouse_y`, `init_w`, and `init_h` field usage in `ZPlayer`.
- * Role: Provides the player viewport state needed for mouse-to-map conversion.
+ * Role: Holds player viewport fields used for mouse-to-map conversion.
  * Upstream: zplayer.cpp:2715-2716
  */
 export type PlayerMouseMapHudState = {
@@ -156,7 +165,7 @@ export type PlayerPlaceCannonState = {
 
 /**
  * Port of upstream `ZMap::GetMapCoords` call target.
- * Role: Provides the minimal map API needed by player mouse-to-map conversion.
+ * Role: Converts player mouse coordinates into map coordinates.
  * Upstream: zplayer.cpp:2715
  */
 export type PlayerMapCoordsProvider = {
@@ -767,6 +776,18 @@ export function setPlayerLoginPassword(
   loginPassword: string,
 ): void {
   state.loginPassword = loginPassword;
+}
+
+/**
+ * Replacement for upstream `ZPlayer::SetUseOpenGL`.
+ * Role: Stores the player Canvas rendering path flag.
+ * Upstream: zplayer.cpp:262-265
+ */
+export function setPlayerCanvasRendering(
+  state: PlayerCanvasRenderingState,
+  useCanvasRendering: boolean,
+): void {
+  state.useCanvasRendering = useCanvasRendering;
 }
 
 /**

@@ -3,6 +3,8 @@
  */
 
 import { GameEntity } from "./GameEntity";
+import type { ZSettings } from "../../data/ZSettingsData";
+import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
 
 /**
  * Port of upstream `_CGATLING_H_`.
@@ -111,6 +113,27 @@ export class CannonEntity extends GameEntity {
    */
   override canEjectDrivers(): boolean {
     return this.ejectableCannon;
+  }
+
+  /**
+   * Port of upstream `ZCannon::SetInitialDrivers`.
+   * Role: Initializes cannon driver state from ownership and grunt health settings.
+   * Upstream: zcannon.cpp:57-70
+   */
+  override setInitialDrivers(zsettings?: ZSettings): void {
+    this.driverType = RobotType.Grunt;
+
+    if (this.owner === TeamType.Null) {
+      this.clearDrivers();
+      return;
+    }
+
+    if (!zsettings) {
+      this.clearDrivers();
+      return;
+    }
+
+    this.addDriver(zsettings.robotSettings[RobotType.Grunt].health * MAX_UNIT_HEALTH);
   }
 
   /**

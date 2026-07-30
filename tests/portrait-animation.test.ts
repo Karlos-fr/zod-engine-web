@@ -23,6 +23,7 @@ import {
   setPortraitRobotId,
   setPortraitTeam,
   setPortraitTerrainType,
+  startPortraitAnimation,
   ZPORTRAIT_HEADER_GUARD_PORTED,
 } from "../src/simulation/PortraitAnimation";
 import type {
@@ -34,6 +35,7 @@ import type {
   PortraitRobotClearState,
   PortraitRefState,
   PortraitRobotIdState,
+  PortraitStartAnimationState,
   PortraitTeamState,
   PortraitTerrainState,
 } from "../src/simulation/PortraitAnimation";
@@ -281,6 +283,65 @@ describe("portrait animation", () => {
 
     state.currentAnimation = PortraitAnimationType.Blink;
     expect(isPortraitDoingAnimation(state)).toBe(true);
+  });
+
+  it("ports ZPortrait StartAnim as no-op for animations without frames", () => {
+    const renderFrame = new PortraitFrame();
+    const state: PortraitStartAnimationState = {
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: -1,
+      renderFrame,
+      animationStartTime: 0,
+    };
+    let soundCount = 0;
+
+    startPortraitAnimation(
+      state,
+      PortraitAnimationType.Blink,
+      () => 12.5,
+      () => {
+        soundCount += 1;
+      },
+    );
+
+    expect(state.currentAnimation).toBe(-1);
+    expect(state.renderFrame).toBe(renderFrame);
+    expect(state.animationStartTime).toBe(0);
+    expect(soundCount).toBe(0);
+  });
+
+  it("ports ZPortrait StartAnim as first-frame activation and sound trigger", () => {
+    const renderFrame = new PortraitFrame();
+    const firstFrame = new PortraitFrame();
+    firstFrame.duration = 0.75;
+    const state: PortraitStartAnimationState = {
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: -1,
+      renderFrame,
+      animationStartTime: 0,
+    };
+    let soundCount = 0;
+    state.animInfo[PortraitAnimationType.Salute].frameList.push(firstFrame);
+
+    startPortraitAnimation(
+      state,
+      PortraitAnimationType.Salute,
+      () => 42.25,
+      () => {
+        soundCount += 1;
+      },
+    );
+
+    expect(state.currentAnimation).toBe(PortraitAnimationType.Salute);
+    expect(state.renderFrame).toBe(firstFrame);
+    expect(state.animationStartTime).toBe(42.25);
+    expect(soundCount).toBe(1);
   });
 
   it("ports ZPortrait ClearRobotID as robot portrait binding reset", () => {

@@ -133,7 +133,7 @@ describe("surface pixel operations", () => {
     const alphaApplied: Array<[string, number]> = [];
     const colorKeys: Array<[string, number]> = [];
     const state = {
-      useOpenGL: false,
+      useRenderCommands: false,
       alpha: 128,
       surface: {
         current: {
@@ -175,10 +175,10 @@ describe("surface pixel operations", () => {
     expect(colorKeys).toEqual([["base-display", 0x000000]]);
   });
 
-  it("keeps MakeAlphable as a no-op through the OpenGL path", () => {
+  it("keeps MakeAlphable as a no-op through the render-command path", () => {
     const colorKeys: number[] = [];
     const state = {
-      useOpenGL: true,
+      useRenderCommands: true,
       alpha: 255,
       surface: {
         current: {
@@ -348,7 +348,7 @@ describe("surface pixel operations", () => {
     const releasedRotozoom: string[] = [];
     const deletedTextures: number[] = [];
     const cacheState = {
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: 7,
@@ -382,7 +382,7 @@ describe("surface pixel operations", () => {
     expect(releasedRotozoom).toEqual(["rotated"]);
     expect(deletedTextures).toEqual([7]);
     expect(cacheState).toEqual({
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: null,
       rotozoomLoaded: false,
       texture: 7,
@@ -397,7 +397,7 @@ describe("surface pixel operations", () => {
       data: new Uint8ClampedArray([1, 2, 3, 4]),
     };
     const cacheState = {
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: 7,
@@ -419,7 +419,7 @@ describe("surface pixel operations", () => {
     );
 
     expect(cacheState).toEqual({
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: 7,
@@ -448,7 +448,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -488,7 +488,7 @@ describe("surface pixel operations", () => {
     const destination = {
       surface: destinationSurface,
       cacheState: {
-        useOpenGL: false,
+        useRenderCommands: false,
         rotozoomSurface: null as null,
         rotozoomLoaded: true,
         texture: 4,
@@ -500,7 +500,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen: null,
-        useOpenGL: true,
+        useRenderCommands: true,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -525,7 +525,7 @@ describe("surface pixel operations", () => {
     expect(destination.cacheState.rotozoomLoaded).toBe(false);
   });
 
-  it("replaces ZSDL_Surface::BlitSurface OpenGL path with a texture render command", () => {
+  it("replaces ZSDL_Surface::BlitSurface render-command path with a texture render command", () => {
     const commands: unknown[] = [];
     const state = {
       surface: {
@@ -534,7 +534,7 @@ describe("surface pixel operations", () => {
         data: new Uint8ClampedArray(32),
       },
       screen: null,
-      useOpenGL: true,
+      useRenderCommands: true,
       texture: 9,
       textureLoaded: true,
       size: 2,
@@ -582,7 +582,7 @@ describe("surface pixel operations", () => {
         data: new Uint8ClampedArray(4),
       },
       screen: null,
-      useOpenGL: true,
+      useRenderCommands: true,
       texture: null as number | null,
       textureLoaded: false,
       size: 1,
@@ -621,7 +621,7 @@ describe("surface pixel operations", () => {
           data: new Uint8ClampedArray([1, 2, 3, 4]),
         },
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -655,7 +655,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -697,7 +697,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -737,7 +737,7 @@ describe("surface pixel operations", () => {
       {
         surface: null,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -870,7 +870,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -917,7 +917,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -950,7 +950,7 @@ describe("surface pixel operations", () => {
       {
         surface: null,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -988,7 +988,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1034,7 +1034,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1065,7 +1065,7 @@ describe("surface pixel operations", () => {
       {
         surface: null,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1100,7 +1100,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1141,7 +1141,7 @@ describe("surface pixel operations", () => {
       {
         surface,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1172,7 +1172,7 @@ describe("surface pixel operations", () => {
       {
         surface: null,
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1188,7 +1188,7 @@ describe("surface pixel operations", () => {
     expect([...screen.data]).toEqual([0, 0, 0, 0]);
   });
 
-  it("replaces ZSDL_Surface::RenderSurface OpenGL path with a texture command", () => {
+  it("replaces ZSDL_Surface::RenderSurface render-command path with a texture command", () => {
     const commands: unknown[] = [];
 
     renderRgbaSurface(
@@ -1199,7 +1199,7 @@ describe("surface pixel operations", () => {
           data: new Uint8ClampedArray(8),
         },
         screen: null,
-        useOpenGL: true,
+        useRenderCommands: true,
         texture: 7,
         textureLoaded: true,
         size: 2,
@@ -1256,7 +1256,7 @@ describe("surface pixel operations", () => {
           ]),
         },
         screen: null,
-        useOpenGL: true,
+        useRenderCommands: true,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1306,7 +1306,7 @@ describe("surface pixel operations", () => {
           ]),
         },
         screen,
-        useOpenGL: false,
+        useRenderCommands: false,
         texture: null,
         textureLoaded: false,
         size: 1,
@@ -1356,7 +1356,7 @@ describe("surface pixel operations", () => {
         data: new Uint8ClampedArray([1, 2, 3, 4]),
       },
       screen,
-      useOpenGL: false,
+      useRenderCommands: false,
       texture: null,
       textureLoaded: false,
       size: 2,
@@ -1505,7 +1505,7 @@ describe("surface pixel operations", () => {
     const releasedRotozoom: string[] = [];
     const deletedTextures: number[] = [];
     const cacheState = {
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: 5,
@@ -1532,7 +1532,7 @@ describe("surface pixel operations", () => {
     expect(releasedRotozoom).toEqual(["rotated"]);
     expect(deletedTextures).toEqual([5]);
     expect(cacheState).toEqual({
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: null,
       rotozoomLoaded: false,
       texture: 5,
@@ -1551,7 +1551,7 @@ describe("surface pixel operations", () => {
     const destination = {
       surface,
       cacheState: {
-        useOpenGL: false,
+        useRenderCommands: false,
         rotozoomSurface: { id: "rotated" },
         rotozoomLoaded: true,
         texture: 9,
@@ -1864,7 +1864,7 @@ describe("surface pixel operations", () => {
       data: new Uint8ClampedArray(8),
     };
     const cacheState = {
-      useOpenGL: true,
+      useRenderCommands: true,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: null,
@@ -1888,7 +1888,7 @@ describe("surface pixel operations", () => {
 
   it("preserves FillRectOnToMe no-op behavior without a surface", () => {
     const cacheState = {
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: 5,
@@ -1903,7 +1903,7 @@ describe("surface pixel operations", () => {
     );
 
     expect(cacheState).toEqual({
-      useOpenGL: false,
+      useRenderCommands: false,
       rotozoomSurface: { id: "rotated" },
       rotozoomLoaded: true,
       texture: 5,

@@ -3,6 +3,8 @@
  */
 
 import { GameEntity } from "./GameEntity";
+import type { ZSettings } from "../../data/ZSettingsData";
+import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
 
 /**
  * Browser simulation entity containing the subset of `ZVehicle` behavior already ported.
@@ -68,6 +70,27 @@ export class VehicleEntity extends GameEntity {
     }
 
     return this.canBeSnipedFlag && this.driverInfo.length > 0;
+  }
+
+  /**
+   * Port of upstream `ZVehicle::SetInitialDrivers`.
+   * Role: Initializes vehicle driver state from ownership and grunt health settings.
+   * Upstream: zvehicle.cpp:155-168
+   */
+  override setInitialDrivers(zsettings?: ZSettings): void {
+    this.driverType = RobotType.Grunt;
+
+    if (this.owner === TeamType.Null) {
+      this.clearDrivers();
+      return;
+    }
+
+    if (!zsettings) {
+      this.clearDrivers();
+      return;
+    }
+
+    this.addDriver(zsettings.robotSettings[RobotType.Grunt].health * MAX_UNIT_HEALTH);
   }
 
   /**

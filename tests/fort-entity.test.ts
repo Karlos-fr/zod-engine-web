@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FortEntity } from "../src/simulation/entities/FortEntity";
-import { TeamType } from "../src/simulation/SimulationConstants";
+import { BuildingType, TeamType } from "../src/simulation/SimulationConstants";
 
 describe("fort entity", () => {
   it("ports BFort CanSetRallypoints as enabled rally points", () => {
@@ -38,6 +38,32 @@ describe("fort entity", () => {
 
     entity.health = 0;
     expect(entity.canEnterFort(TeamType.Blue)).toBe(false);
+  });
+
+  it("ports BFort UnderCursorFortCanEnter as front fort entry rectangle", () => {
+    const entity = new FortEntity({
+      id: "fort-front-entry",
+      kind: "fort",
+      position: { x: 100, y: 200 },
+      objectId: BuildingType.FortFront,
+    });
+
+    expect(entity.underCursorFortCanEnter(164, 232)).toBe(true);
+    expect(entity.underCursorFortCanEnter(196, 328)).toBe(true);
+    expect(entity.underCursorFortCanEnter(163, 232)).toBe(false);
+  });
+
+  it("ports BFort UnderCursorFortCanEnter as back fort entry rectangle", () => {
+    const entity = new FortEntity({
+      id: "fort-back-entry",
+      kind: "fort",
+      position: { x: 100, y: 200 },
+      objectId: BuildingType.FortBack,
+    });
+
+    expect(entity.underCursorFortCanEnter(164, 216)).toBe(true);
+    expect(entity.underCursorFortCanEnter(196, 280)).toBe(true);
+    expect(entity.underCursorFortCanEnter(164, 215)).toBe(false);
   });
 
   it("ports BFort CannonNotPlacable as fort mount point exceptions", () => {

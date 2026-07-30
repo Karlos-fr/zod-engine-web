@@ -104,6 +104,15 @@ export function setSimulationEffectSettings(
 export function processSimulationEffect(): void {}
 
 /**
+ * Replacement for upstream `ZEffect::DoRender`.
+ * Role: Provides the empty base rendering hook for effects with no visible output.
+ * Upstream: zeffect.h:46
+ */
+export function renderSimulationEffect(): [] {
+  return [];
+}
+
+/**
  * Port of upstream `ZEffect::KillMe`.
  * Role: Reports whether the effect should be removed.
  * Upstream: zeffect.cpp:29-32

@@ -2,7 +2,7 @@ import type { GameState } from "../app/GameState";
 import type { World } from "../simulation/World";
 import type { GameEntity } from "../simulation/entities/GameEntity";
 import type { GameMap } from "../world/GameMap";
-import { getScreenDimensions } from "./OpenGLInitialization";
+import { getScreenDimensions } from "./CanvasRendererInitialization";
 
 const TILE_SIZE = 32;
 const GRID_COLOR = "#24313b";

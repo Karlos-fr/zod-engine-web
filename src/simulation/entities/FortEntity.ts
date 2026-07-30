@@ -3,7 +3,8 @@
  */
 
 import { GameEntity } from "./GameEntity";
-import { TeamType } from "../SimulationConstants";
+import { pointsWithinArea } from "../Common";
+import { BuildingType, TeamType } from "../SimulationConstants";
 
 /**
  * Browser simulation entity containing the subset of `BFort` behavior already ported.
@@ -39,6 +40,22 @@ export class FortEntity extends GameEntity {
     if (this.isDestroyed()) return false;
 
     return true;
+  }
+
+  /**
+   * Port of upstream `BFort::UnderCursorFortCanEnter`.
+   * Role: Checks whether the cursor is over a fort entry area.
+   * Upstream: bfort.cpp:517-532
+   */
+  override underCursorFortCanEnter(mapX: number, mapY: number): boolean {
+    const localX = mapX - this.position.x;
+    const localY = mapY - this.position.y;
+
+    if (this.objectId === BuildingType.FortFront) {
+      return pointsWithinArea(localX, localY, 16 * 4, 16 * 2, 32, 16 * 6);
+    }
+
+    return pointsWithinArea(localX, localY, 16 * 4, 16, 32, 16 * 4);
   }
 
   /**

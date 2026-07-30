@@ -3,6 +3,7 @@
  */
 
 import type { Vector2 } from "../../world/Vector2";
+import type { GameMap } from "../../world/GameMap";
 import { ZSettings, ZUnitSettings } from "../../data/ZSettingsData";
 import { MAP_ITEM_TYPE_COUNT } from "../../world/WorldConstants";
 import { MapObjectType, type MapZoneInfo } from "../../world/MapFormat";
@@ -38,6 +39,8 @@ import type {
   SetBuildingStatePacket,
 } from "../EventHandler";
 import type { PathFindingResponse } from "../../world/navigation/PathFindingEngine";
+import type { BuildList } from "./BuildList";
+import { PortraitAnimationType } from "../PortraitAnimation";
 
 /**
  * Port of upstream `CreateBuildingQueueData` output.
@@ -203,6 +206,20 @@ export type ObjectRenderDepthReference = {
   pixelHeight: number;
 };
 
+export type EntityBuildListReference = Pick<BuildList, "getFirstUnitInBuildList">;
+
+export type EntityConnectedZoneMap = {
+  getZone(x: number, y: number): MapZoneInfo | null;
+};
+
+export type EntityWalkSpeedMap = {
+  getTileWalkSpeed(x: number, y: number): number;
+};
+
+export type EntityPortraitAnimationTarget = {
+  startAnim(animation: PortraitAnimationType): void;
+};
+
 /**
  * Port of upstream `sort_objects_func`.
  * Role: Orders objects by their bottom pixel coordinate for render depth sorting.
@@ -304,6 +321,8 @@ export class GameEntity {
   centerY = 0;
   settings: EntitySettingsReference;
   target: Vector2 | null = null;
+  zmap: GameMap | null = null;
+  buildList: EntityBuildListReference | null = null;
   attackObject: GameEntity | null = null;
   connectedZone: MapZoneInfo | null = null;
   aiList: GameEntity[] = [];
@@ -396,6 +415,31 @@ export class GameEntity {
    * Upstream: zobject.cpp:391-398
    */
   playSelectedWav(): void {}
+
+  /**
+   * Port of upstream `ZObject::PlaySelectedAnim`.
+   * Role: Starts one of the standard selection portrait animations.
+   * Upstream: zobject.cpp:400-409
+   */
+  playSelectedAnim(
+    portrait: EntityPortraitAnimationTarget,
+    randomInt: () => number = () => Math.floor(Math.random() * 2147483647),
+  ): void {
+    switch (Math.trunc(randomInt()) % 4) {
+      case 0:
+        portrait.startAnim(PortraitAnimationType.YesSir);
+        break;
+      case 1:
+        portrait.startAnim(PortraitAnimationType.YesSir3);
+        break;
+      case 2:
+        portrait.startAnim(PortraitAnimationType.UnitReporting1);
+        break;
+      case 3:
+        portrait.startAnim(PortraitAnimationType.UnitReporting2);
+        break;
+    }
+  }
 
   /**
    * Port of upstream `ZObject::PlayAcknowledgeWav`.
@@ -1141,6 +1185,16 @@ export class GameEntity {
    */
   speedOffsetPercentInv(): number {
     return 1.0 / this.speedOffsetPercent();
+  }
+
+  /**
+   * Port of upstream `ZObject::InitRealMoveSpeed`.
+   * Role: Initializes terrain-adjusted movement speed at the entity center.
+   * Upstream: zobject.cpp:237-244
+   */
+  initRealMoveSpeed(tmap: EntityWalkSpeedMap): void {
+    this.realMoveSpeed =
+      this.moveSpeed * tmap.getTileWalkSpeed(this.centerX, this.centerY);
   }
 
   /**
@@ -2591,6 +2645,45 @@ export class GameEntity {
   }
 
   /**
+   * Port of upstream `ZObject::ClearDrivers`.
+   * Role: Removes all drivers and refreshes driver-based damage state.
+   * Upstream: zobject.cpp:4576-4582
+   */
+  clearDrivers(): void {
+    this.driverInfo.splice(0);
+    this.resetDamageInfo();
+  }
+
+  /**
+   * Port of upstream `ZObject::SetInitialDrivers`.
+   * Role: Resets driver state to the default grunt driver type.
+   * Upstream: zobject.cpp:4602-4606
+   */
+  setInitialDrivers(): void {
+    this.driverType = RobotType.Grunt;
+    this.clearDrivers();
+  }
+
+  /**
+   * Port of upstream `ZObject::SetDriverType`.
+   * Role: Stores a clamped robot driver type and refreshes driver damage state.
+   * Upstream: zobject.cpp:4541-4550
+   */
+  setDriverType(driverType: number): void {
+    this.driverType = driverType;
+
+    if (this.driverType < 0) {
+      this.driverType = 0;
+    }
+
+    if (this.driverType >= RobotType.Max) {
+      this.driverType = RobotType.Max - 1;
+    }
+
+    this.resetDamageInfo();
+  }
+
+  /**
    * Port of upstream `ZObject::GetDriverHealth`.
    * Role: Returns the first driver's health, or zero when there is no driver.
    * Upstream: zobject.cpp:4589-4595
@@ -2879,6 +2972,95 @@ export class GameEntity {
   }
 
   /**
+   * Port of upstream `ZObject::SetMap`.
+   * Role: Stores the map reference used by this entity.
+   * Upstream: zobject.cpp:246-249
+   */
+  setMap(zmap: GameMap | null): void {
+    this.zmap = zmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::SetMapImpassables`.
+   * Role: Provides the base hook for marking entity impassable tiles.
+   * Upstream: zobject.cpp:4284-4287
+   */
+  setMapImpassables(tmap: GameMap): void {
+    void tmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::SetDestroyMapImpassables`.
+   * Role: Provides the base hook for marking destroy-time impassable tiles.
+   * Upstream: zobject.cpp:4294-4297
+   */
+  setDestroyMapImpassables(tmap: GameMap): void {
+    void tmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::UnSetMapImpassables`.
+   * Role: Provides the base hook for clearing entity impassable tiles.
+   * Upstream: zobject.cpp:4289-4292
+   */
+  unsetMapImpassables(tmap: GameMap): void {
+    void tmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::UnSetDestroyMapImpassables`.
+   * Role: Provides the base hook for clearing destroy-time impassable tiles.
+   * Upstream: zobject.cpp:4299-4302
+   */
+  unsetDestroyMapImpassables(tmap: GameMap): void {
+    void tmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::CreationMapEffects`.
+   * Role: Provides the base hook for map effects applied when an entity is created.
+   * Upstream: zobject.cpp:4481-4484
+   */
+  creationMapEffects(tmap: GameMap): void {
+    void tmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::DeathMapEffects`.
+   * Role: Provides the base hook for map effects applied when an entity dies.
+   * Upstream: zobject.cpp:4486-4489
+   */
+  deathMapEffects(tmap: GameMap): void {
+    void tmap;
+  }
+
+  /**
+   * Port of upstream `ZObject::DoAfterEffects`.
+   * Role: Provides the base post-render effects hook for game entities.
+   * Upstream: zobject.cpp:1421-1424
+   */
+  doAfterEffects(
+    theMap: unknown,
+    destination: unknown,
+    shiftX: number,
+    shiftY: number,
+  ): void {
+    void theMap;
+    void destination;
+    void shiftX;
+    void shiftY;
+  }
+
+  /**
+   * Port of upstream `ZObject::SetBuildList`.
+   * Role: Stores the build-list reference used for production choices.
+   * Upstream: zobject.cpp:4150-4153
+   */
+  setBuildList(buildList: EntityBuildListReference | null): void {
+    this.buildList = buildList;
+  }
+
+  /**
    * Port of upstream `ZObject::KillMe`.
    * Role: Reports whether this entity's scheduled death time has been reached.
    * Upstream: zobject.cpp:271-274
@@ -2903,6 +3085,15 @@ export class GameEntity {
    */
   setConnectedZone(connectedZone: MapZoneInfo | null): void {
     this.connectedZone = connectedZone;
+  }
+
+  /**
+   * Port of upstream `ZObject::SetConnectedZone`.
+   * Role: Stores the map zone at the entity's current location.
+   * Upstream: zobject.cpp:4170-4173
+   */
+  setConnectedZoneFromMap(theMap: EntityConnectedZoneMap): void {
+    this.connectedZone = theMap.getZone(this.position.x, this.position.y);
   }
 
   /**

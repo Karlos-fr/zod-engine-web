@@ -7,9 +7,9 @@
  * Role: Carries the subsystem shutdown operations invoked by `ZSDL_Quit`.
  * Upstream: zsdl.cpp:758-762
  */
-export type ZsdlQuitHooks = {
+export type BrowserRuntimeShutdownHooks = {
   closeAudio(): void;
-  quitSdl(): void;
+  shutdownRenderer(): void;
 };
 
 /**
@@ -17,7 +17,7 @@ export type ZsdlQuitHooks = {
  * Role: Shuts down audio before shutting down the SDL/Web rendering layer.
  * Upstream: zsdl.cpp:758-762
  */
-export function quitZsdl(hooks: ZsdlQuitHooks): void {
+export function shutdownBrowserRuntime(hooks: BrowserRuntimeShutdownHooks): void {
   hooks.closeAudio();
-  hooks.quitSdl();
+  hooks.shutdownRenderer();
 }

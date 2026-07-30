@@ -30,6 +30,14 @@ export enum FontType {
   MaxFontTypes = 5,
 }
 
+const FONT_TYPE_ASSET_NAMES: readonly string[] = [
+  "big_white",
+  "small_white",
+  "green_building",
+  "loading_white",
+  "yellow_menu",
+];
+
 /**
  * Port of upstream `ZFont::type`.
  * Role: Holds the selected font atlas type.
@@ -37,7 +45,11 @@ export enum FontType {
  */
 export type FontState = {
   type: FontType | number;
+  charImages?: Array<unknown | null>;
+  finishedInit?: boolean;
 };
+
+export type FontImageLoader = (filename: string) => unknown | null;
 
 /**
  * Port of upstream `ZFont::SetType`.
@@ -46,6 +58,23 @@ export type FontState = {
  */
 export function setFontType(state: FontState, type: FontType | number): void {
   state.type = type;
+}
+
+/**
+ * Port of upstream `ZFont::Init`.
+ * Role: Loads all character images for the selected font atlas.
+ * Upstream: zfont.cpp:8-23
+ */
+export function initFont(state: FontState, loadImage: FontImageLoader): void {
+  const fontTypeName =
+    FONT_TYPE_ASSET_NAMES[state.type as FontType] ?? String(state.type);
+
+  state.charImages = Array.from({ length: FONT_MAX_CHARACTERS }, (_, index) =>
+    loadImage(
+      `assets/fonts/${fontTypeName}/char_${index.toString().padStart(3, "0")}.png`,
+    ),
+  );
+  state.finishedInit = true;
 }
 
 /**
