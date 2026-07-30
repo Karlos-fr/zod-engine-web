@@ -3,6 +3,7 @@
  */
 
 import type { PlanetType, TeamType } from "../simulation/SimulationConstants";
+import type { TexturedSurfaceRenderCommand } from "../rendering/SurfacePixels";
 import {
   PORTRAIT_BASE_HEIGHT_PIXELS,
   PORTRAIT_BASE_WIDTH_PIXELS,
@@ -167,7 +168,51 @@ export class HubButton {
 
     return true;
   }
+
+  /**
+   * Replacement for upstream `HubButton::Render`.
+   * Role: Produces the render command for the current button-state image.
+   * Upstream: zhud.cpp:109-119
+   */
+  render<TTexture>(
+    buttonImages: readonly (HudButtonRenderImage<TTexture> | null | undefined)[],
+    offsetX: number,
+    offsetY: number,
+  ): TexturedSurfaceRenderCommand<TTexture> | null {
+    const image = buttonImages[this.state];
+    if (!image) return null;
+
+    return {
+      texture: image.texture,
+      destinationX: this.x + offsetX + this.shiftX,
+      destinationY: this.y + offsetY + this.shiftY,
+      width: image.width,
+      height: image.height,
+      sourceX: 0,
+      sourceY: 0,
+      sourceWidth: image.width,
+      sourceHeight: image.height,
+      textureLeft: 0,
+      textureTop: 0,
+      textureRight: 1,
+      textureBottom: 1,
+      scale: 1,
+      angle: 0,
+      alpha: 1,
+    };
+  }
 }
+
+/**
+ * Replacement for upstream `HubButton::Render` image dependency.
+ * Role: Supplies texture and size for a HUD button state image.
+ * Upstream: zhud.cpp:116
+ */
+export type HudButtonRenderImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
 
 /**
  * Port of upstream `hud_reponse_type`.
@@ -431,6 +476,38 @@ export type HudUnitAmountState = {
 };
 
 /**
+ * Replacement for upstream `ZHud::ReRenderAll` mutable flags.
+ * Role: Stores invalidation flags for every cached HUD render segment.
+ * Upstream: zhud.cpp:160-170
+ */
+export type HudRerenderState = {
+  rerenderMain: boolean;
+  rerenderIcon: boolean;
+  rerenderBackdrop: boolean;
+  rerenderTime: boolean;
+  rerenderButton: number;
+  rerenderHealth: boolean;
+  rerenderUnitAmount: boolean;
+  rerenderChat: boolean;
+};
+
+export type HudChatMessageImage = {
+  unload(): void;
+};
+
+/**
+ * Port of upstream `ZHud::ShowChatMessage` mutable fields.
+ * Role: Stores chat visibility, text, cached image, and its rerender flag.
+ * Upstream: zhud.cpp:1247-1262
+ */
+export type HudChatMessageState = {
+  showChat: boolean;
+  chatMessage: string;
+  chatMessageImage: HudChatMessageImage;
+  rerenderChat: boolean;
+};
+
+/**
  * Port of upstream `ZHud::ztime`.
  * Role: Stores the simulation clock reference used by HUD timers.
  * Upstream: zhud.h:201
@@ -483,6 +560,43 @@ export function setHudUnitAmount(
 
   state.unitAmount = unitAmount;
   state.rerenderUnitAmount = true;
+}
+
+/**
+ * Replacement for upstream `ZHud::ReRenderAll`.
+ * Role: Invalidates every cached HUD render segment.
+ * Upstream: zhud.cpp:160-170
+ */
+export function rerenderAllHud(state: HudRerenderState): void {
+  state.rerenderMain = true;
+  state.rerenderIcon = true;
+  state.rerenderBackdrop = true;
+  state.rerenderTime = true;
+  state.rerenderButton = -1;
+  state.rerenderHealth = true;
+  state.rerenderUnitAmount = true;
+  state.rerenderChat = true;
+}
+
+/**
+ * Port of upstream `ZHud::ShowChatMessage`.
+ * Role: Toggles chat visibility and clears cached chat text/image when hidden.
+ * Upstream: zhud.cpp:1247-1262
+ */
+export function showHudChatMessage(
+  state: HudChatMessageState,
+  showChat: boolean,
+): void {
+  state.showChat = showChat;
+  state.rerenderChat = true;
+
+  if (!state.showChat) {
+    state.chatMessage = "";
+    state.chatMessageImage.unload();
+    return;
+  }
+
+  state.chatMessage = "";
 }
 
 /**

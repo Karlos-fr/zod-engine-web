@@ -23,6 +23,7 @@ import {
   giveHudSelectedCommand,
   overHudMiniMap,
   overHudPortrait,
+  rerenderAllHud,
   resetHudGame,
   setHudARefId,
   setHudMaxUnits,
@@ -30,6 +31,7 @@ import {
   setHudTeam,
   setHudUnitAmount,
   setHudZTime,
+  showHudChatMessage,
   startHudEndAnimations,
 } from "../src/ui/HudLayout";
 
@@ -125,6 +127,49 @@ describe("HUD layout", () => {
     expect(button.withinCords(13, 17, imageSize)).toBe(false);
     expect(button.withinCords(26, 26, imageSize)).toBe(false);
     expect(button.withinCords(25, 27, imageSize)).toBe(false);
+  });
+
+  it("replaces HubButton Render as a textured surface render command", () => {
+    const button = new HubButton(HudButton.B, HudButtonState.Pressed);
+    button.x = 10;
+    button.y = 20;
+    button.setShift(3, -2);
+    const pressedTexture = { id: "pressed" };
+
+    expect(
+      button.render(
+        [
+          { texture: { id: "active" }, width: 1, height: 1 },
+          null,
+          { texture: pressedTexture, width: 12, height: 8 },
+        ],
+        100,
+        200,
+      ),
+    ).toEqual({
+      texture: pressedTexture,
+      destinationX: 113,
+      destinationY: 218,
+      width: 12,
+      height: 8,
+      sourceX: 0,
+      sourceY: 0,
+      sourceWidth: 12,
+      sourceHeight: 8,
+      textureLeft: 0,
+      textureTop: 0,
+      textureRight: 1,
+      textureBottom: 1,
+      scale: 1,
+      angle: 0,
+      alpha: 1,
+    });
+  });
+
+  it("replaces HubButton Render as null when the current state has no image", () => {
+    const button = new HubButton(HudButton.B, HudButtonState.Inactive);
+
+    expect(button.render([{ texture: "active", width: 1, height: 1 }], 0, 0)).toBeNull();
   });
 
   it("ports HUD response type identifiers", () => {
@@ -412,6 +457,32 @@ describe("HUD layout", () => {
     expect(state).toEqual({ unitAmount: 6, rerenderUnitAmount: true });
   });
 
+  it("replaces ZHud::ReRenderAll as full HUD render invalidation", () => {
+    const state = {
+      rerenderMain: false,
+      rerenderIcon: false,
+      rerenderBackdrop: false,
+      rerenderTime: false,
+      rerenderButton: 3,
+      rerenderHealth: false,
+      rerenderUnitAmount: false,
+      rerenderChat: false,
+    };
+
+    rerenderAllHud(state);
+
+    expect(state).toEqual({
+      rerenderMain: true,
+      rerenderIcon: true,
+      rerenderBackdrop: true,
+      rerenderTime: true,
+      rerenderButton: -1,
+      rerenderHealth: true,
+      rerenderUnitAmount: true,
+      rerenderChat: true,
+    });
+  });
+
   it("ports ZHud::SetZTime as timer clock reference assignment", () => {
     const state: { ztime: { now: number } | null } = { ztime: null };
     const ztime = { now: 42 };
@@ -421,6 +492,46 @@ describe("HUD layout", () => {
 
     setHudZTime(state, null);
     expect(state.ztime).toBeNull();
+  });
+
+  it("ports ZHud::ShowChatMessage as showing chat with empty message", () => {
+    const calls: string[] = [];
+    const state = {
+      showChat: false,
+      chatMessage: "old",
+      chatMessageImage: { unload: () => calls.push("unload") },
+      rerenderChat: false,
+    };
+
+    showHudChatMessage(state, true);
+
+    expect(state).toEqual({
+      showChat: true,
+      chatMessage: "",
+      chatMessageImage: state.chatMessageImage,
+      rerenderChat: true,
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZHud::ShowChatMessage as hiding chat with image unload", () => {
+    const calls: string[] = [];
+    const state = {
+      showChat: true,
+      chatMessage: "hello",
+      chatMessageImage: { unload: () => calls.push("unload") },
+      rerenderChat: false,
+    };
+
+    showHudChatMessage(state, false);
+
+    expect(state).toEqual({
+      showChat: false,
+      chatMessage: "",
+      chatMessageImage: state.chatMessageImage,
+      rerenderChat: true,
+    });
+    expect(calls).toEqual(["unload"]);
   });
 
   it("ports ZHud::SetTerrainType as HUD and portrait terrain assignment", () => {

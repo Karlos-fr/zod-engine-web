@@ -2,6 +2,8 @@
  * Upstream: etankoil.h / etankoil.cpp
  */
 
+import type { MapSurfaceRenderCommand } from "../world/GameMap";
+
 /**
  * Port of upstream `_ETANKOIL_H_`.
  * Role: Marks an upstream header boundary.
@@ -58,6 +60,15 @@ export type TankOilProcessState = {
   nextFrameTime: number;
 };
 
+export type TankOilPreRenderState<TSurface> = {
+  killMe: boolean;
+  tankOilFrames: readonly (readonly TSurface[])[];
+  oilIndex: number;
+  frameIndex: number;
+  centerX: number;
+  centerY: number;
+};
+
 /**
  * Port of upstream `ETankOil::Init`.
  * Role: Initializes tank-oil frame asset paths.
@@ -102,4 +113,35 @@ export function processTankOilEffect(
       state.killMe = true;
     }
   }
+}
+
+/**
+ * Replacement for upstream `ETankOil::DoPreRender`.
+ * Role: Builds the centered map render command for the current tank-oil frame.
+ * Upstream: etankoil.cpp:60-71
+ */
+export function doPreRenderTankOilEffect<TSurface>(
+  state: TankOilPreRenderState<TSurface>,
+  zmap: {
+    renderZSurface(
+      surface: TSurface,
+      x: number,
+      y: number,
+      renderHit: boolean,
+      aboutCenter: boolean,
+    ): MapSurfaceRenderCommand<TSurface>;
+  },
+): MapSurfaceRenderCommand<TSurface> | null {
+  if (state.killMe) return null;
+
+  const surface = state.tankOilFrames[state.oilIndex]?.[state.frameIndex];
+  if (surface === undefined) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.centerX,
+    state.centerY,
+    false,
+    true,
+  );
 }

@@ -2,8 +2,62 @@ import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import { Waypoint } from "../src/simulation/entities/EntityTypes";
 import { RepairBuildingEntity } from "../src/simulation/entities/RepairBuildingEntity";
+import type { GameMap } from "../src/world/GameMap";
+
+type ImpassableCall = {
+  x: number;
+  y: number;
+  impassable?: boolean;
+  destroyable?: boolean;
+};
 
 describe("repair building entity", () => {
+  it("ports BRepair SetMapImpassables as full footprint blockage", () => {
+    const building = new RepairBuildingEntity({
+      id: "repair-0",
+      kind: "building",
+      position: { x: 48, y: 64 },
+    });
+    building.width = 5;
+    building.height = 4;
+    const calls: ImpassableCall[] = [];
+    const map = {
+      setImpassable(
+        x: number,
+        y: number,
+        impassable?: boolean,
+        destroyable?: boolean,
+      ) {
+        calls.push({ x, y, impassable, destroyable });
+      },
+    } as GameMap;
+
+    building.setMapImpassables(map);
+
+    expect(calls).toEqual([
+      { x: 3, y: 4, impassable: undefined, destroyable: undefined },
+      { x: 3, y: 5, impassable: undefined, destroyable: undefined },
+      { x: 3, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 3, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 4, y: 4, impassable: undefined, destroyable: undefined },
+      { x: 4, y: 5, impassable: undefined, destroyable: undefined },
+      { x: 4, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 4, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 4, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 5, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 4, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 5, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 4, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 5, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 7, impassable: undefined, destroyable: undefined },
+    ]);
+  });
+
   it("ports BRepair RepairingAUnit as repair-in-progress state read", () => {
     const building = new RepairBuildingEntity({
       id: "repair-1",

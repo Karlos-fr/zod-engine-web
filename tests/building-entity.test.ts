@@ -43,6 +43,19 @@ describe("building entity", () => {
     expect(building.palette).toBe(PlanetType.Arctic);
   });
 
+  it("replaces ZBuilding ReRenderBase as base rerender invalidation", () => {
+    const building = new BuildingEntity({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.doBaseRerender = false;
+
+    building.reRenderBase();
+
+    expect(building.doBaseRerender).toBe(true);
+  });
+
   it("ports ZBuilding GetBuildUnit as selected production unit read", () => {
     const building = new BuildingEntity({
       id: "building-1",

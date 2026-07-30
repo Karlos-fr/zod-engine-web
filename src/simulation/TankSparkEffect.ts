@@ -2,6 +2,8 @@
  * Upstream: etankspark.h / etankspark.cpp
  */
 
+import type { MapSurfaceRenderCommand } from "../world/GameMap";
+
 /**
  * Port of upstream `_ETANKSPARK_H_`.
  * Role: Marks an upstream header boundary.
@@ -46,6 +48,14 @@ export type TankSparkProcessState = {
   nextFrameTime: number;
 };
 
+export type TankSparkPreRenderState<TSurface> = {
+  killMe: boolean;
+  tankSparkFrames: readonly TSurface[];
+  frameIndex: number;
+  centerX: number;
+  centerY: number;
+};
+
 /**
  * Port of upstream `ETankSpark::Init`.
  * Role: Initializes ground-spark frame asset paths.
@@ -81,4 +91,35 @@ export function processTankSparkEffect(
     if (state.frameIndex >= TANK_SPARK_FRAME_COUNT) state.frameIndex = 0;
     if (state.frameIteration >= state.maxFrameIterations) state.killMe = true;
   }
+}
+
+/**
+ * Replacement for upstream `ETankSpark::DoPreRender`.
+ * Role: Builds the centered map render command for the current tank-spark frame.
+ * Upstream: etankspark.cpp:58-69
+ */
+export function doPreRenderTankSparkEffect<TSurface>(
+  state: TankSparkPreRenderState<TSurface>,
+  zmap: {
+    renderZSurface(
+      surface: TSurface,
+      x: number,
+      y: number,
+      renderHit: boolean,
+      aboutCenter: boolean,
+    ): MapSurfaceRenderCommand<TSurface>;
+  },
+): MapSurfaceRenderCommand<TSurface> | null {
+  if (state.killMe) return null;
+
+  const surface = state.tankSparkFrames[state.frameIndex];
+  if (surface === undefined) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.centerX,
+    state.centerY,
+    false,
+    true,
+  );
 }

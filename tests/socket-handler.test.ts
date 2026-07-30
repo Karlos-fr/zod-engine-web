@@ -7,6 +7,7 @@ import {
   SOCKET_SEND_MAX_WAIT_SECONDS,
   disconnectSocket,
   resetSocketFastProcess,
+  socketRecvGood,
   socketConnected,
 } from "../src/network/SocketHandler";
 import type {
@@ -97,6 +98,66 @@ describe("socket handler", () => {
     expect(closed).toEqual([]);
     expect(state.connected).toBe(0);
     expect(state.ipAddress).toBe("192.0.2.10");
+  });
+
+  it("ports SocketHandler recv_good as disconnect on a closed POSIX receive", () => {
+    const socket = { fd: 12 };
+    const closed: Array<typeof socket> = [];
+    const state: SocketDisconnectState<typeof socket> = {
+      connected: 1,
+      socket,
+      ipAddress: "192.0.2.10",
+    };
+
+    const result = socketRecvGood(state, 0, {
+      closeSocket: (closedSocket) => closed.push(closedSocket),
+    });
+
+    expect(result).toBe(0);
+    expect(closed).toEqual([socket]);
+    expect(state.connected).toBe(0);
+    expect(state.ipAddress).toBe("");
+  });
+
+  it("ports SocketHandler recv_good as disconnect on Winsock connection reset", () => {
+    const socket = { fd: 13 };
+    const state: SocketDisconnectState<typeof socket> = {
+      connected: 1,
+      socket,
+      ipAddress: "192.0.2.11",
+    };
+
+    const result = socketRecvGood(state, -1, {
+      getLastSocketError: () => 10054,
+    });
+
+    expect(result).toBe(0);
+    expect(state.connected).toBe(0);
+    expect(state.ipAddress).toBe("");
+  });
+
+  it("ports SocketHandler recv_good as no packet yet for -1 receive results", () => {
+    const state: SocketDisconnectState<null> = {
+      connected: 1,
+      socket: null,
+      ipAddress: "192.0.2.12",
+    };
+
+    expect(socketRecvGood(state, -1)).toBe(0);
+    expect(state.connected).toBe(1);
+    expect(state.ipAddress).toBe("192.0.2.12");
+  });
+
+  it("ports SocketHandler recv_good as true for positive receive results", () => {
+    const state: SocketDisconnectState<null> = {
+      connected: 1,
+      socket: null,
+      ipAddress: "192.0.2.13",
+    };
+
+    expect(socketRecvGood(state, 12)).toBe(1);
+    expect(state.connected).toBe(1);
+    expect(state.ipAddress).toBe("192.0.2.13");
   });
 
   it("ports ResetFastProcess as no-op when the fast-process pointer is zero", () => {

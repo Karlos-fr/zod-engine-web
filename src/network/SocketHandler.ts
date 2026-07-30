@@ -75,6 +75,13 @@ export type SocketDisconnectState<TSocket = unknown> = SocketConnectionState & {
   ipAddress: string;
 };
 
+export type SocketRecvGoodState<TSocket = unknown> = SocketDisconnectState<TSocket>;
+
+export type SocketRecvGoodOptions<TSocket = unknown> = {
+  closeSocket?: (socket: TSocket) => void;
+  getLastSocketError?: () => number;
+};
+
 /**
  * Port of upstream `SocketHandler` fast-process buffer fields.
  * Role: Tracks buffered packet bytes and the consumed prefix for fast processing.
@@ -111,6 +118,37 @@ export function disconnectSocket<TSocket, TState extends SocketDisconnectState<T
 
     state.connected = 0;
     state.ipAddress = "";
+  }
+
+  return 1;
+}
+
+/**
+ * Port of upstream `SocketHandler::recv_good`.
+ * Role: Classifies receive results and disconnects on closed socket notifications.
+ * Upstream: socket_handler.cpp:79-98
+ */
+export function socketRecvGood<
+  TSocket,
+  TState extends SocketRecvGoodState<TSocket>,
+>(
+  state: TState,
+  receivedAmount: number,
+  options: SocketRecvGoodOptions<TSocket> = {},
+): number {
+  const lastSocketError = options.getLastSocketError?.();
+  const isClosed =
+    lastSocketError === 10054 ||
+    (lastSocketError === 0 && receivedAmount === 0) ||
+    (lastSocketError === undefined && receivedAmount === 0);
+
+  if (isClosed) {
+    disconnectSocket(state, options.closeSocket);
+    return 0;
+  }
+
+  if (receivedAmount === -1) {
+    return 0;
   }
 
   return 1;

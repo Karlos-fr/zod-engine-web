@@ -1367,6 +1367,77 @@ describe("GameEntity", () => {
     expect(entity.withinAttackRadius(16, 20)).toBe(false);
   });
 
+  it("checks whether objects are within attack radius without barrier blocking", () => {
+    const entity = new GameEntity({
+      id: "cannon-object-radius",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+    });
+    const target = new GameEntity({
+      id: "robot-object-radius",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const barrierChecks: Array<[number, number, number, number]> = [];
+    entity.centerX = 10;
+    entity.centerY = 20;
+    entity.attackRadius = 5;
+    target.centerX = 13;
+    target.centerY = 24;
+    entity.setMap({
+      engageBarrierBetweenCoords: (x1, y1, x2, y2) => {
+        barrierChecks.push([x1, y1, x2, y2]);
+        return false;
+      },
+    } as unknown as GameMap);
+
+    expect(entity.withinAttackRadiusObject(null)).toBe(false);
+    expect(entity.withinAttackRadiusObject(target)).toBe(true);
+    expect(barrierChecks).toEqual([[10, 20, 13, 24]]);
+
+    target.centerX = 16;
+    target.centerY = 20;
+    expect(entity.withinAttackRadiusObject(target)).toBe(false);
+    expect(barrierChecks).toEqual([[10, 20, 13, 24]]);
+  });
+
+  it("blocks object attack radius through barriers except destroyable impassables", () => {
+    class DestroyableImpassableEntity extends GameEntity {
+      override isDestroyableImpassable(): boolean {
+        return true;
+      }
+    }
+
+    const entity = new GameEntity({
+      id: "cannon-barrier-radius",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+    });
+    const target = new GameEntity({
+      id: "robot-barrier-radius",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const barrierTarget = new DestroyableImpassableEntity({
+      id: "wall-barrier-radius",
+      kind: "item",
+      position: { x: 0, y: 0 },
+    });
+    entity.centerX = 10;
+    entity.centerY = 20;
+    entity.attackRadius = 20;
+    target.centerX = 18;
+    target.centerY = 24;
+    barrierTarget.centerX = 18;
+    barrierTarget.centerY = 24;
+    entity.setMap({
+      engageBarrierBetweenCoords: () => true,
+    } as unknown as GameMap);
+
+    expect(entity.withinAttackRadiusObject(target)).toBe(false);
+    expect(entity.withinAttackRadiusObject(barrierTarget)).toBe(true);
+  });
+
   it("checks whether coordinates are within aggro radius", () => {
     const entity = new GameEntity({
       id: "cannon-agro-1",
@@ -1379,6 +1450,76 @@ describe("GameEntity", () => {
 
     expect(entity.withinAgroRadius(18, 20, 3)).toBe(true);
     expect(entity.withinAgroRadius(19, 20, 3)).toBe(false);
+  });
+
+  it("checks whether objects are within aggro radius without barrier blocking", () => {
+    const entity = new GameEntity({
+      id: "cannon-object-agro",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+    });
+    const target = new GameEntity({
+      id: "robot-object-agro",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const barrierChecks: Array<[number, number, number, number]> = [];
+    entity.centerX = 10;
+    entity.centerY = 20;
+    entity.attackRadius = 5;
+    target.centerX = 18;
+    target.centerY = 20;
+    entity.setMap({
+      engageBarrierBetweenCoords: (x1, y1, x2, y2) => {
+        barrierChecks.push([x1, y1, x2, y2]);
+        return false;
+      },
+    } as unknown as GameMap);
+
+    expect(entity.withinAgroRadiusObject(null, 3)).toBe(false);
+    expect(entity.withinAgroRadiusObject(target, 3)).toBe(true);
+    expect(barrierChecks).toEqual([[10, 20, 18, 20]]);
+
+    target.centerX = 19;
+    expect(entity.withinAgroRadiusObject(target, 3)).toBe(false);
+    expect(barrierChecks).toEqual([[10, 20, 18, 20]]);
+  });
+
+  it("blocks object aggro radius through barriers except destroyable impassables", () => {
+    class DestroyableImpassableEntity extends GameEntity {
+      override isDestroyableImpassable(): boolean {
+        return true;
+      }
+    }
+
+    const entity = new GameEntity({
+      id: "cannon-barrier-agro",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+    });
+    const target = new GameEntity({
+      id: "robot-barrier-agro",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const barrierTarget = new DestroyableImpassableEntity({
+      id: "wall-barrier-agro",
+      kind: "item",
+      position: { x: 0, y: 0 },
+    });
+    entity.centerX = 10;
+    entity.centerY = 20;
+    entity.attackRadius = 5;
+    target.centerX = 18;
+    target.centerY = 20;
+    barrierTarget.centerX = 18;
+    barrierTarget.centerY = 20;
+    entity.setMap({
+      engageBarrierBetweenCoords: () => true,
+    } as unknown as GameMap);
+
+    expect(entity.withinAgroRadiusObject(target, 3)).toBe(false);
+    expect(entity.withinAgroRadiusObject(barrierTarget, 3)).toBe(true);
   });
 
   it("checks whether another object in a list can attack coordinates", () => {
@@ -2381,6 +2522,26 @@ describe("GameEntity", () => {
       [false, true],
       [true, false],
     ]);
+  });
+
+  it("replaces ZObject DoPreRender as the empty base render command list", () => {
+    const entity = new GameEntity({
+      id: "pre-render-base",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+
+    expect(entity.doPreRender({}, {}, 4, 8)).toEqual([]);
+  });
+
+  it("replaces ZObject DoRender as the empty base render command list", () => {
+    const entity = new GameEntity({
+      id: "render-base",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+
+    expect(entity.doRender({}, {}, 4, 8)).toEqual([]);
   });
 
   it("stops automatic repair without changing the network flag", () => {
@@ -3455,6 +3616,124 @@ describe("GameEntity", () => {
     expect(entity.connectedZone).toBe(zone);
   });
 
+  it("ports ZObject HasDestroyedFortInZone as false without connected zone", () => {
+    const entity = new GameEntity({
+      id: "robot-no-zone",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+
+    expect(entity.hasDestroyedFortInZone({ buildingObjectList: [] })).toBe(false);
+  });
+
+  it("ports ZObject CannonsInZone as other cannon count in the same zone", () => {
+    const zone = createMapZone(1);
+    const otherZone = createMapZone(2);
+    const entity = new GameEntity({
+      id: "robot-cannons-zone",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+      objectType: MapObjectType.Robot,
+    });
+    const sameZoneCannon = createCannon("same-zone-cannon", zone);
+    const anotherSameZoneCannon = createCannon("another-same-zone-cannon", zone);
+    const otherZoneCannon = createCannon("other-zone-cannon", otherZone);
+    const sameZoneBuilding = createBuilding(
+      "same-zone-building",
+      BuildingType.Radar,
+      zone,
+      100,
+    );
+    entity.setConnectedZone(zone);
+
+    expect(
+      entity.cannonsInZone({
+        objectList: [
+          entity,
+          sameZoneCannon,
+          anotherSameZoneCannon,
+          otherZoneCannon,
+          sameZoneBuilding,
+        ],
+      }),
+    ).toBe(2);
+  });
+
+  it("ports ZObject CannonsInZone with upstream null-zone reference equality", () => {
+    const entity = new GameEntity({
+      id: "robot-cannons-null-zone",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const nullZoneCannon = createCannon("null-zone-cannon", null);
+
+    expect(
+      entity.cannonsInZone({
+        objectList: [entity, nullZoneCannon],
+      }),
+    ).toBe(1);
+  });
+
+  it("ports ZObject HasDestroyedFortInZone as destroyed front-fort lookup in the same zone", () => {
+    const zone = createMapZone(1);
+    const otherZone = createMapZone(2);
+    const entity = new GameEntity({
+      id: "robot-zone",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const aliveFort = createBuilding("alive-fort", BuildingType.FortFront, zone, 100);
+    const destroyedBackFort = createBuilding(
+      "destroyed-back-fort",
+      BuildingType.FortBack,
+      zone,
+      0,
+    );
+    const destroyedOtherZoneFort = createBuilding(
+      "destroyed-other-zone-fort",
+      BuildingType.FortFront,
+      otherZone,
+      0,
+    );
+    const destroyedFrontFort = createBuilding(
+      "destroyed-front-fort",
+      BuildingType.FortFront,
+      zone,
+      0,
+    );
+    entity.setConnectedZone(zone);
+
+    expect(
+      entity.hasDestroyedFortInZone({
+        buildingObjectList: [
+          aliveFort,
+          destroyedBackFort,
+          destroyedOtherZoneFort,
+          destroyedFrontFort,
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("ports ZObject HasDestroyedFortInZone as false when no matching destroyed front fort exists", () => {
+    const zone = createMapZone(1);
+    const entity = new GameEntity({
+      id: "robot-zone-no-fort",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    entity.setConnectedZone(zone);
+
+    expect(
+      entity.hasDestroyedFortInZone({
+        buildingObjectList: [
+          createBuilding("alive-front", BuildingType.FortFront, zone, 100),
+          createBuilding("destroyed-radar", BuildingType.Radar, zone, 0),
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it("sets the shared damage missile list by reference", () => {
     const missiles = [
       new DamageMissile({ x: 1, y: 2, damage: 10, radius: 3, explodeTime: 4 }),
@@ -3835,3 +4114,46 @@ describe("GameEntity", () => {
     expect(entity.waypointCursorType).toBe(CursorType.Repaired);
   });
 });
+
+function createMapZone(id: number): MapZoneInfo {
+  return {
+    owner: TeamType.Blue,
+    tiles: [],
+    x: id,
+    y: id + 1,
+    width: 2,
+    height: 3,
+    id,
+  };
+}
+
+function createBuilding(
+  id: string,
+  buildingType: BuildingType,
+  connectedZone: MapZoneInfo,
+  health: number,
+): GameEntity {
+  const building = new GameEntity({
+    id,
+    kind: "building",
+    position: { x: 0, y: 0 },
+    objectType: MapObjectType.Building,
+    objectId: buildingType,
+  });
+  building.connectedZone = connectedZone;
+  building.maxHealth = 100;
+  building.health = health;
+  return building;
+}
+
+function createCannon(id: string, connectedZone: MapZoneInfo | null): GameEntity {
+  const cannon = new GameEntity({
+    id,
+    kind: "cannon",
+    position: { x: 0, y: 0 },
+    objectType: MapObjectType.Cannon,
+    objectId: CannonType.Gatling,
+  });
+  cannon.connectedZone = connectedZone;
+  return cannon;
+}

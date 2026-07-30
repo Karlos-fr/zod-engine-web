@@ -3,6 +3,7 @@
  */
 
 import { GameEntity } from "./GameEntity";
+import type { GameMap } from "../../world/GameMap";
 
 /**
  * Browser simulation entity containing the subset of `BVehicle` behavior already ported.
@@ -10,6 +11,24 @@ import { GameEntity } from "./GameEntity";
  * Upstream: bvehicle.h
  */
 export class VehicleFactoryEntity extends GameEntity {
+  /**
+   * Port of upstream `BVehicle::SetMapImpassables`.
+   * Role: Marks the vehicle factory footprint as blocked on the pathfinding map.
+   * Upstream: bvehicle.cpp:460-476
+   */
+  override setMapImpassables(tmap: GameMap): void {
+    const tileX = Math.trunc(this.position.x / 16);
+    const tileY = Math.trunc(this.position.y / 16);
+    const endX = tileX + this.width;
+    const endY = tileY + this.height;
+
+    for (let x = tileX; x < endX; x += 1) {
+      for (let y = tileY; y < endY; y += 1) {
+        tmap.setImpassable(x, y);
+      }
+    }
+  }
+
   /**
    * Port of upstream `CanSetRallypoints`.
    * Role: Reports whether vehicle factories can set rally points.

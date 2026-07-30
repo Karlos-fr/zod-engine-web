@@ -1,6 +1,7 @@
 /**
  * Upstream: etanksmoke.h / etanksmoke.cpp
  */
+import { MAX_ANGLE_TYPES } from "./SimulationConstants";
 
 /**
  * Port of upstream `_ETANKSMOKE_H_`.
@@ -24,6 +25,37 @@ export const TANK_SMOKE_FRAME_INTERVAL_SECONDS = 0.15;
 export const TANK_SMOKE_FRAME_COUNT = 7;
 
 /**
+ * Port of upstream `ETankSmoke` spark frame count.
+ * Role: Defines how many spark frames are loaded for tank smoke effects.
+ * Upstream: etanksmoke.h:20, etanksmoke.cpp:40-44
+ */
+export const TANK_SMOKE_SPARK_FRAME_COUNT = 4;
+
+const TANK_SMOKE_ROTATION_DEGREES = [
+  0,
+  45,
+  90,
+  135,
+  180,
+  225,
+  270,
+  315,
+] as const;
+
+export type TankSmokeImageLoader<TImage> = (filename: string) => TImage;
+
+/**
+ * Port of upstream `ETankSmoke` static image state.
+ * Role: Holds loaded tank smoke and spark frame images.
+ * Upstream: etanksmoke.cpp:3-4, etanksmoke.cpp:37-47
+ */
+export type TankSmokeInitState<TImage> = {
+  tankSmoke: TImage[][];
+  tankSpark: TImage[][];
+  finishedInit: boolean;
+};
+
+/**
  * Port of upstream `ETankSmoke::Process` mutable fields.
  * Role: Captures tank-smoke lifetime, frame index, and next animation tick.
  * Upstream: etanksmoke.cpp:50-68
@@ -33,6 +65,40 @@ export type TankSmokeProcessState = {
   frameIndex: number;
   nextFrameTime: number;
 };
+
+/**
+ * Port of upstream `ETankSmoke::Init`.
+ * Role: Loads tank smoke and spark frames for every rotation bucket.
+ * Upstream: etanksmoke.cpp:30-48
+ */
+export function initTankSmokeEffect<TImage>(
+  state: TankSmokeInitState<TImage>,
+  loadImage: TankSmokeImageLoader<TImage>,
+): void {
+  state.tankSmoke = [];
+  state.tankSpark = [];
+
+  for (let rotationIndex = 0; rotationIndex < MAX_ANGLE_TYPES; rotationIndex += 1) {
+    const rotation = TANK_SMOKE_ROTATION_DEGREES[rotationIndex] ?? 0;
+    state.tankSmoke[rotationIndex] = [];
+    state.tankSpark[rotationIndex] = [];
+
+    for (let frameIndex = 0; frameIndex < TANK_SMOKE_FRAME_COUNT; frameIndex += 1) {
+      const frame = frameIndex.toString().padStart(2, "0");
+      state.tankSmoke[rotationIndex][frameIndex] = loadImage(
+        `assets/units/vehicles/track_dust_r${rotation.toString().padStart(3, "0")}_n${frame}.png`,
+      );
+
+      if (frameIndex < TANK_SMOKE_SPARK_FRAME_COUNT) {
+        state.tankSpark[rotationIndex][frameIndex] = loadImage(
+          `assets/units/vehicles/track_spark_r${rotation.toString().padStart(3, "0")}_n${frame}.png`,
+        );
+      }
+    }
+  }
+
+  state.finishedInit = true;
+}
 
 /**
  * Port of upstream `ETankSmoke::Process`.

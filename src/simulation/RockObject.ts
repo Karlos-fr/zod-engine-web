@@ -32,6 +32,26 @@ export type RockObjectImpassableMap = {
 };
 
 /**
+ * Replacement for upstream `ORock::render_img`.
+ * Role: Holds cached rock render images by owner variant and damage frame.
+ * Upstream: orock.h:78, orock.cpp:321-323
+ */
+export type RockRenderImageState<TRenderImage> = {
+  renderImages: Array<Array<TRenderImage | null>>;
+};
+
+/**
+ * Replacement for upstream default rock graphics arrays.
+ * Role: Provides the palette-indexed rock images used by the default render cache.
+ * Upstream: orock.cpp:330-332
+ */
+export type RockDefaultRenderGraphics<TRenderImage> = {
+  verticalDownTop: readonly (TRenderImage | null)[];
+  singleMidUnder: readonly (TRenderImage | null)[];
+  singleBottomUnder: readonly (TRenderImage | null)[];
+};
+
+/**
  * Port of upstream `ORock::ChangePalette`.
  * Role: Stores the rock render palette.
  * Upstream: orock.cpp:312-315
@@ -50,6 +70,41 @@ export function changeRockPalette(
  */
 export function processRockObject(): number {
   return 1;
+}
+
+/**
+ * Replacement for upstream `ORock::ClearRender`.
+ * Role: Clears all cached rock render images.
+ * Upstream: orock.cpp:317-324
+ */
+export function clearRockRender<TRenderImage>(
+  state: RockRenderImageState<TRenderImage>,
+): void {
+  for (let ownerVariant = 0; ownerVariant < 2; ownerVariant += 1) {
+    if (!state.renderImages[ownerVariant]) {
+      state.renderImages[ownerVariant] = [];
+    }
+
+    for (let damageFrame = 0; damageFrame < 3; damageFrame += 1) {
+      state.renderImages[ownerVariant][damageFrame] = null;
+    }
+  }
+}
+
+/**
+ * Replacement for upstream `ORock::SetDefaultRender`.
+ * Role: Resets the rock render cache to the default palette-specific images.
+ * Upstream: orock.cpp:326-333
+ */
+export function setDefaultRockRender<TRenderImage>(
+  state: Pick<RockObjectState, "palette"> & RockRenderImageState<TRenderImage>,
+  graphics: RockDefaultRenderGraphics<TRenderImage>,
+): void {
+  clearRockRender(state);
+
+  state.renderImages[0][0] = graphics.verticalDownTop[state.palette] ?? null;
+  state.renderImages[0][1] = graphics.singleMidUnder[state.palette] ?? null;
+  state.renderImages[0][2] = graphics.singleBottomUnder[state.palette] ?? null;
 }
 
 /**

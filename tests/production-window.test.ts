@@ -4,8 +4,10 @@ import { RobotFactoryEntity } from "../src/simulation/entities/RobotFactoryEntit
 import { BuildingType } from "../src/simulation/SimulationConstants";
 import { SimulationTime } from "../src/simulation/SimulationTime";
 import {
+  appendProductionFullUnitSelectorButtonList,
   calculateProductionFullUnitSelectorXY,
   calculateProductionFullUnitSelectorWH,
+  clickProductionFullUnitSelector,
   clickProductionUnitSelector,
   clearProductionFullUnitSelectorLists,
   clearProductionSelection,
@@ -24,6 +26,7 @@ import {
   getProductionUnitSelectorSelectedId,
   initProductionUnitSelector,
   isProductionActive,
+  loadProductionFullUnitSelectorButtonList,
   type ProductionBuildingReference,
   type ProductionObjectReference,
   type ProductionPlaceButtonState,
@@ -381,6 +384,90 @@ describe("production window", () => {
     });
   });
 
+  it("ports GWPFullUnitSelector AppendButtonList as button creation with horizontal offsets", () => {
+    const state = {
+      buttonList: [
+        {
+          objectType: 9,
+          objectId: 9,
+          offsetX: 1,
+          offsetY: 2,
+        },
+      ],
+    };
+    const objectList = [
+      { getObjectId: () => ({ objectType: 1, objectId: 4 }) },
+      { getObjectId: () => ({ objectType: 2, objectId: 7 }) },
+    ];
+
+    appendProductionFullUnitSelectorButtonList(state, 6, 22, objectList);
+
+    expect(state.buttonList).toEqual([
+      {
+        objectType: 9,
+        objectId: 9,
+        offsetX: 1,
+        offsetY: 2,
+      },
+      {
+        objectType: 1,
+        objectId: 4,
+        offsetX: 6,
+        offsetY: 22,
+      },
+      {
+        objectType: 2,
+        objectId: 7,
+        offsetX: 53,
+        offsetY: 22,
+      },
+    ]);
+  });
+
+  it("ports GWPFullUnitSelector LoadButtonList as rebuilding buttons by populated rows", () => {
+    const state = {
+      robotList: [
+        { getObjectId: () => ({ objectType: 1, objectId: 4 }) },
+        { getObjectId: () => ({ objectType: 1, objectId: 5 }) },
+      ],
+      vehicleList: [],
+      cannonList: [{ getObjectId: () => ({ objectType: 3, objectId: 8 }) }],
+      listsBuildingType: 0,
+      listsBuildingLevel: 0,
+      buttonList: [
+        {
+          objectType: 9,
+          objectId: 9,
+          offsetX: 0,
+          offsetY: 0,
+        },
+      ],
+    };
+
+    loadProductionFullUnitSelectorButtonList(state);
+
+    expect(state.buttonList).toEqual([
+      {
+        objectType: 1,
+        objectId: 4,
+        offsetX: 6,
+        offsetY: 22,
+      },
+      {
+        objectType: 1,
+        objectId: 5,
+        offsetX: 53,
+        offsetY: 22,
+      },
+      {
+        objectType: 3,
+        objectId: 8,
+        offsetX: 6,
+        offsetY: 75,
+      },
+    ]);
+  });
+
   it("ports GWPUnitSelector GetCoords as a unit selector coordinate snapshot", () => {
     const state = { x: 30, y: 40 };
 
@@ -388,6 +475,64 @@ describe("production window", () => {
     state.x = 0;
 
     expect(coords).toEqual({ x: 30, y: 40 });
+  });
+
+  it("ports GWPFullUnitSelector Click inactive selector as no-op", () => {
+    const calls: unknown[] = [];
+    const state = {
+      isActive: false,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      buttonList: [
+        { objectButton: { click: () => calls.push("button") } },
+      ],
+    };
+
+    expect(clickProductionFullUnitSelector(state, 35, 45)).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWPFullUnitSelector Click as local button routing and bounds hit testing", () => {
+    const calls: unknown[] = [];
+    const state = {
+      isActive: true,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      buttonList: [
+        {
+          objectButton: {
+            click: (x: number, y: number) => calls.push(["first", x, y]),
+          },
+        },
+        {
+          objectButton: {
+            click: (x: number, y: number) => calls.push(["second", x, y]),
+          },
+        },
+      ],
+    };
+
+    expect(clickProductionFullUnitSelector(state, 35, 45)).toBe(true);
+    expect(clickProductionFullUnitSelector(state, 29, 45)).toBe(false);
+    expect(clickProductionFullUnitSelector(state, 35, 39)).toBe(false);
+    expect(clickProductionFullUnitSelector(state, 80, 45)).toBe(false);
+    expect(clickProductionFullUnitSelector(state, 35, 100)).toBe(false);
+    expect(calls).toEqual([
+      ["first", 5, 5],
+      ["second", 5, 5],
+      ["first", -1, 5],
+      ["second", -1, 5],
+      ["first", 5, -1],
+      ["second", 5, -1],
+      ["first", 50, 5],
+      ["second", 50, 5],
+      ["first", 5, 60],
+      ["second", 5, 60],
+    ]);
   });
 
   it("ports GWPUnitSelector Click inactive selector as no-op", () => {

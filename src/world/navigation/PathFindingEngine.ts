@@ -59,6 +59,31 @@ export class PathFindingRegionInfo {
   }
 
   /**
+   * Port of upstream `ZPath_Finding_RegionInfo::FloodFill_Recursive`.
+   * Role: Marks one contiguous unassigned region using recursive four-way flood fill.
+   * Upstream: zpath_finding.cpp:159-178
+   */
+  floodFillRecursive(
+    region: number[][],
+    x: number,
+    y: number,
+    currentRegion: number,
+  ): void {
+    if (x < 0) return;
+    if (y < 0) return;
+    if (x >= this.width) return;
+    if (y >= this.height) return;
+    if (region[x]?.[y] !== -1) return;
+
+    region[x][y] = currentRegion;
+
+    this.floodFillRecursive(region, x - 1, y, currentRegion);
+    this.floodFillRecursive(region, x + 1, y, currentRegion);
+    this.floodFillRecursive(region, x, y - 1, currentRegion);
+    this.floodFillRecursive(region, x, y + 1, currentRegion);
+  }
+
+  /**
    * Port of upstream `ZPath_Finding_RegionInfo::FloodFill_AddQ`.
    * Role: Adds one unassigned tile to the flood-fill queue and marks its region.
    * Upstream: zpath_finding.cpp:180-197

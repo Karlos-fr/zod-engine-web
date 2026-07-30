@@ -1,7 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { GameMap, writeMapPaletteTileInfo } from "../src/world/GameMap";
+import {
+  GameMap,
+  type PermanentStampBlitCommand,
+  type PermanentRenderableStampBlitCommand,
+  type MapSurfaceRenderCommand,
+  type MapViewportRenderCommand,
+  writeMapPaletteTileInfo,
+} from "../src/world/GameMap";
 import { MapObjectType, type MapObject } from "../src/world/MapFormat";
-import { ROAD_SPEED, WATER_SPEED } from "../src/simulation/SimulationConstants";
+import {
+  ROAD_SPEED,
+  TeamType,
+  WATER_SPEED,
+} from "../src/simulation/SimulationConstants";
 import { MAX_PLANET_TILES } from "../src/world/WorldConstants";
 
 describe("GameMap", () => {
@@ -199,6 +210,23 @@ describe("GameMap", () => {
     expect(map.mapDataSize).toBe(0);
   });
 
+  it("replaces ZMap::DeRenderMap as full-render surface unload", () => {
+    const calls: string[] = [];
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      fullRenderSurface: {
+        unload: () => calls.push("unload"),
+      },
+    });
+
+    map.deRenderMap();
+
+    expect(calls).toEqual(["unload"]);
+    expect(GameMap.createFlat({ width: 1, height: 1 }).deRenderMap()).toBeUndefined();
+  });
+
   it("ports ZMap::PlaceObject as an object-list append", () => {
     const map = GameMap.createFlat({ width: 1, height: 1 });
     const object: MapObject = {
@@ -228,6 +256,67 @@ describe("GameMap", () => {
     });
 
     expect(map.getViewShift()).toEqual({ x: 12, y: 34 });
+  });
+
+  it("replaces ZMap::RenderZSurface as a shifted surface render command", () => {
+    const surface = { id: "cursor" };
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      shiftX: 12,
+      shiftY: 7,
+    });
+
+    const command: MapSurfaceRenderCommand<typeof surface> = map.renderZSurface(
+      surface,
+      30,
+      20,
+      true,
+      false,
+    );
+
+    expect(command).toEqual({
+      surface,
+      x: 18,
+      y: 13,
+      renderHit: true,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces ZMap::DoRender as a full-map viewport blit command", () => {
+    const surface = { unload: vi.fn() };
+    const map = new GameMap({
+      width: 10,
+      height: 8,
+      tiles: Array.from({ length: 80 }, () => ({ terrain: "plain" })),
+      shiftX: 24,
+      shiftY: 32,
+      viewWidth: 160,
+      viewHeight: 96,
+      fullRenderSurface: surface,
+    });
+
+    const command: MapViewportRenderCommand<typeof surface> = map.doRender(5, 7)!;
+
+    expect(command).toEqual({
+      surface,
+      region: {
+        sourceX: 24,
+        sourceY: 32,
+        width: 160,
+        height: 96,
+        destinationX: 5,
+        destinationY: 7,
+      },
+    });
+  });
+
+  it("replaces ZMap::DoRender as no command when the map has no render surface", () => {
+    const map = GameMap.createFlat({ width: 1, height: 1 });
+
+    expect(map.doRender(5, 7)).toBeNull();
   });
 
   it("ports ZMap::GetMapCoords as mouse coordinates plus view shift", () => {
@@ -605,6 +694,168 @@ describe("GameMap", () => {
     expect(map.coordCraterType(2, 0)).toBe(-1);
     expect(map.coordCraterType(0, 2)).toBe(-1);
     expect(map.coordCraterType(0, 0)).toBe(-1);
+  });
+
+  it("ports ZMap::SetupAllZoneInfo as border passable tile reconstruction", () => {
+    const passableLand = { ...paletteTileInfo, isPassable: true, isWater: false };
+    const passableWater = { ...paletteTileInfo, isPassable: true, isWater: true };
+    const blocked = { ...paletteTileInfo, isPassable: false, isWater: false };
+    const map = new GameMap({
+      width: 5,
+      height: 4,
+      tiles: Array.from({ length: 20 }, () => ({ terrain: "plain" })),
+      mapTiles: [
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 1 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 1 },
+        { tile: 2 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+      ],
+      paletteTileInfo: [[passableLand, passableWater, blocked]],
+      zoneList: [{ x: 1, y: 1, width: 3, height: 2 }],
+      zoneInfoList: [
+        {
+          id: 99,
+          owner: TeamType.Red,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          tiles: [],
+        },
+      ],
+    });
+
+    map.setupAllZoneInfo();
+
+    expect(map.zoneInfoList).toHaveLength(1);
+    expect(map.zoneInfoList[0]).toMatchObject({
+      id: 0,
+      owner: TeamType.Null,
+      x: 16,
+      y: 16,
+      width: 48,
+      height: 32,
+    });
+    expect(
+      map.zoneInfoList[0].tiles.map((tile) => ({
+        x: tile.renderLocation.x,
+        y: tile.renderLocation.y,
+        isWater: tile.isWater,
+      })),
+    ).toEqual([
+      { x: 38, y: 22, isWater: true },
+      { x: 22, y: 22, isWater: false },
+      { x: 54, y: 22, isWater: false },
+      { x: 22, y: 38, isWater: true },
+      { x: 54, y: 38, isWater: false },
+    ]);
+  });
+
+  it("ports ZMap::RemoveZone as exact zone removal and zone-info rebuild", () => {
+    const passableLand = { ...paletteTileInfo, isPassable: true, isWater: false };
+    const map = new GameMap({
+      width: 4,
+      height: 4,
+      tiles: Array.from({ length: 16 }, () => ({ terrain: "plain" })),
+      mapTiles: Array.from({ length: 16 }, () => ({ tile: 0 })),
+      paletteTileInfo: [[passableLand]],
+      zoneList: [
+        { x: 0, y: 0, width: 2, height: 2 },
+        { x: 2, y: 1, width: 2, height: 2 },
+      ],
+      zoneInfoList: [
+        {
+          id: 99,
+          owner: TeamType.Red,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          tiles: [],
+        },
+      ],
+    });
+
+    expect(map.removeZone(3, 3)).toBe(0);
+    expect(map.zoneList).toEqual([
+      { x: 0, y: 0, width: 2, height: 2 },
+      { x: 2, y: 1, width: 2, height: 2 },
+    ]);
+    expect(map.zoneInfoList[0].id).toBe(99);
+
+    expect(map.removeZone(0, 0)).toBe(1);
+    expect(map.zoneList).toEqual([{ x: 2, y: 1, width: 2, height: 2 }]);
+    expect(map.zoneInfoList).toHaveLength(1);
+    expect(map.zoneInfoList[0]).toMatchObject({
+      id: 0,
+      owner: TeamType.Null,
+      x: 32,
+      y: 16,
+      width: 32,
+      height: 32,
+    });
+  });
+
+  it("ports ZMap::AddZone as validation, append, and zone-info rebuild", () => {
+    const passableLand = { ...paletteTileInfo, isPassable: true, isWater: false };
+    const map = new GameMap({
+      width: 4,
+      height: 4,
+      tiles: Array.from({ length: 16 }, () => ({ terrain: "plain" })),
+      mapTiles: Array.from({ length: 16 }, () => ({ tile: 0 })),
+      paletteTileInfo: [[passableLand]],
+      zoneList: [{ x: 0, y: 0, width: 2, height: 2 }],
+      zoneInfoList: [
+        {
+          id: 99,
+          owner: TeamType.Red,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          tiles: [],
+        },
+      ],
+    });
+
+    expect(map.addZone({ x: 4, y: 1, width: 1, height: 1 })).toBe(0);
+    expect(map.addZone({ x: 1, y: 4, width: 1, height: 1 })).toBe(0);
+    expect(map.addZone({ x: 1, y: 1, width: 5, height: 1 })).toBe(0);
+    expect(map.addZone({ x: 1, y: 1, width: 1, height: 5 })).toBe(0);
+    expect(map.addZone({ x: 0, y: 0, width: 1, height: 1 })).toBe(0);
+    expect(map.zoneList).toEqual([{ x: 0, y: 0, width: 2, height: 2 }]);
+    expect(map.zoneInfoList[0].id).toBe(99);
+
+    expect(map.addZone({ x: 2, y: 1, width: 2, height: 2 })).toBe(1);
+    expect(map.zoneList).toEqual([
+      { x: 0, y: 0, width: 2, height: 2 },
+      { x: 2, y: 1, width: 2, height: 2 },
+    ]);
+    expect(map.zoneInfoList).toHaveLength(2);
+    expect(map.zoneInfoList[1]).toMatchObject({
+      id: 1,
+      owner: TeamType.Null,
+      x: 32,
+      y: 16,
+      width: 32,
+      height: 32,
+    });
   });
 
   it("ports ZMap::GetTileWalkSpeed as palette movement speed lookup", () => {
@@ -1159,6 +1410,139 @@ describe("GameMap", () => {
     expect(map.stampListSetup).toBe(true);
     expect(map.stampList).toEqual([[true]]);
     expect(map.coordStamped(0, 0)).toBe(true);
+  });
+
+  it("ports ZMap::PermStamp as false when the full render surface is missing", () => {
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      fileLoaded: true,
+    });
+    const blits: Array<PermanentStampBlitCommand<{ width: number; height: number }>> =
+      [];
+
+    expect(
+      map.permStamp(0, 0, { width: 16, height: 16 }, true, false, (command) =>
+        blits.push(command),
+      ),
+    ).toBe(false);
+    expect(blits).toEqual([]);
+    expect(map.stampListSetup).toBe(false);
+  });
+
+  it("ports ZMap::PermStamp as true without side effects when the source surface is missing", () => {
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      fileLoaded: true,
+    });
+    const blits: Array<PermanentStampBlitCommand<{ width: number; height: number }>> =
+      [];
+
+    expect(
+      map.permStamp(0, 0, null, true, true, (command) => blits.push(command)),
+    ).toBe(true);
+    expect(blits).toEqual([]);
+    expect(map.stampListSetup).toBe(false);
+  });
+
+  it("ports ZMap::PermStamp as optional tile marking plus full-render blit", () => {
+    const surface = { width: 24, height: 24 };
+    const map = new GameMap({
+      width: 3,
+      height: 3,
+      tiles: Array.from({ length: 9 }, () => ({ terrain: "plain" })),
+      stampListSetup: true,
+      stampList: [
+        [false, false, false],
+        [false, false, false],
+        [false, false, false],
+      ],
+      stampListWidth: 3,
+      stampListHeight: 3,
+      fileLoaded: true,
+    });
+    const blits: Array<PermanentStampBlitCommand<typeof surface>> = [];
+
+    expect(
+      map.permStamp(8, 8, surface, true, true, (command) => blits.push(command)),
+    ).toBe(true);
+
+    expect(map.stampList).toEqual([
+      [true, true, false],
+      [true, true, false],
+      [false, false, false],
+    ]);
+    expect(blits).toEqual([
+      {
+        surface,
+        destinationX: 8,
+        destinationY: 8,
+        width: 24,
+        height: 24,
+      },
+    ]);
+  });
+
+  it("ports ZMap::PermStamp renderable overload as true without side effects when base surface is missing", () => {
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      fileLoaded: true,
+    });
+    const surface = { baseSurface: null };
+    const blits: Array<PermanentRenderableStampBlitCommand<typeof surface>> = [];
+
+    expect(
+      map.permStampRenderableSurface(0, 0, surface, true, true, (command) =>
+        blits.push(command),
+      ),
+    ).toBe(true);
+    expect(blits).toEqual([]);
+    expect(map.stampListSetup).toBe(false);
+  });
+
+  it("ports ZMap::PermStamp renderable overload as optional tile marking plus source blit", () => {
+    const surface = { baseSurface: { width: 24, height: 24 }, textureId: "rock" };
+    const map = new GameMap({
+      width: 3,
+      height: 3,
+      tiles: Array.from({ length: 9 }, () => ({ terrain: "plain" })),
+      stampListSetup: true,
+      stampList: [
+        [false, false, false],
+        [false, false, false],
+        [false, false, false],
+      ],
+      stampListWidth: 3,
+      stampListHeight: 3,
+      fileLoaded: true,
+    });
+    const blits: Array<PermanentRenderableStampBlitCommand<typeof surface>> = [];
+
+    expect(
+      map.permStampRenderableSurface(8, 8, surface, true, true, (command) =>
+        blits.push(command),
+      ),
+    ).toBe(true);
+
+    expect(map.stampList).toEqual([
+      [true, true, false],
+      [true, true, false],
+      [false, false, false],
+    ]);
+    expect(blits).toEqual([
+      {
+        surface,
+        destinationX: 8,
+        destinationY: 8,
+        width: 24,
+        height: 24,
+      },
+    ]);
   });
 
   it("ports ZMap::GetViewLimits as shifted map view bounds", () => {

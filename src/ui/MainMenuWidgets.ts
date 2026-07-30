@@ -1,5 +1,10 @@
 import { FontType } from "../rendering/FontEngine";
 import { ACTIVE_TEAM_TYPE_COUNT } from "../simulation/SimulationConstants";
+import {
+  loadTeamZSurface,
+  TEAM_RENDERING_BASE_TEAM,
+  type TeamSurfaceFactory,
+} from "../simulation/TeamRendering";
 
 /**
  * Upstream: zgui_main_menu_widgets.h
@@ -19,6 +24,15 @@ export const ZGUI_MAIN_MENU_WIDGETS_HEADER_GUARD_PORTED = true;
  */
 export function processMainMenuWidget(): void {
   return undefined;
+}
+
+/**
+ * Replacement for upstream `ZGMMWidget::DoRender`.
+ * Role: Provides the empty base rendering hook for main-menu widgets.
+ * Upstream: zgui_main_menu_widgets.h:48
+ */
+export function renderMainMenuWidget(): [] {
+  return [];
 }
 
 /**
@@ -939,6 +953,56 @@ export function setMainMenuTeamColorTeam(
 
   if (state.team < 0) state.team = 0;
   if (state.team >= ACTIVE_TEAM_TYPE_COUNT) state.team = 0;
+}
+
+export type MainMenuTeamColorImage<TSurface> = {
+  getBaseSurface(): TSurface | null;
+  loadBaseImage(source: string | TSurface | null): void;
+};
+
+export type MainMenuTeamColorInitState<TSurface> = {
+  teamColorImages: readonly MainMenuTeamColorImage<TSurface>[];
+  finishedInit: boolean;
+};
+
+const MAIN_MENU_TEAM_COLOR_TEAM_NAMES = [
+  "null",
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "teal",
+  "white",
+  "black",
+] as const;
+
+/**
+ * Port of upstream `GMMWTeamColor::Init`.
+ * Role: Initializes team-color widget images for every active team.
+ * Upstream: gmmw_team_color.cpp:17-29
+ */
+export function initMainMenuTeamColor<TSurface>(
+  state: MainMenuTeamColorInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const baseImage = state.teamColorImages[TEAM_RENDERING_BASE_TEAM];
+  if (!baseImage) return;
+
+  for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const teamImage = state.teamColorImages[team];
+    if (!teamImage) continue;
+
+    loadTeamZSurface(
+      team,
+      baseImage,
+      teamImage,
+      `assets/other/main_menu_gui/team_color_${MAIN_MENU_TEAM_COLOR_TEAM_NAMES[team]}.png`,
+      makeTeamSurface,
+    );
+  }
+
+  state.finishedInit = true;
 }
 
 /**

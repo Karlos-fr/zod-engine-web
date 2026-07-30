@@ -41,6 +41,7 @@ import {
   getMainMenuWidgetType,
   getMainMenuWidgetWidth,
   initMainMenuRadio,
+  initMainMenuTeamColor,
   initMainMenuTextBox,
   isMainMenuListEntryBefore,
   isMainMenuWidgetActive,
@@ -50,6 +51,7 @@ import {
   motionMainMenuWidget,
   moveUpMainMenuList,
   processMainMenuWidget,
+  renderMainMenuWidget,
   setMainMenuButtonGreen,
   setMainMenuButtonText,
   setMainMenuButtonType,
@@ -104,6 +106,10 @@ describe("main menu widgets", () => {
 
   it("ports ZGMMWidget::Process as a base no-op hook", () => {
     expect(processMainMenuWidget()).toBeUndefined();
+  });
+
+  it("replaces ZGMMWidget::DoRender as the empty base render command list", () => {
+    expect(renderMainMenuWidget()).toEqual([]);
   });
 
   it("ports mmlabel_justify_type identifiers", () => {
@@ -784,6 +790,49 @@ describe("main menu widgets", () => {
 
     setMainMenuTeamColorTeam(state, 9);
     expect(state.team).toBe(0);
+  });
+
+  it("ports GMMWTeamColor::Init as team color image initialization", () => {
+    const loaded: Array<[number, string | { id: string } | null]> = [];
+    const made: Array<[number, { id: string } | null]> = [];
+    const baseSurface = { id: "red-base" };
+    const teamColorImages = Array.from({ length: 9 }, (_, team) => ({
+      getBaseSurface: () => (team === 1 ? baseSurface : null),
+      loadBaseImage(source: string | { id: string } | null): void {
+        loaded.push([team, source]);
+      },
+    }));
+    const state = {
+      teamColorImages,
+      finishedInit: false,
+    };
+
+    initMainMenuTeamColor(state, (team, surface) => {
+      made.push([team, surface]);
+      return { id: `team-${team}` };
+    });
+
+    expect(loaded).toEqual([
+      [0, "assets/other/main_menu_gui/team_color_null.png"],
+      [1, "assets/other/main_menu_gui/team_color_red.png"],
+      [2, { id: "team-2" }],
+      [3, { id: "team-3" }],
+      [4, { id: "team-4" }],
+      [5, { id: "team-5" }],
+      [6, { id: "team-6" }],
+      [7, { id: "team-7" }],
+      [8, { id: "team-8" }],
+    ]);
+    expect(made).toEqual([
+      [2, baseSurface],
+      [3, baseSurface],
+      [4, baseSurface],
+      [5, baseSurface],
+      [6, baseSurface],
+      [7, baseSurface],
+      [8, baseSurface],
+    ]);
+    expect(state.finishedInit).toBe(true);
   });
 
   it("ports GMMWRadio::Init as radio image initialization", () => {

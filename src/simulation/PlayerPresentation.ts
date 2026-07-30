@@ -4,9 +4,11 @@
 
 import type { SoundSetting } from "../audio/AudioService";
 import { MainMenuType } from "../ui/MainMenuBase";
+import { AMBIENT_BIRD_SQUARE_TILES_PER_BIRD } from "../world/BirdMap";
 import { MapObjectType } from "../world/MapFormat";
 import { currentTime } from "./Common";
-import { VehicleType } from "./SimulationConstants";
+import { BuildingType, TeamType, VehicleType } from "./SimulationConstants";
+import type { GameEntity } from "./entities/GameEntity";
 import type { SimulationTime } from "./SimulationTime";
 
 /**
@@ -126,6 +128,16 @@ export type PlayerCanvasRenderingState = {
   useCanvasRendering: boolean;
 };
 
+export type PlayerPassiveEngagableState = {
+  passiveEngagableObjectList: GameEntity[];
+};
+
+export type PlayerFortRefState = {
+  fortRefId: number;
+  ourTeam: TeamType;
+  objectList: GameEntity[];
+};
+
 export type PlayerInfoListState<TPlayerInfo = unknown> = {
   playerInfo: TPlayerInfo[];
 };
@@ -237,6 +249,26 @@ export type PlayerAsciiState = {
 export type PlayerAnimalState<TAnimal = unknown> = {
   birdList: TAnimal[];
 };
+
+export type PlayerAnimalMapBasics = {
+  width: number;
+  height: number;
+  terrainType: number;
+};
+
+export type PlayerAnimalMapBasicsProvider = {
+  getMapBasics(): PlayerAnimalMapBasics;
+};
+
+export type PlayerAmbientBirdOptions = {
+  terrainType: number;
+  mapWidthPixels: number;
+  mapHeightPixels: number;
+};
+
+export type PlayerAmbientBirdFactory<TAnimal> = (
+  options: PlayerAmbientBirdOptions,
+) => TAnimal;
 
 export type PlayerFactoryListGuiState = {
   guiFactoryList: { toggleShow(): void } | null;
@@ -791,6 +823,29 @@ export function setPlayerCanvasRendering(
 }
 
 /**
+ * Port of upstream `ZPlayer::RefindOurFortRefID`.
+ * Role: Refreshes the reference id for the first owned fort in object-list order.
+ * Upstream: zplayer.cpp:3879-3897
+ */
+export function refindPlayerFortRefId(state: PlayerFortRefState): void {
+  state.fortRefId = -1;
+
+  for (const object of state.objectList) {
+    if (object.getOwner() !== state.ourTeam) continue;
+
+    const objectId = object.getObjectId();
+    if (
+      objectId.objectType === MapObjectType.Building &&
+      (objectId.objectId === BuildingType.FortFront ||
+        objectId.objectId === BuildingType.FortBack)
+    ) {
+      state.fortRefId = object.getRefId();
+      break;
+    }
+  }
+}
+
+/**
  * Port of upstream `ZPlayer::ClearAsciiStates`.
  * Role: Clears every tracked ASCII key state.
  * Upstream: zplayer.cpp:3081-3084
@@ -843,6 +898,34 @@ export function isPlayerAsciiDown(
  */
 export function clearPlayerAnimals(state: PlayerAnimalState): void {
   state.birdList.length = 0;
+}
+
+/**
+ * Port of upstream `ZPlayer::InitAnimals`.
+ * Role: Rebuilds ambient bird instances for the current map size and terrain.
+ * Upstream: zplayer.cpp:573-586
+ */
+export function initPlayerAnimals<TAnimal>(
+  state: PlayerAnimalState<TAnimal>,
+  zmap: PlayerAnimalMapBasicsProvider,
+  createBird: PlayerAmbientBirdFactory<TAnimal>,
+): void {
+  clearPlayerAnimals(state);
+
+  const mapBasics = zmap.getMapBasics();
+  const birds = Math.trunc(
+    (mapBasics.height * mapBasics.width) / AMBIENT_BIRD_SQUARE_TILES_PER_BIRD,
+  );
+
+  for (let i = 0; i < birds; i += 1) {
+    state.birdList.push(
+      createBird({
+        terrainType: mapBasics.terrainType,
+        mapWidthPixels: mapBasics.width * 16,
+        mapHeightPixels: mapBasics.height * 16,
+      }),
+    );
+  }
 }
 
 /**
@@ -1252,6 +1335,30 @@ export function clearPlayerSelectedDevWaypoints(
   for (const selected of state.selectedList) {
     selected.getWayPointDevList().length = 0;
   }
+}
+
+/**
+ * Port of upstream `ZPlayer::UnitNearHostiles`.
+ * Role: Reports whether a unit is near a live passive-engageable hostile object.
+ * Upstream: zplayer.cpp:2740-2758
+ */
+export function unitNearPlayerHostiles(
+  state: PlayerPassiveEngagableState,
+  object: GameEntity | null,
+): boolean {
+  if (!object) return false;
+
+  for (const enemyObject of state.passiveEngagableObjectList) {
+    if (object === enemyObject) continue;
+    if (object.getOwner() === enemyObject.getOwner()) continue;
+    if (enemyObject.getOwner() === TeamType.Null) continue;
+    if (enemyObject.isDestroyed()) continue;
+    if (!object.withinAgroRadiusObject(enemyObject)) continue;
+
+    return true;
+  }
+
+  return false;
 }
 
 /**

@@ -63,8 +63,40 @@ export type TeamPaletteColorState = {
   replaceColor: TeamPaletteColor[];
 };
 
+export type TeamPaletteSaveTarget = {
+  saveSurfacePalette(filename: string): void;
+};
+
+export type TeamRenderingBaseSurfaceSource<TSurface> = {
+  getBaseSurface(): TSurface | null;
+};
+
+export type TeamRenderingLoadTarget<TSurface> = {
+  loadBaseImage(source: string | TSurface | null): void;
+};
+
+export type TeamSurfaceFactory<TSurface> = (
+  team: TeamType | number,
+  baseSurface: TSurface | null,
+) => TSurface | null;
+
 export const TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE =
   "ZTeam_Palette::AddColor: this function requires color arrays be vectors";
+
+export const TEAM_RENDERING_TEAM_NAMES = [
+  "null",
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "teal",
+  "white",
+  "black",
+] as const;
+
+export const TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE =
+  "ZTeam::SavePalette:You can not save the base palette (red)";
 
 /**
  * Port of upstream `ZTeam_Palette::AddColor`.
@@ -93,4 +125,46 @@ export function saveAllTeamPalettes(savePalette: (team: TeamType | number) => vo
   for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
     savePalette(team);
   }
+}
+
+/**
+ * Port of upstream `ZTeam::SavePalette`.
+ * Role: Saves one non-base team's generated color replacement palette.
+ * Upstream: zteam.cpp:283-298
+ */
+export function saveTeamPalette(
+  team: TeamType | number,
+  teamPalettes: readonly (TeamPaletteSaveTarget | null | undefined)[],
+  log: (message: string) => void = (): void => undefined,
+): void {
+  if (team === TEAM_RENDERING_BASE_TEAM) {
+    log(TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE);
+    return;
+  }
+
+  const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+  const palette = teamPalettes[team];
+  if (!teamName || !palette) return;
+
+  palette.saveSurfacePalette(`assets/teams/${teamName}_palette.bmp`);
+}
+
+/**
+ * Port of upstream `ZTeam::LoadZSurface`.
+ * Role: Loads a base/null team image by filename, or loads a recolored team surface from the base image.
+ * Upstream: zteam.cpp:361-375
+ */
+export function loadTeamZSurface<TSurface>(
+  team: TeamType | number,
+  baseVersion: TeamRenderingBaseSurfaceSource<TSurface>,
+  renderVersion: TeamRenderingLoadTarget<TSurface>,
+  filename: string,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  if (team === TeamType.Null || team === TEAM_RENDERING_BASE_TEAM) {
+    renderVersion.loadBaseImage(filename);
+    return;
+  }
+
+  renderVersion.loadBaseImage(makeTeamSurface(team, baseVersion.getBaseSurface()));
 }

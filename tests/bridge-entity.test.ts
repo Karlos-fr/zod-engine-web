@@ -68,6 +68,84 @@ describe("bridge entity", () => {
     expect(bridge.owner).toBe(TeamType.Null);
   });
 
+  it("replaces BBridge UnRenderImages as render cache unload and invalidation", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-unrender",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    const unloaded: string[] = [];
+    bridge.renderImage = { unload: () => unloaded.push("render") };
+    bridge.renderDamagedImage = { unload: () => unloaded.push("damaged") };
+    bridge.renderDestroyedImage = { unload: () => unloaded.push("destroyed") };
+    bridge.doRerender = false;
+
+    bridge.unRenderImages();
+
+    expect(unloaded).toEqual(["render", "damaged", "destroyed"]);
+    expect(bridge.doRerender).toBe(true);
+  });
+
+  it("replaces BBridge IndividualReRender by allocating a missing render surface", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-rerender-missing",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    bridge.pixelWidth = 80;
+    bridge.pixelHeight = 64;
+    const loaded: Array<{ width: number; height: number }> = [];
+    const surface = {
+      getBaseSurface: () => null,
+      loadNewSurface: (width: number, height: number) =>
+        loaded.push({ width, height }),
+    };
+
+    bridge.individualReRender(surface);
+
+    expect(loaded).toEqual([{ width: 80, height: 64 }]);
+  });
+
+  it("replaces BBridge IndividualReRender by resizing mismatched render surfaces", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-rerender-resize",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    bridge.pixelWidth = 96;
+    bridge.pixelHeight = 48;
+    const loaded: Array<{ width: number; height: number }> = [];
+    const surface = {
+      getBaseSurface: () => ({ w: 80, h: 48 }),
+      loadNewSurface: (width: number, height: number) =>
+        loaded.push({ width, height }),
+    };
+
+    bridge.individualReRender(surface);
+
+    expect(loaded).toEqual([{ width: 96, height: 48 }]);
+  });
+
+  it("keeps BBridge IndividualReRender render surface when dimensions already match", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-rerender-match",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    bridge.pixelWidth = 96;
+    bridge.pixelHeight = 48;
+    const loaded: Array<{ width: number; height: number }> = [];
+    const surface = {
+      getBaseSurface: () => ({ width: 96, height: 48 }),
+      loadNewSurface: (width: number, height: number) =>
+        loaded.push({ width, height }),
+    };
+
+    bridge.individualReRender(surface);
+
+    expect(loaded).toEqual([]);
+  });
+
   it("ports BBridge GetCraneCenter as the bridge pixel center", () => {
     const bridge = new BridgeEntity({
       id: "bridge-3",

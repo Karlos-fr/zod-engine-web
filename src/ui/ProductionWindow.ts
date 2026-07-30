@@ -238,6 +238,33 @@ export type ProductionFullUnitSelectorListsState<
 };
 
 /**
+ * Port of upstream `GWPFullUnitSelectorButton` list fields.
+ * Role: Stores the unit id and button offsets generated for the full selector.
+ * Upstream: gwproduction.h:20-28, gwproduction_fus.cpp:260-266
+ */
+export type ProductionFullUnitSelectorButtonState = {
+  objectType: number;
+  objectId: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+export type ProductionFullUnitSelectorClickButton = {
+  objectButton: {
+    click(x: number, y: number): void;
+  };
+};
+
+/**
+ * Port of upstream `ZObject::GetObjectID` dependency surface.
+ * Role: Provides object ids for full selector button creation.
+ * Upstream: gwproduction_fus.cpp:262
+ */
+export type ProductionFullUnitSelectorObjectIdSource = {
+  getObjectId(): { objectType: number; objectId: number };
+};
+
+/**
  * Port of upstream `ZMap::GetMapBasics` dependency surface.
  * Role: Provides map dimensions in tiles for full production selector placement.
  * Upstream: gwproduction_fus.cpp:90-91
@@ -272,6 +299,18 @@ export type ProductionFullUnitSelectorSizeState<TObject = unknown> = {
   robotList: TObject[];
   vehicleList: TObject[];
   cannonList: TObject[];
+};
+
+export type ProductionFullUnitSelectorClickState<
+  TButton extends ProductionFullUnitSelectorClickButton =
+    ProductionFullUnitSelectorClickButton,
+> = {
+  isActive: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  buttonList: TButton[];
 };
 
 /**
@@ -781,6 +820,98 @@ export function calculateProductionFullUnitSelectorWH(
       blocksDown +
     PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS +
     PRODUCTION_FULL_UNIT_SELECTOR_SIDE_SIZE_PIXELS;
+}
+
+/**
+ * Port of upstream `GWPFullUnitSelector::AppendButtonList`.
+ * Role: Appends one positioned full-selector button for each available unit.
+ * Upstream: gwproduction_fus.cpp:256-270
+ */
+export function appendProductionFullUnitSelectorButtonList(
+  state: { buttonList: ProductionFullUnitSelectorButtonState[] },
+  x: number,
+  y: number,
+  objectList: readonly ProductionFullUnitSelectorObjectIdSource[],
+): void {
+  let nextX = x;
+
+  for (const object of objectList) {
+    const objectId = object.getObjectId();
+
+    state.buttonList.push({
+      objectType: objectId.objectType,
+      objectId: objectId.objectId,
+      offsetX: nextX,
+      offsetY: y,
+    });
+
+    nextX +=
+      PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_WIDTH_PIXELS +
+      PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS;
+  }
+}
+
+/**
+ * Port of upstream `GWPFullUnitSelector::LoadButtonList`.
+ * Role: Rebuilds full-selector buttons from populated robot, vehicle, and cannon rows.
+ * Upstream: gwproduction_fus.cpp:242-254
+ */
+export function loadProductionFullUnitSelectorButtonList(
+  state: ProductionFullUnitSelectorListsState<
+    ProductionFullUnitSelectorObjectIdSource,
+    ProductionFullUnitSelectorButtonState
+  >,
+): void {
+  state.buttonList.length = 0;
+
+  const x =
+    PRODUCTION_FULL_UNIT_SELECTOR_SIDE_SIZE_PIXELS +
+    PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS;
+  let y =
+    PRODUCTION_FULL_UNIT_SELECTOR_TOP_HEIGHT_PIXELS +
+    PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS;
+  const rowStep =
+    PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_HEIGHT_PIXELS +
+    PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS;
+
+  if (state.robotList.length) {
+    appendProductionFullUnitSelectorButtonList(state, x, y, state.robotList);
+    y += rowStep;
+  }
+  if (state.vehicleList.length) {
+    appendProductionFullUnitSelectorButtonList(state, x, y, state.vehicleList);
+    y += rowStep;
+  }
+  if (state.cannonList.length) {
+    appendProductionFullUnitSelectorButtonList(state, x, y, state.cannonList);
+  }
+}
+
+/**
+ * Port of upstream `GWPFullUnitSelector::Click`.
+ * Role: Routes local clicks to full-selector unit buttons and reports selector bounds hits.
+ * Upstream: gwproduction_fus.cpp:426-444
+ */
+export function clickProductionFullUnitSelector(
+  state: ProductionFullUnitSelectorClickState,
+  x: number,
+  y: number,
+): boolean {
+  if (!state.isActive) return false;
+
+  const localX = x - state.x;
+  const localY = y - state.y;
+
+  for (const button of state.buttonList) {
+    button.objectButton.click(localX, localY);
+  }
+
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x >= state.x + state.width) return false;
+  if (y >= state.y + state.height) return false;
+
+  return true;
 }
 
 /**

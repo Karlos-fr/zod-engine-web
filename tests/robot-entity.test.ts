@@ -1,7 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
-import { RobotEntity } from "../src/simulation/entities/RobotEntity";
+import {
+  initGruntFireImages,
+  initLaserFireImages,
+  initPsychoFireImages,
+  initPyroFireImages,
+  initSniperFireImages,
+  initToughFireImages,
+  playLaserSelectedAnim,
+  playGruntSelectedAnim,
+  playPsychoSelectedAnim,
+  playPyroSelectedAnim,
+  playSniperSelectedAnim,
+  playToughSelectedAnim,
+  RobotEntity,
+} from "../src/simulation/entities/RobotEntity";
 import { RobotObjectMode } from "../src/simulation/entities/RobotEntity";
+import { PortraitAnimationType } from "../src/simulation/PortraitAnimation";
+import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  MAX_ANGLE_TYPES,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 
 describe("robot entity", () => {
   it("ports ZRobot CanSetWaypoints as enabled waypoint orders", () => {
@@ -107,6 +127,392 @@ describe("robot entity", () => {
     expect(RobotObjectMode.Attacking).toBe(10);
     expect(RobotObjectMode.PickupUpGrenades).toBe(11);
     expect(RobotObjectMode.PickupDownGrenades).toBe(12);
+  });
+
+  it("ports RGrunt Init as team-colored firing image initialization", () => {
+    const loaded: Array<[number, number, number, string | { id: string } | null]> =
+      [];
+    const made: Array<[number, { id: string } | null]> = [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 5 }, (_, frame) => ({
+        id: `red-base-${rotation}-${frame}`,
+      })),
+    );
+    const fireImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+        Array.from({ length: 5 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red
+              ? baseSurfaces[rotation]?.[frame] ?? null
+              : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push([team, rotation, frame, source]);
+          },
+        })),
+      ),
+    );
+
+    initGruntFireImages({ fireImages }, (team, surface) => {
+      made.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 5);
+    expect(loaded.slice(0, 3)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/grunt/fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/grunt/fire_red_r000_n01.png"],
+      [TeamType.Red, 0, 2, "assets/units/robots/grunt/fire_red_r000_n02.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      2,
+      3,
+      { id: "team-2-red-base-2-3" },
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Black,
+      7,
+      4,
+      { id: "team-8-red-base-7-4" },
+    ]);
+    expect(made).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * MAX_ANGLE_TYPES * 5);
+    expect(made[0]).toEqual([TeamType.Blue, baseSurfaces[0]?.[0]]);
+  });
+
+  it("ports RLaser Init as team-colored firing image initialization", () => {
+    const loaded: Array<[number, number, number, string | { id: string } | null]> =
+      [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 3 }, (_, frame) => ({
+        id: `laser-red-base-${rotation}-${frame}`,
+      })),
+    );
+    const fireImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+        Array.from({ length: 3 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red
+              ? baseSurfaces[rotation]?.[frame] ?? null
+              : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push([team, rotation, frame, source]);
+          },
+        })),
+      ),
+    );
+
+    initLaserFireImages({ fireImages }, (team, surface) => ({
+      id: `team-${team}-${surface?.id ?? "null"}`,
+    }));
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 3);
+    expect(loaded.slice(0, 3)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/laser/fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/laser/fire_red_r000_n01.png"],
+      [TeamType.Red, 0, 2, "assets/units/robots/laser/fire_red_r000_n02.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      7,
+      2,
+      { id: "team-2-laser-red-base-7-2" },
+    ]);
+  });
+
+  it("ports RPsycho Init as team-colored firing image initialization", () => {
+    const loaded: Array<[number, number, number, string | { id: string } | null]> =
+      [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 2 }, (_, frame) => ({
+        id: `psycho-red-base-${rotation}-${frame}`,
+      })),
+    );
+    const fireImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+        Array.from({ length: 2 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red
+              ? baseSurfaces[rotation]?.[frame] ?? null
+              : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push([team, rotation, frame, source]);
+          },
+        })),
+      ),
+    );
+
+    initPsychoFireImages({ fireImages }, (team, surface) => ({
+      id: `team-${team}-${surface?.id ?? "null"}`,
+    }));
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 2);
+    expect(loaded.slice(0, 2)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/psycho/fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/psycho/fire_red_r000_n01.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      6,
+      1,
+      { id: "team-2-psycho-red-base-6-1" },
+    ]);
+  });
+
+  it("ports RPyro Init as team-colored firing image initialization", () => {
+    const loaded: Array<[number, number, number, string | { id: string } | null]> =
+      [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 3 }, (_, frame) => ({
+        id: `pyro-red-base-${rotation}-${frame}`,
+      })),
+    );
+    const fireImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+        Array.from({ length: 3 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red
+              ? baseSurfaces[rotation]?.[frame] ?? null
+              : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push([team, rotation, frame, source]);
+          },
+        })),
+      ),
+    );
+
+    initPyroFireImages({ fireImages }, (team, surface) => ({
+      id: `team-${team}-${surface?.id ?? "null"}`,
+    }));
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 3);
+    expect(loaded.slice(0, 3)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/pyro/fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/pyro/fire_red_r000_n01.png"],
+      [TeamType.Red, 0, 2, "assets/units/robots/pyro/fire_red_r000_n02.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      5,
+      2,
+      { id: "team-2-pyro-red-base-5-2" },
+    ]);
+  });
+
+  it("ports RSniper Init as shared grunt firing image initialization", () => {
+    const loaded: Array<[number, number, number, string | { id: string } | null]> =
+      [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 5 }, (_, frame) => ({
+        id: `sniper-red-base-${rotation}-${frame}`,
+      })),
+    );
+    const fireImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+        Array.from({ length: 5 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red
+              ? baseSurfaces[rotation]?.[frame] ?? null
+              : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push([team, rotation, frame, source]);
+          },
+        })),
+      ),
+    );
+
+    initSniperFireImages({ fireImages }, (team, surface) => ({
+      id: `team-${team}-${surface?.id ?? "null"}`,
+    }));
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 5);
+    expect(loaded.slice(0, 2)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/grunt/fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/grunt/fire_red_r000_n01.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      4,
+      4,
+      { id: "team-2-sniper-red-base-4-4" },
+    ]);
+  });
+
+  it("ports RTough Init as team-colored firing image initialization", () => {
+    const loaded: Array<[number, number, number, string | { id: string } | null]> =
+      [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 3 }, (_, frame) => ({
+        id: `tough-red-base-${rotation}-${frame}`,
+      })),
+    );
+    const fireImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+        Array.from({ length: 3 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red
+              ? baseSurfaces[rotation]?.[frame] ?? null
+              : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push([team, rotation, frame, source]);
+          },
+        })),
+      ),
+    );
+
+    initToughFireImages({ fireImages }, (team, surface) => ({
+      id: `team-${team}-${surface?.id ?? "null"}`,
+    }));
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 3);
+    expect(loaded.slice(0, 3)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/tough/fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/tough/fire_red_r000_n01.png"],
+      [TeamType.Red, 0, 2, "assets/units/robots/tough/fire_red_r000_n02.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      3,
+      2,
+      { id: "team-2-tough-red-base-3-2" },
+    ]);
+  });
+
+  it("ports RGrunt PlaySelectedAnim as grunt-specific portrait choices", () => {
+    const startedAnimations: PortraitAnimationType[] = [];
+    const portrait = {
+      startAnim(animation: PortraitAnimationType): void {
+        startedAnimations.push(animation);
+      },
+    };
+
+    playGruntSelectedAnim(portrait, () => 0);
+    for (const randomValue of [0, 1, 2, 3]) {
+      const randomValues = [1, randomValue];
+      playGruntSelectedAnim(portrait, () => randomValues.shift() ?? 0);
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.GruntsReporting,
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
+  });
+
+  it("ports RLaser PlaySelectedAnim as laser-specific portrait choices", () => {
+    const startedAnimations: PortraitAnimationType[] = [];
+    const portrait = {
+      startAnim(animation: PortraitAnimationType): void {
+        startedAnimations.push(animation);
+      },
+    };
+
+    playLaserSelectedAnim(portrait, () => 0);
+    for (const randomValue of [0, 1, 2, 3]) {
+      const randomValues = [1, randomValue];
+      playLaserSelectedAnim(portrait, () => randomValues.shift() ?? 0);
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.LasersReporting,
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
+  });
+
+  it("ports RPsycho PlaySelectedAnim as psycho-specific portrait choices", () => {
+    const startedAnimations: PortraitAnimationType[] = [];
+    const portrait = {
+      startAnim(animation: PortraitAnimationType): void {
+        startedAnimations.push(animation);
+      },
+    };
+
+    playPsychoSelectedAnim(portrait, () => 0);
+    for (const randomValue of [0, 1, 2, 3]) {
+      const randomValues = [1, randomValue];
+      playPsychoSelectedAnim(portrait, () => randomValues.shift() ?? 0);
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.PsychosReporting,
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
+  });
+
+  it("ports RPyro PlaySelectedAnim as pyro-specific portrait choices", () => {
+    const startedAnimations: PortraitAnimationType[] = [];
+    const portrait = {
+      startAnim(animation: PortraitAnimationType): void {
+        startedAnimations.push(animation);
+      },
+    };
+
+    playPyroSelectedAnim(portrait, () => 0);
+    for (const randomValue of [0, 1, 2, 3]) {
+      const randomValues = [1, randomValue];
+      playPyroSelectedAnim(portrait, () => randomValues.shift() ?? 0);
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.PyrosReporting,
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
+  });
+
+  it("ports RSniper PlaySelectedAnim as sniper-specific portrait choices", () => {
+    const startedAnimations: PortraitAnimationType[] = [];
+    const portrait = {
+      startAnim(animation: PortraitAnimationType): void {
+        startedAnimations.push(animation);
+      },
+    };
+
+    playSniperSelectedAnim(portrait, () => 0);
+    for (const randomValue of [0, 1, 2, 3]) {
+      const randomValues = [1, randomValue];
+      playSniperSelectedAnim(portrait, () => randomValues.shift() ?? 0);
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.SnipersReporting,
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
+  });
+
+  it("ports RTough PlaySelectedAnim as tough-specific portrait choices", () => {
+    const startedAnimations: PortraitAnimationType[] = [];
+    const portrait = {
+      startAnim(animation: PortraitAnimationType): void {
+        startedAnimations.push(animation);
+      },
+    };
+
+    playToughSelectedAnim(portrait, () => 0);
+    for (const randomValue of [0, 1, 2, 3]) {
+      const randomValues = [1, randomValue];
+      playToughSelectedAnim(portrait, () => randomValues.shift() ?? 0);
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.ToughsReporting,
+      PortraitAnimationType.YesSir,
+      PortraitAnimationType.YesSir3,
+      PortraitAnimationType.UnitReporting1,
+      PortraitAnimationType.UnitReporting2,
+    ]);
   });
 
   it("ports ZRobot DoPickupGrenadeAnim guard exits", () => {

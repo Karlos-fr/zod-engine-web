@@ -3,6 +3,7 @@
  */
 
 import { GameEntity } from "./GameEntity";
+import type { GameMap } from "../../world/GameMap";
 
 /**
  * Browser simulation entity containing the subset of `BRobot` behavior already ported.
@@ -10,6 +11,24 @@ import { GameEntity } from "./GameEntity";
  * Upstream: brobot.h
  */
 export class RobotFactoryEntity extends GameEntity {
+  /**
+   * Port of upstream `BRobot::SetMapImpassables`.
+   * Role: Marks the robot factory footprint as blocked on the pathfinding map.
+   * Upstream: brobot.cpp:459-475
+   */
+  override setMapImpassables(tmap: GameMap): void {
+    const tileX = Math.trunc(this.position.x / 16);
+    const tileY = Math.trunc(this.position.y / 16);
+    const endX = tileX + this.width;
+    const endY = tileY + this.height;
+
+    for (let x = tileX; x < endX; x += 1) {
+      for (let y = tileY; y < endY; y += 1) {
+        tmap.setImpassable(x, y);
+      }
+    }
+  }
+
   /**
    * Port of upstream `CanSetRallypoints`.
    * Role: Reports whether robot factories can set rally points.

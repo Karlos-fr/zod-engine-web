@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  doPreRenderTankSparkEffect,
   ETANK_SPARK_HEADER_GUARD_PORTED,
   initTankSparkEffect,
   processTankSparkEffect,
   TANK_SPARK_FRAME_COUNT,
   TANK_SPARK_FRAME_INTERVAL_SECONDS,
   type TankSparkInitState,
+  type TankSparkPreRenderState,
   type TankSparkProcessState,
 } from "../src/simulation/TankSparkEffect";
 
@@ -128,5 +130,68 @@ describe("tank spark effect", () => {
 
     expect(state.frameIteration).toBe(5);
     expect(state.killMe).toBe(true);
+  });
+
+  it("replaces ETankSpark DoPreRender as no command for killed effects", () => {
+    const state: TankSparkPreRenderState<string> = {
+      killMe: true,
+      tankSparkFrames: ["spark"],
+      frameIndex: 0,
+      centerX: 12,
+      centerY: 14,
+    };
+
+    const command = doPreRenderTankSparkEffect(state, {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    });
+
+    expect(command).toBeNull();
+  });
+
+  it("replaces ETankSpark DoPreRender as no command when the frame is missing", () => {
+    const state: TankSparkPreRenderState<string> = {
+      killMe: false,
+      tankSparkFrames: [],
+      frameIndex: 2,
+      centerX: 12,
+      centerY: 14,
+    };
+
+    const command = doPreRenderTankSparkEffect(state, {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    });
+
+    expect(command).toBeNull();
+  });
+
+  it("replaces ETankSpark DoPreRender as a centered map surface command", () => {
+    const calls: unknown[] = [];
+    const state: TankSparkPreRenderState<string> = {
+      killMe: false,
+      tankSparkFrames: ["spark-0", "spark-1", "spark-2"],
+      frameIndex: 2,
+      centerX: 32,
+      centerY: 48,
+    };
+
+    const command = doPreRenderTankSparkEffect(state, {
+      renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+        calls.push([surface, x, y, renderHit, aboutCenter]);
+        return { surface, x: x - 2, y: y - 3, renderHit, aboutCenter };
+      },
+    });
+
+    expect(calls).toEqual([["spark-2", 32, 48, false, true]]);
+    expect(command).toEqual({
+      surface: "spark-2",
+      x: 30,
+      y: 45,
+      renderHit: false,
+      aboutCenter: true,
+    });
   });
 });

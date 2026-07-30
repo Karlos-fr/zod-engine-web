@@ -1,7 +1,61 @@
 import { describe, expect, it } from "vitest";
 import { VehicleFactoryEntity } from "../src/simulation/entities/VehicleFactoryEntity";
+import type { GameMap } from "../src/world/GameMap";
+
+type ImpassableCall = {
+  x: number;
+  y: number;
+  impassable?: boolean;
+  destroyable?: boolean;
+};
 
 describe("vehicle factory entity", () => {
+  it("ports BVehicle SetMapImpassables as full footprint blockage", () => {
+    const entity = new VehicleFactoryEntity({
+      id: "vehicle-factory-0",
+      kind: "vehicle-factory",
+      position: { x: 80, y: 96 },
+    });
+    entity.width = 4;
+    entity.height = 5;
+    const calls: ImpassableCall[] = [];
+    const map = {
+      setImpassable(
+        x: number,
+        y: number,
+        impassable?: boolean,
+        destroyable?: boolean,
+      ) {
+        calls.push({ x, y, impassable, destroyable });
+      },
+    } as GameMap;
+
+    entity.setMapImpassables(map);
+
+    expect(calls).toEqual([
+      { x: 5, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 8, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 9, impassable: undefined, destroyable: undefined },
+      { x: 5, y: 10, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 8, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 9, impassable: undefined, destroyable: undefined },
+      { x: 6, y: 10, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 8, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 9, impassable: undefined, destroyable: undefined },
+      { x: 7, y: 10, impassable: undefined, destroyable: undefined },
+      { x: 8, y: 6, impassable: undefined, destroyable: undefined },
+      { x: 8, y: 7, impassable: undefined, destroyable: undefined },
+      { x: 8, y: 8, impassable: undefined, destroyable: undefined },
+      { x: 8, y: 9, impassable: undefined, destroyable: undefined },
+      { x: 8, y: 10, impassable: undefined, destroyable: undefined },
+    ]);
+  });
+
   it("ports BVehicle CanSetRallypoints as enabled rally points", () => {
     const entity = new VehicleFactoryEntity({
       id: "vehicle-factory-1",

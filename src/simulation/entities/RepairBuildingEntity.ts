@@ -9,6 +9,7 @@ import {
   Waypoint,
 } from "./EntityTypes";
 import type { RepairAnimData, RepairUnitOutput } from "./GameEntity";
+import type { GameMap } from "../../world/GameMap";
 
 const REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES = 24;
 
@@ -27,6 +28,24 @@ export class RepairBuildingEntity extends BuildingEntity {
   repairDriverType = 0;
   repairDriverInfo: DriverInfo[] = [];
   repairWaypointList: Waypoint[] = [];
+
+  /**
+   * Port of upstream `BRepair::SetMapImpassables`.
+   * Role: Marks the repair building footprint as blocked on the pathfinding map.
+   * Upstream: brepair.cpp:427-443
+   */
+  override setMapImpassables(tmap: GameMap): void {
+    const tileX = Math.trunc(this.position.x / 16);
+    const tileY = Math.trunc(this.position.y / 16);
+    const endX = tileX + this.width;
+    const endY = tileY + this.height;
+
+    for (let x = tileX; x < endX; x += 1) {
+      for (let y = tileY; y < endY; y += 1) {
+        tmap.setImpassable(x, y);
+      }
+    }
+  }
 
   /**
    * Port of upstream `BRepair::RepairingAUnit`.

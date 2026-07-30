@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
+  loadTeamZSurface,
   saveAllTeamPalettes,
+  saveTeamPalette,
   TEAM_RENDERING_COLORS,
   TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE,
   TEAM_RENDERING_BASE_TEAM,
   TEAM_RENDERING_PALETTE_MAX,
+  TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE,
   ZTEAM_HEADER_GUARD_PORTED,
 } from "../src/simulation/TeamRendering";
 
@@ -75,5 +78,90 @@ describe("team rendering", () => {
       TeamType.White,
       TeamType.Black,
     ]);
+  });
+
+  it("ports ZTeam SavePalette as non-base palette persistence", () => {
+    const saved: Array<[number, string]> = [];
+    const teamPalettes = Array.from({ length: 9 }, (_, team) => ({
+      saveSurfacePalette(filename: string): void {
+        saved.push([team, filename]);
+      },
+    }));
+
+    saveTeamPalette(TeamType.Blue, teamPalettes);
+
+    expect(saved).toEqual([[TeamType.Blue, "assets/teams/blue_palette.bmp"]]);
+  });
+
+  it("ports ZTeam SavePalette as base-team guard", () => {
+    const saved: string[] = [];
+    const messages: string[] = [];
+    const teamPalettes = Array.from({ length: 9 }, () => ({
+      saveSurfacePalette(filename: string): void {
+        saved.push(filename);
+      },
+    }));
+
+    saveTeamPalette(TEAM_RENDERING_BASE_TEAM, teamPalettes, (message) =>
+      messages.push(message),
+    );
+
+    expect(saved).toEqual([]);
+    expect(messages).toEqual([TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE]);
+  });
+
+  it("ports ZTeam LoadZSurface as filename loading for null and base teams", () => {
+    const loaded: Array<string | { id: string } | null> = [];
+    const baseSurface = { id: "base-surface" };
+    const baseVersion = {
+      getBaseSurface: () => baseSurface,
+    };
+    const renderVersion = {
+      loadBaseImage: (source: string | { id: string } | null) => loaded.push(source),
+    };
+
+    loadTeamZSurface(
+      TeamType.Null,
+      baseVersion,
+      renderVersion,
+      "assets/units/base.png",
+      () => ({ id: "unexpected" }),
+    );
+    loadTeamZSurface(
+      TEAM_RENDERING_BASE_TEAM,
+      baseVersion,
+      renderVersion,
+      "assets/units/base.png",
+      () => ({ id: "unexpected" }),
+    );
+
+    expect(loaded).toEqual(["assets/units/base.png", "assets/units/base.png"]);
+  });
+
+  it("ports ZTeam LoadZSurface as recolored surface loading for colored teams", () => {
+    const loaded: Array<string | { id: string } | null> = [];
+    const made: Array<[number, { id: string } | null]> = [];
+    const baseSurface = { id: "base-surface" };
+    const recoloredSurface = { id: "blue-surface" };
+    const baseVersion = {
+      getBaseSurface: () => baseSurface,
+    };
+    const renderVersion = {
+      loadBaseImage: (source: string | { id: string } | null) => loaded.push(source),
+    };
+
+    loadTeamZSurface(
+      TeamType.Blue,
+      baseVersion,
+      renderVersion,
+      "assets/units/base.png",
+      (team, surface) => {
+        made.push([team, surface]);
+        return recoloredSurface;
+      },
+    );
+
+    expect(made).toEqual([[TeamType.Blue, baseSurface]]);
+    expect(loaded).toEqual([recoloredSurface]);
   });
 });

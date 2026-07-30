@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  doPreRenderTankOilEffect,
   ETANK_OIL_HEADER_GUARD_PORTED,
   initTankOilEffect,
   processTankOilEffect,
@@ -8,6 +9,7 @@ import {
   TANK_OIL_RANDOM_DELAY_STEP_SECONDS,
   TANK_OIL_VARIANT_COUNT,
   type TankOilInitState,
+  type TankOilPreRenderState,
   type TankOilProcessState,
 } from "../src/simulation/TankOilEffect";
 
@@ -127,6 +129,75 @@ describe("tank oil effect", () => {
       killMe: true,
       frameIndex: 0,
       nextFrameTime: 10 + TANK_OIL_LIFETIME_SECONDS,
+    });
+  });
+
+  it("replaces ETankOil DoPreRender as no command for killed effects", () => {
+    const state: TankOilPreRenderState<string> = {
+      killMe: true,
+      tankOilFrames: [["oil"]],
+      oilIndex: 0,
+      frameIndex: 0,
+      centerX: 12,
+      centerY: 14,
+    };
+
+    const command = doPreRenderTankOilEffect(state, {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    });
+
+    expect(command).toBeNull();
+  });
+
+  it("replaces ETankOil DoPreRender as no command when the frame is missing", () => {
+    const state: TankOilPreRenderState<string> = {
+      killMe: false,
+      tankOilFrames: [[]],
+      oilIndex: 0,
+      frameIndex: 2,
+      centerX: 12,
+      centerY: 14,
+    };
+
+    const command = doPreRenderTankOilEffect(state, {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    });
+
+    expect(command).toBeNull();
+  });
+
+  it("replaces ETankOil DoPreRender as a centered map surface command", () => {
+    const calls: unknown[] = [];
+    const state: TankOilPreRenderState<string> = {
+      killMe: false,
+      tankOilFrames: [
+        ["oil-0-0", "oil-0-1"],
+        ["oil-1-0", "oil-1-1"],
+      ],
+      oilIndex: 1,
+      frameIndex: 1,
+      centerX: 32,
+      centerY: 48,
+    };
+
+    const command = doPreRenderTankOilEffect(state, {
+      renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+        calls.push([surface, x, y, renderHit, aboutCenter]);
+        return { surface, x: x - 2, y: y - 3, renderHit, aboutCenter };
+      },
+    });
+
+    expect(calls).toEqual([["oil-1-1", 32, 48, false, true]]);
+    expect(command).toEqual({
+      surface: "oil-1-1",
+      x: 30,
+      y: 45,
+      renderHit: false,
+      aboutCenter: true,
     });
   });
 });

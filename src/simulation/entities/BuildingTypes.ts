@@ -172,6 +172,15 @@ export class BuildingEntity extends GameEntity {
   }
 
   /**
+   * Replacement for upstream `ZBuilding::ReRenderBase`.
+   * Role: Marks the building base image as needing to be rebuilt.
+   * Upstream: zbuilding.cpp:98-101
+   */
+  reRenderBase(): void {
+    this.doBaseRerender = true;
+  }
+
+  /**
    * Port of upstream `ZBuilding::GetBuildUnit`.
    * Role: Returns the object type and id currently selected for building production.
    * Upstream: zbuilding.cpp:512-518

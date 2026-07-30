@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import { PlanetType, TeamType } from "../src/simulation/SimulationConstants";
 import {
   changeRockPalette,
+  clearRockRender,
   createRockMapEffects,
   isRockDestroyableImpassable,
   OROCK_HEADER_GUARD_PORTED,
   rockCausesImpassAtCoord,
   processRockObject,
   setRockMapImpassables,
+  setDefaultRockRender,
   setRockOwner,
   unsetRockMapImpassables,
 } from "../src/simulation/RockObject";
@@ -83,6 +85,46 @@ describe("rock object", () => {
 
   it("ports ORock Process as a successful no-op tick", () => {
     expect(processRockObject()).toBe(1);
+  });
+
+  it("replaces ORock ClearRender as clearing the 2 by 3 render cache", () => {
+    const state = {
+      renderImages: [
+        ["a0", "a1", "a2", "kept-a"],
+        ["b0", "b1", "b2", "kept-b"],
+        ["kept-c"],
+      ],
+    };
+
+    clearRockRender(state);
+
+    expect(state.renderImages).toEqual([
+      [null, null, null, "kept-a"],
+      [null, null, null, "kept-b"],
+      ["kept-c"],
+    ]);
+  });
+
+  it("replaces ORock SetDefaultRender as default palette render images", () => {
+    const state = {
+      palette: PlanetType.Arctic,
+      renderImages: [
+        ["old-a0", "old-a1", "old-a2"],
+        ["old-b0", "old-b1", "old-b2"],
+      ],
+    };
+    const graphics = {
+      verticalDownTop: ["desert-top", "volcanic-top", "arctic-top"],
+      singleMidUnder: ["desert-mid", "volcanic-mid", "arctic-mid"],
+      singleBottomUnder: ["desert-bottom", "volcanic-bottom", "arctic-bottom"],
+    };
+
+    setDefaultRockRender(state, graphics);
+
+    expect(state.renderImages).toEqual([
+      ["arctic-top", "arctic-mid", "arctic-bottom"],
+      [null, null, null],
+    ]);
   });
 
   it("ports ORock CreationMapEffects as a map creation no-op hook", () => {

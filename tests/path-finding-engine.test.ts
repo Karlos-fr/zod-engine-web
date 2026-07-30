@@ -61,6 +61,48 @@ describe("PathFindingEngine", () => {
     expect(regionInfo.vehicleRegion).toEqual([[2]]);
   });
 
+  it("ports ZPath_Finding_RegionInfo::FloodFill_Recursive as four-way region marking", () => {
+    const regionInfo = new PathFindingRegionInfo();
+    regionInfo.width = 4;
+    regionInfo.height = 3;
+    const region = [
+      [-1, -1, -1],
+      [-1, 5, -1],
+      [-1, -1, -1],
+      [8, -1, -1],
+    ];
+
+    regionInfo.floodFillRecursive(region, 0, 0, 4);
+
+    expect(region).toEqual([
+      [4, 4, 4],
+      [4, 5, 4],
+      [4, 4, 4],
+      [8, 4, 4],
+    ]);
+  });
+
+  it("ports ZPath_Finding_RegionInfo::FloodFill_Recursive guard cases", () => {
+    const regionInfo = new PathFindingRegionInfo();
+    regionInfo.width = 2;
+    regionInfo.height = 2;
+    const region = [
+      [-1, -1],
+      [-1, 3],
+    ];
+
+    regionInfo.floodFillRecursive(region, -1, 0, 9);
+    regionInfo.floodFillRecursive(region, 0, -1, 9);
+    regionInfo.floodFillRecursive(region, 2, 0, 9);
+    regionInfo.floodFillRecursive(region, 0, 2, 9);
+    regionInfo.floodFillRecursive(region, 1, 1, 9);
+
+    expect(region).toEqual([
+      [-1, -1],
+      [-1, 3],
+    ]);
+  });
+
   it("ports ZPath_Finding_RegionInfo::FloodFill_AddQ as region marking", () => {
     const regionInfo = new PathFindingRegionInfo();
     regionInfo.width = 3;

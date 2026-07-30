@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { MapObjectType } from "../src/world/MapFormat";
-import { BuildingType, CannonType } from "../src/simulation/SimulationConstants";
+import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  BuildingType,
+  CannonType,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 import {
   FLAG_ANIMATION_INTERVAL_SECONDS,
   flagHasRadar,
+  initFlagObjectImages,
   OFLAG_HEADER_GUARD_PORTED,
   processFlagObject,
   type FlagConnectedObject,
@@ -21,6 +27,49 @@ describe("flag object", () => {
 
   it("ports int_time as the flag animation frame interval", () => {
     expect(FLAG_ANIMATION_INTERVAL_SECONDS).toBe(0.2);
+  });
+
+  it("ports OFlag Init as team-colored flag image initialization", () => {
+    const loaded: Array<[number, number, string | { id: string } | null]> = [];
+    const made: Array<[number, { id: string } | null]> = [];
+    const baseSurfaces = Array.from({ length: 4 }, (_, frame) => ({
+      id: `red-base-${frame}`,
+    }));
+    const flagImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: 4 }, (_, frame) => ({
+        getBaseSurface: () =>
+          team === TeamType.Red ? baseSurfaces[frame] ?? null : null,
+        loadBaseImage(source: string | { id: string } | null): void {
+          loaded.push([team, frame, source]);
+        },
+      })),
+    );
+
+    initFlagObjectImages({ flagImages }, (team, surface) => {
+      made.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loaded).toHaveLength(ACTIVE_TEAM_TYPE_COUNT * 4);
+    expect(loaded.slice(0, 5)).toEqual([
+      [TeamType.Null, 0, "assets/other/flag_null_0.png"],
+      [TeamType.Null, 1, "assets/other/flag_null_1.png"],
+      [TeamType.Null, 2, "assets/other/flag_null_2.png"],
+      [TeamType.Null, 3, "assets/other/flag_null_3.png"],
+      [TeamType.Red, 0, "assets/other/flag_red_0.png"],
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Blue,
+      2,
+      { id: "team-2-red-base-2" },
+    ]);
+    expect(loaded).toContainEqual([
+      TeamType.Black,
+      3,
+      { id: "team-8-red-base-3" },
+    ]);
+    expect(made).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 4);
+    expect(made[0]).toEqual([TeamType.Blue, baseSurfaces[0]]);
   });
 
   it("keeps the flag frame unchanged before the animation interval", () => {

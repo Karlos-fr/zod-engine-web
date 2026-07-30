@@ -2,16 +2,24 @@
  * Upstream: zmap.h / zmap.cpp
  */
 
+import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 import type { Tile } from "./Tile";
 import {
+  createMapZoneInfoTile,
   MAX_SHIFT_CLICK_PIXELS,
   SHIFT_CLICK_SPEED_PIXELS_PER_SECOND,
   SHIFT_CLICK_STREAM_SECONDS,
   type MapObject,
   type MapTile,
+  type MapZone,
+  type MapZoneInfo,
   type PaletteTileInfo,
 } from "./MapFormat";
-import { ROAD_SPEED, WATER_SPEED } from "../simulation/SimulationConstants";
+import {
+  ROAD_SPEED,
+  TeamType,
+  WATER_SPEED,
+} from "../simulation/SimulationConstants";
 import { currentTime } from "../simulation/Common";
 import { MAX_PLANET_TILES } from "./WorldConstants";
 
@@ -35,6 +43,85 @@ export type PaletteTileCoordinatesResult = {
   success: boolean;
   x: number;
   y: number;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` request.
+ * Role: Describes a map-shifted surface render operation for the rendering backend.
+ * Upstream: zmap.cpp:1400-1403
+ */
+export type MapSurfaceRenderCommand<TSurface> = {
+  surface: TSurface;
+  x: number;
+  y: number;
+  renderHit: boolean;
+  aboutCenter: boolean;
+};
+
+/**
+ * Replacement for upstream `ZMap::DoRender`.
+ * Role: Describes blitting the shifted map viewport from the full-map render surface.
+ * Upstream: zmap.cpp:269-284
+ */
+export type MapViewportRenderCommand<TSurface> = {
+  surface: TSurface;
+  region: SurfaceBlitRegion;
+};
+
+/**
+ * Port of upstream `SDL_Surface` dimensions used by `ZMap::PermStamp`.
+ * Role: Provides the source surface size needed for permanent terrain stamps.
+ * Upstream: zmap.cpp:1860-1875
+ */
+export type PermanentStampSourceSurface = {
+  width: number;
+  height: number;
+};
+
+/**
+ * Port of upstream `ZSDL_Surface::GetBaseSurface` dependency surface.
+ * Role: Provides the loaded base surface used by permanent map stamping.
+ * Upstream: zmap.cpp:1846-1849
+ */
+export type PermanentStampRenderableSurface<TBaseSurface extends PermanentStampSourceSurface> = {
+  baseSurface: TBaseSurface | null;
+};
+
+/**
+ * Replacement for upstream `full_render.BlitOnToMe`.
+ * Role: Describes a full-map terrain blit produced by a permanent stamp.
+ * Upstream: zmap.cpp:1870-1873
+ */
+export type PermanentStampBlitCommand<TSurface extends PermanentStampSourceSurface> = {
+  surface: TSurface;
+  destinationX: number;
+  destinationY: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::BlitSurface`.
+ * Role: Describes a renderable surface blit onto the full-map terrain surface.
+ * Upstream: zmap.cpp:1851-1854
+ */
+export type PermanentRenderableStampBlitCommand<
+  TSurface extends PermanentStampRenderableSurface<PermanentStampSourceSurface>,
+> = {
+  surface: TSurface;
+  destinationX: number;
+  destinationY: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * Replacement for upstream `full_render`.
+ * Role: Provides the unload operation used to release the rendered full-map surface.
+ * Upstream: zmap.cpp:625-633
+ */
+export type FullMapRenderSurfaceState = {
+  unload(): void;
 };
 
 export type MapPaletteTileInfoWriter = (
@@ -101,6 +188,8 @@ export class GameMap {
   terrainType: number;
   playerCount: number;
   zoneCount: number;
+  zoneList: MapZone[];
+  zoneInfoList: MapZoneInfo[];
   paletteTileInfo: readonly (readonly GameMapPaletteTileInfo[])[];
   submergeInfoSetup: boolean;
   submergeAmounts: readonly (readonly number[])[];
@@ -118,6 +207,7 @@ export class GameMap {
   shiftOverflow: number;
   mapData: Uint8Array | null;
   mapDataSize: number;
+  fullRenderSurface: FullMapRenderSurfaceState | null;
   private fileLoaded: boolean;
   private readonly pathFinder?: MapPathFinder;
   private readonly readCurrentTime: () => number;
@@ -132,6 +222,8 @@ export class GameMap {
     terrainType?: number;
     playerCount?: number;
     zoneCount?: number;
+    zoneList?: MapZone[];
+    zoneInfoList?: MapZoneInfo[];
     paletteTileInfo?: readonly (readonly GameMapPaletteTileInfo[])[];
     submergeInfoSetup?: boolean;
     submergeAmounts?: readonly (readonly number[])[];
@@ -149,6 +241,7 @@ export class GameMap {
     shiftOverflow?: number;
     mapData?: Uint8Array | null;
     mapDataSize?: number;
+    fullRenderSurface?: FullMapRenderSurfaceState | null;
     fileLoaded?: boolean;
     pathFinder?: MapPathFinder;
     readCurrentTime?: () => number;
@@ -164,6 +257,8 @@ export class GameMap {
     this.terrainType = options.terrainType ?? 0;
     this.playerCount = options.playerCount ?? 0;
     this.zoneCount = options.zoneCount ?? 0;
+    this.zoneList = options.zoneList ?? [];
+    this.zoneInfoList = options.zoneInfoList ?? [];
     this.paletteTileInfo = options.paletteTileInfo ?? [];
     this.submergeInfoSetup = options.submergeInfoSetup ?? false;
     this.submergeAmounts = options.submergeAmounts ?? [];
@@ -181,6 +276,7 @@ export class GameMap {
     this.shiftOverflow = options.shiftOverflow ?? 0;
     this.mapData = options.mapData ?? null;
     this.mapDataSize = options.mapDataSize ?? this.mapData?.byteLength ?? 0;
+    this.fullRenderSurface = options.fullRenderSurface ?? null;
     this.fileLoaded = options.fileLoaded ?? false;
     this.pathFinder = options.pathFinder;
     this.readCurrentTime = options.readCurrentTime ?? currentTime;
@@ -265,6 +361,15 @@ export class GameMap {
   }
 
   /**
+   * Replacement for upstream `ZMap::DeRenderMap`.
+   * Role: Releases the rendered full-map surface.
+   * Upstream: zmap.cpp:625-633
+   */
+  deRenderMap(): void {
+    this.fullRenderSurface?.unload();
+  }
+
+  /**
    * Port of upstream `ZMap::GetMapData`.
    * Role: Reports the retained raw map-data buffer and its stored byte size.
    * Upstream: zmap.cpp:889-895
@@ -295,6 +400,51 @@ export class GameMap {
     return {
       x: this.shiftX,
       y: this.shiftY,
+    };
+  }
+
+  /**
+   * Replacement for upstream `ZMap::RenderZSurface`.
+   * Role: Builds a surface render command adjusted by the current map view shift.
+   * Upstream: zmap.cpp:1400-1403
+   */
+  renderZSurface<TSurface>(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface> {
+    return {
+      surface,
+      x: x - this.shiftX,
+      y: y - this.shiftY,
+      renderHit,
+      aboutCenter,
+    };
+  }
+
+  /**
+   * Replacement for upstream `ZMap::DoRender`.
+   * Role: Builds the full-map viewport blit command for the rendering backend.
+   * Upstream: zmap.cpp:269-284
+   */
+  doRender(
+    shiftXDestination: number,
+    shiftYDestination: number,
+  ): MapViewportRenderCommand<FullMapRenderSurfaceState> | null {
+    if (!this.fullRenderSurface) return null;
+
+    return {
+      surface: this.fullRenderSurface,
+      region: {
+        sourceX: this.shiftX,
+        sourceY: this.shiftY,
+        width: this.viewWidth,
+        height: this.viewHeight,
+        destinationX: shiftXDestination,
+        destinationY: shiftYDestination,
+      },
     };
   }
 
@@ -609,6 +759,96 @@ export class GameMap {
   }
 
   /**
+   * Port of upstream `ZMap::SetupAllZoneInfo`.
+   * Role: Rebuilds zone bounds and border render tiles from map zones.
+   * Upstream: zmap.cpp:1676-1771
+   */
+  setupAllZoneInfo(): void {
+    const nextZoneInfoList: MapZoneInfo[] = [];
+
+    for (let zoneIndex = 0; zoneIndex < this.zoneList.length; zoneIndex += 1) {
+      const zone = this.zoneList[zoneIndex];
+      const zoneInfo: MapZoneInfo = {
+        id: zoneIndex,
+        owner: TeamType.Null,
+        x: zone.x * ZMAP_TILE_SIZE_PIXELS,
+        y: zone.y * ZMAP_TILE_SIZE_PIXELS,
+        width: zone.width * ZMAP_TILE_SIZE_PIXELS,
+        height: zone.height * ZMAP_TILE_SIZE_PIXELS,
+        tiles: [],
+      };
+
+      const addZoneInfoTile = (tileX: number, tileY: number): void => {
+        const mapTile = this.mapTiles[tileY * this.width + tileX];
+        const tileInfo = mapTile
+          ? this.paletteTileInfo[this.terrainType]?.[mapTile.tile]
+          : undefined;
+
+        if (!tileInfo?.isPassable) return;
+
+        zoneInfo.tiles.push(
+          createMapZoneInfoTile({
+            x: tileX * ZMAP_TILE_SIZE_PIXELS + 6,
+            y: tileY * ZMAP_TILE_SIZE_PIXELS + 6,
+            isWater: tileInfo.isWater,
+          }),
+        );
+      };
+
+      for (let offsetX = 1; offsetX < zone.width - 1; offsetX += 1) {
+        addZoneInfoTile(zone.x + offsetX, zone.y);
+        addZoneInfoTile(zone.x + offsetX, zone.y + zone.height - 1);
+      }
+
+      for (let offsetY = 0; offsetY < zone.height; offsetY += 1) {
+        addZoneInfoTile(zone.x, zone.y + offsetY);
+        addZoneInfoTile(zone.x + zone.width - 1, zone.y + offsetY);
+      }
+
+      nextZoneInfoList.push(zoneInfo);
+    }
+
+    this.zoneInfoList = nextZoneInfoList;
+  }
+
+  /**
+   * Port of upstream `ZMap::AddZone`.
+   * Role: Adds one valid zone and rebuilds zone info.
+   * Upstream: zmap.cpp:1612-1630
+   */
+  addZone(newZone: MapZone): number {
+    if (newZone.x >= this.width) return 0;
+    if (newZone.y >= this.height) return 0;
+    if (newZone.width > this.width) return 0;
+    if (newZone.height > this.height) return 0;
+
+    if (this.zoneList.some((zone) => zone.x === newZone.x && zone.y === newZone.y)) {
+      return 0;
+    }
+
+    this.zoneList.push(newZone);
+    this.setupAllZoneInfo();
+
+    return 1;
+  }
+
+  /**
+   * Port of upstream `ZMap::RemoveZone`.
+   * Role: Removes one zone at tile coordinates and rebuilds zone info.
+   * Upstream: zmap.cpp:1632-1645
+   */
+  removeZone(x: number, y: number): number {
+    const zoneIndex = this.zoneList.findIndex((zone) => zone.x === x && zone.y === y);
+
+    if (zoneIndex === -1) return 0;
+
+    this.zoneList.splice(zoneIndex, 1);
+    this.setupAllZoneInfo();
+
+    return 1;
+  }
+
+  /**
    * Port of upstream `ZMap::GetTileWalkSpeed`.
    * Role: Returns the movement speed factor for map or shifted pixel coordinates.
    * Upstream: zmap.cpp:598-615
@@ -851,6 +1091,77 @@ export class GameMap {
     }
 
     this.stampList = nextStampList;
+  }
+
+  /**
+   * Port of upstream `ZMap::PermStamp`.
+   * Role: Applies a raw source surface as a permanent full-map terrain stamp.
+   * Upstream: zmap.cpp:1860-1875
+   */
+  permStamp<TSurface extends PermanentStampSourceSurface>(
+    x: number,
+    y: number,
+    surface: TSurface | null,
+    markStamped: boolean,
+    fullRenderSurfaceAvailable: boolean,
+    blitPermanentStamp: (
+      command: PermanentStampBlitCommand<TSurface>,
+    ) => void = (): void => undefined,
+  ): boolean {
+    if (!fullRenderSurfaceAvailable) return false;
+
+    if (!surface) return true;
+
+    if (markStamped) {
+      this.markAreaStamped(x, y, surface.width, surface.height);
+    }
+
+    blitPermanentStamp({
+      surface,
+      destinationX: x,
+      destinationY: y,
+      width: surface.width,
+      height: surface.height,
+    });
+
+    return true;
+  }
+
+  /**
+   * Port of upstream `ZMap::PermStamp`.
+   * Role: Applies a renderable source surface as a permanent full-map terrain stamp.
+   * Upstream: zmap.cpp:1840-1858
+   */
+  permStampRenderableSurface<
+    TSurface extends PermanentStampRenderableSurface<PermanentStampSourceSurface>,
+  >(
+    x: number,
+    y: number,
+    surface: TSurface | null,
+    markStamped: boolean,
+    fullRenderSurfaceAvailable: boolean,
+    blitPermanentStamp: (
+      command: PermanentRenderableStampBlitCommand<TSurface>,
+    ) => void = (): void => undefined,
+  ): boolean {
+    if (!fullRenderSurfaceAvailable) return false;
+
+    if (!surface) return true;
+    if (!surface.baseSurface) return true;
+
+    if (markStamped) {
+      this.markAreaStamped(x, y, surface.baseSurface.width, surface.baseSurface.height);
+    }
+
+    blitPermanentStamp({
+      surface,
+      destinationX: x,
+      destinationY: y,
+      width: surface.baseSurface.width,
+      height: surface.baseSurface.height,
+    });
+
+    return true;
   }
 
   /**

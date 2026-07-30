@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { SoundSetting } from "../src/audio/AudioService";
-import { RobotType, VehicleType } from "../src/simulation/SimulationConstants";
+import {
+  BuildingType,
+  RobotType,
+  TeamType,
+  VehicleType,
+} from "../src/simulation/SimulationConstants";
 import { SimulationTime } from "../src/simulation/SimulationTime";
+import { GameEntity } from "../src/simulation/entities/GameEntity";
 import { MainMenuType } from "../src/ui/MainMenuBase";
 import { MapObjectType } from "../src/world/MapFormat";
 import {
@@ -26,6 +32,7 @@ import {
   doPlayerMouseScrollUp,
   exitPlayerProgram,
   givePlayerHudSelected,
+  initPlayerAnimals,
   isPastSpaceBarEventLifetime,
   isPlayerAsciiDown,
   isPlayerAltDown,
@@ -50,6 +57,7 @@ import {
   PLAYER_SPLASH_FADE_PER_SECOND,
   playerMiddleClickEvent,
   playerMiddleUnclickEvent,
+  refindPlayerFortRefId,
   playerRightClickEvent,
   playerTestEvent,
   playerAButton,
@@ -73,6 +81,7 @@ import {
   setupPlayerSelectionGroupDetails,
   showPlayerPlacementCursor,
   SpaceBarEvent,
+  unitNearPlayerHostiles,
   updatePlayerSelectionGroupMember,
   ZPLAYER_HEADER_GUARD_PORTED,
 } from "../src/simulation/PlayerPresentation";
@@ -408,6 +417,63 @@ describe("player presentation constants", () => {
     expect(state.useCanvasRendering).toBe(false);
   });
 
+  it("ports ZPlayer RefindOurFortRefID as reset when no owned fort exists", () => {
+    const enemyFort = createPlayerBuilding(
+      "enemy-fort",
+      TeamType.Red,
+      BuildingType.FortFront,
+      7,
+    );
+    const state = {
+      fortRefId: 99,
+      ourTeam: TeamType.Blue,
+      objectList: [
+        createPlayerUnit("owned-unit", TeamType.Blue, 0, 0),
+        enemyFort,
+      ],
+    };
+
+    refindPlayerFortRefId(state);
+
+    expect(state.fortRefId).toBe(-1);
+  });
+
+  it("ports ZPlayer RefindOurFortRefID as first owned fort lookup", () => {
+    const wrongOwner = createPlayerBuilding(
+      "wrong-owner",
+      TeamType.Red,
+      BuildingType.FortFront,
+      11,
+    );
+    const ownedRadar = createPlayerBuilding(
+      "owned-radar",
+      TeamType.Blue,
+      BuildingType.Radar,
+      12,
+    );
+    const ownedBackFort = createPlayerBuilding(
+      "owned-back-fort",
+      TeamType.Blue,
+      BuildingType.FortBack,
+      13,
+    );
+    const ownedFrontFort = createPlayerBuilding(
+      "owned-front-fort",
+      TeamType.Blue,
+      BuildingType.FortFront,
+      14,
+    );
+    const state = {
+      fortRefId: -1,
+      ourTeam: TeamType.Blue,
+      objectList: [wrongOwner, ownedRadar, ownedBackFort, ownedFrontFort],
+    };
+
+    refindPlayerFortRefId(state);
+
+    expect(state.fortRefId).toBe(13);
+  });
+
   it("ports ZPlayer ClearAsciiStates over the tracked ASCII range", () => {
     const state = { asciiDown: Array.from({ length: PLAYER_ASCII_DOWN_MAX + 2 }, () => true) };
 
@@ -461,6 +527,49 @@ describe("player presentation constants", () => {
     clearPlayerAnimals(state);
 
     expect(state.birdList).toBe(birdList);
+    expect(state.birdList).toEqual([]);
+  });
+
+  it("ports ZPlayer InitAnimals as ambient bird creation for map basics", () => {
+    const state = { birdList: [{ id: 99 }] };
+    const calls: Array<{
+      terrainType: number;
+      mapWidthPixels: number;
+      mapHeightPixels: number;
+    }> = [];
+
+    initPlayerAnimals(
+      state,
+      {
+        getMapBasics: () => ({ width: 50, height: 26, terrainType: 3 }),
+      },
+      (options) => {
+        calls.push(options);
+        return { id: calls.length, ...options };
+      },
+    );
+
+    expect(calls).toEqual([
+      { terrainType: 3, mapWidthPixels: 800, mapHeightPixels: 416 },
+      { terrainType: 3, mapWidthPixels: 800, mapHeightPixels: 416 },
+    ]);
+    expect(state.birdList).toEqual([
+      { id: 1, terrainType: 3, mapWidthPixels: 800, mapHeightPixels: 416 },
+      { id: 2, terrainType: 3, mapWidthPixels: 800, mapHeightPixels: 416 },
+    ]);
+  });
+
+  it("ports ZPlayer InitAnimals as clearing without birds on small maps", () => {
+    const state = { birdList: [{ id: "old" }] };
+
+    initPlayerAnimals(
+      state,
+      {
+        getMapBasics: () => ({ width: 10, height: 10, terrainType: 1 }),
+      },
+      () => ({ id: "new" }),
+    );
+
     expect(state.birdList).toEqual([]);
   });
 
@@ -1172,4 +1281,86 @@ describe("player presentation constants", () => {
     expect(firstWaypoints).toEqual([]);
     expect(secondWaypoints).toEqual([]);
   });
+
+  it("ports ZPlayer UnitNearHostiles as false without a unit", () => {
+    expect(
+      unitNearPlayerHostiles({ passiveEngagableObjectList: [] }, null),
+    ).toBe(false);
+  });
+
+  it("ports ZPlayer UnitNearHostiles as false when no valid hostile is near", () => {
+    const unit = createPlayerUnit("unit", TeamType.Blue, 0, 0);
+    const self = unit;
+    const sameTeam = createPlayerUnit("same-team", TeamType.Blue, 1, 0);
+    const nullTeam = createPlayerUnit("null-team", TeamType.Null, 1, 0);
+    const destroyedHostile = createPlayerUnit("destroyed-hostile", TeamType.Red, 1, 0);
+    const farHostile = createPlayerUnit("far-hostile", TeamType.Red, 20, 0);
+    destroyedHostile.health = 0;
+
+    expect(
+      unitNearPlayerHostiles(
+        {
+          passiveEngagableObjectList: [
+            self,
+            sameTeam,
+            nullTeam,
+            destroyedHostile,
+            farHostile,
+          ],
+        },
+        unit,
+      ),
+    ).toBe(false);
+  });
+
+  it("ports ZPlayer UnitNearHostiles as true for a live hostile inside aggro radius", () => {
+    const unit = createPlayerUnit("unit-near", TeamType.Blue, 0, 0);
+    const hostile = createPlayerUnit("hostile-near", TeamType.Red, 8, 0);
+
+    expect(
+      unitNearPlayerHostiles(
+        {
+          passiveEngagableObjectList: [hostile],
+        },
+        unit,
+      ),
+    ).toBe(true);
+  });
 });
+
+function createPlayerUnit(
+  id: string,
+  owner: TeamType,
+  centerX: number,
+  centerY: number,
+): GameEntity {
+  const entity = new GameEntity({
+    id,
+    kind: "unit",
+    position: { x: centerX, y: centerY },
+    owner,
+  });
+  entity.centerX = centerX;
+  entity.centerY = centerY;
+  entity.attackRadius = 10;
+  entity.maxHealth = 100;
+  entity.health = 100;
+  return entity;
+}
+
+function createPlayerBuilding(
+  id: string,
+  owner: TeamType,
+  objectId: BuildingType,
+  refId: number,
+): GameEntity {
+  return new GameEntity({
+    id,
+    kind: "building",
+    position: { x: 0, y: 0 },
+    owner,
+    refId,
+    objectType: MapObjectType.Building,
+    objectId,
+  });
+}

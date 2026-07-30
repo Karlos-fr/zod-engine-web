@@ -21,6 +21,15 @@ export type BridgePlanetTemplate = {
   loadBaseImage(filename: string): void;
 };
 
+export type BridgeRenderableImage = {
+  unload(): void;
+};
+
+export type BridgeRenderSurfaceCache = {
+  getBaseSurface(): { width: number; height: number } | { w: number; h: number } | null;
+  loadNewSurface(width: number, height: number): void;
+};
+
 /**
  * Port of upstream `BBridge::Init`.
  * Role: Loads one bridge template image per planet palette.
@@ -51,6 +60,9 @@ export class BridgeEntity extends GameEntity {
   doReviveRerender = false;
   nextReviveRerenderTime = 0;
   isVertical = false;
+  renderImage: BridgeRenderableImage | null = null;
+  renderDamagedImage: BridgeRenderableImage | null = null;
+  renderDestroyedImage: BridgeRenderableImage | null = null;
 
   /**
    * Port of upstream `BBridge::GetExtraLinks`.
@@ -81,6 +93,41 @@ export class BridgeEntity extends GameEntity {
   override setOwner(owner: TeamType): void {
     void owner;
     this.owner = TeamType.Null;
+  }
+
+  /**
+   * Replacement for upstream `BBridge::UnRenderImages`.
+   * Role: Releases cached bridge render surfaces and marks rendering dirty.
+   * Upstream: bbridge.cpp:261-271
+   */
+  unRenderImages(): void {
+    this.renderImage?.unload();
+    this.renderDamagedImage?.unload();
+    this.renderDestroyedImage?.unload();
+    this.doRerender = true;
+  }
+
+  /**
+   * Replacement for upstream `BBridge::IndividualReRender`.
+   * Role: Ensures one bridge render cache surface matches the current bridge pixel size.
+   * Upstream: bbridge.cpp:273-286
+   */
+  individualReRender(surface: BridgeRenderSurfaceCache): void {
+    const baseSurface = surface.getBaseSurface();
+    const width = baseSurface
+      ? "width" in baseSurface
+        ? baseSurface.width
+        : baseSurface.w
+      : 0;
+    const height = baseSurface
+      ? "height" in baseSurface
+        ? baseSurface.height
+        : baseSurface.h
+      : 0;
+
+    if (!baseSurface || width !== this.pixelWidth || height !== this.pixelHeight) {
+      surface.loadNewSurface(this.pixelWidth, this.pixelHeight);
+    }
   }
 
   /**

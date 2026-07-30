@@ -216,6 +216,10 @@ export type EntityWalkSpeedMap = {
   getTileWalkSpeed(x: number, y: number): number;
 };
 
+export type EntityEngageBarrierMap = {
+  engageBarrierBetweenCoords(x1: number, y1: number, x2: number, y2: number): boolean;
+};
+
 export type EntityPortraitAnimationTarget = {
   startAnim(animation: PortraitAnimationType): void;
 };
@@ -291,6 +295,16 @@ function unitSettingsForTypeId(
     return zsettings.robotSettings[objectId];
   }
   return EMPTY_UNIT_SETTINGS;
+}
+
+function hasEngageBarrierMap(
+  zmap: GameMap | null,
+): zmap is GameMap & EntityEngageBarrierMap {
+  return (
+    zmap !== null &&
+    typeof (zmap as Partial<EntityEngageBarrierMap>).engageBarrierBetweenCoords ===
+      "function"
+  );
 }
 
 /**
@@ -1658,6 +1672,32 @@ export class GameEntity {
   }
 
   /**
+   * Port of upstream `ZObject::WithinAttackRadius`.
+   * Role: Checks whether an object can be attacked, including barrier line-of-fire blocking.
+   * Upstream: zobject.cpp:856-870
+   */
+  withinAttackRadiusObject(object: GameEntity | null): boolean {
+    if (object === null) return false;
+
+    if (!this.withinAttackRadius(object.centerX, object.centerY)) return false;
+
+    if (
+      !object.isDestroyableImpassable() &&
+      hasEngageBarrierMap(this.zmap) &&
+      this.zmap.engageBarrierBetweenCoords(
+        this.centerX,
+        this.centerY,
+        object.centerX,
+        object.centerY,
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Port of upstream `ZObject::WithinAgroRadius`.
    * Role: Checks whether coordinates are within attack radius plus global aggro distance.
    * Upstream: zobject.cpp:847-854
@@ -1670,6 +1710,34 @@ export class GameEntity {
       objectY,
       this.attackRadius + agroDistance,
     );
+  }
+
+  /**
+   * Port of upstream `ZObject::WithinAgroRadius`.
+   * Role: Checks whether an object is inside aggro radius, including barrier line-of-fire blocking.
+   * Upstream: zobject.cpp:831-845
+   */
+  withinAgroRadiusObject(object: GameEntity | null, agroDistance = 0): boolean {
+    if (object === null) return false;
+
+    if (!this.withinAgroRadius(object.centerX, object.centerY, agroDistance)) {
+      return false;
+    }
+
+    if (
+      !object.isDestroyableImpassable() &&
+      hasEngageBarrierMap(this.zmap) &&
+      this.zmap.engageBarrierBetweenCoords(
+        this.centerX,
+        this.centerY,
+        object.centerX,
+        object.centerY,
+      )
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -3035,6 +3103,44 @@ export class GameEntity {
   }
 
   /**
+   * Replacement for upstream `ZObject::DoPreRender`.
+   * Role: Provides the empty base pre-render command hook for game entities.
+   * Upstream: zobject.cpp:4226-4229
+   */
+  doPreRender(
+    theMap: unknown,
+    destination: unknown,
+    shiftX: number,
+    shiftY: number,
+  ): [] {
+    void theMap;
+    void destination;
+    void shiftX;
+    void shiftY;
+
+    return [];
+  }
+
+  /**
+   * Replacement for upstream `ZObject::DoRender`.
+   * Role: Provides the empty base render command hook for game entities.
+   * Upstream: zobject.cpp:1416-1419
+   */
+  doRender(
+    theMap: unknown,
+    destination: unknown,
+    shiftX: number,
+    shiftY: number,
+  ): [] {
+    void theMap;
+    void destination;
+    void shiftX;
+    void shiftY;
+
+    return [];
+  }
+
+  /**
    * Port of upstream `ZObject::DoAfterEffects`.
    * Role: Provides the base post-render effects hook for game entities.
    * Upstream: zobject.cpp:1421-1424
@@ -3094,6 +3200,51 @@ export class GameEntity {
    */
   setConnectedZoneFromMap(theMap: EntityConnectedZoneMap): void {
     this.connectedZone = theMap.getZone(this.position.x, this.position.y);
+  }
+
+  /**
+   * Port of upstream `ZObject::CannonsInZone`.
+   * Role: Counts other cannon objects connected to the same map zone.
+   * Upstream: zobject.cpp:4185-4202
+   */
+  cannonsInZone(ols: { objectList: GameEntity[] }): number {
+    let cannonsFound = 0;
+
+    for (const object of ols.objectList) {
+      if (this === object) continue;
+      if (this.connectedZone !== object.connectedZone) continue;
+
+      const objectId = object.getObjectId();
+      if (objectId.objectType !== MapObjectType.Cannon) continue;
+
+      cannonsFound += 1;
+    }
+
+    return cannonsFound;
+  }
+
+  /**
+   * Port of upstream `ZObject::HasDestroyedFortInZone`.
+   * Role: Reports whether this entity's connected zone contains a destroyed front fort.
+   * Upstream: zobject.cpp:4231-4248
+   */
+  hasDestroyedFortInZone(ols: { buildingObjectList: GameEntity[] }): boolean {
+    if (!this.connectedZone) return false;
+
+    for (const object of ols.buildingObjectList) {
+      if (this.connectedZone !== object.connectedZone) continue;
+      if (!object.isDestroyed()) continue;
+
+      const objectId = object.getObjectId();
+      if (
+        objectId.objectType === MapObjectType.Building &&
+        objectId.objectId === BuildingType.FortFront
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
