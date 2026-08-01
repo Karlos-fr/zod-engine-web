@@ -2,6 +2,7 @@
  * Upstream: gmm_change_teams.h / gmm_change_teams.cpp
  */
 import { ACTIVE_TEAM_TYPE_COUNT } from "../simulation/SimulationConstants";
+import { MainMenuEventType, type MainMenuFlag } from "./MainMenuBase";
 
 /**
  * Port of upstream `_ZGMM_CHANGE_TEAMS_H_`.
@@ -73,6 +74,49 @@ export function highlightOurChangeTeam(
 export function processChangeTeamsMenu(state: ChangeTeamsProcessState): void {
   highlightOurChangeTeam(state);
   state.processWidgets();
+}
+
+/**
+ * Port of upstream `GMMChangeTeams::HandleWidgetEvent` button dependency surface.
+ * Role: Provides the widget reference id used to match team and reshuffle controls.
+ * Upstream: gmm_change_teams.cpp:215-227
+ */
+export type ChangeTeamsWidgetButton = {
+  refId: number;
+};
+
+/**
+ * Port of upstream `GMMChangeTeams::HandleWidgetEvent`.
+ * Role: Records requested team reshuffle or team change actions from unclick events.
+ * Upstream: gmm_change_teams.cpp:209-236
+ */
+export function handleChangeTeamsWidgetEvent(
+  flags: Pick<
+    MainMenuFlag,
+    "reshuffleTeams" | "changeTeam" | "changeTeamType"
+  >,
+  eventType: MainMenuEventType | number,
+  eventWidget: ChangeTeamsWidgetButton | null | undefined,
+  reshuffleButton: ChangeTeamsWidgetButton,
+  teamButtons: readonly ChangeTeamsWidgetButton[],
+): void {
+  if (!eventWidget) return;
+  if (eventType !== MainMenuEventType.Unclick) return;
+
+  const widgetRefId = eventWidget.refId;
+
+  if (widgetRefId === reshuffleButton.refId) {
+    flags.reshuffleTeams = true;
+    return;
+  }
+
+  for (let i = 0; i < ACTIVE_TEAM_TYPE_COUNT; i += 1) {
+    if (widgetRefId === teamButtons[i]?.refId) {
+      flags.changeTeam = true;
+      flags.changeTeamType = i;
+      break;
+    }
+  }
 }
 
 /**

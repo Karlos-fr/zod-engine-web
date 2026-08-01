@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FontType } from "../src/rendering/FontEngine";
 import {
   clearMainMenuListEntry,
+  clickMainMenuList,
   clickMainMenuButton,
   clickMainMenuRadio,
   clickMainMenuTextBox,
@@ -41,6 +42,7 @@ import {
   getMainMenuWidgetType,
   getMainMenuWidgetWidth,
   initMainMenuButtonImages,
+  initMainMenuListImages,
   initMainMenuRadio,
   initMainMenuTeamColor,
   initMainMenuTextBox,
@@ -54,8 +56,14 @@ import {
   moveDownMainMenuList,
   motionMainMenuWidget,
   moveUpMainMenuList,
+  processMainMenuList,
   processMainMenuTextBox,
   processMainMenuWidget,
+  renderMainMenuList,
+  renderMainMenuListControls,
+  renderMainMenuLabel,
+  renderMainMenuButton,
+  renderMainMenuRadio,
   renderMainMenuTeamColor,
   renderMainMenuWidget,
   setMainMenuButtonGreen,
@@ -186,6 +194,56 @@ describe("main menu widgets", () => {
     expect(loaded).toHaveLength(
       MainMenuButtonState.MaxButtonStates +
         MainMenuButtonState.MaxButtonStates * 9,
+    );
+    expect(state.finishedInit).toBe(true);
+  });
+
+  it("ports GMMWList Init as shared list image loading", () => {
+    const loaded: string[] = [];
+    const makeTarget = () => ({
+      loadBaseImage: (filename: string) => loaded.push(filename),
+    });
+    const makeStateTargets = () =>
+      Array.from({ length: MainMenuListState.MaxListStates }, makeTarget);
+    const state = {
+      listTopLeftImage: makeTarget(),
+      listTopImage: makeTarget(),
+      listTopRightImage: makeTarget(),
+      listLeftImage: makeTarget(),
+      listRightImage: makeTarget(),
+      listBottomLeftImage: makeTarget(),
+      listBottomImage: makeTarget(),
+      listBottomRightImage: makeTarget(),
+      listScrollerImage: makeTarget(),
+      listEntryTopImages: makeStateTargets(),
+      listEntryLeftImages: makeStateTargets(),
+      listEntryCenterImages: makeStateTargets(),
+      listEntryRightImages: makeStateTargets(),
+      listEntryBottomImages: makeStateTargets(),
+      listButtonUpImages: makeStateTargets(),
+      listButtonDownImages: makeStateTargets(),
+      finishedInit: false,
+    };
+
+    initMainMenuListImages(state);
+
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/list/list_top_left.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/list/list_scroller.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/list/list_entry_top_normal.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/list/list_entry_center_pressed.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/list/list_button_down_pressed.png",
+    );
+    expect(loaded).toHaveLength(
+      9 + MainMenuListState.MaxListStates * 7,
     );
     expect(state.finishedInit).toBe(true);
   });
@@ -341,6 +399,315 @@ describe("main menu widgets", () => {
     checkMainMenuListViewIndex(state);
 
     expect(state.viewIndex).toBe(0);
+  });
+
+  it("ports GMMWList::Process as held scroll-up repeat", () => {
+    const state = {
+      entries: [1, 2, 3, 4, 5, 6],
+      visibleEntries: 3,
+      viewIndex: 4,
+      upButtonState: MainMenuListState.Pressed,
+      downButtonState: MainMenuListState.Normal,
+      buttonDownTime: 10,
+    };
+
+    processMainMenuList(state, 10.09);
+
+    expect(state.viewIndex).toBe(2);
+    expect(state.buttonDownTime).toBe(10.09);
+
+    processMainMenuList(state, 10.2);
+
+    expect(state.viewIndex).toBe(0);
+    expect(state.buttonDownTime).toBe(10.2);
+  });
+
+  it("ports GMMWList::Process as held scroll-down repeat with view clamp", () => {
+    const state = {
+      entries: [1, 2, 3, 4, 5],
+      visibleEntries: 3,
+      viewIndex: 0,
+      upButtonState: MainMenuListState.Normal,
+      downButtonState: MainMenuListState.Pressed,
+      buttonDownTime: 20,
+    };
+
+    processMainMenuList(state, 20.12);
+
+    expect(state.viewIndex).toBe(2);
+    expect(state.buttonDownTime).toBe(20.12);
+  });
+
+  it("ports GMMWList::Process timing guards", () => {
+    const state = {
+      entries: [1, 2, 3, 4, 5],
+      visibleEntries: 3,
+      viewIndex: 1,
+      upButtonState: MainMenuListState.Pressed,
+      downButtonState: MainMenuListState.Normal,
+      buttonDownTime: 30,
+    };
+
+    processMainMenuList(state, 29.9);
+
+    expect(state.viewIndex).toBe(1);
+    expect(state.buttonDownTime).toBe(30);
+
+    processMainMenuList(state, 30.01);
+
+    expect(state.viewIndex).toBe(1);
+    expect(state.buttonDownTime).toBe(30);
+  });
+
+  it("ports GMMWList::Click as scroll-up button press", () => {
+    const flags = new MainMenuWidgetFlag();
+    flags.listEntrySelected = 4;
+    const state = {
+      x: 10,
+      y: 20,
+      width: 120,
+      height: 90,
+      entries: [
+        { state: MainMenuListState.Normal },
+        { state: MainMenuListState.Normal },
+      ],
+      visibleEntries: 2,
+      viewIndex: 0,
+      upButtonState: MainMenuListState.Normal,
+      downButtonState: MainMenuListState.Normal,
+      buttonDownTime: 0,
+      topImage: { width: 120, height: 3 },
+      leftImage: { width: 4, height: 31 },
+      rightImage: { width: 5, height: 31 },
+      flags,
+    };
+
+    const upX = state.x + state.width - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS;
+    const upY = state.y + MAIN_MENU_LIST_UP_BUTTON_TOP_OFFSET_PIXELS;
+
+    expect(clickMainMenuList(state, upX, upY, 50)).toBe(true);
+    expect(state.upButtonState).toBe(MainMenuListState.Pressed);
+    expect(state.downButtonState).toBe(MainMenuListState.Normal);
+    expect(state.buttonDownTime).toBe(50.2);
+    expect(flags.listEntrySelected).toBe(-1);
+  });
+
+  it("ports GMMWList::Click as scroll-down button press", () => {
+    const flags = new MainMenuWidgetFlag();
+    const state = {
+      x: 10,
+      y: 20,
+      width: 120,
+      height: 90,
+      entries: [
+        { state: MainMenuListState.Normal },
+        { state: MainMenuListState.Normal },
+      ],
+      visibleEntries: 2,
+      viewIndex: 0,
+      upButtonState: MainMenuListState.Normal,
+      downButtonState: MainMenuListState.Normal,
+      buttonDownTime: 0,
+      topImage: { width: 120, height: 3 },
+      leftImage: { width: 4, height: 31 },
+      rightImage: { width: 5, height: 31 },
+      flags,
+    };
+
+    const downX =
+      state.x + state.width - MAIN_MENU_LIST_DOWN_BUTTON_RIGHT_OFFSET_PIXELS;
+    const downY =
+      state.y + state.height - MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS;
+
+    expect(clickMainMenuList(state, downX, downY, 60)).toBe(true);
+    expect(state.upButtonState).toBe(MainMenuListState.Normal);
+    expect(state.downButtonState).toBe(MainMenuListState.Pressed);
+    expect(state.buttonDownTime).toBe(60.2);
+    expect(flags.listEntrySelected).toBe(-1);
+  });
+
+  it("ports GMMWList::Click as entry toggle and selection flag", () => {
+    const flags = new MainMenuWidgetFlag();
+    const state = {
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 44,
+      entries: [
+        { state: MainMenuListState.Normal },
+        { state: MainMenuListState.Normal },
+        { state: MainMenuListState.Pressed },
+      ],
+      visibleEntries: 2,
+      viewIndex: 1,
+      upButtonState: MainMenuListState.Normal,
+      downButtonState: MainMenuListState.Normal,
+      buttonDownTime: 0,
+      topImage: { width: 100, height: 3 },
+      leftImage: { width: 4, height: 31 },
+      rightImage: { width: 5, height: 31 },
+      flags,
+    };
+
+    expect(clickMainMenuList(state, state.x + 4, state.y + 3, 70)).toBe(true);
+    expect(state.entries[1]?.state).toBe(MainMenuListState.Pressed);
+    expect(flags.listEntrySelected).toBe(1);
+
+    expect(clickMainMenuList(state, state.x + 4, state.y + 18, 71)).toBe(true);
+    expect(state.entries[2]?.state).toBe(MainMenuListState.Normal);
+    expect(flags.listEntrySelected).toBe(2);
+
+    expect(clickMainMenuList(state, state.x, state.y, 72)).toBe(false);
+    expect(flags.listEntrySelected).toBe(-1);
+  });
+
+  it("replaces GMMWList::DoRender as ordered list render delegation", () => {
+    const calls: string[] = [];
+
+    const commands = renderMainMenuList(
+      { finishedInit: true, active: true, x: 10, y: 20 },
+      5,
+      6,
+      (x, y) => {
+        calls.push(`background:${x}:${y}`);
+        return ["background"];
+      },
+      (x, y) => {
+        calls.push(`entries:${x}:${y}`);
+        return ["entry-a", "entry-b"];
+      },
+      (x, y) => {
+        calls.push(`controls:${x}:${y}`);
+        return ["controls"];
+      },
+    );
+
+    expect(calls).toEqual([
+      "background:15:26",
+      "entries:15:26",
+      "controls:15:26",
+    ]);
+    expect(commands).toEqual(["background", "entry-a", "entry-b", "controls"]);
+  });
+
+  it("replaces GMMWList::DoRender guard exits", () => {
+    const failRender = () => {
+      throw new Error("inactive or uninitialized list should not render");
+    };
+
+    expect(
+      renderMainMenuList(
+        { finishedInit: false, active: true, x: 10, y: 20 },
+        5,
+        6,
+        failRender,
+        failRender,
+        failRender,
+      ),
+    ).toEqual([]);
+    expect(
+      renderMainMenuList(
+        { finishedInit: true, active: false, x: 10, y: 20 },
+        5,
+        6,
+        failRender,
+        failRender,
+        failRender,
+      ),
+    ).toEqual([]);
+  });
+
+  it("replaces GMMWList::RenderControls with button and scroller texture commands", () => {
+    const state = {
+      width: 120,
+      height: 90,
+      entries: [1, 2, 3, 4, 5],
+      visibleEntries: 3,
+      viewIndex: 1,
+      upButtonState: MainMenuListState.Pressed,
+      downButtonState: MainMenuListState.Normal,
+      listButtonUpImages: [
+        { texture: { textureId: "up-normal" }, width: 11, height: 8 },
+        { texture: { textureId: "up-pressed" }, width: 11, height: 8 },
+      ],
+      listButtonDownImages: [
+        { texture: { textureId: "down-normal" }, width: 11, height: 8 },
+        { texture: { textureId: "down-pressed" }, width: 11, height: 8 },
+      ],
+      listScrollerImage: {
+        texture: { textureId: "scroller" },
+        width: 8,
+        height: 10,
+      },
+      listTopRightImage: { texture: { textureId: "top-right" }, width: 5, height: 6 },
+      listBottomRightImage: {
+        texture: { textureId: "bottom-right" },
+        width: 5,
+        height: 8,
+      },
+    };
+
+    const commands = renderMainMenuListControls(state, 10, 20);
+
+    expect(commands.map((command) => command.texture)).toEqual([
+      { textureId: "up-pressed" },
+      { textureId: "down-normal" },
+      { textureId: "scroller" },
+    ]);
+    expect(commands.map((command) => [command.destinationX, command.destinationY])).toEqual([
+      [
+        10 + state.width - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS,
+        20 + MAIN_MENU_LIST_UP_BUTTON_TOP_OFFSET_PIXELS,
+      ],
+      [
+        10 + state.width - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS,
+        20 + state.height - MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS,
+      ],
+      [
+        10 + state.width - MAIN_MENU_LIST_SCROLLER_RIGHT_OFFSET_PIXELS,
+        20 + state.listTopRightImage.height + (90 - (6 + 8)) * 0.5 - 2,
+      ],
+    ]);
+  });
+
+  it("replaces GMMWList::RenderControls scroller guards and clamps", () => {
+    const state = {
+      width: 120,
+      height: 50,
+      entries: [1, 2],
+      visibleEntries: 3,
+      viewIndex: 20,
+      upButtonState: MainMenuListState.Normal,
+      downButtonState: MainMenuListState.Pressed,
+      listButtonUpImages: [],
+      listButtonDownImages: [],
+      listScrollerImage: {
+        texture: { textureId: "scroller" },
+        width: 8,
+        height: 10,
+      },
+      listTopRightImage: { texture: { textureId: "top-right" }, width: 5, height: 6 },
+      listBottomRightImage: null as {
+        texture: { textureId: string };
+        width: number;
+        height: number;
+      } | null,
+    };
+
+    expect(renderMainMenuListControls(state, 0, 0)).toEqual([]);
+
+    state.listBottomRightImage = {
+      texture: { textureId: "bottom-right" },
+      width: 5,
+      height: 8,
+    };
+
+    const [command] = renderMainMenuListControls(state, 0, 0);
+
+    expect(command?.destinationX).toBe(
+      state.width - MAIN_MENU_LIST_SCROLLER_RIGHT_OFFSET_PIXELS,
+    );
+    expect(command?.destinationY).toBe(6 + (50 - (6 + 8)) * 1 - 2);
   });
 
   it("ports GMMWList::MoveUp as first visible index decrement with floor", () => {
@@ -710,6 +1077,172 @@ describe("main menu widgets", () => {
       textImage: null,
       rerenderText: false,
     });
+  });
+
+  it("replaces GMMWButton::DoRender with specific background and pressed text", () => {
+    const state = {
+      finishedInit: true,
+      active: true,
+      x: 10,
+      y: 20,
+      width: 80,
+      type: MainMenuButtonType.Close,
+      state: MainMenuButtonState.Pressed,
+      nonGenericImages: [
+        [],
+        [
+          null,
+          { texture: { textureId: "close-pressed" }, width: 12, height: 12 },
+        ],
+      ],
+      text: "OK",
+      textImage: null as {
+        texture: { textureId: string };
+        width: number;
+        height: number;
+      } | null,
+      rerenderText: true,
+    };
+    const genericCalls: string[] = [];
+    const textCalls: Array<{ font: FontType; text: string }> = [];
+
+    const commands = renderMainMenuButton(
+      state,
+      5,
+      6,
+      (x, y, buttonState) => {
+        genericCalls.push(`${x}:${y}:${buttonState}`);
+        return [];
+      },
+      (font, text) => {
+        textCalls.push({ font, text });
+        return { texture: { textureId: text }, width: 18, height: 7 };
+      },
+    );
+
+    expect(genericCalls).toEqual([]);
+    expect(textCalls).toEqual([{ font: FontType.YellowMenu, text: "OK" }]);
+    expect(commands).toEqual([
+      {
+        texture: { textureId: "close-pressed" },
+        destinationX: 15,
+        destinationY: 26,
+        width: 12,
+        height: 12,
+        sourceX: 0,
+        sourceY: 0,
+        sourceWidth: 12,
+        sourceHeight: 12,
+        textureLeft: 0,
+        textureTop: 0,
+        textureRight: 1,
+        textureBottom: 1,
+        scale: 1,
+        angle: 0,
+        alpha: 1,
+      },
+      {
+        texture: { textureId: "OK" },
+        destinationX: 46,
+        destinationY: 30,
+        width: 18,
+        height: 7,
+        sourceX: 0,
+        sourceY: 0,
+        sourceWidth: 18,
+        sourceHeight: 7,
+        textureLeft: 0,
+        textureTop: 0,
+        textureRight: 1,
+        textureBottom: 1,
+        scale: 1,
+        angle: 0,
+        alpha: 1,
+      },
+    ]);
+    expect(state.rerenderText).toBe(false);
+  });
+
+  it("replaces GMMWButton::DoRender generic background delegation", () => {
+    const state = {
+      finishedInit: true,
+      active: true,
+      x: 2,
+      y: 3,
+      width: 50,
+      type: MainMenuButtonType.Generic,
+      state: MainMenuButtonState.Green,
+      nonGenericImages: [],
+      text: "",
+      textImage: null,
+      rerenderText: false,
+    };
+    const genericCalls: string[] = [];
+
+    const commands = renderMainMenuButton(
+      state,
+      10,
+      20,
+      (x, y, buttonState) => {
+        genericCalls.push(`${x}:${y}:${buttonState}`);
+        return [
+          {
+            texture: { textureId: "generic" },
+            destinationX: x,
+            destinationY: y,
+            width: 50,
+            height: 15,
+            sourceX: 0,
+            sourceY: 0,
+            sourceWidth: 50,
+            sourceHeight: 15,
+            textureLeft: 0,
+            textureTop: 0,
+            textureRight: 1,
+            textureBottom: 1,
+            scale: 1,
+            angle: 0,
+            alpha: 1,
+          },
+        ];
+      },
+      () => {
+        throw new Error("empty current button text should not render");
+      },
+    );
+
+    expect(genericCalls).toEqual([`12:23:${MainMenuButtonState.Green}`]);
+    expect(commands).toHaveLength(1);
+    expect(commands[0]?.texture).toEqual({ textureId: "generic" });
+  });
+
+  it("replaces GMMWButton::DoRender guard exits", () => {
+    const state = {
+      finishedInit: false,
+      active: true,
+      x: 2,
+      y: 3,
+      width: 50,
+      type: MainMenuButtonType.Generic,
+      state: MainMenuButtonState.Normal,
+      nonGenericImages: [],
+      text: "OK",
+      textImage: null,
+      rerenderText: true,
+    };
+    const failGeneric = () => {
+      throw new Error("guarded button should not render background");
+    };
+    const failText = () => {
+      throw new Error("guarded button should not render text");
+    };
+
+    expect(renderMainMenuButton(state, 0, 0, failGeneric, failText)).toEqual([]);
+
+    state.finishedInit = true;
+    state.active = false;
+
+    expect(renderMainMenuButton(state, 0, 0, failGeneric, failText)).toEqual([]);
   });
 
   it("ports GMMWButton::DetermineDimensions as close-button sizing", () => {
@@ -1144,6 +1677,92 @@ describe("main menu widgets", () => {
     });
   });
 
+  it("replaces GMMWLabel::DoRender with a justified text texture command", () => {
+    const state = {
+      active: true,
+      x: 10,
+      y: 20,
+      width: 80,
+      justification: MainMenuLabelJustifyType.Center,
+      text: "Ready",
+      renderedText: "old",
+      font: FontType.YellowMenu,
+      textImage: null as {
+        texture: { textureId: string };
+        width: number;
+        height: number;
+      } | null,
+      rerenderText: true,
+    };
+    const renderCalls: Array<{ font: FontType | number; text: string }> = [];
+
+    const command = renderMainMenuLabel(state, 5, 6, (font, text) => {
+      renderCalls.push({ font, text });
+      return {
+        texture: { textureId: text },
+        width: 30,
+        height: 9,
+      };
+    });
+
+    expect(renderCalls).toEqual([
+      { font: FontType.YellowMenu, text: "Ready" },
+    ]);
+    expect(command).toEqual({
+      texture: { textureId: "Ready" },
+      destinationX: 40,
+      destinationY: 26,
+      width: 30,
+      height: 9,
+      sourceX: 0,
+      sourceY: 0,
+      sourceWidth: 30,
+      sourceHeight: 9,
+      textureLeft: 0,
+      textureTop: 0,
+      textureRight: 1,
+      textureBottom: 1,
+      scale: 1,
+      angle: 0,
+      alpha: 1,
+    });
+    expect(state.renderedText).toBe("Ready");
+    expect(state.rerenderText).toBe(false);
+  });
+
+  it("replaces GMMWLabel::DoRender right alignment and inactive guards", () => {
+    const state = {
+      active: true,
+      x: 3,
+      y: 4,
+      width: 50,
+      justification: MainMenuLabelJustifyType.Right,
+      text: "Go",
+      renderedText: "Go",
+      font: FontType.YellowMenu,
+      textImage: {
+        texture: { textureId: "cached" },
+        width: 12,
+        height: 7,
+      },
+      rerenderText: false,
+    };
+
+    expect(
+      renderMainMenuLabel(state, 1, 2, () => {
+        throw new Error("cached label should not rerender");
+      })?.destinationX,
+    ).toBe(42);
+
+    state.active = false;
+
+    expect(
+      renderMainMenuLabel(state, 1, 2, () => {
+        throw new Error("inactive label should not render");
+      }),
+    ).toBeNull();
+  });
+
   it("ports GMMWTeamColor::SetTeam as team assignment with bounds clamp", () => {
     const state = { team: 0 };
 
@@ -1272,6 +1891,110 @@ describe("main menu widgets", () => {
         "assets/other/main_menu_gui/radio/radio_selector.png",
       finishedInit: true,
     });
+  });
+
+  it("replaces GMMWRadio::DoRender with background and selector commands", () => {
+    const state = {
+      finishedInit: true,
+      active: true,
+      x: 10,
+      y: 20,
+      width:
+        MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+        3 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+        MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+      selections: 5,
+      selectedIndex: 3,
+      radioLeftImage: { texture: { textureId: "left" }, width: 8, height: 12 },
+      radioCenterImage: {
+        texture: { textureId: "center" },
+        width: 16,
+        height: 12,
+      },
+      radioRightImage: { texture: { textureId: "right" }, width: 8, height: 12 },
+      radioSelectorImage: {
+        texture: { textureId: "selector" },
+        width: 6,
+        height: 10,
+      },
+    };
+
+    const commands = renderMainMenuRadio(state, 5, 6);
+
+    expect(commands.map((command) => command.texture)).toEqual([
+      { textureId: "left" },
+      { textureId: "right" },
+      { textureId: "center" },
+      { textureId: "center" },
+      { textureId: "center" },
+      { textureId: "selector" },
+    ]);
+    expect(commands.map((command) => [command.destinationX, command.destinationY])).toEqual([
+      [15, 26],
+      [
+        15 + state.width - MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+        26,
+      ],
+      [15 + MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS, 26],
+      [
+        15 +
+          MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+          MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS,
+        26,
+      ],
+      [
+        15 +
+          MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+          2 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS,
+        26,
+      ],
+      [
+        15 +
+          MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+          2 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+          4,
+        27,
+      ],
+    ]);
+  });
+
+  it("replaces GMMWRadio::DoRender selector edge positions and guards", () => {
+    const baseState = {
+      finishedInit: true,
+      active: true,
+      x: 0,
+      y: 0,
+      width:
+        MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+        2 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+        MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+      selections: 4,
+      selectedIndex: 0,
+      radioLeftImage: { texture: "left", width: 8, height: 12 },
+      radioCenterImage: { texture: "center", width: 16, height: 12 },
+      radioRightImage: { texture: "right", width: 8, height: 12 },
+      radioSelectorImage: { texture: "selector", width: 6, height: 10 },
+    };
+
+    expect(renderMainMenuRadio(baseState, 0, 0).at(-1)?.destinationX).toBe(7);
+
+    expect(
+      renderMainMenuRadio({ ...baseState, selectedIndex: 3 }, 0, 0).at(-1)
+        ?.destinationX,
+    ).toBe(
+      MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+        2 * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+        4,
+    );
+    expect(
+      renderMainMenuRadio({ ...baseState, finishedInit: false }, 0, 0),
+    ).toEqual([]);
+    expect(renderMainMenuRadio({ ...baseState, active: false }, 0, 0)).toEqual(
+      [],
+    );
+    expect(
+      renderMainMenuRadio({ ...baseState, radioLeftImage: null }, 0, 0),
+    ).toEqual([]);
   });
 
   it("ports GMMWRadio::GetSelected as selected radio index read", () => {

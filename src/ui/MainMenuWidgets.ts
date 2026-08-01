@@ -162,6 +162,33 @@ export type MainMenuButtonTextImageState<TTextImage> = {
   rerenderText: boolean;
 };
 
+export type MainMenuButtonRenderImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
+
+/**
+ * Replacement state for upstream `GMMWButton::DoRender`.
+ * Role: Holds button activation, placement, visual state, image targets, and rendered text.
+ * Upstream: zgui_main_menu_widgets.h:39-44, zgui_main_menu_widgets.h:129-141
+ */
+export type MainMenuButtonRenderState<TTexture> =
+  MainMenuButtonTextImageState<MainMenuButtonRenderImage<TTexture>> & {
+    finishedInit: boolean;
+    active: boolean;
+    x: number;
+    y: number;
+    width: number;
+    type: MainMenuButtonType;
+    state: MainMenuButtonState;
+    nonGenericImages: readonly (readonly (
+      | MainMenuButtonRenderImage<TTexture>
+      | null
+      | undefined
+    )[])[];
+  };
+
 export type MainMenuButtonImageTarget = {
   loadBaseImage(filename: string): void;
 };
@@ -288,6 +315,93 @@ export enum MainMenuListState {
   MaxListStates = 2,
 }
 
+export type MainMenuListImageTarget = {
+  loadBaseImage(filename: string): void;
+};
+
+/**
+ * Port of upstream `GMMWList::Init` image fields.
+ * Role: Holds list frame, scroller, entry, and scroll-button image targets.
+ * Upstream: gmmw_list.cpp:32-66
+ */
+export type MainMenuListInitState = {
+  listTopLeftImage: MainMenuListImageTarget;
+  listTopImage: MainMenuListImageTarget;
+  listTopRightImage: MainMenuListImageTarget;
+  listLeftImage: MainMenuListImageTarget;
+  listRightImage: MainMenuListImageTarget;
+  listBottomLeftImage: MainMenuListImageTarget;
+  listBottomImage: MainMenuListImageTarget;
+  listBottomRightImage: MainMenuListImageTarget;
+  listScrollerImage: MainMenuListImageTarget;
+  listEntryTopImages: MainMenuListImageTarget[];
+  listEntryLeftImages: MainMenuListImageTarget[];
+  listEntryCenterImages: MainMenuListImageTarget[];
+  listEntryRightImages: MainMenuListImageTarget[];
+  listEntryBottomImages: MainMenuListImageTarget[];
+  listButtonUpImages: MainMenuListImageTarget[];
+  listButtonDownImages: MainMenuListImageTarget[];
+  finishedInit: boolean;
+};
+
+/**
+ * Port of upstream `GMMWList::Init`.
+ * Role: Loads shared main-menu list image assets and marks list images initialized.
+ * Upstream: gmmw_list.cpp:32-66
+ */
+export function initMainMenuListImages(state: MainMenuListInitState): void {
+  state.listTopLeftImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_top_left.png",
+  );
+  state.listTopImage.loadBaseImage("assets/other/main_menu_gui/list/list_top.png");
+  state.listTopRightImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_top_right.png",
+  );
+  state.listLeftImage.loadBaseImage("assets/other/main_menu_gui/list/list_left.png");
+  state.listRightImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_right.png",
+  );
+  state.listBottomLeftImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_bottom_left.png",
+  );
+  state.listBottomImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_bottom.png",
+  );
+  state.listBottomRightImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_bottom_right.png",
+  );
+  state.listScrollerImage.loadBaseImage(
+    "assets/other/main_menu_gui/list/list_scroller.png",
+  );
+
+  const stateTargets = [
+    ["list_entry_top", state.listEntryTopImages],
+    ["list_entry_left", state.listEntryLeftImages],
+    ["list_entry_center", state.listEntryCenterImages],
+    ["list_entry_right", state.listEntryRightImages],
+    ["list_entry_bottom", state.listEntryBottomImages],
+    ["list_button_up", state.listButtonUpImages],
+    ["list_button_down", state.listButtonDownImages],
+  ] as const;
+
+  for (
+    let listState = 0;
+    listState < MainMenuListState.MaxListStates;
+    listState += 1
+  ) {
+    const token =
+      listState === MainMenuListState.Pressed ? "pressed" : "normal";
+
+    for (const [assetName, targets] of stateTargets) {
+      targets[listState]?.loadBaseImage(
+        `assets/other/main_menu_gui/list/${assetName}_${token}.png`,
+      );
+    }
+  }
+
+  state.finishedInit = true;
+}
+
 /**
  * Port of upstream `mmlist_entry::clear`.
  * Role: Resets a main-menu list entry to its default state.
@@ -376,6 +490,77 @@ export type MainMenuListViewState = {
 };
 
 /**
+ * Port of upstream `GMMWList::Process` mutable fields.
+ * Role: Holds list scroll-button state and timing for repeated scrolling.
+ * Upstream: zgui_main_menu_widgets.h:211-216, gmmw_list.cpp:75-101
+ */
+export type MainMenuListProcessState = MainMenuListViewState & {
+  upButtonState: MainMenuListState;
+  downButtonState: MainMenuListState;
+  buttonDownTime: number;
+};
+
+/**
+ * Port of upstream `GMMWList::Click` mutable fields.
+ * Role: Holds list bounds, entries, scroll buttons, timing, hit-test images, and widget flags.
+ * Upstream: zgui_main_menu_widgets.h:211-216, gmmw_list.cpp:150-179
+ */
+export type MainMenuListClickState = Omit<
+  MainMenuListWithinEntryState,
+  "entries"
+> &
+  Omit<MainMenuListProcessState, "entries"> & {
+    entries: Array<Pick<MainMenuListEntryState, "state">>;
+    x: number;
+    y: number;
+    height: number;
+    flags: Pick<MainMenuWidgetFlag, "clear" | "listEntrySelected">;
+  };
+
+/**
+ * Replacement state for upstream `GMMWList::DoRender`.
+ * Role: Holds list activation, initialization, and placement fields for render delegation.
+ * Upstream: zgui_main_menu_widgets.h:39-44, zgui_main_menu_widgets.h:211-216
+ */
+export type MainMenuListRenderState = {
+  finishedInit: boolean;
+  active: boolean;
+  x: number;
+  y: number;
+};
+
+export type MainMenuListRenderImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
+
+/**
+ * Replacement state for upstream `GMMWList::RenderControls`.
+ * Role: Holds list dimensions, scroll state, and control images for command rendering.
+ * Upstream: zgui_main_menu_widgets.h:211-216, gmmw_list.cpp:463-491
+ */
+export type MainMenuListControlsRenderState<TTexture> = MainMenuListViewState & {
+  width: number;
+  height: number;
+  upButtonState: MainMenuListState;
+  downButtonState: MainMenuListState;
+  listButtonUpImages: readonly (
+    | MainMenuListRenderImage<TTexture>
+    | null
+    | undefined
+  )[];
+  listButtonDownImages: readonly (
+    | MainMenuListRenderImage<TTexture>
+    | null
+    | undefined
+  )[];
+  listScrollerImage: MainMenuListRenderImage<TTexture> | null;
+  listTopRightImage: MainMenuListRenderImage<TTexture> | null;
+  listBottomRightImage: MainMenuListRenderImage<TTexture> | null;
+};
+
+/**
  * Port of upstream `GMMWList` release interaction state.
  * Role: Holds list bounds, scroll state, and scroll-button press states for release handling.
  * Upstream: zgui_main_menu_widgets.h:211-216
@@ -423,6 +608,206 @@ export function checkMainMenuListViewIndex(
 
   if (state.viewIndex > availableSlots) state.viewIndex = availableSlots;
   if (state.viewIndex < 0) state.viewIndex = 0;
+}
+
+/**
+ * Port of upstream `GMMWList::Process`.
+ * Role: Repeats list scrolling while a scroll button is held down.
+ * Upstream: gmmw_list.cpp:68-104
+ */
+export function processMainMenuList(
+  state: MainMenuListProcessState,
+  currentTime: number,
+): void {
+  const clicksPerSecond = 30;
+
+  if (state.upButtonState === MainMenuListState.Pressed) {
+    const timeDifference = currentTime - state.buttonDownTime;
+    if (timeDifference < 0) return;
+
+    const clicksToGo = Math.trunc(timeDifference * clicksPerSecond);
+
+    if (clicksToGo !== 0) {
+      state.viewIndex -= clicksToGo;
+      if (state.viewIndex < 0) state.viewIndex = 0;
+      state.buttonDownTime = currentTime;
+    }
+  }
+
+  if (state.downButtonState === MainMenuListState.Pressed) {
+    const timeDifference = currentTime - state.buttonDownTime;
+    if (timeDifference < 0) return;
+
+    const clicksToGo = Math.trunc(timeDifference * clicksPerSecond);
+
+    if (clicksToGo !== 0) {
+      state.viewIndex += clicksToGo;
+      checkMainMenuListViewIndex(state);
+      state.buttonDownTime = currentTime;
+    }
+  }
+}
+
+/**
+ * Port of upstream `GMMWList::Click`.
+ * Role: Presses list scroll buttons or toggles a clicked entry and emits its index.
+ * Upstream: gmmw_list.cpp:146-185
+ */
+export function clickMainMenuList(
+  state: MainMenuListClickState,
+  pointX: number,
+  pointY: number,
+  currentTime: number,
+): boolean {
+  state.flags.clear();
+
+  const localX = pointX - state.x;
+  const localY = pointY - state.y;
+
+  if (withinMainMenuListUpButton(state, localX, localY)) {
+    state.upButtonState = MainMenuListState.Pressed;
+    state.buttonDownTime = currentTime + 0.2;
+    return true;
+  }
+
+  if (withinMainMenuListDownButton(state, localX, localY)) {
+    state.downButtonState = MainMenuListState.Pressed;
+    state.buttonDownTime = currentTime + 0.2;
+    return true;
+  }
+
+  const entryClicked = withinMainMenuListEntry(state, localX, localY);
+
+  if (entryClicked !== -1 && entryClicked < state.entries.length) {
+    const entry = state.entries[entryClicked];
+    entry.state =
+      entry.state === MainMenuListState.Normal
+        ? MainMenuListState.Pressed
+        : MainMenuListState.Normal;
+    state.flags.listEntrySelected = entryClicked;
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Replacement for upstream `GMMWList::DoRender`.
+ * Role: Delegates active list rendering to background, entries, and controls command builders.
+ * Upstream: gmmw_list.cpp:299-310
+ */
+export function renderMainMenuList<TRenderCommand>(
+  state: MainMenuListRenderState,
+  offsetX: number,
+  offsetY: number,
+  renderBackground: (x: number, y: number) => readonly TRenderCommand[],
+  renderEntries: (x: number, y: number) => readonly TRenderCommand[],
+  renderControls: (x: number, y: number) => readonly TRenderCommand[],
+): TRenderCommand[] {
+  if (!state.finishedInit) return [];
+  if (!state.active) return [];
+
+  const translatedX = offsetX + state.x;
+  const translatedY = offsetY + state.y;
+
+  return [
+    ...renderBackground(translatedX, translatedY),
+    ...renderEntries(translatedX, translatedY),
+    ...renderControls(translatedX, translatedY),
+  ];
+}
+
+function makeTextureCommand<TTexture>(
+  image: MainMenuListRenderImage<TTexture>,
+  destinationX: number,
+  destinationY: number,
+): TexturedSurfaceRenderCommand<TTexture> {
+  return {
+    texture: image.texture,
+    destinationX,
+    destinationY,
+    width: image.width,
+    height: image.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
+}
+
+/**
+ * Replacement for upstream `GMMWList::RenderControls`.
+ * Role: Builds texture commands for list scroll buttons and scrollbar thumb.
+ * Upstream: gmmw_list.cpp:457-493
+ */
+export function renderMainMenuListControls<TTexture>(
+  state: MainMenuListControlsRenderState<TTexture>,
+  offsetX: number,
+  offsetY: number,
+): TexturedSurfaceRenderCommand<TTexture>[] {
+  const commands: TexturedSurfaceRenderCommand<TTexture>[] = [];
+  const buttonX =
+    offsetX + state.width - MAIN_MENU_LIST_UP_BUTTON_RIGHT_OFFSET_PIXELS;
+
+  const upButton = state.listButtonUpImages[state.upButtonState];
+  if (upButton) {
+    commands.push(
+      makeTextureCommand(
+        upButton,
+        buttonX,
+        offsetY + MAIN_MENU_LIST_UP_BUTTON_TOP_OFFSET_PIXELS,
+      ),
+    );
+  }
+
+  const downButton = state.listButtonDownImages[state.downButtonState];
+  if (downButton) {
+    commands.push(
+      makeTextureCommand(
+        downButton,
+        buttonX,
+        offsetY + state.height - MAIN_MENU_LIST_DOWN_BUTTON_BOTTOM_OFFSET_PIXELS,
+      ),
+    );
+  }
+
+  if (
+    state.listScrollerImage &&
+    state.listTopRightImage &&
+    state.listBottomRightImage
+  ) {
+    const totalSpace =
+      state.height -
+      (state.listTopRightImage.height + state.listBottomRightImage.height);
+    const availableSlots = Math.max(
+      state.entries.length - state.visibleEntries,
+      0,
+    );
+    const percentDown = Math.min(
+      Math.max((state.viewIndex + 1) / (availableSlots + 2), 0),
+      1,
+    );
+    const scrollerX =
+      offsetX + state.width - MAIN_MENU_LIST_SCROLLER_RIGHT_OFFSET_PIXELS;
+    const scrollerY =
+      offsetY +
+      state.listTopRightImage.height +
+      totalSpace * percentDown -
+      2;
+
+    commands.push(
+      makeTextureCommand(state.listScrollerImage, scrollerX, scrollerY),
+    );
+  }
+
+  return commands;
 }
 
 /**
@@ -958,6 +1343,84 @@ export function makeMainMenuButtonTextImage<TTextImage>(
 }
 
 /**
+ * Replacement for upstream `GMMWButton::DoRender`.
+ * Role: Builds button background and centered text texture commands.
+ * Upstream: gmmw_button.cpp:74-106
+ */
+export function renderMainMenuButton<TTexture>(
+  state: MainMenuButtonRenderState<TTexture>,
+  offsetX: number,
+  offsetY: number,
+  renderGeneric: (
+    x: number,
+    y: number,
+    buttonState: MainMenuButtonState,
+  ) => readonly TexturedSurfaceRenderCommand<TTexture>[],
+  renderText: MainMenuButtonTextRenderer<MainMenuButtonRenderImage<TTexture>>,
+): TexturedSurfaceRenderCommand<TTexture>[] {
+  if (!state.finishedInit) return [];
+  if (!state.active) return [];
+
+  const translatedX = offsetX + state.x;
+  const translatedY = offsetY + state.y;
+  const commands: TexturedSurfaceRenderCommand<TTexture>[] = [];
+
+  if (state.type === MainMenuButtonType.Generic) {
+    commands.push(...renderGeneric(translatedX, translatedY, state.state));
+  } else {
+    const image = state.nonGenericImages[state.type]?.[state.state];
+    if (image) {
+      commands.push({
+        texture: image.texture,
+        destinationX: translatedX,
+        destinationY: translatedY,
+        width: image.width,
+        height: image.height,
+        sourceX: 0,
+        sourceY: 0,
+        sourceWidth: image.width,
+        sourceHeight: image.height,
+        textureLeft: 0,
+        textureTop: 0,
+        textureRight: 1,
+        textureBottom: 1,
+        scale: 1,
+        angle: 0,
+        alpha: 1,
+      });
+    }
+  }
+
+  makeMainMenuButtonTextImage(state, renderText);
+
+  const textImage = state.textImage;
+  if (!textImage) return commands;
+
+  const addedShift = state.state === MainMenuButtonState.Pressed ? 1 : 0;
+  commands.push({
+    texture: textImage.texture,
+    destinationX:
+      translatedX + (state.width >> 1) - (textImage.width >> 1),
+    destinationY: translatedY + 3 + addedShift,
+    width: textImage.width,
+    height: textImage.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: textImage.width,
+    sourceHeight: textImage.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  });
+
+  return commands;
+}
+
+/**
  * Port of upstream `SetGoodCharsOnly`.
  * Role: Stores the text-box character filter flag and schedules a text rerender.
  * Upstream: zgui_main_menu_widgets.h:354
@@ -1157,6 +1620,24 @@ export type MainMenuLabelTextImageState<TTextImage> = {
 };
 
 /**
+ * Replacement state for upstream `GMMWLabel::DoRender`.
+ * Role: Holds label text rendering cache, placement, activation, and alignment fields.
+ * Upstream: zgui_main_menu_widgets.h:39-44, zgui_main_menu_widgets.h:148-170
+ */
+export type MainMenuLabelRenderState<TTexture> =
+  MainMenuLabelTextImageState<{
+    texture: TTexture;
+    width: number;
+    height: number;
+  }> & {
+    active: boolean;
+    x: number;
+    y: number;
+    width: number;
+    justification: MainMenuLabelJustifyType;
+  };
+
+/**
  * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
  * Role: Allows the browser renderer to provide a label text image or texture.
  * Upstream: gmmw_label.cpp:50
@@ -1180,6 +1661,55 @@ export function makeMainMenuLabelTextImage<TTextImage>(
   state.textImage = state.text.length ? renderText(state.font, state.text) : null;
   state.renderedText = state.text;
   state.rerenderText = false;
+}
+
+/**
+ * Replacement for upstream `GMMWLabel::DoRender`.
+ * Role: Builds the texture command used to draw active, justified main-menu label text.
+ * Upstream: gmmw_label.cpp:21-43
+ */
+export function renderMainMenuLabel<TTexture>(
+  state: MainMenuLabelRenderState<TTexture>,
+  offsetX: number,
+  offsetY: number,
+  renderText: MainMenuLabelTextRenderer<{
+    texture: TTexture;
+    width: number;
+    height: number;
+  }>,
+): TexturedSurfaceRenderCommand<TTexture> | null {
+  if (!state.active) return null;
+
+  makeMainMenuLabelTextImage(state, renderText);
+
+  const image = state.textImage;
+  if (!image) return null;
+
+  let addedShift = 0;
+  if (state.justification === MainMenuLabelJustifyType.Center) {
+    addedShift = (state.width >> 1) - (image.width >> 1);
+  } else if (state.justification === MainMenuLabelJustifyType.Right) {
+    addedShift = state.width - image.width;
+  }
+
+  return {
+    texture: image.texture,
+    destinationX: offsetX + state.x + addedShift,
+    destinationY: offsetY + state.y,
+    width: image.width,
+    height: image.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
 }
 
 /**
@@ -1383,6 +1913,25 @@ export type MainMenuRadioClickState = {
 };
 
 /**
+ * Replacement state for upstream `GMMWRadio::DoRender`.
+ * Role: Holds radio activation, placement, selection count, selected index, and segment images.
+ * Upstream: zgui_main_menu_widgets.h:39-44, zgui_main_menu_widgets.h:286-289
+ */
+export type MainMenuRadioRenderState<TTexture> = {
+  finishedInit: boolean;
+  active: boolean;
+  x: number;
+  y: number;
+  width: number;
+  selections: number;
+  selectedIndex: number;
+  radioLeftImage: MainMenuListRenderImage<TTexture> | null;
+  radioCenterImage: MainMenuListRenderImage<TTexture> | null;
+  radioRightImage: MainMenuListRenderImage<TTexture> | null;
+  radioSelectorImage: MainMenuListRenderImage<TTexture> | null;
+};
+
+/**
  * Port of upstream `GMMWRadio::Init`.
  * Role: Initializes radio widget image paths.
  * Upstream: gmmw_radio.cpp:18-26
@@ -1397,6 +1946,76 @@ export function initMainMenuRadio(state: MainMenuRadioInitState): void {
   state.radioSelectorImage =
     "assets/other/main_menu_gui/radio/radio_selector.png";
   state.finishedInit = true;
+}
+
+/**
+ * Replacement for upstream `GMMWRadio::DoRender`.
+ * Role: Builds texture commands for the radio background segments and selected marker.
+ * Upstream: gmmw_radio.cpp:69-111
+ */
+export function renderMainMenuRadio<TTexture>(
+  state: MainMenuRadioRenderState<TTexture>,
+  offsetX: number,
+  offsetY: number,
+): TexturedSurfaceRenderCommand<TTexture>[] {
+  if (!state.finishedInit) return [];
+  if (!state.active) return [];
+  if (!state.radioLeftImage) return [];
+  if (!state.radioCenterImage) return [];
+  if (!state.radioRightImage) return [];
+  if (!state.radioSelectorImage) return [];
+
+  const translatedX = offsetX + state.x;
+  const translatedY = offsetY + state.y;
+  const commands: TexturedSurfaceRenderCommand<TTexture>[] = [
+    makeTextureCommand(state.radioLeftImage, translatedX, translatedY),
+    makeTextureCommand(
+      state.radioRightImage,
+      translatedX + state.width - MAIN_MENU_RADIO_RIGHT_WIDTH_PIXELS,
+      translatedY,
+    ),
+  ];
+
+  for (let i = 0; i < state.selections - 2; i += 1) {
+    commands.push(
+      makeTextureCommand(
+        state.radioCenterImage,
+        translatedX +
+          MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+          i * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS,
+        translatedY,
+      ),
+    );
+  }
+
+  const leftSelectorX = 7;
+  const centerSelectorX = 4;
+  const rightSelectorX = 4;
+  let selectorX: number;
+
+  if (state.selectedIndex === 0) {
+    selectorX = leftSelectorX;
+  } else if (state.selectedIndex === state.selections - 1) {
+    selectorX =
+      MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+      (state.selections - 2) * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+      rightSelectorX;
+  } else {
+    selectorX =
+      MAIN_MENU_RADIO_LEFT_WIDTH_PIXELS +
+      (state.selectedIndex - 1) * MAIN_MENU_RADIO_CENTER_WIDTH_PIXELS +
+      centerSelectorX;
+  }
+
+  commands.push(
+    makeTextureCommand(
+      state.radioSelectorImage,
+      translatedX + selectorX,
+      translatedY + 1,
+    ),
+  );
+
+  return commands;
 }
 
 /**

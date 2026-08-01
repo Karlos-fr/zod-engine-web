@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ACTIVE_TEAM_TYPE_COUNT } from "../src/simulation/SimulationConstants";
+import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 import {
   CHANGE_TEAMS_JOIN_BUTTON_WIDTH_PIXELS,
+  handleChangeTeamsWidgetEvent,
   highlightOurChangeTeam,
   processChangeTeamsMenu,
   ZGMM_CHANGE_TEAMS_HEADER_GUARD_PORTED,
 } from "../src/ui/MainMenuChangeTeams";
+import { MainMenuEventType, MainMenuFlag } from "../src/ui/MainMenuBase";
 
 describe("main menu change teams", () => {
   it("adapts the gmm_change_teams.h include guard to an ES module marker", async () => {
@@ -105,5 +110,79 @@ describe("main menu change teams", () => {
       "1:true",
       "widgets",
     ]);
+  });
+
+  it("ports GMMChangeTeams HandleWidgetEvent as reshuffle unclick action", () => {
+    const flags = new MainMenuFlag();
+    const reshuffleButton = { refId: 10 };
+    const teamButtons = Array.from(
+      { length: ACTIVE_TEAM_TYPE_COUNT },
+      (_, index) => ({ refId: 100 + index }),
+    );
+
+    handleChangeTeamsWidgetEvent(
+      flags,
+      MainMenuEventType.Unclick,
+      { refId: reshuffleButton.refId },
+      reshuffleButton,
+      teamButtons,
+    );
+
+    expect(flags.reshuffleTeams).toBe(true);
+    expect(flags.changeTeam).toBe(false);
+    expect(flags.changeTeamType).toBe(-1);
+  });
+
+  it("ports GMMChangeTeams HandleWidgetEvent as team-change unclick action", () => {
+    const flags = new MainMenuFlag();
+    const reshuffleButton = { refId: 10 };
+    const teamButtons = Array.from(
+      { length: ACTIVE_TEAM_TYPE_COUNT },
+      (_, index) => ({ refId: 100 + index }),
+    );
+
+    handleChangeTeamsWidgetEvent(
+      flags,
+      MainMenuEventType.Unclick,
+      { refId: teamButtons[TeamType.Green].refId },
+      reshuffleButton,
+      teamButtons,
+    );
+
+    expect(flags.reshuffleTeams).toBe(false);
+    expect(flags.changeTeam).toBe(true);
+    expect(flags.changeTeamType).toBe(TeamType.Green);
+  });
+
+  it("ports GMMChangeTeams HandleWidgetEvent guard cases", () => {
+    const flags = new MainMenuFlag();
+    const reshuffleButton = { refId: 10 };
+    const teamButtons = [{ refId: 100 }];
+
+    handleChangeTeamsWidgetEvent(
+      flags,
+      MainMenuEventType.Click,
+      { refId: 100 },
+      reshuffleButton,
+      teamButtons,
+    );
+    handleChangeTeamsWidgetEvent(
+      flags,
+      MainMenuEventType.Unclick,
+      null,
+      reshuffleButton,
+      teamButtons,
+    );
+    handleChangeTeamsWidgetEvent(
+      flags,
+      MainMenuEventType.Unclick,
+      { refId: 999 },
+      reshuffleButton,
+      teamButtons,
+    );
+
+    expect(flags.reshuffleTeams).toBe(false);
+    expect(flags.changeTeam).toBe(false);
+    expect(flags.changeTeamType).toBe(-1);
   });
 });

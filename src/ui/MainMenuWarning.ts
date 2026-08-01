@@ -1,6 +1,7 @@
 /**
  * Upstream: gmm_warning.h
  */
+import type { TexturedSurfaceRenderCommand } from "../rendering/SurfacePixels";
 import { MainMenuEventType, MainMenuWarningFlag } from "./MainMenuBase";
 
 /**
@@ -43,6 +44,57 @@ export type MainMenuWarningWidgetEventState = {
     resetMap: boolean;
   };
 };
+
+/**
+ * Replacement state for upstream `GMMWarning::DoRender`.
+ * Role: Holds warning dialog initialization, placement, and base image data.
+ * Upstream: gmm_warning.h:21-29, gmm_warning.cpp:55-61
+ */
+export type MainMenuWarningRenderState<TTexture> = {
+  finishedInit: boolean;
+  x: number;
+  y: number;
+  warningImage: {
+    texture: TTexture;
+    width: number;
+    height: number;
+  } | null;
+};
+
+/**
+ * Replacement for upstream `GMMWarning::DoRender`.
+ * Role: Builds the base warning texture command and appends widget render commands.
+ * Upstream: gmm_warning.cpp:53-62
+ */
+export function renderMainMenuWarning<TTexture, TWidgetCommand>(
+  state: MainMenuWarningRenderState<TTexture>,
+  renderWidgets: () => readonly TWidgetCommand[],
+): Array<TexturedSurfaceRenderCommand<TTexture> | TWidgetCommand> {
+  if (!state.finishedInit) return [];
+  if (!state.warningImage) return [...renderWidgets()];
+
+  const image = state.warningImage;
+  const baseCommand: TexturedSurfaceRenderCommand<TTexture> = {
+    texture: image.texture,
+    destinationX: state.x,
+    destinationY: state.y,
+    width: image.width,
+    height: image.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
+
+  return [baseCommand, ...renderWidgets()];
+}
 
 /**
  * Port of upstream `GMMWarning::HandleWidgetEvent`.
