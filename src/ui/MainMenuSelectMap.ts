@@ -4,9 +4,12 @@
 
 import {
   checkMainMenuListViewIndex,
+  getFirstSelectedMainMenuListEntry,
   MainMenuListEntry,
   type MainMenuListViewState,
+  unselectAllMainMenuListEntries,
 } from "./MainMenuWidgets";
+import { MainMenuEventType, type MainMenuFlag } from "./MainMenuBase";
 
 /**
  * Port of upstream `_ZGMM_SELECT_MAP_H_`.
@@ -44,6 +47,17 @@ export type MainMenuSelectMapProcessor = MainMenuSelectMapState & {
 };
 
 /**
+ * Port of upstream `GMMSelectMap::HandleWidgetEvent` state.
+ * Role: Holds select-map widgets and flags needed to react to list and select-button events.
+ * Upstream: gmm_select_map.cpp:64-80
+ */
+export type MainMenuSelectMapWidgetEventState = {
+  gmmFlags: Pick<MainMenuFlag, "changeMap" | "changeMapNumber">;
+  mapList: MainMenuSelectMapListState & { refId: number };
+  selectButton: { refId: number };
+};
+
+/**
  * Port of upstream `GMMSelectMap::SetupList`.
  * Role: Refreshes map-list entries from the selectable map names when the list size changes.
  * Upstream: gmm_select_map.cpp:87-100
@@ -75,4 +89,42 @@ export function processMainMenuSelectMap(
 ): void {
   setupMainMenuSelectMapList(state);
   state.processWidgets();
+}
+
+/**
+ * Port of upstream `GMMSelectMap::HandleWidgetEvent`.
+ * Role: Applies select-map list click clearing and select-button map-change flags.
+ * Upstream: gmm_select_map.cpp:53-85
+ */
+export function handleMainMenuSelectMapWidgetEvent(
+  state: MainMenuSelectMapWidgetEventState,
+  eventType: MainMenuEventType | number,
+  eventWidget: { refId: number } | null | undefined,
+): void {
+  if (!eventWidget) return;
+
+  const widgetRefId = eventWidget.refId;
+
+  switch (eventType) {
+    case MainMenuEventType.Click:
+      if (widgetRefId === state.mapList.refId) {
+        const selectedEntry = getFirstSelectedMainMenuListEntry(state.mapList.entries);
+
+        if (selectedEntry !== -1) {
+          unselectAllMainMenuListEntries(state.mapList.entries, selectedEntry);
+        }
+      }
+      break;
+
+    case MainMenuEventType.Unclick:
+      if (widgetRefId === state.selectButton.refId) {
+        const selectedMap = getFirstSelectedMainMenuListEntry(state.mapList.entries);
+
+        if (selectedMap !== -1) {
+          state.gmmFlags.changeMap = true;
+          state.gmmFlags.changeMapNumber = state.mapList.entries[selectedMap].refId;
+        }
+      }
+      break;
+  }
 }

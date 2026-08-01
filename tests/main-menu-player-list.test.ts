@@ -7,10 +7,14 @@ import {
   handleMainMenuPlayerListWidgetEvent,
   MAIN_MENU_PLAYER_LIST_TEAM_LABELS,
   processMainMenuPlayerList,
+  setupMainMenuPlayerListLayout,
   setupMainMenuPlayerList,
   ZGMM_PLAYER_LIST_HEADER_GUARD_PORTED,
 } from "../src/ui/MainMenuPlayerList";
-import { MainMenuListState } from "../src/ui/MainMenuWidgets";
+import {
+  MainMenuLabelJustifyType,
+  MainMenuListState,
+} from "../src/ui/MainMenuWidgets";
 
 describe("main menu player list", () => {
   it("adapts the gmm_player_list.h include guard to an ES module marker", async () => {
@@ -43,6 +47,60 @@ describe("main menu player list", () => {
     });
 
     expect(calls).toEqual(["setupList", "processWidgets"]);
+  });
+
+  it("ports GMMPlayerList SetupLayout1 as label and list layout", () => {
+    const calls: unknown[] = [];
+    const makeLabel = (name: string) => ({
+      setText: (text: string) => calls.push([name, "text", text]),
+      setCoords: (x: number, y: number) => calls.push([name, "coords", x, y]),
+      setDimensions: (width: number, height: number) =>
+        calls.push([name, "dimensions", width, height]),
+      setJustification: (justification: MainMenuLabelJustifyType) =>
+        calls.push([name, "justification", justification]),
+    });
+    const playerList = {
+      setCoords: (x: number, y: number) => calls.push(["list", "coords", x, y]),
+      setDimensions: (width: number, height: number) =>
+        calls.push(["list", "dimensions", width, height]),
+      setVisibleEntries: (visibleEntries: number) =>
+        calls.push(["list", "visibleEntries", visibleEntries]),
+      getHeight: () => 103,
+    };
+    const playersOnlineLabel = makeLabel("label");
+    const playersOnlineNumberLabel = makeLabel("number");
+    const state = {
+      width: 220,
+      height: 0,
+      playersOnlineLabel,
+      playersOnlineNumberLabel,
+      playerList,
+      widgetList: [] as unknown[],
+      updateDimensions: () => calls.push(["updateDimensions"]),
+    };
+
+    setupMainMenuPlayerListLayout(state);
+
+    expect(calls).toEqual([
+      ["label", "text", "Players Online:"],
+      ["label", "coords", 9, 23],
+      ["label", "dimensions", 210, 0],
+      ["label", "justification", MainMenuLabelJustifyType.Normal],
+      ["number", "text", "50"],
+      ["number", "coords", 5, 23],
+      ["number", "dimensions", 210, 0],
+      ["number", "justification", MainMenuLabelJustifyType.Right],
+      ["list", "coords", 5, 35],
+      ["list", "dimensions", 210, 118],
+      ["list", "visibleEntries", 8],
+      ["updateDimensions"],
+    ]);
+    expect(state.height).toBe(143);
+    expect(state.widgetList).toEqual([
+      playersOnlineLabel,
+      playersOnlineNumberLabel,
+      playerList,
+    ]);
   });
 
   it("ports GMMPlayerList SetupList as no-op without player info", () => {

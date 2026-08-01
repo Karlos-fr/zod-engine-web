@@ -55,12 +55,15 @@ import {
   botUpdateGameSpeedEvent,
   BuildCombo,
   BuildingUnit,
+  canBotBuildAt,
+  incrementBotBuildComboIndexes,
   PreferredUnit,
   removeBotTargetedFromTargets,
   ZBOT_HEADER_GUARD_PORTED,
 } from "../src/simulation/BotAI";
 import { MapObjectType } from "../src/world/MapFormat";
 import { CannonType, RobotType, VehicleType } from "../src/simulation/SimulationConstants";
+import { BuildingState } from "../src/simulation/entities/BuildingTypes";
 
 describe("bot AI", () => {
   it("adapts the zbot.h include guard to an ES module marker", async () => {
@@ -79,6 +82,94 @@ describe("bot AI", () => {
   it("ports build-order heuristic limits", () => {
     expect(BOT_MAX_GUNS_BUILDING_RATIO).toBe(0.35);
     expect(BOT_MAX_BUILD_COMBO_CHECK).toBe(6);
+  });
+
+  it("ports ZBot GetBestBuildComboIncCI as a least-significant index increment", () => {
+    const indexes = [0, 1, 2];
+
+    expect(incrementBotBuildComboIndexes(indexes, 4)).toBe(true);
+    expect(indexes).toEqual([1, 1, 2]);
+  });
+
+  it("ports ZBot GetBestBuildComboIncCI carry to the next index", () => {
+    const indexes = [2, 1, 0];
+
+    expect(incrementBotBuildComboIndexes(indexes, 3)).toBe(true);
+    expect(indexes).toEqual([0, 2, 0]);
+  });
+
+  it("ports ZBot GetBestBuildComboIncCI overflow as false with reset indexes", () => {
+    const indexes = [1, 1];
+
+    expect(incrementBotBuildComboIndexes(indexes, 2)).toBe(false);
+    expect(indexes).toEqual([0, 0]);
+  });
+
+  it("ports ZBot GetBestBuildComboIncCI empty vector as false", () => {
+    const indexes: number[] = [];
+
+    expect(incrementBotBuildComboIndexes(indexes, 3)).toBe(false);
+    expect(indexes).toEqual([]);
+  });
+
+  it("ports ZBot CanBuildAt as false without a building", () => {
+    expect(canBotBuildAt(null, 100)).toBe(false);
+  });
+
+  it("ports ZBot CanBuildAt as true when the building is selecting no unit", () => {
+    expect(
+      canBotBuildAt(
+        {
+          getBuildState: () => BuildingState.Select,
+          percentageProduced: () => 1,
+          productionTimeTotal: () => 100,
+          getLastSetAiBuildTime: () => 95,
+        },
+        100,
+      ),
+    ).toBe(true);
+  });
+
+  it("ports ZBot CanBuildAt as false once production is at least 25 percent", () => {
+    expect(
+      canBotBuildAt(
+        {
+          getBuildState: () => BuildingState.Building,
+          percentageProduced: () => 0.25,
+          productionTimeTotal: () => 100,
+          getLastSetAiBuildTime: () => 0,
+        },
+        100,
+      ),
+    ).toBe(false);
+  });
+
+  it("ports ZBot CanBuildAt as false before 35 percent of total production time has elapsed", () => {
+    expect(
+      canBotBuildAt(
+        {
+          getBuildState: () => BuildingState.Building,
+          percentageProduced: () => 0.1,
+          productionTimeTotal: () => 20,
+          getLastSetAiBuildTime: () => 10,
+        },
+        16.9,
+      ),
+    ).toBe(false);
+  });
+
+  it("ports ZBot CanBuildAt as true for an early build after the AI reset delay", () => {
+    expect(
+      canBotBuildAt(
+        {
+          getBuildState: () => BuildingState.Building,
+          percentageProduced: () => 0.249,
+          productionTimeTotal: () => 20,
+          getLastSetAiBuildTime: () => 10,
+        },
+        17,
+      ),
+    ).toBe(true);
   });
 
   it("ports the bot BuildingUnit forward declaration as an opaque reference", () => {

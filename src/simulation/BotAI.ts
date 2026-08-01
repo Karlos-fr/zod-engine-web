@@ -5,6 +5,7 @@
 import { MapObjectType } from "../world/MapFormat";
 import { setupCoreRandomizer, type CoreRandomizerState } from "./GameCore";
 import { CannonType, RobotType, VehicleType } from "./SimulationConstants";
+import { BuildingState } from "./entities/BuildingTypes";
 
 /**
  * Port of upstream `_ZBOT_H_`.
@@ -220,6 +221,66 @@ export const BOT_MAX_GUNS_BUILDING_RATIO = 0.35;
  * Upstream: zbot.cpp:1946
  */
 export const BOT_MAX_BUILD_COMBO_CHECK = 6;
+
+/**
+ * Port of upstream `ZBot::GetBestBuildComboIncCI`.
+ * Role: Advances one bot build-combination index vector in place.
+ * Upstream: zbot.cpp:1542-1567
+ */
+export function incrementBotBuildComboIndexes(indexes: number[], maxProductionUnits: number): boolean {
+  let index = 0;
+
+  while (true) {
+    if (index >= indexes.length) {
+      return false;
+    }
+
+    indexes[index]++;
+
+    if (indexes[index] >= maxProductionUnits) {
+      indexes[index] = 0;
+      index++;
+    } else {
+      return true;
+    }
+  }
+}
+
+/**
+ * Port of upstream `ZBot::CanBuildAt` building dependency surface.
+ * Role: Provides production state and timing used by bot build-order selection.
+ * Upstream: zbot.cpp:1712-1716
+ */
+export type BotBuildAvailabilityBuilding = {
+  getBuildState(): number;
+  percentageProduced(theTime: number): number;
+  productionTimeTotal(): number;
+  getLastSetAiBuildTime(): number;
+};
+
+/**
+ * Port of upstream `ZBot::CanBuildAt`.
+ * Role: Reports whether bot build selection may update a building now.
+ * Upstream: zbot.cpp:1705-1731
+ */
+export function canBotBuildAt(
+  building: BotBuildAvailabilityBuilding | null,
+  theTime: number,
+): boolean {
+  if (!building) return false;
+
+  if (building.getBuildState() === BuildingState.Select) return true;
+
+  const percentageProduced = building.percentageProduced(theTime);
+  const totalProductionTime = building.productionTimeTotal();
+  const lastSetBuildTime = building.getLastSetAiBuildTime();
+
+  if (percentageProduced >= 0.25) return false;
+
+  if (theTime < lastSetBuildTime + totalProductionTime * 0.35) return false;
+
+  return true;
+}
 
 /**
  * Port of upstream `ZBot::Setup` socket dependency surface.

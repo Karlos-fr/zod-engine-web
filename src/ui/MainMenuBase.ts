@@ -218,6 +218,94 @@ export type MainMenuWheelDownState = {
 };
 
 /**
+ * Port of upstream `ZGMMWidget::KeyPress` call target.
+ * Role: Attempts to consume keyboard input on a main-menu widget.
+ * Upstream: zgui_main_menu_base.cpp:136
+ */
+export type MainMenuKeyPressWidgetTarget = MainMenuWidgetEventTarget & {
+  keyPress(c: number): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` key-press fields.
+ * Role: Holds the main-menu action flags and widgets used by key-press routing.
+ * Upstream: zgui_main_menu_base.cpp:133-136
+ */
+export type MainMenuKeyPressState = {
+  gmmFlags: MainMenuFlagClearTarget;
+  widgetList: MainMenuKeyPressWidgetTarget[];
+};
+
+/**
+ * Port of upstream `ZGMMWidget::Motion` call target.
+ * Role: Attempts to consume pointer motion on a main-menu widget.
+ * Upstream: zgui_main_menu_base.cpp:120
+ */
+export type MainMenuMotionWidgetTarget = MainMenuWidgetEventTarget & {
+  motionButton(x: number, y: number): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` motion fields.
+ * Role: Holds main-menu position, drag state, flags, and widgets used by pointer motion routing.
+ * Upstream: zgui_main_menu_base.cpp:105-120
+ */
+export type MainMenuMotionState = {
+  x: number;
+  y: number;
+  clickGrabbed: boolean;
+  grabX: number;
+  grabY: number;
+  gmmFlags: MainMenuFlagClearTarget;
+  widgetList: MainMenuMotionWidgetTarget[];
+};
+
+/**
+ * Port of upstream `ZGMMWidget::UnClick` call target.
+ * Role: Attempts to consume pointer release on a main-menu widget.
+ * Upstream: zgui_main_menu_base.cpp:226, zgui_main_menu_base.cpp:234
+ */
+export type MainMenuUnClickWidgetTarget = MainMenuWidgetEventTarget & {
+  unClickButton(x: number, y: number): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` unclick fields.
+ * Role: Holds menu bounds, close button, drag state, flags, and widgets used by pointer release routing.
+ * Upstream: zgui_main_menu_base.cpp:217-240
+ */
+export type MainMenuUnClickState = MainMenuBoundsState & {
+  clickGrabbed: boolean;
+  killMe: boolean;
+  gmmFlags: MainMenuFlagClearTarget;
+  closeButton: MainMenuUnClickWidgetTarget;
+  widgetList: MainMenuUnClickWidgetTarget[];
+};
+
+/**
+ * Port of upstream `ZGMMWidget::Click` call target.
+ * Role: Attempts to consume pointer press on a main-menu widget.
+ * Upstream: zgui_main_menu_base.cpp:189, zgui_main_menu_base.cpp:193
+ */
+export type MainMenuClickWidgetTarget = MainMenuWidgetEventTarget & {
+  clickButton(x: number, y: number): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` click fields.
+ * Role: Holds menu bounds, close button, drag state, flags, and widgets used by pointer press routing.
+ * Upstream: zgui_main_menu_base.cpp:183-209
+ */
+export type MainMenuClickState = MainMenuBoundsState & {
+  clickGrabbed: boolean;
+  grabX: number;
+  grabY: number;
+  gmmFlags: MainMenuFlagClearTarget;
+  closeButton: MainMenuClickWidgetTarget;
+  widgetList: MainMenuClickWidgetTarget[];
+};
+
+/**
  * Port of upstream `sound_setting` reference.
  * Role: Holds a mutable audio setting referenced by the main menu base.
  * Upstream: zgui_main_menu_base.h:145, zgui_main_menu_base.h:181
@@ -773,4 +861,148 @@ export function wheelDownMainMenuBase(
   }
 
   return actionTaken;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::KeyPress`.
+ * Role: Clears menu flags, routes keyboard input to widgets, and reports consuming widgets.
+ * Upstream: zgui_main_menu_base.cpp:129-143
+ */
+export function keyPressMainMenuBase(
+  state: MainMenuKeyPressState,
+  c: number,
+  handleWidgetEvent: (
+    eventType: MainMenuEventType,
+    widget: MainMenuWidgetEventTarget,
+  ) => void = handleMainMenuBaseWidgetEvent,
+): boolean {
+  let actionTaken = false;
+
+  state.gmmFlags.clear();
+
+  for (const widget of state.widgetList) {
+    if (widget.keyPress(c)) {
+      handleWidgetEvent(MainMenuEventType.Keypress, widget);
+      actionTaken = true;
+    }
+  }
+
+  return actionTaken;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::Motion`.
+ * Role: Clears menu flags, drags the menu when grabbed, otherwise routes local pointer motion to widgets.
+ * Upstream: zgui_main_menu_base.cpp:100-127
+ */
+export function motionMainMenuBase(
+  state: MainMenuMotionState,
+  x: number,
+  y: number,
+  handleWidgetEvent: (
+    eventType: MainMenuEventType,
+    widget: MainMenuWidgetEventTarget,
+  ) => void = handleMainMenuBaseWidgetEvent,
+): boolean {
+  let actionTaken = false;
+
+  state.gmmFlags.clear();
+
+  if (state.clickGrabbed) {
+    state.x = x - state.grabX;
+    state.y = y - state.grabY;
+    return true;
+  }
+
+  const translatedX = x - state.x;
+  const translatedY = y - state.y;
+
+  for (const widget of state.widgetList) {
+    if (widget.motionButton(translatedX, translatedY)) {
+      handleWidgetEvent(MainMenuEventType.Motion, widget);
+      actionTaken = true;
+    }
+  }
+
+  return actionTaken;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::UnClick`.
+ * Role: Clears menu flags, releases drag state, handles close, then routes local pointer release to widgets.
+ * Upstream: zgui_main_menu_base.cpp:212-241
+ */
+export function unClickMainMenuBase(
+  state: MainMenuUnClickState,
+  x: number,
+  y: number,
+  handleWidgetEvent: (
+    eventType: MainMenuEventType,
+    widget: MainMenuWidgetEventTarget,
+  ) => void = handleMainMenuBaseWidgetEvent,
+): boolean {
+  let actionTaken = false;
+
+  state.gmmFlags.clear();
+  state.clickGrabbed = false;
+
+  const translatedX = x - state.x;
+  const translatedY = y - state.y;
+
+  if (state.closeButton.unClickButton(translatedX, translatedY)) {
+    state.killMe = true;
+    return true;
+  }
+
+  for (const widget of state.widgetList) {
+    if (widget.unClickButton(translatedX, translatedY)) {
+      handleWidgetEvent(MainMenuEventType.Unclick, widget);
+      actionTaken = true;
+    }
+  }
+
+  return actionTaken || withinMainMenuDimensions(state, x, y);
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::Click`.
+ * Role: Clears menu flags, routes local pointer press to widgets, and starts window dragging on empty chrome.
+ * Upstream: zgui_main_menu_base.cpp:177-210
+ */
+export function clickMainMenuBase(
+  state: MainMenuClickState,
+  x: number,
+  y: number,
+  handleWidgetEvent: (
+    eventType: MainMenuEventType,
+    widget: MainMenuWidgetEventTarget,
+  ) => void = handleMainMenuBaseWidgetEvent,
+): boolean {
+  let actionTaken = false;
+
+  state.gmmFlags.clear();
+
+  const translatedX = x - state.x;
+  const translatedY = y - state.y;
+
+  if (state.closeButton.clickButton(translatedX, translatedY)) {
+    actionTaken = true;
+  }
+
+  for (const widget of state.widgetList) {
+    if (widget.clickButton(translatedX, translatedY)) {
+      handleWidgetEvent(MainMenuEventType.Click, widget);
+      actionTaken = true;
+    }
+  }
+
+  const withinDimensions = withinMainMenuDimensions(state, x, y);
+
+  if (!actionTaken && withinDimensions) {
+    state.clickGrabbed = true;
+    state.grabX = translatedX;
+    state.grabY = translatedY;
+  }
+
+  return actionTaken || withinDimensions;
 }

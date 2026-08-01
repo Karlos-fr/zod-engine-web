@@ -8,10 +8,17 @@ import {
 import {
   checkMainMenuListViewIndex,
   isMainMenuListEntryBefore,
+  MainMenuLabelJustifyType,
+  MAIN_MENU_LABEL_HEIGHT_PIXELS,
   MainMenuListEntry,
   type MainMenuListEntryState,
   type MainMenuListViewState,
 } from "./MainMenuWidgets";
+import {
+  MAIN_MENU_BOTTOM_MARGIN_PIXELS,
+  MAIN_MENU_SIDE_MARGIN_PIXELS,
+  MAIN_MENU_TITLE_MARGIN_PIXELS,
+} from "./MainMenuBase";
 
 /**
  * Port of upstream `_ZGMM_PLAYER_LIST_H_`.
@@ -81,6 +88,45 @@ export type MainMenuPlayerListSetupState =
   };
 
 /**
+ * Port of upstream `GMMPlayerList::SetupLayout1` label dependency surface.
+ * Role: Receives player-list label text, position, dimensions, and justification.
+ * Upstream: gmm_player_list.cpp:15-24
+ */
+export type MainMenuPlayerListLayoutLabel = {
+  setText(text: string): void;
+  setCoords(x: number, y: number): void;
+  setDimensions(width: number, height: number): void;
+  setJustification(justification: MainMenuLabelJustifyType): void;
+};
+
+/**
+ * Port of upstream `GMMPlayerList::SetupLayout1` list dependency surface.
+ * Role: Receives player-list position, dimensions, visible row count, and final height.
+ * Upstream: gmm_player_list.cpp:27-32
+ */
+export type MainMenuPlayerListLayoutList = {
+  setCoords(x: number, y: number): void;
+  setDimensions(width: number, height: number): void;
+  setVisibleEntries(visibleEntries: number): void;
+  getHeight(): number;
+};
+
+/**
+ * Port of upstream `GMMPlayerList::SetupLayout1` state.
+ * Role: Holds player-list menu dimensions and widgets used to build layout 1.
+ * Upstream: gmm_player_list.cpp:15-35
+ */
+export type MainMenuPlayerListLayoutState = {
+  width: number;
+  height: number;
+  playersOnlineLabel: MainMenuPlayerListLayoutLabel;
+  playersOnlineNumberLabel: MainMenuPlayerListLayoutLabel;
+  playerList: MainMenuPlayerListLayoutList;
+  widgetList: unknown[];
+  updateDimensions(): void;
+};
+
+/**
  * Port of upstream `GMMPlayerList::Process`.
  * Role: Refreshes the player list and processes its widgets.
  * Upstream: gmm_player_list.cpp:38-43
@@ -90,6 +136,52 @@ export function processMainMenuPlayerList(
 ): void {
   state.setupList();
   state.processWidgets();
+}
+
+/**
+ * Port of upstream `GMMPlayerList::SetupLayout1`.
+ * Role: Builds the player-list menu labels, list widget layout, final height, and widget order.
+ * Upstream: gmm_player_list.cpp:13-36
+ */
+export function setupMainMenuPlayerListLayout(
+  state: MainMenuPlayerListLayoutState,
+): void {
+  const contentWidth = state.width - MAIN_MENU_SIDE_MARGIN_PIXELS * 2;
+
+  state.playersOnlineLabel.setText("Players Online:");
+  state.playersOnlineLabel.setCoords(
+    MAIN_MENU_SIDE_MARGIN_PIXELS + 4,
+    MAIN_MENU_TITLE_MARGIN_PIXELS,
+  );
+  state.playersOnlineLabel.setDimensions(contentWidth, 0);
+  state.playersOnlineLabel.setJustification(MainMenuLabelJustifyType.Normal);
+  state.widgetList.push(state.playersOnlineLabel);
+
+  state.playersOnlineNumberLabel.setText("50");
+  state.playersOnlineNumberLabel.setCoords(
+    MAIN_MENU_SIDE_MARGIN_PIXELS,
+    MAIN_MENU_TITLE_MARGIN_PIXELS,
+  );
+  state.playersOnlineNumberLabel.setDimensions(contentWidth, 0);
+  state.playersOnlineNumberLabel.setJustification(MainMenuLabelJustifyType.Right);
+  state.widgetList.push(state.playersOnlineNumberLabel);
+
+  state.playerList.setCoords(
+    MAIN_MENU_SIDE_MARGIN_PIXELS,
+    MAIN_MENU_TITLE_MARGIN_PIXELS + MAIN_MENU_LABEL_HEIGHT_PIXELS + 2,
+  );
+  state.playerList.setDimensions(contentWidth, 118);
+  state.playerList.setVisibleEntries(8);
+  state.widgetList.push(state.playerList);
+
+  state.height =
+    MAIN_MENU_TITLE_MARGIN_PIXELS +
+    state.playerList.getHeight() +
+    MAIN_MENU_BOTTOM_MARGIN_PIXELS +
+    MAIN_MENU_LABEL_HEIGHT_PIXELS +
+    2;
+
+  state.updateDimensions();
 }
 
 /**

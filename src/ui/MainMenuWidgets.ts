@@ -162,6 +162,88 @@ export type MainMenuButtonTextImageState<TTextImage> = {
   rerenderText: boolean;
 };
 
+export type MainMenuButtonImageTarget = {
+  loadBaseImage(filename: string): void;
+};
+
+/**
+ * Port of upstream `GMMWButton::Init` image fields.
+ * Role: Holds generic and non-generic button image targets plus the initialization flag.
+ * Upstream: gmmw_button.cpp:29-71
+ */
+export type MainMenuButtonInitState = {
+  nonGenericImages: MainMenuButtonImageTarget[][];
+  genericTopLeftImages: MainMenuButtonImageTarget[];
+  genericTopImages: MainMenuButtonImageTarget[];
+  genericTopRightImages: MainMenuButtonImageTarget[];
+  genericLeftImages: MainMenuButtonImageTarget[];
+  genericCenterImages: MainMenuButtonImageTarget[];
+  genericRightImages: MainMenuButtonImageTarget[];
+  genericBottomLeftImages: MainMenuButtonImageTarget[];
+  genericBottomImages: MainMenuButtonImageTarget[];
+  genericBottomRightImages: MainMenuButtonImageTarget[];
+  finishedInit: boolean;
+};
+
+export const MAIN_MENU_BUTTON_TYPE_ASSET_NAMES: Readonly<Record<number, string>> = {
+  [MainMenuButtonType.Close]: "close",
+};
+
+/**
+ * Port of upstream `GMMWButton::Init`.
+ * Role: Loads shared main-menu button image assets and marks button images initialized.
+ * Upstream: gmmw_button.cpp:25-72
+ */
+export function initMainMenuButtonImages(state: MainMenuButtonInitState): void {
+  for (
+    let buttonType = MainMenuButtonType.Generic + 1;
+    buttonType < MainMenuButtonType.MaxButtonTypes;
+    buttonType += 1
+  ) {
+    for (
+      let buttonState = 0;
+      buttonState < MainMenuButtonState.MaxButtonStates;
+      buttonState += 1
+    ) {
+      const token =
+        buttonState === MainMenuButtonState.Pressed ? "pressed" : "normal";
+      state.nonGenericImages[buttonType]?.[buttonState]?.loadBaseImage(
+        `assets/other/main_menu_gui/${MAIN_MENU_BUTTON_TYPE_ASSET_NAMES[buttonType]}_button_${token}.png`,
+      );
+    }
+  }
+
+  const genericTargets = [
+    ["top_left", state.genericTopLeftImages],
+    ["top", state.genericTopImages],
+    ["top_right", state.genericTopRightImages],
+    ["left", state.genericLeftImages],
+    ["center", state.genericCenterImages],
+    ["right", state.genericRightImages],
+    ["bottom_left", state.genericBottomLeftImages],
+    ["bottom", state.genericBottomImages],
+    ["bottom_right", state.genericBottomRightImages],
+  ] as const;
+
+  for (
+    let buttonState = 0;
+    buttonState < MainMenuButtonState.MaxButtonStates;
+    buttonState += 1
+  ) {
+    let token = "normal";
+    if (buttonState === MainMenuButtonState.Pressed) token = "pressed";
+    if (buttonState === MainMenuButtonState.Green) token = "green";
+
+    for (const [segment, targets] of genericTargets) {
+      targets[buttonState]?.loadBaseImage(
+        `assets/other/main_menu_gui/generic_button_${token}_${segment}.png`,
+      );
+    }
+  }
+
+  state.finishedInit = true;
+}
+
 /**
  * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
  * Role: Allows the browser renderer to provide a button text image or texture.

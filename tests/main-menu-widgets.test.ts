@@ -40,6 +40,7 @@ import {
   getMainMenuWidgetRefId,
   getMainMenuWidgetType,
   getMainMenuWidgetWidth,
+  initMainMenuButtonImages,
   initMainMenuRadio,
   initMainMenuTeamColor,
   initMainMenuTextBox,
@@ -134,6 +135,59 @@ describe("main menu widgets", () => {
     expect(MainMenuWidgetType.TeamColor).toBe(5);
     expect(MainMenuWidgetType.TextBox).toBe(6);
     expect(MainMenuWidgetType.MaxWidgets).toBe(7);
+  });
+
+  it("ports GMMWButton Init as shared button image loading", () => {
+    const loaded: string[] = [];
+    const makeTarget = () => ({
+      loadBaseImage: (filename: string) => loaded.push(filename),
+    });
+    const makeStateTargets = () =>
+      Array.from({ length: MainMenuButtonState.MaxButtonStates }, makeTarget);
+    const state = {
+      nonGenericImages: [
+        makeStateTargets(),
+        makeStateTargets(),
+      ],
+      genericTopLeftImages: makeStateTargets(),
+      genericTopImages: makeStateTargets(),
+      genericTopRightImages: makeStateTargets(),
+      genericLeftImages: makeStateTargets(),
+      genericCenterImages: makeStateTargets(),
+      genericRightImages: makeStateTargets(),
+      genericBottomLeftImages: makeStateTargets(),
+      genericBottomImages: makeStateTargets(),
+      genericBottomRightImages: makeStateTargets(),
+      finishedInit: false,
+    };
+
+    initMainMenuButtonImages(state);
+
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/close_button_normal.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/close_button_pressed.png",
+    );
+    expect(
+      loaded.filter(
+        (filename) => filename === "assets/other/main_menu_gui/close_button_normal.png",
+      ),
+    ).toHaveLength(2);
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/generic_button_normal_top_left.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/generic_button_pressed_center.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/main_menu_gui/generic_button_green_bottom_right.png",
+    );
+    expect(loaded).toHaveLength(
+      MainMenuButtonState.MaxButtonStates +
+        MainMenuButtonState.MaxButtonStates * 9,
+    );
+    expect(state.finishedInit).toBe(true);
   });
 
   it("ports gmmw_flag default construction through clear", () => {

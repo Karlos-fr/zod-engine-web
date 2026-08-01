@@ -3,6 +3,7 @@ import { FontType } from "../src/rendering/FontEngine";
 import { PlayerInfo } from "../src/simulation/GameCore";
 import { SimulationTime } from "../src/simulation/SimulationTime";
 import {
+  clickMainMenuBase,
   getMainMenuCoords,
   getMainMenuDimensions,
   getMainMenuType,
@@ -10,6 +11,7 @@ import {
   initMainMenuBase,
   isMainMenuOverHud,
   isMainMenuKilled,
+  keyPressMainMenuBase,
   killMainMenu,
   makeMainMenuTitle,
   type MainMenuBaseImageState,
@@ -28,6 +30,7 @@ import {
   type MainMenuTypeState,
   type MainMenuZTimeState,
   MainMenuType,
+  motionMainMenuBase,
   moveMainMenuBase,
   processMainMenuBase,
   setMainMenuCenterCoords,
@@ -37,6 +40,7 @@ import {
   setMainMenuWarningFlags,
   setMainMenuZTime,
   updateMainMenuDimensions,
+  unClickMainMenuBase,
   withinMainMenuDimensions,
   wheelDownMainMenuBase,
   wheelUpMainMenuBase,
@@ -640,5 +644,383 @@ describe("main menu base", () => {
 
     expect(handled).toBe(false);
     expect(calls).toEqual(["clear", "first"]);
+  });
+
+  it("ports ZGuiMainMenuBase KeyPress as widget routing with flag clear", () => {
+    const calls: unknown[] = [];
+    const handled = keyPressMainMenuBase(
+      {
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            keyPress(c: number) {
+              calls.push(["first", c]);
+              return false;
+            },
+          },
+          {
+            widgetType: 2,
+            refId: 20,
+            keyPress(c: number) {
+              calls.push(["second", c]);
+              return true;
+            },
+          },
+          {
+            widgetType: 3,
+            refId: 30,
+            keyPress(c: number) {
+              calls.push(["third", c]);
+              return true;
+            },
+          },
+        ],
+      },
+      65,
+      (eventType, widget) => {
+        calls.push(["event", eventType, widget.refId]);
+      },
+    );
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual([
+      "clear",
+      ["first", 65],
+      ["second", 65],
+      ["event", MainMenuEventType.Keypress, 20],
+      ["third", 65],
+      ["event", MainMenuEventType.Keypress, 30],
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase KeyPress unhandled path", () => {
+    const calls: string[] = [];
+    const handled = keyPressMainMenuBase(
+      {
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            keyPress() {
+              calls.push("first");
+              return false;
+            },
+          },
+        ],
+      },
+      13,
+      () => calls.push("event"),
+    );
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual(["clear", "first"]);
+  });
+
+  it("ports ZGuiMainMenuBase Motion as grabbed window drag", () => {
+    const calls: string[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      clickGrabbed: true,
+      grabX: 3,
+      grabY: 4,
+      gmmFlags: { clear: () => calls.push("clear") },
+      widgetList: [
+        {
+          widgetType: 1,
+          refId: 10,
+          motionButton() {
+            calls.push("widget");
+            return true;
+          },
+        },
+      ],
+    };
+
+    expect(motionMainMenuBase(state, 100, 200, () => calls.push("event"))).toBe(true);
+    expect(state.x).toBe(97);
+    expect(state.y).toBe(196);
+    expect(calls).toEqual(["clear"]);
+  });
+
+  it("ports ZGuiMainMenuBase Motion as translated widget routing", () => {
+    const calls: unknown[] = [];
+    const handled = motionMainMenuBase(
+      {
+        x: 10,
+        y: 20,
+        clickGrabbed: false,
+        grabX: 0,
+        grabY: 0,
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            motionButton(x: number, y: number) {
+              calls.push(["first", x, y]);
+              return false;
+            },
+          },
+          {
+            widgetType: 2,
+            refId: 20,
+            motionButton(x: number, y: number) {
+              calls.push(["second", x, y]);
+              return true;
+            },
+          },
+        ],
+      },
+      17,
+      29,
+      (eventType, widget) => calls.push(["event", eventType, widget.refId]),
+    );
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual([
+      "clear",
+      ["first", 7, 9],
+      ["second", 7, 9],
+      ["event", MainMenuEventType.Motion, 20],
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase Click as close and widget routing", () => {
+    const calls: unknown[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      clickGrabbed: false,
+      grabX: 0,
+      grabY: 0,
+      gmmFlags: { clear: () => calls.push("clear") },
+      closeButton: {
+        widgetType: 1,
+        refId: 5,
+        clickButton(x: number, y: number) {
+          calls.push(["close", x, y]);
+          return true;
+        },
+      },
+      widgetList: [
+        {
+          widgetType: 2,
+          refId: 20,
+          clickButton(x: number, y: number) {
+            calls.push(["first", x, y]);
+            return false;
+          },
+        },
+        {
+          widgetType: 3,
+          refId: 30,
+          clickButton(x: number, y: number) {
+            calls.push(["second", x, y]);
+            return true;
+          },
+        },
+      ],
+    };
+
+    expect(
+      clickMainMenuBase(
+        state,
+        17,
+        31,
+        (eventType, widget) => calls.push(["event", eventType, widget.refId]),
+      ),
+    ).toBe(true);
+    expect(state.clickGrabbed).toBe(false);
+    expect(calls).toEqual([
+      "clear",
+      ["close", 7, 11],
+      ["first", 7, 11],
+      ["second", 7, 11],
+      ["event", MainMenuEventType.Click, 30],
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase Click as empty chrome drag start", () => {
+    const calls: unknown[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      clickGrabbed: false,
+      grabX: 0,
+      grabY: 0,
+      gmmFlags: { clear: () => calls.push("clear") },
+      closeButton: {
+        widgetType: 1,
+        refId: 5,
+        clickButton: () => false,
+      },
+      widgetList: [
+        {
+          widgetType: 2,
+          refId: 20,
+          clickButton: () => false,
+        },
+      ],
+    };
+
+    expect(clickMainMenuBase(state, 17, 31, () => calls.push("event"))).toBe(true);
+    expect(state.clickGrabbed).toBe(true);
+    expect(state.grabX).toBe(7);
+    expect(state.grabY).toBe(11);
+    expect(calls).toEqual(["clear"]);
+  });
+
+  it("ports ZGuiMainMenuBase Click outside dimensions as unhandled", () => {
+    const calls: unknown[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      clickGrabbed: false,
+      grabX: 0,
+      grabY: 0,
+      gmmFlags: { clear: () => calls.push("clear") },
+      closeButton: {
+        widgetType: 1,
+        refId: 5,
+        clickButton: () => false,
+      },
+      widgetList: [],
+    };
+
+    expect(clickMainMenuBase(state, 91, 60, () => calls.push("event"))).toBe(false);
+    expect(state.clickGrabbed).toBe(false);
+    expect(calls).toEqual(["clear"]);
+  });
+
+  it("ports ZGuiMainMenuBase UnClick as close-button kill", () => {
+    const calls: unknown[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      clickGrabbed: true,
+      killMe: false,
+      gmmFlags: { clear: () => calls.push("clear") },
+      closeButton: {
+        widgetType: 1,
+        refId: 5,
+        unClickButton(x: number, y: number) {
+          calls.push(["close", x, y]);
+          return true;
+        },
+      },
+      widgetList: [
+        {
+          widgetType: 2,
+          refId: 20,
+          unClickButton() {
+            calls.push("widget");
+            return true;
+          },
+        },
+      ],
+    };
+
+    expect(unClickMainMenuBase(state, 17, 31, () => calls.push("event"))).toBe(true);
+    expect(state.clickGrabbed).toBe(false);
+    expect(state.killMe).toBe(true);
+    expect(calls).toEqual(["clear", ["close", 7, 11]]);
+  });
+
+  it("ports ZGuiMainMenuBase UnClick as translated widget routing", () => {
+    const calls: unknown[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      clickGrabbed: true,
+      killMe: false,
+      gmmFlags: { clear: () => calls.push("clear") },
+      closeButton: {
+        widgetType: 1,
+        refId: 5,
+        unClickButton(x: number, y: number) {
+          calls.push(["close", x, y]);
+          return false;
+        },
+      },
+      widgetList: [
+        {
+          widgetType: 2,
+          refId: 20,
+          unClickButton(x: number, y: number) {
+            calls.push(["first", x, y]);
+            return false;
+          },
+        },
+        {
+          widgetType: 3,
+          refId: 30,
+          unClickButton(x: number, y: number) {
+            calls.push(["second", x, y]);
+            return true;
+          },
+        },
+      ],
+    };
+
+    expect(
+      unClickMainMenuBase(
+        state,
+        17,
+        31,
+        (eventType, widget) => calls.push(["event", eventType, widget.refId]),
+      ),
+    ).toBe(true);
+    expect(state.clickGrabbed).toBe(false);
+    expect(state.killMe).toBe(false);
+    expect(calls).toEqual([
+      "clear",
+      ["close", 7, 11],
+      ["first", 7, 11],
+      ["second", 7, 11],
+      ["event", MainMenuEventType.Unclick, 30],
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase UnClick as within-dimensions fallback", () => {
+    const calls: unknown[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      clickGrabbed: true,
+      killMe: false,
+      gmmFlags: { clear: () => calls.push("clear") },
+      closeButton: {
+        widgetType: 1,
+        refId: 5,
+        unClickButton: () => false,
+      },
+      widgetList: [
+        {
+          widgetType: 2,
+          refId: 20,
+          unClickButton: () => false,
+        },
+      ],
+    };
+
+    expect(unClickMainMenuBase(state, 90, 60, () => calls.push("event"))).toBe(true);
+    expect(unClickMainMenuBase(state, 91, 60, () => calls.push("event"))).toBe(false);
+    expect(calls).toEqual(["clear", "clear"]);
   });
 });
