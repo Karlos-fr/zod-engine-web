@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
+  getTeamPaletteReplacement,
   initTeamRendering,
   loadTeamZSurface,
   saveAllTeamPalettes,
@@ -94,6 +95,34 @@ describe("team rendering", () => {
       baseColor: [{ red: 1, green: 2, blue: 3 }],
       replaceColor: [{ red: 4, green: 5, blue: 6 }],
     });
+  });
+
+  it("ports ZTeam_Palette GetReplacement as base-color lookup", () => {
+    const state = {
+      baseColor: [
+        { red: 1, green: 2, blue: 3 },
+        { red: 10, green: 20, blue: 30 },
+      ],
+      replaceColor: [
+        { red: 4, green: 5, blue: 6 },
+        { red: 40, green: 50, blue: 60 },
+      ],
+    };
+
+    expect(getTeamPaletteReplacement(state, 10, 20, 30)).toEqual({
+      red: 40,
+      green: 50,
+      blue: 60,
+    });
+  });
+
+  it("ports ZTeam_Palette GetReplacement as null when no base color matches", () => {
+    const state = {
+      baseColor: [{ red: 1, green: 2, blue: 3 }],
+      replaceColor: [{ red: 4, green: 5, blue: 6 }],
+    };
+
+    expect(getTeamPaletteReplacement(state, 1, 2, 4)).toBeNull();
   });
 
   it("ports ZTeam SaveAllPalettes over every active team slot", () => {

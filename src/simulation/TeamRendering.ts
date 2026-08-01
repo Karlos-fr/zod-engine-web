@@ -133,6 +133,33 @@ export function addTeamPaletteColor(
 }
 
 /**
+ * Port of upstream `ZTeam_Palette::GetReplacement`.
+ * Role: Finds a replacement palette color for a matching base RGB entry.
+ * Upstream: zteam.cpp:144-185
+ */
+export function getTeamPaletteReplacement(
+  state: TeamPaletteColorState,
+  red: number,
+  green: number,
+  blue: number,
+): TeamPaletteColor | null {
+  for (let i = 0; i < TEAM_RENDERING_PALETTE_MAX; i += 1) {
+    const baseColor = state.baseColor[i];
+
+    if (
+      baseColor &&
+      red === baseColor.red &&
+      green === baseColor.green &&
+      blue === baseColor.blue
+    ) {
+      return state.replaceColor[i] ?? null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Port of upstream `ZTeam::SaveAllPalettes`.
  * Role: Delegates palette saving once for every active team slot.
  * Upstream: zteam.cpp:300-306
