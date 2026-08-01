@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   findPathThread,
+  PathFindingBresenham,
   PathFindingEngine,
   PathFindingRegionInfo,
   PathFindingResponse,
@@ -15,6 +16,104 @@ import {
 import { ROAD_SPEED, WATER_SPEED } from "../src/simulation/SimulationConstants";
 
 describe("PathFindingEngine", () => {
+  it("ports ZPath_Finding_Bresenham::Init as forward traversal state setup", () => {
+    const line = new PathFindingBresenham();
+
+    line.init(1, 2, 5, 4, 10, 10);
+
+    expect(line).toMatchObject({
+      inited: true,
+      startX: 1,
+      startY: 2,
+      endX: 5,
+      endY: 4,
+      nextX: 1,
+      nextY: 2,
+      deltaX: 8,
+      deltaY: 4,
+      stepX: 1,
+      stepY: 1,
+      fraction: 0,
+    });
+  });
+
+  it("ports ZPath_Finding_Bresenham::Init as reverse steep traversal state setup", () => {
+    const line = new PathFindingBresenham();
+
+    line.init(6, 7, 2, 1, 10, 10);
+
+    expect(line).toMatchObject({
+      inited: true,
+      startX: 6,
+      startY: 7,
+      endX: 2,
+      endY: 1,
+      nextX: 6,
+      nextY: 7,
+      deltaX: 8,
+      deltaY: 12,
+      stepX: -1,
+      stepY: -1,
+      fraction: 4,
+    });
+  });
+
+  it("ports ZPath_Finding_Bresenham::Init as clearing initialization on invalid bounds", () => {
+    const line = new PathFindingBresenham();
+    line.init(1, 1, 2, 2, 4, 4);
+
+    line.init(-1, 1, 2, 2, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(1, -1, 2, 2, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(4, 1, 2, 2, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(1, 4, 2, 2, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(1, 1, -1, 2, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(1, 1, 2, -1, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(1, 1, 4, 2, 4, 4);
+    expect(line.inited).toBe(false);
+
+    line.init(1, 1, 2, 4, 4, 4);
+    expect(line.inited).toBe(false);
+  });
+
+  it("ports ZPath_Finding_Bresenham::GetNext as x-dominant line traversal", () => {
+    const line = new PathFindingBresenham();
+    line.init(1, 1, 4, 2, 10, 10);
+
+    expect(line.getNext()).toEqual(new PathFindingPoint(2, 1));
+    expect(line.getNext()).toEqual(new PathFindingPoint(3, 2));
+    expect(line.getNext()).toEqual(new PathFindingPoint(4, 2));
+    expect(line.getNext()).toBeNull();
+  });
+
+  it("ports ZPath_Finding_Bresenham::GetNext as y-dominant reverse traversal", () => {
+    const line = new PathFindingBresenham();
+    line.init(4, 5, 2, 1, 10, 10);
+
+    expect(line.getNext()).toEqual(new PathFindingPoint(3, 4));
+    expect(line.getNext()).toEqual(new PathFindingPoint(3, 3));
+    expect(line.getNext()).toEqual(new PathFindingPoint(2, 2));
+    expect(line.getNext()).toEqual(new PathFindingPoint(2, 1));
+    expect(line.getNext()).toBeNull();
+  });
+
+  it("ports ZPath_Finding_Bresenham::GetNext as null when not initialized", () => {
+    const line = new PathFindingBresenham();
+
+    expect(line.getNext()).toBeNull();
+  });
+
   it("ports ZPath_Finding_RegionInfo::Init as zeroed region allocation", () => {
     const regionInfo = new PathFindingRegionInfo();
     regionInfo.width = 1;

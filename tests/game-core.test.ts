@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   BuildingType,
+  ItemType,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   PlayerConnectionMode,
@@ -13,10 +14,12 @@ import { WaypointMode } from "../src/simulation/entities/EntityTypes";
 import { ZEncryptAES } from "../src/simulation/EncryptionAES";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import { MapObjectType } from "../src/world/MapFormat";
+import { VoteType } from "../src/simulation/VotePresentation";
 import {
   allowCoreRun,
   areaIsCoreFortTurret,
   checkCoreRallypoint,
+  checkCoreUnitLimitReached,
   createCoreObjectOk,
   createCoreRandomBotBypassData,
   createCoreWaypointSendData,
@@ -24,8 +27,10 @@ import {
   deleteCoreObjectCleanUp,
   GAMES_PER_VOTING_POWER_POINT,
   CORE_PACKED_WAYPOINT_BYTES,
+  CORE_TEAM_TYPE_LABELS,
   getCoreObjectFromId,
   getCoreObjectIndex,
+  getCoreVoteAppendDescription,
   getCoreVotesAgainst,
   getCoreVotesFor,
   getCoreVotesNeeded,
@@ -34,6 +39,7 @@ import {
   PlayerInfo,
   PlayerVoteChoice,
   resetCoreUnitLimitReached,
+  resetCoreZoneOwnagePercentages,
   runCore,
   setCoreBotBypassData,
   setupCore,
@@ -45,7 +51,10 @@ import type {
   CoreBotBypassDataState,
   CoreRandomizerState,
   CoreRunPermissionState,
+  CoreUnitLimitObject,
   CoreUnitLimitState,
+  CoreZoneOwnageObject,
+  CoreZoneOwnageState,
 } from "../src/simulation/GameCore";
 
 describe("game core", () => {
@@ -429,6 +438,65 @@ describe("game core", () => {
     ).toBe(3);
   });
 
+  it("ports ZCore VoteAppendDescription as indexed map vote text", () => {
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.ChangeMap,
+        voteValue: 1,
+        selectableMapList: ["alpha.map", "beta.map"],
+      }),
+    ).toBe("1. beta.map");
+  });
+
+  it("ports ZCore VoteAppendDescription as bot vote team names", () => {
+    expect(CORE_TEAM_TYPE_LABELS[TeamType.Red]).toBe("RED");
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.StartBot,
+        voteValue: TeamType.Blue,
+        selectableMapList: [],
+      }),
+    ).toBe("BLUE");
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.StopBot,
+        voteValue: TeamType.Green,
+        selectableMapList: [],
+      }),
+    ).toBe("GREEN");
+  });
+
+  it("ports ZCore VoteAppendDescription as empty for unsupported or out-of-range votes", () => {
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.ChangeMap,
+        voteValue: -1,
+        selectableMapList: ["alpha.map"],
+      }),
+    ).toBe("");
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.ChangeMap,
+        voteValue: 1,
+        selectableMapList: ["alpha.map"],
+      }),
+    ).toBe("");
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.StartBot,
+        voteValue: ACTIVE_TEAM_TYPE_COUNT,
+        selectableMapList: [],
+      }),
+    ).toBe("");
+    expect(
+      getCoreVoteAppendDescription({
+        voteType: VoteType.Pause,
+        voteValue: TeamType.Red,
+        selectableMapList: ["alpha.map"],
+      }),
+    ).toBe("");
+  });
+
   it("ports ZCore CreateObjectOk as active-team owner validation", () => {
     expect(createCoreObjectOk(1, 2, 30, 40, 0, 5, 6)).toBe(true);
     expect(
@@ -565,4 +633,138 @@ describe("game core", () => {
       ACTIVE_TEAM_TYPE_COUNT + 1,
     );
   });
+
+  it("ports ZCore CheckUnitLimitReached as recounting unit objects by owner", () => {
+    const state: CoreUnitLimitState = {
+      unitLimitReached: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => false),
+      teamUnitsAvailable: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => 99),
+    };
+    const objects: CoreUnitLimitObject[] = [
+      createCoreUnitLimitObject(MapObjectType.Robot, TeamType.Red),
+      createCoreUnitLimitObject(MapObjectType.Vehicle, TeamType.Red),
+      createCoreUnitLimitObject(MapObjectType.Cannon, TeamType.Blue),
+      createCoreUnitLimitObject(MapObjectType.Building, TeamType.Red),
+    ];
+
+    expect(checkCoreUnitLimitReached(state, objects, 2)).toBe(true);
+
+    expect(state.teamUnitsAvailable).toEqual([
+      0,
+      2,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+    ]);
+    expect(state.unitLimitReached[TeamType.Red]).toBe(true);
+    expect(state.unitLimitReached[TeamType.Blue]).toBe(false);
+    expect(state.unitLimitReached[TeamType.Null]).toBe(false);
+  });
+
+  it("ports ZCore CheckUnitLimitReached as reporting changed and unchanged limit flags", () => {
+    const state: CoreUnitLimitState = {
+      unitLimitReached: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => false),
+      teamUnitsAvailable: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => 0),
+    };
+    const objects = [
+      createCoreUnitLimitObject(MapObjectType.Robot, TeamType.Green),
+      createCoreUnitLimitObject(MapObjectType.Cannon, TeamType.Green),
+    ];
+
+    expect(checkCoreUnitLimitReached(state, objects, 2)).toBe(true);
+    expect(checkCoreUnitLimitReached(state, objects, 2)).toBe(false);
+
+    expect(checkCoreUnitLimitReached(state, [], 2)).toBe(true);
+    expect(state.unitLimitReached[TeamType.Green]).toBe(false);
+    expect(state.teamUnitsAvailable[TeamType.Green]).toBe(0);
+  });
+
+  it("ports ZCore ResetZoneOwnagePercentages as clearing percentages when no flags exist", () => {
+    const state: CoreZoneOwnageState = {
+      teamZonePercentage: Array.from(
+        { length: ACTIVE_TEAM_TYPE_COUNT + 1 },
+        () => 0.5,
+      ),
+    };
+    const building = createCoreZoneOwnageObject(MapObjectType.Building, 0, TeamType.Red);
+
+    resetCoreZoneOwnagePercentages(state, [building]);
+
+    expect(state.teamZonePercentage.slice(0, ACTIVE_TEAM_TYPE_COUNT)).toEqual(
+      Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => 0),
+    );
+    expect(state.teamZonePercentage[ACTIVE_TEAM_TYPE_COUNT]).toBe(0.5);
+    expect(building.zoneOwnageCalls).toEqual([]);
+  });
+
+  it("ports ZCore ResetZoneOwnagePercentages as flag ownership fractions propagated to objects", () => {
+    const state: CoreZoneOwnageState = {
+      teamZonePercentage: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => 0),
+    };
+    const redFlag = createCoreZoneOwnageObject(
+      MapObjectType.MapItem,
+      ItemType.Flag,
+      TeamType.Red,
+    );
+    const blueFlag = createCoreZoneOwnageObject(
+      MapObjectType.MapItem,
+      ItemType.Flag,
+      TeamType.Blue,
+    );
+    const secondBlueFlag = createCoreZoneOwnageObject(
+      MapObjectType.MapItem,
+      ItemType.Flag,
+      TeamType.Blue,
+    );
+    const redBuilding = createCoreZoneOwnageObject(
+      MapObjectType.Building,
+      0,
+      TeamType.Red,
+    );
+
+    resetCoreZoneOwnagePercentages(state, [
+      redFlag,
+      blueFlag,
+      secondBlueFlag,
+      redBuilding,
+    ]);
+
+    expect(state.teamZonePercentage[TeamType.Red]).toBeCloseTo(1 / 3);
+    expect(state.teamZonePercentage[TeamType.Blue]).toBeCloseTo(2 / 3);
+    expect(state.teamZonePercentage[TeamType.Green]).toBe(0);
+    expect(redFlag.zoneOwnageCalls).toEqual([1 / 3]);
+    expect(blueFlag.zoneOwnageCalls).toEqual([2 / 3]);
+    expect(secondBlueFlag.zoneOwnageCalls).toEqual([2 / 3]);
+    expect(redBuilding.zoneOwnageCalls).toEqual([1 / 3]);
+  });
 });
+
+function createCoreUnitLimitObject(
+  objectType: MapObjectType,
+  owner: TeamType,
+): CoreUnitLimitObject {
+  return {
+    getObjectId: () => ({ objectType, objectId: 0 }),
+    getOwner: () => owner,
+  };
+}
+
+function createCoreZoneOwnageObject(
+  objectType: MapObjectType,
+  objectId: number,
+  owner: TeamType,
+): CoreZoneOwnageObject & { zoneOwnageCalls: number[] } {
+  const zoneOwnageCalls: number[] = [];
+
+  return {
+    zoneOwnageCalls,
+    getObjectId: () => ({ objectType, objectId }),
+    getOwner: () => owner,
+    setZoneOwnage: (zoneOwnage) => {
+      zoneOwnageCalls.push(zoneOwnage);
+    },
+  };
+}

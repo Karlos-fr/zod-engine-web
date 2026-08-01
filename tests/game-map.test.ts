@@ -10,6 +10,7 @@ import {
 } from "../src/world/GameMap";
 import { MapObjectType, type MapObject } from "../src/world/MapFormat";
 import {
+  PlanetType,
   ROAD_SPEED,
   TeamType,
   WATER_SPEED,
@@ -134,6 +135,64 @@ describe("GameMap", () => {
         fileLoaded: true,
       }).loaded(),
     ).toBe(true);
+  });
+
+  it("ports ZMap::CheckLoad as accepting matching dimensions, tile ids, and terrain", () => {
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      mapTiles: [
+        { tile: 0 },
+        { tile: 1 },
+        { tile: MAX_PLANET_TILES - 1 },
+        { tile: MAX_PLANET_TILES },
+      ],
+      terrainType: PlanetType.City,
+    });
+
+    expect(map.checkLoad()).toBe(true);
+  });
+
+  it("ports ZMap::CheckLoad as rejecting a mismatched tile count", () => {
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      mapTiles: [{ tile: 0 }, { tile: 1 }, { tile: 2 }],
+      terrainType: PlanetType.Desert,
+    });
+
+    expect(map.checkLoad()).toBe(false);
+  });
+
+  it("ports ZMap::CheckLoad as rejecting tile ids above the planet tile limit", () => {
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      mapTiles: [
+        { tile: 0 },
+        { tile: 1 },
+        { tile: MAX_PLANET_TILES + 1 },
+        { tile: 2 },
+      ],
+      terrainType: PlanetType.Desert,
+    });
+
+    expect(map.checkLoad()).toBe(false);
+  });
+
+  it("ports ZMap::CheckLoad as rejecting terrain palettes past the planet maximum", () => {
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      mapTiles: Array.from({ length: 4 }, () => ({ tile: 0 })),
+      terrainType: PlanetType.Max,
+    });
+
+    expect(map.checkLoad()).toBe(false);
   });
 
   it("ports ZMap::ClearMap as loaded map state cleanup", () => {

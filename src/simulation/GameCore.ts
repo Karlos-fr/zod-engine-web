@@ -8,6 +8,7 @@ import { ZEncryptAES } from "./EncryptionAES";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   BuildingType,
+  ItemType,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   PlayerConnectionMode,
@@ -15,6 +16,7 @@ import {
   TeamType,
   VehicleType,
 } from "./SimulationConstants";
+import { VoteType } from "./VotePresentation";
 import { MapObjectType } from "../world/MapFormat";
 
 /**
@@ -43,6 +45,23 @@ export enum PlayerVoteChoice {
  * Upstream: zcore.h:110
  */
 export const GAMES_PER_VOTING_POWER_POINT = 5;
+
+/**
+ * Port of upstream `team_type_string`.
+ * Role: Provides stable team names for core vote descriptions.
+ * Upstream: constants.cpp:16
+ */
+export const CORE_TEAM_TYPE_LABELS: Readonly<Record<number, string>> = {
+  [TeamType.Null]: "NULL",
+  [TeamType.Red]: "RED",
+  [TeamType.Blue]: "BLUE",
+  [TeamType.Green]: "GREEN",
+  [TeamType.Yellow]: "YELLOW",
+  [TeamType.Purple]: "PURPLE",
+  [TeamType.Teal]: "TEAL",
+  [TeamType.White]: "WHITE",
+  [TeamType.Black]: "BLACK",
+};
 
 /**
  * Port of upstream `ZCore::Run`.
@@ -211,6 +230,53 @@ export type CoreBotBypassDataState = {
 export type CoreUnitLimitState = {
   unitLimitReached: boolean[];
   teamUnitsAvailable: number[];
+};
+
+/**
+ * Port of upstream `ZCore::CheckUnitLimitReached` object dependency surface.
+ * Role: Provides object type and owner team for unit-limit accounting.
+ * Upstream: zcore.cpp:733-741
+ */
+export type CoreUnitLimitObject = {
+  getObjectId(): {
+    objectType: number;
+    objectId: number;
+  };
+  getOwner(): number;
+};
+
+/**
+ * Port of upstream `team_zone_percentage`.
+ * Role: Stores each team's current fraction of owned map zones.
+ * Upstream: zcore.h:198
+ */
+export type CoreZoneOwnageState = {
+  teamZonePercentage: number[];
+};
+
+/**
+ * Port of upstream `ZCore::ResetZoneOwnagePercentages` object dependency surface.
+ * Role: Provides flag identity, owner team, and zone-ownage propagation.
+ * Upstream: zcore.cpp:381-402
+ */
+export type CoreZoneOwnageObject = {
+  getObjectId(): {
+    objectType: number;
+    objectId: number;
+  };
+  getOwner(): number;
+  setZoneOwnage(zoneOwnage: number): void;
+};
+
+/**
+ * Port of upstream `ZCore::VoteAppendDescription` state surface.
+ * Role: Supplies the active vote kind, numeric value, and map list.
+ * Upstream: zcore.cpp:444-473
+ */
+export type CoreVoteAppendDescriptionState = {
+  voteType: VoteType | number;
+  voteValue: number;
+  selectableMapList: readonly string[];
 };
 
 /**
@@ -455,6 +521,33 @@ export function getCoreVotesNeeded(players: PlayerInfo[]): number {
 }
 
 /**
+ * Port of upstream `ZCore::VoteAppendDescription`.
+ * Role: Builds the extra description text for map-change and bot-team votes.
+ * Upstream: zcore.cpp:444-473
+ */
+export function getCoreVoteAppendDescription(
+  state: CoreVoteAppendDescriptionState,
+): string {
+  const value = state.voteValue;
+
+  switch (state.voteType) {
+    case VoteType.ChangeMap:
+      if (value < 0) return "";
+      if (value >= state.selectableMapList.length) return "";
+
+      return `${value}. ${state.selectableMapList[value]}`;
+    case VoteType.StartBot:
+    case VoteType.StopBot:
+      if (value < 0) return "";
+      if (value >= ACTIVE_TEAM_TYPE_COUNT) return "";
+
+      return CORE_TEAM_TYPE_LABELS[value] ?? "";
+  }
+
+  return "";
+}
+
+/**
  * Port of upstream `ZCore::CreateObjectOk`.
  * Role: Validates object creation requests before spawning; upstream currently only
  * rejects invalid owner teams.
@@ -550,5 +643,89 @@ export function resetCoreUnitLimitReached(
   for (let i = 0; i < ACTIVE_TEAM_TYPE_COUNT; i += 1) {
     state.unitLimitReached[i] = false;
     state.teamUnitsAvailable[i] = 0;
+  }
+}
+
+/**
+ * Port of upstream `ZCore::CheckUnitLimitReached`.
+ * Role: Recounts unit-owning objects per team and reports whether limit flags changed.
+ * Upstream: zcore.cpp:724-759
+ */
+export function checkCoreUnitLimitReached(
+  state: CoreUnitLimitState,
+  objectList: readonly CoreUnitLimitObject[],
+  maxUnitsPerTeam: number,
+): boolean {
+  let changeMade = false;
+
+  for (let i = 0; i < ACTIVE_TEAM_TYPE_COUNT; i += 1) {
+    state.teamUnitsAvailable[i] = 0;
+  }
+
+  for (const object of objectList) {
+    const objectId = object.getObjectId();
+
+    if (
+      objectId.objectType !== MapObjectType.Robot &&
+      objectId.objectType !== MapObjectType.Vehicle &&
+      objectId.objectType !== MapObjectType.Cannon
+    ) {
+      continue;
+    }
+
+    state.teamUnitsAvailable[object.getOwner()] += 1;
+  }
+
+  for (let i = 1; i < ACTIVE_TEAM_TYPE_COUNT; i += 1) {
+    if (state.teamUnitsAvailable[i] >= maxUnitsPerTeam) {
+      if (!state.unitLimitReached[i]) changeMade = true;
+      state.unitLimitReached[i] = true;
+    } else {
+      if (state.unitLimitReached[i]) changeMade = true;
+      state.unitLimitReached[i] = false;
+    }
+  }
+
+  return changeMade;
+}
+
+/**
+ * Port of upstream `ZCore::ResetZoneOwnagePercentages`.
+ * Role: Recomputes map-flag ownership fractions and applies the owning team's fraction to every object.
+ * Upstream: zcore.cpp:366-403
+ */
+export function resetCoreZoneOwnagePercentages(
+  state: CoreZoneOwnageState,
+  objectList: readonly CoreZoneOwnageObject[],
+): void {
+  const zoneOwnage = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () => 0);
+  let zones = 0;
+
+  for (let i = 0; i < ACTIVE_TEAM_TYPE_COUNT; i += 1) {
+    state.teamZonePercentage[i] = 0;
+  }
+
+  for (const object of objectList) {
+    const objectId = object.getObjectId();
+
+    if (
+      objectId.objectType !== MapObjectType.MapItem ||
+      objectId.objectId !== ItemType.Flag
+    ) {
+      continue;
+    }
+
+    zoneOwnage[object.getOwner()] += 1;
+    zones += 1;
+  }
+
+  if (!zones) return;
+
+  for (let i = 0; i < ACTIVE_TEAM_TYPE_COUNT; i += 1) {
+    state.teamZonePercentage[i] = zoneOwnage[i] / zones;
+  }
+
+  for (const object of objectList) {
+    object.setZoneOwnage(state.teamZonePercentage[object.getOwner()]);
   }
 }

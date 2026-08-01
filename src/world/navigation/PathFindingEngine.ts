@@ -253,6 +253,111 @@ export class PathFindingRegionInfo {
   }
 }
 
+/**
+ * Port of upstream `ZPath_Finding_Bresenham`.
+ * Role: Stores incremental line traversal state for tile-space path checks.
+ * Upstream: zpath_finding.h:17-28
+ */
+export class PathFindingBresenham {
+  inited = false;
+  startX = 0;
+  startY = 0;
+  endX = 0;
+  endY = 0;
+  nextX = 0;
+  nextY = 0;
+  deltaX = 0;
+  deltaY = 0;
+  stepX = 1;
+  stepY = 1;
+  fraction = 0;
+
+  /**
+   * Port of upstream `ZPath_Finding_Bresenham::Init`.
+   * Role: Initializes bounded Bresenham traversal state between two map tiles.
+   * Upstream: zpath_finding.cpp:13-52
+   */
+  init(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    width: number,
+    height: number,
+  ): void {
+    this.inited = false;
+
+    if (startX < 0) return;
+    if (startY < 0) return;
+    if (startX >= width) return;
+    if (startY >= height) return;
+    if (endX < 0) return;
+    if (endY < 0) return;
+    if (endX >= width) return;
+    if (endY >= height) return;
+
+    this.startX = startX;
+    this.startY = startY;
+    this.endX = endX;
+    this.endY = endY;
+
+    this.nextX = this.startX;
+    this.nextY = this.startY;
+
+    this.deltaX = this.endX - this.startX;
+    this.deltaY = this.endY - this.startY;
+
+    this.stepX = this.deltaX < 0 ? -1 : 1;
+    this.stepY = this.deltaY < 0 ? -1 : 1;
+
+    this.deltaX = Math.abs(this.deltaX * 2);
+    this.deltaY = Math.abs(this.deltaY * 2);
+
+    if (this.deltaY > this.deltaX) {
+      this.fraction = this.deltaX * 2 - this.deltaY;
+    } else {
+      this.fraction = this.deltaY * 2 - this.deltaX;
+    }
+
+    this.inited = true;
+  }
+
+  /**
+   * Port of upstream `ZPath_Finding_Bresenham::GetNext`.
+   * Role: Advances one tile along the initialized Bresenham line.
+   * Upstream: zpath_finding.cpp:54-92
+   */
+  getNext(): PathFindingPoint | null {
+    if (!this.inited) return null;
+
+    if (this.deltaY > this.deltaX) {
+      if (this.nextY === this.endY) return null;
+
+      if (this.fraction >= 0) {
+        this.nextX += this.stepX;
+        this.fraction -= this.deltaY;
+      }
+
+      this.nextY += this.stepY;
+      this.fraction += this.deltaX;
+
+      return new PathFindingPoint(this.nextX, this.nextY);
+    }
+
+    if (this.nextX === this.endX) return null;
+
+    if (this.fraction >= 0) {
+      this.nextY += this.stepY;
+      this.fraction -= this.deltaX;
+    }
+
+    this.nextX += this.stepX;
+    this.fraction += this.deltaY;
+
+    return new PathFindingPoint(this.nextX, this.nextY);
+  }
+}
+
 export type PathFindingTileSet = {
   robotTiles: MapPathfindingTile[][];
   robotNoRocksTiles: MapPathfindingTile[][];

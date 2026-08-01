@@ -46,6 +46,29 @@ export enum SoundSetting {
 }
 
 /**
+ * Browser-side replacement for upstream `Mix_Volume`.
+ * Role: Applies a volume to one mixer channel or all channels when the channel is -1.
+ * Upstream: zplayer.cpp:3914
+ */
+export type ChannelVolumeSetter = (channel: number, volume: number) => void;
+
+/**
+ * Browser-side replacement for upstream `Mix_VolumeMusic`.
+ * Role: Applies a volume to music playback.
+ * Upstream: zplayer.cpp:3915
+ */
+export type MusicVolumeSetter = (volume: number) => void;
+
+/**
+ * Port of upstream `ZPlayer::SetSoundSetting` mutable field.
+ * Role: Stores the active player audio setting.
+ * Upstream: zplayer.cpp:3906
+ */
+export type PlayerAudioSettingState = {
+  soundSetting: SoundSetting | number;
+};
+
+/**
  * Port of upstream `sound_engine_sound`.
  * Role: Identifies every sound effect slot managed in the sound engine.
  * Upstream: zsound_engine.h:11-41
@@ -238,6 +261,20 @@ export type MusicDangerLevelState = {
 export type MusicResetter = () => void;
 
 /**
+ * Browser-side replacement for upstream `Mix_SetMusicPosition`.
+ * Role: Seeks the active music stream to a segment start position.
+ * Upstream: zmusic_engine.cpp:355
+ */
+export type MusicPositionSetter = (position: number) => number;
+
+/**
+ * Browser-side replacement for upstream `Mix_GetError`.
+ * Role: Supplies backend error text after a failed music seek.
+ * Upstream: zmusic_engine.cpp:356
+ */
+export type MusicErrorReader = () => string;
+
+/**
  * Port of upstream `ZMusicEngine::SetDangerLevel`.
  * Role: Applies a valid danger-level change and resets music when the level changes.
  * Upstream: zmusic_engine.cpp:320-332
@@ -408,6 +445,24 @@ export type PlanetMusicState = {
 };
 
 /**
+ * Port of upstream `ZMusicEngine::ResetMusic` mutable fields.
+ * Role: Stores planet playback state, danger-level starts, and scheduled reset times.
+ * Upstream: zmusic_engine.cpp:334-370
+ */
+export type MusicResetState = {
+  playingPlanetMusic: boolean;
+  planetType: PlanetType | number;
+  dangerLevel: MusicDangerLevel | number;
+  dangerLevelStarts: readonly (
+    | readonly (readonly DangerLevelStartInfo[] | undefined)[]
+    | undefined
+  )[];
+  doNextReset: boolean;
+  nextResetTime: number;
+  nextChangeDangerLevelTime: number;
+};
+
+/**
  * Port of upstream `ZSoundEngine::StopRepeatWav` mutable fields.
  * Role: Holds repeat-capable sound channels managed by the sound engine.
  * Upstream: zsound_engine.cpp:269-282
@@ -483,6 +538,36 @@ export type AudioClock = () => number;
  * Upstream: zsound_engine.cpp:69, zsound_engine.cpp:72
  */
 export type BoundedRandomInt = (maxExclusive: number) => number;
+
+const PLAYER_SOUND_SETTING_VOLUME: Readonly<
+  Record<number, { channelVolume: number; musicVolume: number; news: string }>
+> = {
+  [SoundSetting.Sound0]: {
+    channelVolume: 0,
+    musicVolume: 0,
+    news: "volume off",
+  },
+  [SoundSetting.Sound25]: {
+    channelVolume: 128 / 4,
+    musicVolume: 80 / 4,
+    news: "volume 25%",
+  },
+  [SoundSetting.Sound50]: {
+    channelVolume: 128 / 2,
+    musicVolume: 80 / 2,
+    news: "volume 50%",
+  },
+  [SoundSetting.Sound75]: {
+    channelVolume: (128 * 3) / 4,
+    musicVolume: (80 * 3) / 4,
+    news: "volume 75%",
+  },
+  [SoundSetting.Sound100]: {
+    channelVolume: 128,
+    musicVolume: 80,
+    news: "volume full",
+  },
+};
 
 const MUSIC_ENGINE_PLANET_TYPE_NAMES = [
   "desert",
@@ -627,6 +712,58 @@ export function playPlanetMusic(
 }
 
 /**
+ * Port of upstream `ZMusicEngine::ResetMusic`.
+ * Role: Seeks planet music to a random segment for the current danger level and schedules the next reset/change times.
+ * Upstream: zmusic_engine.cpp:334-370
+ */
+export function resetMusicEngine(
+  state: MusicResetState,
+  setMusicPosition: MusicPositionSetter,
+  currentTime: AudioClock,
+  randomInt: BoundedRandomInt,
+  getMusicError: MusicErrorReader = () => "",
+  onMusicPositionError: (message: string) => void = (): void => undefined,
+): void {
+  if (!state.playingPlanetMusic) return;
+  if (state.dangerLevel < 0) return;
+  if (state.dangerLevel >= MusicDangerLevel.MaxDangerLevels) return;
+
+  const starts = state.dangerLevelStarts[state.planetType]?.[state.dangerLevel];
+
+  if (!starts?.length) {
+    return;
+  }
+
+  const randomStartIndex = randomInt(starts.length) % starts.length;
+  const start = starts[randomStartIndex];
+
+  if (!start) return;
+
+  if (setMusicPosition(start.position) === -1) {
+    onMusicPositionError(getMusicError());
+  }
+
+  const theTime = currentTime();
+  state.doNextReset = true;
+  state.nextResetTime = theTime + start.length;
+
+  switch (state.dangerLevel) {
+    case MusicDangerLevel.Calm:
+      state.nextChangeDangerLevelTime = theTime + 5;
+      break;
+    case MusicDangerLevel.Attacking:
+      state.nextChangeDangerLevelTime = theTime + 7;
+      break;
+    case MusicDangerLevel.Fort:
+      state.nextChangeDangerLevelTime = theTime + 3;
+      break;
+    default:
+      state.nextChangeDangerLevelTime = theTime + 7;
+      break;
+  }
+}
+
+/**
  * Port of upstream `ZSoundEngine::StopRepeatWav`.
  * Role: Stops repeat playback for repeat-capable sound engine slots.
  * Upstream: zsound_engine.cpp:269-282
@@ -709,6 +846,33 @@ export function playSound<TChunk extends SoundChunkWithVolume>(
   state.nextPlayTime = theTime + state.playTimeShift + 0.01 * randomInt(31);
   state.soundChunk.volume = state.baseVolume + randomInt(state.volumeShift);
   playChannel(-1, state.soundChunk, 0);
+}
+
+/**
+ * Port of upstream `ZPlayer::SetSoundSetting`.
+ * Role: Normalizes the player sound preset, applies mixer volumes, and emits the volume news line.
+ * Upstream: zplayer.cpp:3904-3939
+ */
+export function setPlayerSoundSetting(
+  state: PlayerAudioSettingState,
+  soundSetting: number,
+  setChannelVolume: ChannelVolumeSetter,
+  setMusicVolume: MusicVolumeSetter,
+  addNewsEntry: (message: string) => void,
+): void {
+  state.soundSetting = soundSetting;
+
+  if (state.soundSetting < 0) state.soundSetting = SoundSetting.Sound0;
+  if (state.soundSetting >= SoundSetting.MaxSoundSettings) {
+    state.soundSetting = SoundSetting.Sound0;
+  }
+
+  const volume = PLAYER_SOUND_SETTING_VOLUME[state.soundSetting];
+  if (!volume) return;
+
+  setChannelVolume(-1, volume.channelVolume);
+  setMusicVolume(volume.musicVolume);
+  addNewsEntry(volume.news);
 }
 
 /**

@@ -9,6 +9,8 @@ import {
   SoundEngineSound,
   SOUND_ENGINE_MAX_COMP_LOSING_MESSAGES,
   SOUND_ENGINE_MIX_CHANNELS,
+  type MusicResetState,
+  type PlayerAudioSettingState,
   ZMUSIC_ENGINE_HEADER_GUARD_PORTED,
   ZSOUND_ENGINE_HEADER_GUARD_PORTED,
   getMusicEngineDangerLevel,
@@ -20,6 +22,8 @@ import {
   playWavRestricted,
   repeatSound,
   repeatWav,
+  resetMusicEngine,
+  setPlayerSoundSetting,
   setMusicEngineDangerLevel,
   setMusicEngineMusicOn,
   stopRepeatSound,
@@ -59,6 +63,66 @@ describe("audio service", () => {
     expect(SoundSetting.Sound75).toBe(3);
     expect(SoundSetting.Sound100).toBe(4);
     expect(SoundSetting.MaxSoundSettings).toBe(5);
+  });
+
+  it("ports ZPlayer SetSoundSetting as mixer volume and news updates", () => {
+    const cases = [
+      [SoundSetting.Sound0, 0, 0, "volume off"],
+      [SoundSetting.Sound25, 32, 20, "volume 25%"],
+      [SoundSetting.Sound50, 64, 40, "volume 50%"],
+      [SoundSetting.Sound75, 96, 60, "volume 75%"],
+      [SoundSetting.Sound100, 128, 80, "volume full"],
+    ] as const;
+
+    for (const [setting, channelVolume, musicVolume, news] of cases) {
+      const state: PlayerAudioSettingState = { soundSetting: SoundSetting.Sound0 };
+      const calls: unknown[][] = [];
+
+      setPlayerSoundSetting(
+        state,
+        setting,
+        (channel, volume) => calls.push(["channel", channel, volume]),
+        (volume) => calls.push(["music", volume]),
+        (message) => calls.push(["news", message]),
+      );
+
+      expect(state.soundSetting).toBe(setting);
+      expect(calls).toEqual([
+        ["channel", -1, channelVolume],
+        ["music", musicVolume],
+        ["news", news],
+      ]);
+    }
+  });
+
+  it("ports ZPlayer SetSoundSetting as clamping invalid settings to sound off", () => {
+    const state: PlayerAudioSettingState = { soundSetting: SoundSetting.Sound100 };
+    const calls: unknown[][] = [];
+
+    setPlayerSoundSetting(
+      state,
+      SoundSetting.MaxSoundSettings,
+      (channel, volume) => calls.push(["channel", channel, volume]),
+      (volume) => calls.push(["music", volume]),
+      (message) => calls.push(["news", message]),
+    );
+    setPlayerSoundSetting(
+      state,
+      -1,
+      (channel, volume) => calls.push(["channel", channel, volume]),
+      (volume) => calls.push(["music", volume]),
+      (message) => calls.push(["news", message]),
+    );
+
+    expect(state.soundSetting).toBe(SoundSetting.Sound0);
+    expect(calls).toEqual([
+      ["channel", -1, 0],
+      ["music", 0],
+      ["news", "volume off"],
+      ["channel", -1, 0],
+      ["music", 0],
+      ["news", "volume off"],
+    ]);
   });
 
   it("ports sound_engine_sound identifiers in upstream order", () => {
@@ -460,6 +524,167 @@ describe("audio service", () => {
     expect(state.playingPlanetMusic).toBe(true);
     expect(state.doNextReset).toBe(false);
     expect(state.dangerLevel).toBe(MusicDangerLevel.Calm);
+  });
+
+  it("keeps ZMusicEngine ResetMusic unchanged when planet music is not active or danger level is invalid", () => {
+    const state: MusicResetState = {
+      playingPlanetMusic: false,
+      planetType: PlanetType.Desert,
+      dangerLevel: MusicDangerLevel.Calm,
+      dangerLevelStarts: [[[new DangerLevelStartInfo(10, 4)]]],
+      doNextReset: false,
+      nextResetTime: 1,
+      nextChangeDangerLevelTime: 2,
+    };
+
+    resetMusicEngine(
+      state,
+      () => {
+        throw new Error("setMusicPosition should not be called");
+      },
+      () => 20,
+      () => 0,
+    );
+    state.playingPlanetMusic = true;
+    state.dangerLevel = -1;
+    resetMusicEngine(
+      state,
+      () => {
+        throw new Error("setMusicPosition should not be called");
+      },
+      () => 20,
+      () => 0,
+    );
+    state.dangerLevel = MusicDangerLevel.MaxDangerLevels;
+    resetMusicEngine(
+      state,
+      () => {
+        throw new Error("setMusicPosition should not be called");
+      },
+      () => 20,
+      () => 0,
+    );
+
+    expect(state.doNextReset).toBe(false);
+    expect(state.nextResetTime).toBe(1);
+    expect(state.nextChangeDangerLevelTime).toBe(2);
+  });
+
+  it("keeps ZMusicEngine ResetMusic unchanged without start information", () => {
+    const state: MusicResetState = {
+      playingPlanetMusic: true,
+      planetType: PlanetType.Jungle,
+      dangerLevel: MusicDangerLevel.Attacking,
+      dangerLevelStarts: [],
+      doNextReset: false,
+      nextResetTime: 1,
+      nextChangeDangerLevelTime: 2,
+    };
+
+    resetMusicEngine(
+      state,
+      () => {
+        throw new Error("setMusicPosition should not be called");
+      },
+      () => 20,
+      () => 0,
+    );
+
+    expect(state.doNextReset).toBe(false);
+    expect(state.nextResetTime).toBe(1);
+    expect(state.nextChangeDangerLevelTime).toBe(2);
+  });
+
+  it("ports ZMusicEngine ResetMusic as random segment seek and reset scheduling", () => {
+    const starts = [
+      new DangerLevelStartInfo(12.5, 4),
+      new DangerLevelStartInfo(30, 8.5),
+    ];
+    const state: MusicResetState = {
+      playingPlanetMusic: true,
+      planetType: PlanetType.Desert,
+      dangerLevel: MusicDangerLevel.Fort,
+      dangerLevelStarts: [
+        [
+          [],
+          [],
+          starts,
+        ],
+      ],
+      doNextReset: false,
+      nextResetTime: 0,
+      nextChangeDangerLevelTime: 0,
+    };
+    const calls: unknown[][] = [];
+
+    resetMusicEngine(
+      state,
+      (position) => {
+        calls.push(["seek", position]);
+        return 0;
+      },
+      () => 100,
+      (maxExclusive) => {
+        calls.push(["random", maxExclusive]);
+        return 1;
+      },
+    );
+
+    expect(calls).toEqual([
+      ["random", 2],
+      ["seek", 30],
+    ]);
+    expect(state.doNextReset).toBe(true);
+    expect(state.nextResetTime).toBe(108.5);
+    expect(state.nextChangeDangerLevelTime).toBe(103);
+  });
+
+  it("ports ZMusicEngine ResetMusic danger-level change delays", () => {
+    const start = new DangerLevelStartInfo(0, 2);
+    const state: MusicResetState = {
+      playingPlanetMusic: true,
+      planetType: PlanetType.Desert,
+      dangerLevel: MusicDangerLevel.Calm,
+      dangerLevelStarts: [[[start], [start], [start]]],
+      doNextReset: false,
+      nextResetTime: 0,
+      nextChangeDangerLevelTime: 0,
+    };
+
+    resetMusicEngine(state, () => 0, () => 10, () => 0);
+    expect(state.nextChangeDangerLevelTime).toBe(15);
+
+    state.dangerLevel = MusicDangerLevel.Attacking;
+    resetMusicEngine(state, () => 0, () => 10, () => 0);
+    expect(state.nextChangeDangerLevelTime).toBe(17);
+  });
+
+  it("ports ZMusicEngine ResetMusic as reporting music seek backend errors", () => {
+    const state: MusicResetState = {
+      playingPlanetMusic: true,
+      planetType: PlanetType.Desert,
+      dangerLevel: MusicDangerLevel.Calm,
+      dangerLevelStarts: [[[new DangerLevelStartInfo(45, 6)]]],
+      doNextReset: false,
+      nextResetTime: 0,
+      nextChangeDangerLevelTime: 0,
+    };
+    const errors: string[] = [];
+
+    resetMusicEngine(
+      state,
+      () => -1,
+      () => 20,
+      () => 0,
+      () => "seek failed",
+      (message) => {
+        errors.push(message);
+      },
+    );
+
+    expect(errors).toEqual(["seek failed"]);
+    expect(state.doNextReset).toBe(true);
+    expect(state.nextResetTime).toBe(26);
   });
 
   it("replaces ZMix_PlayChannel with guarded backend playback", () => {

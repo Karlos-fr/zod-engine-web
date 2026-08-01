@@ -16,6 +16,7 @@ import {
   type PaletteTileInfo,
 } from "./MapFormat";
 import {
+  PlanetType,
   ROAD_SPEED,
   TeamType,
   WATER_SPEED,
@@ -324,6 +325,29 @@ export class GameMap {
    */
   loaded(): boolean {
     return this.fileLoaded;
+  }
+
+  /**
+   * Port of upstream `ZMap::CheckLoad`.
+   * Role: Validates loaded map dimensions, tile ids, and terrain palette id.
+   * Upstream: zmap.cpp:491-518
+   */
+  checkLoad(): boolean {
+    if (this.mapTiles.length !== this.width * this.height) {
+      return false;
+    }
+
+    for (const mapTile of this.mapTiles) {
+      if (mapTile.tile > MAX_PLANET_TILES) {
+        return false;
+      }
+    }
+
+    if (this.terrainType >= PlanetType.Max) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
