@@ -21,6 +21,7 @@ import {
   playerEndGameEvent,
   playerFireObjectMissileEvent,
   playerGetVersionEvent,
+  playerPickupGrenadeEvent,
   playerResetGameEvent,
   playerRequestVersionEvent,
   playerSetBuildQueueListEvent,
@@ -42,6 +43,7 @@ import {
   playerSetSelectableMapListEvent,
   playerSetSettingsEvent,
   playerSetPlayerTeamEvent,
+  playerStoreMapEvent,
   playerSetTeamEvent,
   playerSetVoteInfoEvent,
   playerSetZoneInfoEvent,
@@ -99,6 +101,52 @@ describe("player events", () => {
     );
 
     expect(calls).toEqual(["process-disconnect"]);
+  });
+
+  it("ports ZPlayer store_map_event as map download only until loaded", () => {
+    const calls: unknown[] = [];
+    const player = createStoreMapPlayer(calls, false);
+    const data = new Uint8Array([1, 2, 3]);
+
+    playerStoreMapEvent(player, data, 3, 99);
+
+    expect(calls).toEqual(["download", data, 3, "loaded"]);
+  });
+
+  it("ports ZPlayer store_map_event as post-load map and HUD setup", () => {
+    const calls: unknown[] = [];
+    const player = createStoreMapPlayer(calls, true);
+    player.graphicsLoaded = true;
+
+    playerStoreMapEvent(player, "map", 7, 99);
+
+    expect(calls).toEqual([
+      "download",
+      "map",
+      7,
+      "loaded",
+      "view",
+      700,
+      564,
+      "basics",
+      "terrain",
+      4,
+      "minimap",
+      "animals",
+      "music",
+      4,
+    ]);
+  });
+
+  it("ports ZPlayer store_map_event without music before graphics load", () => {
+    const calls: unknown[] = [];
+    const player = createStoreMapPlayer(calls, true);
+    player.graphicsLoaded = false;
+
+    playerStoreMapEvent(player, null, 0, 99);
+
+    expect(calls).toContain("animals");
+    expect(calls).not.toContain("music");
   });
 
   it("ports ZPlayer end_game_event as end-game processing", () => {
@@ -427,6 +475,112 @@ describe("player events", () => {
       refId: 42,
       selectObject: true,
     });
+  });
+
+  it("ports ZPlayer pickup_grenade_event guard exits", () => {
+    const calls: unknown[] = [];
+    const object = {
+      refId: 42,
+      getOwner: () => 2,
+      doPickupGrenadeAnim: () => calls.push("pickup"),
+    };
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => false,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerPickupGrenadeEvent(state, { refId: 42 }, 1, 99);
+    playerPickupGrenadeEvent({ ...state, objectList: [] }, { refId: 42 }, 4, 99);
+
+    expect(calls).toEqual([]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer pickup_grenade_event as pickup animation without local portrait feedback", () => {
+    const calls: unknown[] = [];
+    const object = {
+      refId: 42,
+      getOwner: () => 3,
+      doPickupGrenadeAnim: () => calls.push("pickup"),
+    };
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => false,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerPickupGrenadeEvent(state, { refId: 42 }, 4, 99);
+
+    expect(calls).toEqual(["pickup"]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer pickup_grenade_event as local portrait feedback and focus storage", () => {
+    const calls: unknown[] = [];
+    const packet = new Uint8Array(4);
+    new DataView(packet.buffer).setInt32(0, 42, true);
+    const object = {
+      refId: 42,
+      getOwner: () => 2,
+      doPickupGrenadeAnim: () => calls.push("pickup"),
+    };
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => false,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerPickupGrenadeEvent(state, packet, packet.length, 99);
+
+    expect(calls).toEqual([
+      "pickup",
+      ["set", 42],
+      ["anim", PortraitAnimationType.GrenadesCollected],
+    ]);
+    expect(state.spaceEventList[0]).toMatchObject({
+      refId: 42,
+      selectObject: true,
+    });
+  });
+
+  it("ports ZPlayer pickup_grenade_event as no portrait feedback during active portrait animation", () => {
+    const calls: unknown[] = [];
+    const object = {
+      refId: 42,
+      getOwner: () => 2,
+      doPickupGrenadeAnim: () => calls.push("pickup"),
+    };
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => true,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerPickupGrenadeEvent(state, { refId: 42 }, 4, 99);
+
+    expect(calls).toEqual(["pickup"]);
+    expect(state.spaceEventList).toEqual([]);
   });
 
   it("ports ZPlayer display_login_event as no-op for invalid packet size", () => {
@@ -1411,3 +1565,43 @@ describe("player events", () => {
     expect(calls).toEqual([false, null]);
   });
 });
+
+function createStoreMapPlayer(calls: unknown[], loaded: boolean) {
+  return {
+    initWidth: 800,
+    initHeight: 600,
+    graphicsLoaded: false,
+    zmap: {
+      loaded: () => {
+        calls.push("loaded");
+        return loaded;
+      },
+      setViewingDimensions(width: number, height: number) {
+        calls.push("view", width, height);
+      },
+      getMapBasics: () => {
+        calls.push("basics");
+        return { terrainType: 4 };
+      },
+    },
+    zhud: {
+      setTerrainType(terrainType: number) {
+        calls.push("terrain", terrainType);
+      },
+      minimap: {
+        setupBoundaries() {
+          calls.push("minimap");
+        },
+      },
+    },
+    processMapDownload(data: Uint8Array | string | null, size: number) {
+      calls.push("download", data, size);
+    },
+    initAnimals() {
+      calls.push("animals");
+    },
+    playPlanetMusic(terrainType: number) {
+      calls.push("music", terrainType);
+    },
+  };
+}

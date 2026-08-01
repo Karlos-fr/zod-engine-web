@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { TeamType } from "../src/simulation/SimulationConstants";
+import {
+  RobotType,
+  TeamType,
+  VehicleType,
+} from "../src/simulation/SimulationConstants";
 import { Waypoint } from "../src/simulation/entities/EntityTypes";
+import { GameEntity } from "../src/simulation/entities/GameEntity";
 import { RepairBuildingEntity } from "../src/simulation/entities/RepairBuildingEntity";
+import { MapObjectType } from "../src/world/MapFormat";
 import type { GameMap } from "../src/world/GameMap";
 
 type ImpassableCall = {
@@ -124,6 +130,69 @@ describe("repair building entity", () => {
 
     building.repairingUnit = true;
     expect(building.repairingAUnit()).toBe(true);
+  });
+
+  it("ports BRepair SetRepairUnit guard exits", () => {
+    const building = new RepairBuildingEntity({
+      id: "repair-set-guard",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+    const unit = new GameEntity({
+      id: "repair-set-unit",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+
+    expect(building.setRepairUnit(null)).toBe(false);
+
+    building.repairingUnit = true;
+    expect(building.setRepairUnit(unit)).toBe(false);
+
+    building.repairingUnit = false;
+    building.owner = TeamType.Red;
+    expect(building.setRepairUnit(unit)).toBe(false);
+  });
+
+  it("ports BRepair SetRepairUnit as copied repair payload capture", () => {
+    const building = new RepairBuildingEntity({
+      id: "repair-set",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+    const unit = new GameEntity({
+      id: "repair-set-unit",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+      objectType: MapObjectType.Vehicle,
+      objectId: VehicleType.Light,
+    });
+    const waypoint = new Waypoint();
+    waypoint.mode = 5;
+    waypoint.x = 12;
+    waypoint.y = 34;
+    unit.driverType = RobotType.Psycho;
+    unit.driverInfo = [{ health: 88, nextAttackTime: 12 }];
+    unit.waypointList = [waypoint];
+    building.ztime = { ztime: 21 };
+
+    expect(building.setRepairUnit(unit)).toBe(true);
+
+    expect(building.repairingUnit).toBe(true);
+    expect(building.repairTime).toBe(26);
+    expect(building.repairObjectType).toBe(MapObjectType.Vehicle);
+    expect(building.repairObjectId).toBe(VehicleType.Light);
+    expect(building.repairDriverType).toBe(RobotType.Psycho);
+    expect(building.repairDriverInfo).toEqual([{ health: 88, nextAttackTime: 12 }]);
+    expect(building.repairDriverInfo).not.toBe(unit.driverInfo);
+    expect(building.repairDriverInfo[0]).not.toBe(unit.driverInfo[0]);
+    expect(building.repairWaypointList).toHaveLength(1);
+    expect(building.repairWaypointList[0]).toMatchObject({ mode: 5, x: 12, y: 34 });
+    expect(building.repairWaypointList[0]).not.toBe(waypoint);
   });
 
   it("ports BRepair DoRepairBuildingAnim as enabled repair animation timing", () => {

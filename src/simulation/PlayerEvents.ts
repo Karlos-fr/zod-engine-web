@@ -37,6 +37,45 @@ export type PlayerSelectableMapListProcessor = {
 };
 
 /**
+ * Port of upstream `ZMap::Loaded` and post-load setup surface.
+ * Role: Provides map-load status, dimensions, and terrain data after map download.
+ * Upstream: zplayer_events.cpp:631-635
+ */
+export type PlayerStoreMap = {
+  loaded(): boolean;
+  setViewingDimensions(width: number, height: number): void;
+  getMapBasics(): { terrainType: number };
+};
+
+/**
+ * Port of upstream `ZHud` map-download setup surface.
+ * Role: Applies terrain and minimap bounds after a map is loaded.
+ * Upstream: zplayer_events.cpp:634-635
+ */
+export type PlayerStoreMapHud = {
+  setTerrainType(terrainType: number): void;
+  minimap: {
+    setupBoundaries(): void;
+  };
+};
+
+/**
+ * Port of upstream `ZPlayer::store_map_event` state.
+ * Role: Holds map download processing and post-load player presentation setup.
+ * Upstream: zplayer_events.cpp:627-641
+ */
+export type PlayerStoreMapEventState = {
+  initWidth: number;
+  initHeight: number;
+  graphicsLoaded: boolean;
+  zmap: PlayerStoreMap;
+  zhud: PlayerStoreMapHud;
+  processMapDownload(data: Uint8Array | string | null, size: number): void;
+  initAnimals(): void;
+  playPlanetMusic(terrainType: number): void;
+};
+
+/**
  * Port of upstream player client socket version send surface.
  * Role: Sends the fixed version packet back to the server after a version request.
  * Upstream: zplayer_events.cpp:1462
@@ -127,6 +166,29 @@ export type PlayerAuxPortraitTarget<TObject = PlayerPortraitAnimObject> = {
  */
 export type PlayerDoPortraitAnimEventState<
   TObject extends PlayerPortraitAnimObject = PlayerPortraitAnimObject,
+> = {
+  ourTeam: number;
+  objectList: TObject[];
+  aportrait: PlayerAuxPortraitTarget<TObject>;
+  spaceEventList: SpaceBarEvent[];
+};
+
+/**
+ * Port of upstream `ZPlayer::pickup_grenade_event` object surface.
+ * Role: Supplies ownership and pickup animation behavior for grenade pickup events.
+ * Upstream: zplayer_events.cpp:1284-1290
+ */
+export type PlayerPickupGrenadeObject = PlayerPortraitAnimObject & {
+  doPickupGrenadeAnim(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::pickup_grenade_event` state.
+ * Role: Holds objects, auxiliary portrait target, and retained focus events for grenade pickups.
+ * Upstream: zplayer_events.cpp:1276-1298
+ */
+export type PlayerPickupGrenadeEventState<
+  TObject extends PlayerPickupGrenadeObject = PlayerPickupGrenadeObject,
 > = {
   ourTeam: number;
   objectList: TObject[];
@@ -693,6 +755,34 @@ export function playerDisconnectEvent(
 }
 
 /**
+ * Port of upstream `ZPlayer::store_map_event`.
+ * Role: Processes a map download and initializes player map presentation when loaded.
+ * Upstream: zplayer_events.cpp:627-641
+ */
+export function playerStoreMapEvent(
+  player: PlayerStoreMapEventState,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  player.processMapDownload(data, size);
+
+  if (!player.zmap.loaded()) return;
+
+  player.zmap.setViewingDimensions(player.initWidth - 100, player.initHeight - 36);
+
+  const terrainType = player.zmap.getMapBasics().terrainType;
+  player.zhud.setTerrainType(terrainType);
+  player.zhud.minimap.setupBoundaries();
+  player.initAnimals();
+
+  if (player.graphicsLoaded) {
+    player.playPlanetMusic(terrainType);
+  }
+}
+
+/**
  * Port of upstream `ZPlayer::end_game_event`.
  * Role: Processes a player end-game event.
  * Upstream: zplayer_events.cpp:856-859
@@ -1018,6 +1108,31 @@ function parseDoPortraitAnimPacket(
   };
 }
 
+const PLAYER_PICKUP_GRENADE_PACKET_SIZE_BYTES = 4;
+
+function parsePickupGrenadePacket(
+  data: Uint8Array | string | { refId: number } | null,
+): { refId: number } | null {
+  if (data === null) return null;
+  if (typeof data === "object" && !(data instanceof Uint8Array)) return data;
+
+  const bytes = new Uint8Array(PLAYER_PICKUP_GRENADE_PACKET_SIZE_BYTES);
+  if (typeof data === "string") {
+    for (
+      let i = 0;
+      i < PLAYER_PICKUP_GRENADE_PACKET_SIZE_BYTES && i < data.length;
+      i += 1
+    ) {
+      bytes[i] = data.charCodeAt(i) & 0xff;
+    }
+  } else {
+    bytes.set(data.subarray(0, PLAYER_PICKUP_GRENADE_PACKET_SIZE_BYTES));
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { refId: view.getInt32(0, true) };
+}
+
 function isAllowedPortraitEventAnimation(animation: number): boolean {
   return (
     animation === PortraitAnimationType.VehicleCaptured ||
@@ -1058,6 +1173,38 @@ export function playerDoPortraitAnimEvent<
   }
 
   addPlayerSpaceBarEvent(player, new SpaceBarEvent(packet.refId, true));
+}
+
+/**
+ * Port of upstream `ZPlayer::pickup_grenade_event`.
+ * Role: Starts grenade pickup animation and portrait feedback for a local owned object.
+ * Upstream: zplayer_events.cpp:1276-1298
+ */
+export function playerPickupGrenadeEvent<
+  TObject extends PlayerPickupGrenadeObject,
+>(
+  player: PlayerPickupGrenadeEventState<TObject>,
+  data: Uint8Array | string | { refId: number } | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+
+  if (size !== PLAYER_PICKUP_GRENADE_PACKET_SIZE_BYTES) return;
+
+  const packet = parsePickupGrenadePacket(data);
+  if (!packet) return;
+
+  const object = player.objectList.find((candidate) => candidate.refId === packet.refId);
+  if (!object) return;
+
+  object.doPickupGrenadeAnim();
+
+  if (object.getOwner() === player.ourTeam && !player.aportrait.doingAnim()) {
+    player.aportrait.setObject(object);
+    player.aportrait.startAnim(PortraitAnimationType.GrenadesCollected);
+    addPlayerSpaceBarEvent(player, new SpaceBarEvent(packet.refId, true));
+  }
 }
 
 /**

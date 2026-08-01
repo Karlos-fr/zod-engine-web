@@ -5,6 +5,7 @@
 import type { GameEntity } from "./entities/GameEntity";
 import type { PlanetType, TeamType } from "./SimulationConstants";
 import { RobotType } from "./SimulationConstants";
+import { MapObjectType } from "../world/MapFormat";
 
 /**
  * Port of upstream `_ZPORTRAIT_H_`.
@@ -383,6 +384,27 @@ export type PortraitRobotClearState = {
 };
 
 /**
+ * Port of upstream `ZPortrait::SetObject` object access surface.
+ * Role: Supplies identity, team, reference, and driver data for portrait binding.
+ * Upstream: zportrait.cpp:149-178
+ */
+export type PortraitSetObjectReference = {
+  refId: number;
+  getObjectId(): { objectType: number; objectId: number };
+  getOwner(): TeamType | number;
+  getDriverType(): number;
+};
+
+/**
+ * Port of upstream `ZPortrait::SetObject` mutable fields.
+ * Role: Stores the active portrait subject and render invalidation state.
+ * Upstream: zportrait.cpp:149-178
+ */
+export type PortraitSetObjectState = PortraitRobotClearState &
+  PortraitTeamState &
+  PortraitRobotIdState;
+
+/**
  * Port of upstream `ZPortrait` coordinate fields.
  * Role: Stores the portrait render origin.
  * Upstream: zportrait.cpp:114-118
@@ -556,6 +578,37 @@ export function clearPortraitRobotId(state: PortraitRobotClearState): void {
   state.currentAnimation = -1;
   state.animationStartTime = 0;
   state.refId = -1;
+}
+
+/**
+ * Port of upstream `ZPortrait::SetObject`.
+ * Role: Binds the portrait to a robot, vehicle, or cannon object.
+ * Upstream: zportrait.cpp:149-178
+ */
+export function setPortraitObject(
+  state: PortraitSetObjectState,
+  object: PortraitSetObjectReference | null,
+): void {
+  clearPortraitRobotId(state);
+
+  if (!object) return;
+
+  const objectId = object.getObjectId();
+
+  setPortraitTeam(state, object.getOwner());
+  state.refId = object.refId;
+
+  switch (objectId.objectType) {
+    case MapObjectType.Robot:
+      setPortraitInVehicle(state, false);
+      setPortraitRobotId(state, objectId.objectId);
+      break;
+    case MapObjectType.Vehicle:
+    case MapObjectType.Cannon:
+      setPortraitRobotId(state, object.getDriverType());
+      setPortraitInVehicle(state, true);
+      break;
+  }
 }
 
 /**

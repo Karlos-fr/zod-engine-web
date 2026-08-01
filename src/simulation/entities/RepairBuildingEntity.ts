@@ -11,7 +11,7 @@ import {
   type DriverInfo,
   Waypoint,
 } from "./EntityTypes";
-import type { RepairAnimData, RepairUnitOutput } from "./GameEntity";
+import type { GameEntity, RepairAnimData, RepairUnitOutput } from "./GameEntity";
 import type { GameMap } from "../../world/GameMap";
 
 const REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES = 24;
@@ -104,6 +104,34 @@ export class RepairBuildingEntity extends BuildingEntity {
    */
   override repairingAUnit(): boolean {
     return this.repairingUnit;
+  }
+
+  /**
+   * Port of upstream `BRepair::SetRepairUnit`.
+   * Role: Starts repairing a valid owned unit and stores its return payload.
+   * Upstream: brepair.cpp:487-512
+   */
+  override setRepairUnit(unitObject: GameEntity | null): boolean {
+    const theTime = this.ztime?.ztime ?? 0;
+
+    if (!unitObject) return false;
+    if (this.repairingUnit) return false;
+    if (!this.canRepairUnit(unitObject.getOwner())) return false;
+
+    const objectId = unitObject.getObjectId();
+
+    this.repairObjectType = objectId.objectType;
+    this.repairObjectId = objectId.objectId;
+    this.repairDriverType = unitObject.getDriverType();
+    this.repairDriverInfo = unitObject.driverInfo.map((driver) => ({ ...driver }));
+    this.repairWaypointList = unitObject.waypointList.map((waypoint) =>
+      Object.assign(new Waypoint(), waypoint),
+    );
+
+    this.repairingUnit = true;
+    this.repairTime = theTime + 5;
+
+    return true;
   }
 
   /**

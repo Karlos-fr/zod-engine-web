@@ -24,6 +24,8 @@ import {
 } from "../SimulationConstants";
 import {
   HEAVY_TURRET_FRAME_INTERVAL_SECONDS,
+  LIGHT_TURRET_FRAME_INTERVAL_SECONDS,
+  MEDIUM_TURRET_FRAME_INTERVAL_SECONDS,
   MISSILE_LAUNCHER_TURRET_FRAME_INTERVAL_SECONDS,
 } from "./VehicleTypes";
 import { SoundEngineSound } from "../../audio/AudioService";
@@ -56,6 +58,14 @@ export type MissileLauncherVehicleProcessState = {
 };
 
 export type HeavyVehicleProcessState = MissileLauncherVehicleProcessState & {
+  processLid(): void;
+};
+
+export type LightVehicleProcessState = MissileLauncherVehicleProcessState & {
+  processLid(): void;
+};
+
+export type MediumVehicleProcessState = MissileLauncherVehicleProcessState & {
   processLid(): void;
 };
 
@@ -192,6 +202,82 @@ export function processHeavyVehicle(
       if (newDirection !== -1) state.turretDirection = newDirection;
     } else {
       state.nextTurretTime = currentTime + HEAVY_TURRET_FRAME_INTERVAL_SECONDS;
+
+      state.turretDirection += 1;
+      if (state.turretDirection >= MAX_ANGLE_TYPES) state.turretDirection = 0;
+    }
+  }
+
+  return 1;
+}
+
+/**
+ * Port of upstream `VLight::Process`.
+ * Role: Processes the light vehicle lid, movement frames, and turret facing or idle rotation.
+ * Upstream: vlight.cpp:103-137
+ */
+export function processLightVehicle(
+  state: LightVehicleProcessState,
+  currentTime: number,
+): number {
+  state.processLid();
+
+  if (state.moving && currentTime >= state.nextMoveTime) {
+    state.moveIndex -= 1;
+    if (state.moveIndex < 0) state.moveIndex = 2;
+
+    state.nextMoveTime =
+      currentTime + VEHICLE_MOVE_ANIMATION_SPEED * state.speedOffsetPercentInv();
+  }
+
+  if (currentTime >= state.nextTurretTime) {
+    if (state.attackObject) {
+      const newDirection = state.directionFromLocation(
+        state.attackObject.centerX - state.position.x,
+        state.attackObject.centerY - state.position.y,
+      );
+
+      if (newDirection !== -1) state.turretDirection = newDirection;
+    } else {
+      state.nextTurretTime = currentTime + LIGHT_TURRET_FRAME_INTERVAL_SECONDS;
+
+      state.turretDirection += 1;
+      if (state.turretDirection >= MAX_ANGLE_TYPES) state.turretDirection = 0;
+    }
+  }
+
+  return 1;
+}
+
+/**
+ * Port of upstream `VMedium::Process`.
+ * Role: Processes the medium vehicle lid, movement frames, and turret facing or idle rotation.
+ * Upstream: vmedium.cpp:110-144
+ */
+export function processMediumVehicle(
+  state: MediumVehicleProcessState,
+  currentTime: number,
+): number {
+  state.processLid();
+
+  if (state.moving && currentTime >= state.nextMoveTime) {
+    state.moveIndex -= 1;
+    if (state.moveIndex < 0) state.moveIndex = 2;
+
+    state.nextMoveTime =
+      currentTime + VEHICLE_MOVE_ANIMATION_SPEED * state.speedOffsetPercentInv();
+  }
+
+  if (currentTime >= state.nextTurretTime) {
+    if (state.attackObject) {
+      const newDirection = state.directionFromLocation(
+        state.attackObject.centerX - state.position.x,
+        state.attackObject.centerY - state.position.y,
+      );
+
+      if (newDirection !== -1) state.turretDirection = newDirection;
+    } else {
+      state.nextTurretTime = currentTime + MEDIUM_TURRET_FRAME_INTERVAL_SECONDS;
 
       state.turretDirection += 1;
       if (state.turretDirection >= MAX_ANGLE_TYPES) state.turretDirection = 0;

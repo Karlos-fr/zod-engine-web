@@ -19,6 +19,7 @@ import {
   setPortraitCoordinates,
   setPortraitDoRandomAnims,
   setPortraitInVehicle,
+  setPortraitObject,
   setPortraitOverMap,
   setPortraitRefId,
   setPortraitRobotId,
@@ -37,6 +38,7 @@ import type {
   PortraitRobotClearState,
   PortraitRefState,
   PortraitRobotIdState,
+  PortraitSetObjectState,
   PortraitStartAnimationState,
   PortraitStartRandomAnimationState,
   PortraitTeamState,
@@ -44,10 +46,13 @@ import type {
 } from "../src/simulation/PortraitAnimation";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
+  CannonType,
   PlanetType,
   RobotType,
   TeamType,
+  VehicleType,
 } from "../src/simulation/SimulationConstants";
+import { MapObjectType } from "../src/world/MapFormat";
 
 describe("portrait animation", () => {
   it("adapts the zportrait.h include guard to an ES module marker", async () => {
@@ -469,4 +474,131 @@ describe("portrait animation", () => {
     });
     expect(state.renderFrame).toBe(stillFrame);
   });
+
+  it("ports ZPortrait SetObject null as robot portrait binding reset only", () => {
+    const state = createPortraitSetObjectState();
+    const stillFrame = state.stillFrame;
+
+    setPortraitObject(state, null);
+
+    expect(state).toMatchObject({
+      oid: RobotType.Grunt,
+      inVehicle: false,
+      doRender: false,
+      currentAnimation: -1,
+      animationStartTime: 0,
+      refId: -1,
+    });
+    expect(state.renderFrame).toBe(stillFrame);
+  });
+
+  it("ports ZPortrait SetObject as robot portrait binding", () => {
+    const state = createPortraitSetObjectState();
+    const object = new GameEntity({
+      id: "portrait-robot",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+      refId: 42,
+      objectType: MapObjectType.Robot,
+      objectId: RobotType.Sniper,
+    });
+
+    setPortraitObject(state, object);
+
+    expect(state).toMatchObject({
+      team: TeamType.Blue,
+      refId: 42,
+      oid: RobotType.Sniper,
+      inVehicle: false,
+      doRender: true,
+    });
+  });
+
+  it("ports ZPortrait SetObject as vehicle and cannon driver portrait binding", () => {
+    const vehicleState = createPortraitSetObjectState();
+    const vehicle = new GameEntity({
+      id: "portrait-vehicle",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Red,
+      refId: 51,
+      objectType: MapObjectType.Vehicle,
+      objectId: VehicleType.Light,
+    });
+    vehicle.driverType = RobotType.Psycho;
+
+    setPortraitObject(vehicleState, vehicle);
+
+    expect(vehicleState).toMatchObject({
+      team: TeamType.Red,
+      refId: 51,
+      oid: RobotType.Psycho,
+      inVehicle: true,
+      doRender: true,
+    });
+
+    const cannonState = createPortraitSetObjectState();
+    const cannon = new GameEntity({
+      id: "portrait-cannon",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Green,
+      refId: 52,
+      objectType: MapObjectType.Cannon,
+      objectId: CannonType.Gatling,
+    });
+    cannon.driverType = RobotType.Grunt;
+
+    setPortraitObject(cannonState, cannon);
+
+    expect(cannonState).toMatchObject({
+      team: TeamType.Green,
+      refId: 52,
+      oid: RobotType.Grunt,
+      inVehicle: true,
+      doRender: true,
+    });
+  });
+
+  it("ports ZPortrait SetObject as team and ref update for unsupported object types", () => {
+    const state = createPortraitSetObjectState();
+    const object = new GameEntity({
+      id: "portrait-building",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Yellow,
+      refId: 60,
+      objectType: MapObjectType.Building,
+      objectId: 3,
+    });
+
+    setPortraitObject(state, object);
+
+    expect(state).toMatchObject({
+      team: TeamType.Yellow,
+      refId: 60,
+      oid: RobotType.Grunt,
+      inVehicle: false,
+      doRender: false,
+    });
+  });
 });
+
+function createPortraitSetObjectState(): PortraitSetObjectState {
+  const stillFrame = new PortraitFrame();
+  const renderFrame = new PortraitFrame();
+  renderFrame.duration = 8;
+
+  return {
+    oid: RobotType.Sniper,
+    inVehicle: true,
+    doRender: true,
+    stillFrame,
+    renderFrame,
+    currentAnimation: PortraitAnimationType.Blink,
+    animationStartTime: 22,
+    refId: 99,
+    team: TeamType.Null,
+  };
+}

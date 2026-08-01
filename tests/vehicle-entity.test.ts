@@ -22,6 +22,8 @@ import {
   fireMediumVehicleTurrentMissile,
   initVehicleSharedImages,
   processHeavyVehicle,
+  processLightVehicle,
+  processMediumVehicle,
   processMissileLauncherVehicle,
   type VehicleRestrictedSoundCommand,
   VehicleEntity,
@@ -448,6 +450,146 @@ describe("vehicle entity", () => {
     };
 
     processHeavyVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(0);
+    expect(state.nextTurretTime).toBe(6);
+  });
+
+  it("ports VLight Process as lid processing and reverse movement frame advancement", () => {
+    const calls: string[] = [];
+    const state = {
+      moving: true,
+      moveIndex: 0,
+      nextMoveTime: 10,
+      nextTurretTime: 20,
+      turretDirection: 4,
+      position: { x: 0, y: 0 },
+      attackObject: null,
+      processLid: () => calls.push("lid"),
+      speedOffsetPercentInv: () => 2,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    expect(processLightVehicle(state, 10)).toBe(1);
+
+    expect(calls).toEqual(["lid"]);
+    expect(state.moveIndex).toBe(2);
+    expect(state.nextMoveTime).toBeCloseTo(10.2);
+    expect(state.turretDirection).toBe(4);
+  });
+
+  it("ports VLight Process as attack-target turret facing", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: 4,
+      position: { x: 10, y: 20 },
+      attackObject: { centerX: 0, centerY: 20 },
+      processLid: () => undefined,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation(deltaX: number, deltaY: number) {
+        expect([deltaX, deltaY]).toEqual([-10, 0]);
+        return 4;
+      },
+    };
+
+    processLightVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(4);
+    expect(state.nextTurretTime).toBe(5);
+  });
+
+  it("ports VLight Process as idle turret rotation cadence", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: MAX_ANGLE_TYPES - 1,
+      position: { x: 10, y: 20 },
+      attackObject: null,
+      processLid: () => undefined,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    processLightVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(0);
+    expect(state.nextTurretTime).toBe(6);
+  });
+
+  it("ports VMedium Process as lid processing and reverse movement frame advancement", () => {
+    const calls: string[] = [];
+    const state = {
+      moving: true,
+      moveIndex: 0,
+      nextMoveTime: 10,
+      nextTurretTime: 20,
+      turretDirection: 4,
+      position: { x: 0, y: 0 },
+      attackObject: null,
+      processLid: () => calls.push("lid"),
+      speedOffsetPercentInv: () => 2,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    expect(processMediumVehicle(state, 10)).toBe(1);
+
+    expect(calls).toEqual(["lid"]);
+    expect(state.moveIndex).toBe(2);
+    expect(state.nextMoveTime).toBeCloseTo(10.2);
+    expect(state.turretDirection).toBe(4);
+  });
+
+  it("ports VMedium Process as attack-target turret facing", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: 4,
+      position: { x: 10, y: 20 },
+      attackObject: { centerX: 10, centerY: 10 },
+      processLid: () => undefined,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation(deltaX: number, deltaY: number) {
+        expect([deltaX, deltaY]).toEqual([0, -10]);
+        return 6;
+      },
+    };
+
+    processMediumVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(6);
+    expect(state.nextTurretTime).toBe(5);
+  });
+
+  it("ports VMedium Process as idle turret rotation cadence", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: MAX_ANGLE_TYPES - 1,
+      position: { x: 10, y: 20 },
+      attackObject: null,
+      processLid: () => undefined,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    processMediumVehicle(state, 5);
 
     expect(state.turretDirection).toBe(0);
     expect(state.nextTurretTime).toBe(6);
