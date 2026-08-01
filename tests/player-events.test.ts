@@ -1,19 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { GAME_VERSION } from "../src/simulation/SimulationConstants";
 import { MAX_VERSION_PACKET_CHARS, TcpEvent } from "../src/simulation/EventHandler";
+import { HudEndUnit } from "../src/ui/HudLayout";
+import { MapObjectType } from "../src/world/MapFormat";
+import { PortraitAnimationType } from "../src/simulation/PortraitAnimation";
+import { SpaceBarEvent } from "../src/simulation/PlayerPresentation";
 import {
   CRANE_ANIM_PACKET_SIZE_BYTES,
+  DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES,
   DRIVER_HIT_PACKET_SIZE_BYTES,
   processPlayerDisconnect,
   playerAddPlayerEvent,
   playerConnectEvent,
   playerDeletePlayerEvent,
   playerDoCraneAnimEvent,
+  playerDoPortraitAnimEvent,
   playerDisconnectEvent,
   playerDisplayLoginEvent,
   playerDriverHitEffectEvent,
   playerEndGameEvent,
   playerFireObjectMissileEvent,
+  playerGetVersionEvent,
   playerResetGameEvent,
   playerRequestVersionEvent,
   playerSetBuildQueueListEvent,
@@ -38,12 +45,14 @@ import {
   playerSetTeamEvent,
   playerSetVoteInfoEvent,
   playerSetZoneInfoEvent,
+  playerTeamEndedEvent,
   playerUpdateGamePausedEvent,
   playerUpdateGameSpeedEvent,
   playerWheelDownEvent,
   playerWheelUpEvent,
   PLAYER_DISCONNECTED_NEWS_MESSAGE,
   PLAYER_NEWS_ENTRY_DURATION_SECONDS,
+  TEAM_ENDED_PACKET_SIZE_BYTES,
 } from "../src/simulation/PlayerEvents";
 
 describe("player events", () => {
@@ -172,6 +181,252 @@ describe("player events", () => {
     );
 
     expect(calls).toEqual([]);
+  });
+
+  it("ports ZPlayer get_version_event invalid packet size guard", () => {
+    const messages: string[] = [];
+
+    playerGetVersionEvent(
+      { addNewsEntry: (message) => messages.push(message) },
+      new Uint8Array(MAX_VERSION_PACKET_CHARS),
+      MAX_VERSION_PACKET_CHARS - 1,
+      99,
+    );
+
+    expect(messages).toEqual([]);
+  });
+
+  it("ports ZPlayer get_version_event as matching server version news", () => {
+    const messages: string[] = [];
+    const packet = new Uint8Array(MAX_VERSION_PACKET_CHARS);
+    for (let i = 0; i < GAME_VERSION.length; i += 1) {
+      packet[i] = GAME_VERSION.charCodeAt(i);
+    }
+
+    playerGetVersionEvent(
+      { addNewsEntry: (message) => messages.push(message) },
+      packet,
+      packet.length,
+      99,
+    );
+
+    expect(messages).toEqual([`the server version is ${GAME_VERSION}`]);
+  });
+
+  it("ports ZPlayer get_version_event as mismatch news with NUL termination", () => {
+    const messages: string[] = [];
+    const packet = new Uint8Array(MAX_VERSION_PACKET_CHARS).fill("x".charCodeAt(0));
+    packet[0] = "2".charCodeAt(0);
+    packet[1] = ".".charCodeAt(0);
+    packet[2] = "0".charCodeAt(0);
+    packet[3] = 0;
+
+    playerGetVersionEvent(
+      { addNewsEntry: (message) => messages.push(message) },
+      packet,
+      packet.length,
+      99,
+      "1.0",
+    );
+
+    expect(messages).toEqual([
+      "the server version is 2.0, which mismatches our version 1.0",
+    ]);
+  });
+
+  it("ports ZPlayer team_ended_event invalid packet and non-local team guards", () => {
+    const state = {
+      ourTeam: 2,
+      objectList: [
+        {
+          getOwner: () => 2,
+          getObjectId: () => ({ objectType: MapObjectType.Robot, objectId: 1 }),
+          getDriverType: () => 4,
+        },
+      ],
+      zhud: {
+        doEndAnimations: false,
+        doEndAnimationsWon: false,
+        nextEndAnimTime: 9,
+        endAnimations: [] as HudEndUnit[],
+      },
+    };
+
+    playerTeamEndedEvent(state, { team: 2, won: true }, 1, 99);
+    playerTeamEndedEvent(
+      state,
+      { team: 3, won: true },
+      TEAM_ENDED_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(state.zhud).toEqual({
+      doEndAnimations: false,
+      doEndAnimationsWon: false,
+      nextEndAnimTime: 9,
+      endAnimations: [],
+    });
+  });
+
+  it("ports ZPlayer team_ended_event as local team HUD end animations", () => {
+    const packet = new Uint8Array(TEAM_ENDED_PACKET_SIZE_BYTES);
+    new DataView(packet.buffer).setInt32(0, 2, true);
+    packet[4] = 1;
+    const state = {
+      ourTeam: 2,
+      objectList: [
+        {
+          getOwner: () => 2,
+          getObjectId: () => ({ objectType: MapObjectType.Cannon, objectId: 3 }),
+          getDriverType: () => 4,
+        },
+        {
+          getOwner: () => 2,
+          getObjectId: () => ({ objectType: MapObjectType.Vehicle, objectId: 5 }),
+          getDriverType: () => 6,
+        },
+        {
+          getOwner: () => 2,
+          getObjectId: () => ({ objectType: MapObjectType.Robot, objectId: 7 }),
+          getDriverType: () => 8,
+        },
+        {
+          getOwner: () => 2,
+          getObjectId: () => ({ objectType: MapObjectType.Building, objectId: 9 }),
+          getDriverType: () => 10,
+        },
+        {
+          getOwner: () => 1,
+          getObjectId: () => ({ objectType: MapObjectType.Robot, objectId: 11 }),
+          getDriverType: () => 12,
+        },
+      ],
+      zhud: {
+        doEndAnimations: false,
+        doEndAnimationsWon: false,
+        nextEndAnimTime: 9,
+        endAnimations: [] as HudEndUnit[],
+      },
+    };
+
+    playerTeamEndedEvent(state, packet, packet.length, 99);
+
+    expect(state.zhud.doEndAnimations).toBe(true);
+    expect(state.zhud.doEndAnimationsWon).toBe(true);
+    expect(state.zhud.nextEndAnimTime).toBe(0);
+    expect(state.zhud.endAnimations).toEqual([
+      new HudEndUnit(MapObjectType.Cannon, 3, 4),
+      new HudEndUnit(MapObjectType.Vehicle, 5, 6),
+      new HudEndUnit(MapObjectType.Robot, 7, 7),
+    ]);
+  });
+
+  it("ports ZPlayer do_portrait_anim_event guard exits", () => {
+    const calls: unknown[] = [];
+    const object = { refId: 42, getOwner: () => 2 };
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => false,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerDoPortraitAnimEvent(
+      state,
+      { refId: 42, animId: PortraitAnimationType.GunCaptured },
+      1,
+      99,
+    );
+    playerDoPortraitAnimEvent(
+      { ...state, objectList: [] },
+      { refId: 42, animId: PortraitAnimationType.GunCaptured },
+      DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+    playerDoPortraitAnimEvent(
+      { ...state, ourTeam: 3 },
+      { refId: 42, animId: PortraitAnimationType.GunCaptured },
+      DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+    playerDoPortraitAnimEvent(
+      {
+        ...state,
+        aportrait: {
+          ...state.aportrait,
+          doingAnim: () => true,
+        },
+      },
+      { refId: 42, animId: PortraitAnimationType.GunCaptured },
+      DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer do_portrait_anim_event as allowed animation and focus storage", () => {
+    const calls: unknown[] = [];
+    const object = { refId: 42, getOwner: () => 2 };
+    const packet = new Uint8Array(DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES);
+    new DataView(packet.buffer).setInt32(0, 42, true);
+    new DataView(packet.buffer).setInt32(4, PortraitAnimationType.VehicleCaptured, true);
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => false,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerDoPortraitAnimEvent(state, packet, packet.length, 99);
+
+    expect(calls).toEqual([
+      ["set", 42],
+      ["anim", PortraitAnimationType.VehicleCaptured],
+    ]);
+    expect(state.spaceEventList).toHaveLength(1);
+    expect(state.spaceEventList[0]).toMatchObject({
+      refId: 42,
+      selectObject: true,
+      openGui: false,
+    });
+  });
+
+  it("ports ZPlayer do_portrait_anim_event as object binding for ignored animation ids", () => {
+    const calls: unknown[] = [];
+    const object = { refId: 42, getOwner: () => 2 };
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      aportrait: {
+        doingAnim: () => false,
+        setObject: (value: typeof object) => calls.push(["set", value.refId]),
+        startAnim: (animation: number) => calls.push(["anim", animation]),
+      },
+      spaceEventList: [] as SpaceBarEvent[],
+    };
+
+    playerDoPortraitAnimEvent(
+      state,
+      { refId: 42, animId: PortraitAnimationType.Blink },
+      DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([["set", 42]]);
+    expect(state.spaceEventList[0]).toMatchObject({
+      refId: 42,
+      selectObject: true,
+    });
   });
 
   it("ports ZPlayer display_login_event as no-op for invalid packet size", () => {

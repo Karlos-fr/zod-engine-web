@@ -77,6 +77,7 @@ import {
   playerGButton,
   playerMenuButton,
   playerRButton,
+  playerResizeEvent,
   playerTButton,
   playerVButton,
   playerZButton,
@@ -86,6 +87,7 @@ import {
   setPlayerLoginName,
   setPlayerLoginPassword,
   sendPlayerCreateUser,
+  sendPlayerLogin,
   sendPlayerSetPaused,
   sendPlayerVoteNo,
   sendPlayerVotePass,
@@ -346,6 +348,104 @@ describe("player presentation constants", () => {
     });
   });
 
+  it("ports ZPlayer resize_event as OpenGL windowed viewport refresh", () => {
+    const calls: unknown[] = [];
+    const state = {
+      useOpenGl: true,
+      isWindowed: true,
+      initW: 800,
+      initH: 600,
+      prevW: 400,
+      prevH: 300,
+      resetOpenGlViewPort: (width: number, height: number) =>
+        calls.push(["viewport", width, height]),
+      setScreenDimensions: (width: number, height: number) =>
+        calls.push(["screen", width, height]),
+      hud: { reRenderAll: () => calls.push("hud") },
+      zmap: {
+        setViewingDimensions: (width: number, height: number) =>
+          calls.push(["map-view", width, height]),
+      },
+      mainMenuMove: (widthScale: number, heightScale: number) =>
+        calls.push(["menu", widthScale, heightScale]),
+    };
+
+    playerResizeEvent(state, {
+      setVideoMode: (options) => calls.push(["video", options]),
+    });
+
+    expect(calls).toEqual([
+      [
+        "video",
+        {
+          width: 800,
+          height: 600,
+          bitsPerPixel: 0,
+          useOpenGl: true,
+          resizable: true,
+          fullscreen: false,
+          hardwareSurface: false,
+          doubleBuffer: false,
+        },
+      ],
+      ["viewport", 800, 600],
+      ["screen", 800, 600],
+      "hud",
+      ["map-view", 700, 564],
+      ["menu", 2, 2],
+    ]);
+    expect(state.prevW).toBe(800);
+    expect(state.prevH).toBe(600);
+  });
+
+  it("ports ZPlayer resize_event as software fullscreen refresh without menu ratio", () => {
+    const calls: unknown[] = [];
+    const state = {
+      useOpenGl: false,
+      isWindowed: false,
+      initW: 1024,
+      initH: 768,
+      prevW: 0,
+      prevH: 768,
+      resetOpenGlViewPort: (width: number, height: number) =>
+        calls.push(["viewport", width, height]),
+      setScreenDimensions: (width: number, height: number) =>
+        calls.push(["screen", width, height]),
+      hud: { reRenderAll: () => calls.push("hud") },
+      zmap: {
+        setViewingDimensions: (width: number, height: number) =>
+          calls.push(["map-view", width, height]),
+      },
+      mainMenuMove: (widthScale: number, heightScale: number) =>
+        calls.push(["menu", widthScale, heightScale]),
+    };
+
+    playerResizeEvent(state, {
+      setVideoMode: (options) => calls.push(["video", options]),
+    });
+
+    expect(calls).toEqual([
+      [
+        "video",
+        {
+          width: 1024,
+          height: 768,
+          bitsPerPixel: 32,
+          useOpenGl: false,
+          resizable: true,
+          fullscreen: true,
+          hardwareSurface: true,
+          doubleBuffer: true,
+        },
+      ],
+      ["screen", 1024, 768],
+      "hud",
+      ["map-view", 924, 732],
+    ]);
+    expect(state.prevW).toBe(1024);
+    expect(state.prevH).toBe(768);
+  });
+
   it("ports ZPlayer IsOverHUD as inclusive reserved HUD overlap", () => {
     const state = {
       initW: 800,
@@ -604,6 +704,83 @@ describe("player presentation constants", () => {
         packId: TcpEvent.SetGamePaused,
         data: new Uint8Array([0]),
         size: 1,
+      },
+    ]);
+  });
+
+  it("ports ZPlayer SendLogin as an unconditional login-state request", () => {
+    const calls: Array<
+      | {
+          kind: "message";
+          packId: TcpEvent;
+          data: Uint8Array | null;
+          size: number;
+        }
+      | { kind: "ascii"; packId: TcpEvent; data: string }
+    > = [];
+
+    sendPlayerLogin(
+      {
+        sendMessage: (packId, data, size) => {
+          calls.push({ kind: "message", packId, data, size });
+          return 32;
+        },
+        sendMessageAscii: (packId, data) => {
+          calls.push({ kind: "ascii", packId, data });
+          return 33;
+        },
+      },
+      "",
+      "secret",
+    );
+
+    expect(calls).toEqual([
+      {
+        kind: "message",
+        packId: TcpEvent.RequestLoginoff,
+        data: null,
+        size: 0,
+      },
+    ]);
+  });
+
+  it("ports ZPlayer SendLogin as a credential ASCII send when credentials exist", () => {
+    const calls: Array<
+      | {
+          kind: "message";
+          packId: TcpEvent;
+          data: Uint8Array | null;
+          size: number;
+        }
+      | { kind: "ascii"; packId: TcpEvent; data: string }
+    > = [];
+
+    sendPlayerLogin(
+      {
+        sendMessage: (packId, data, size) => {
+          calls.push({ kind: "message", packId, data, size });
+          return 34;
+        },
+        sendMessageAscii: (packId, data) => {
+          calls.push({ kind: "ascii", packId, data });
+          return 35;
+        },
+      },
+      "player",
+      "secret",
+    );
+
+    expect(calls).toEqual([
+      {
+        kind: "message",
+        packId: TcpEvent.RequestLoginoff,
+        data: null,
+        size: 0,
+      },
+      {
+        kind: "ascii",
+        packId: TcpEvent.SendLogin,
+        data: "player,secret",
       },
     ]);
   });

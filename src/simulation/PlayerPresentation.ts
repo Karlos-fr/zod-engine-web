@@ -3,7 +3,7 @@
  */
 
 import type { SoundSetting } from "../audio/AudioService";
-import { HudButton } from "../ui/HudLayout";
+import { HUD_HEIGHT_PIXELS, HUD_WIDTH_PIXELS, HudButton } from "../ui/HudLayout";
 import { MainMenuType } from "../ui/MainMenuBase";
 import { AMBIENT_BIRD_SQUARE_TILES_PER_BIRD } from "../world/BirdMap";
 import { MapObjectType } from "../world/MapFormat";
@@ -268,6 +268,14 @@ export type PlayerClientAsciiMessageSender = {
 };
 
 /**
+ * Port of upstream `ZPlayer::SendLogin` socket target.
+ * Role: Supports login-state requests and optional credential submission.
+ * Upstream: zplayer.cpp:3783, zplayer.cpp:3792
+ */
+export type PlayerLoginMessageSender = PlayerClientMessageSender &
+  PlayerClientAsciiMessageSender;
+
+/**
  * Port of upstream `ZHud::SetUnitAmount` call target.
  * Role: Updates the player HUD with available unit count for the local team.
  * Upstream: zplayer.cpp:3078
@@ -461,6 +469,48 @@ export type PlayerDimensionState = {
   prevH: number;
   initH: number;
 };
+
+/**
+ * Replacement for upstream `SDL_SetVideoMode` in player resize handling.
+ * Role: Receives the requested display mode after a player viewport resize.
+ * Upstream: zplayer_events.cpp:173-185
+ */
+export type PlayerResizeVideoModeTarget = {
+  setVideoMode(options: {
+    width: number;
+    height: number;
+    bitsPerPixel: number;
+    useOpenGl: boolean;
+    resizable: boolean;
+    fullscreen: boolean;
+    hardwareSurface: boolean;
+    doubleBuffer: boolean;
+  }): void;
+};
+
+/**
+ * Port of upstream resize rendering surfaces.
+ * Role: Receives screen, HUD, and map dimension refreshes after a player resize.
+ * Upstream: zplayer_events.cpp:178-192
+ */
+export type PlayerResizeRenderTargets = {
+  resetOpenGlViewPort(width: number, height: number): void;
+  setScreenDimensions(width: number, height: number): void;
+  hud: { reRenderAll(): void };
+  zmap: { setViewingDimensions(width: number, height: number): void };
+};
+
+/**
+ * Port of upstream `ZPlayer::resize_event` state.
+ * Role: Holds resize flags, dimensions, render targets, and main-menu motion handling.
+ * Upstream: zplayer_events.cpp:169-200
+ */
+export type PlayerResizeEventState = PlayerDimensionState &
+  PlayerResizeRenderTargets & {
+    useOpenGl: boolean;
+    isWindowed: boolean;
+    mainMenuMove(widthScale: number, heightScale: number): void;
+  };
 
 export type PlayerInitialDimensionState = Pick<
   PlayerDimensionState,
@@ -963,6 +1013,45 @@ export function setPlayerDimensions(
 }
 
 /**
+ * Port of upstream `ZPlayer::resize_event`.
+ * Role: Refreshes display mode, viewport surfaces, HUD/map dimensions, and scaled menus.
+ * Upstream: zplayer_events.cpp:169-200
+ */
+export function playerResizeEvent(
+  player: PlayerResizeEventState,
+  videoMode: PlayerResizeVideoModeTarget,
+): void {
+  videoMode.setVideoMode({
+    width: player.initW,
+    height: player.initH,
+    bitsPerPixel: player.useOpenGl ? 0 : 32,
+    useOpenGl: player.useOpenGl,
+    resizable: true,
+    fullscreen: !player.isWindowed,
+    hardwareSurface: !player.useOpenGl,
+    doubleBuffer: !player.useOpenGl,
+  });
+
+  if (player.useOpenGl) {
+    player.resetOpenGlViewPort(player.initW, player.initH);
+  }
+
+  player.setScreenDimensions(player.initW, player.initH);
+  player.hud.reRenderAll();
+  player.zmap.setViewingDimensions(
+    player.initW - HUD_WIDTH_PIXELS,
+    player.initH - HUD_HEIGHT_PIXELS,
+  );
+
+  if (player.prevW && player.prevH) {
+    player.mainMenuMove(player.initW / player.prevW, player.initH / player.prevH);
+  }
+
+  player.prevW = player.initW;
+  player.prevH = player.initH;
+}
+
+/**
  * Port of upstream `ZPlayer::IsOverHUD`.
  * Role: Reports whether a rectangle overlaps the player's reserved HUD area.
  * Upstream: zplayer.cpp:3121-3127
@@ -1204,6 +1293,26 @@ export function sendPlayerSetPaused(
 ): number {
   const packet = new Uint8Array([paused ? 1 : 0]);
   return clientSocket.sendMessage(TcpEvent.SetGamePaused, packet, packet.length);
+}
+
+/**
+ * Port of upstream `ZPlayer::SendLogin`.
+ * Role: Requests login-off state and submits stored credentials when both are present.
+ * Upstream: zplayer.cpp:3780-3794
+ */
+export function sendPlayerLogin(
+  clientSocket: PlayerLoginMessageSender,
+  loginName: string,
+  loginPassword: string,
+): void {
+  clientSocket.sendMessage(TcpEvent.RequestLoginoff, null, 0);
+
+  if (loginName.length && loginPassword.length) {
+    clientSocket.sendMessageAscii(
+      TcpEvent.SendLogin,
+      `${loginName},${loginPassword}`,
+    );
+  }
 }
 
 /**

@@ -5,9 +5,15 @@ import {
   MAX_VERSION_PACKET_CHARS,
   TcpEvent,
   type CraneAnimPacket,
+  type DoPortraitAnimPacket,
   type DriverHitPacket,
+  type TeamEndedPacket,
 } from "./EventHandler";
 import { GAME_VERSION } from "./SimulationConstants";
+import { HudEndUnit, startHudEndAnimations, type HudEndAnimationState } from "../ui/HudLayout";
+import { MapObjectType } from "../world/MapFormat";
+import { PortraitAnimationType } from "./PortraitAnimation";
+import { addPlayerSpaceBarEvent, SpaceBarEvent } from "./PlayerPresentation";
 
 /**
  * Port of upstream `ZPlayer::ProcessPlayerID` call target.
@@ -46,6 +52,86 @@ export type PlayerVersionClientSocket = {
  */
 export type PlayerRequestVersionEventState = {
   clientSocket: PlayerVersionClientSocket;
+};
+
+/**
+ * Port of upstream `ZPlayer::get_version_event` state.
+ * Role: Receives version mismatch or match messages from the server-version event.
+ * Upstream: zplayer_events.cpp:1486, zplayer_events.cpp:1493
+ */
+export type PlayerGetVersionEventState = {
+  addNewsEntry(message: string): void;
+};
+
+/**
+ * Port of upstream `sizeof(team_ended_packet)`.
+ * Role: Defines the expected byte length for team-ended event payloads.
+ * Upstream: event_handler.h:207-211
+ */
+export const TEAM_ENDED_PACKET_SIZE_BYTES = 8;
+
+/**
+ * Port of upstream end-animation object surface used by `ZPlayer::team_ended_event`.
+ * Role: Supplies owner, object identifiers, and driver type for HUD end animations.
+ * Upstream: zplayer_events.cpp:1341-1358
+ */
+export type PlayerTeamEndedObject = {
+  getOwner(): number;
+  getObjectId(): { objectType: number; objectId: number };
+  getDriverType(): number;
+};
+
+/**
+ * Port of upstream `ZPlayer::team_ended_event` state.
+ * Role: Holds the local team, active objects, and HUD end-animation target.
+ * Upstream: zplayer_events.cpp:1337-1362
+ */
+export type PlayerTeamEndedEventState = {
+  ourTeam: number;
+  objectList: PlayerTeamEndedObject[];
+  zhud: HudEndAnimationState;
+};
+
+/**
+ * Port of upstream `sizeof(do_portrait_anim_packet)`.
+ * Role: Defines the expected byte length for portrait-animation event payloads.
+ * Upstream: event_handler.h:201-205
+ */
+export const DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES = 8;
+
+/**
+ * Port of upstream object lookup surface used by `ZPlayer::do_portrait_anim_event`.
+ * Role: Supplies reference id and ownership for portrait event targeting.
+ * Upstream: zplayer_events.cpp:1308-1312
+ */
+export type PlayerPortraitAnimObject = {
+  refId: number;
+  getOwner(): number;
+};
+
+/**
+ * Port of upstream `ZHud::GetAPortrait` dependency surface.
+ * Role: Receives selected object binding and portrait animation commands.
+ * Upstream: zplayer_events.cpp:1313-1324
+ */
+export type PlayerAuxPortraitTarget<TObject = PlayerPortraitAnimObject> = {
+  doingAnim(): boolean;
+  setObject(object: TObject): void;
+  startAnim(animation: PortraitAnimationType | number): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::do_portrait_anim_event` state.
+ * Role: Holds local objects, auxiliary portrait target, and retained space-bar events.
+ * Upstream: zplayer_events.cpp:1300-1328
+ */
+export type PlayerDoPortraitAnimEventState<
+  TObject extends PlayerPortraitAnimObject = PlayerPortraitAnimObject,
+> = {
+  ourTeam: number;
+  objectList: TObject[];
+  aportrait: PlayerAuxPortraitTarget<TObject>;
+  spaceEventList: SpaceBarEvent[];
 };
 
 /**
@@ -799,6 +885,179 @@ export function playerRequestVersionEvent(
   }
 
   player.clientSocket.sendMessage(TcpEvent.GiveVersion, packet, packet.length);
+}
+
+/**
+ * Port of upstream `ZPlayer::get_version_event`.
+ * Role: Reads the server version packet and reports whether it matches this client.
+ * Upstream: zplayer_events.cpp:1465-1496
+ */
+export function playerGetVersionEvent(
+  player: PlayerGetVersionEventState,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+  gameVersion = GAME_VERSION,
+): void {
+  void dummy;
+
+  if (size !== MAX_VERSION_PACKET_CHARS || data === null) return;
+
+  const versionBytes = new Uint8Array(MAX_VERSION_PACKET_CHARS);
+  if (typeof data === "string") {
+    for (let i = 0; i < MAX_VERSION_PACKET_CHARS && i < data.length; i += 1) {
+      versionBytes[i] = data.charCodeAt(i) & 0xff;
+    }
+  } else {
+    versionBytes.set(data.subarray(0, MAX_VERSION_PACKET_CHARS));
+  }
+
+  versionBytes[MAX_VERSION_PACKET_CHARS - 1] = 0;
+  const endIndex = versionBytes.indexOf(0);
+  let serverVersion = "";
+  for (let i = 0; i < endIndex; i += 1) {
+    serverVersion += String.fromCharCode(versionBytes[i]);
+  }
+
+  if (serverVersion !== gameVersion) {
+    player.addNewsEntry(
+      `the server version is ${serverVersion}, which mismatches our version ${gameVersion}`,
+    );
+  } else {
+    player.addNewsEntry(`the server version is ${serverVersion}`);
+  }
+}
+
+function parseTeamEndedPacket(
+  data: Uint8Array | string | TeamEndedPacket | null,
+): TeamEndedPacket | null {
+  if (data === null) return null;
+  if (typeof data === "object" && !(data instanceof Uint8Array)) return data;
+
+  const bytes = new Uint8Array(TEAM_ENDED_PACKET_SIZE_BYTES);
+  if (typeof data === "string") {
+    for (let i = 0; i < TEAM_ENDED_PACKET_SIZE_BYTES && i < data.length; i += 1) {
+      bytes[i] = data.charCodeAt(i) & 0xff;
+    }
+  } else {
+    bytes.set(data.subarray(0, TEAM_ENDED_PACKET_SIZE_BYTES));
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return {
+    team: view.getInt32(0, true),
+    won: bytes[4] !== 0,
+  };
+}
+
+/**
+ * Port of upstream `ZPlayer::team_ended_event`.
+ * Role: Builds the HUD end-animation unit list for the local team when the game ends.
+ * Upstream: zplayer_events.cpp:1330-1363
+ */
+export function playerTeamEndedEvent(
+  player: PlayerTeamEndedEventState,
+  data: Uint8Array | string | TeamEndedPacket | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+
+  if (size !== TEAM_ENDED_PACKET_SIZE_BYTES) return;
+
+  const packet = parseTeamEndedPacket(data);
+  if (!packet) return;
+  if (packet.team !== player.ourTeam) return;
+
+  const endAnimations: HudEndUnit[] = [];
+  for (const object of player.objectList) {
+    if (object.getOwner() !== player.ourTeam) continue;
+
+    const { objectType, objectId } = object.getObjectId();
+    switch (objectType) {
+      case MapObjectType.Cannon:
+      case MapObjectType.Vehicle:
+        endAnimations.push(
+          new HudEndUnit(objectType, objectId, object.getDriverType()),
+        );
+        break;
+      case MapObjectType.Robot:
+        endAnimations.push(new HudEndUnit(objectType, objectId, objectId));
+        break;
+      default:
+        break;
+    }
+  }
+
+  startHudEndAnimations(player.zhud, endAnimations, packet.won);
+}
+
+function parseDoPortraitAnimPacket(
+  data: Uint8Array | string | DoPortraitAnimPacket | null,
+): DoPortraitAnimPacket | null {
+  if (data === null) return null;
+  if (typeof data === "object" && !(data instanceof Uint8Array)) return data;
+
+  const bytes = new Uint8Array(DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES);
+  if (typeof data === "string") {
+    for (
+      let i = 0;
+      i < DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES && i < data.length;
+      i += 1
+    ) {
+      bytes[i] = data.charCodeAt(i) & 0xff;
+    }
+  } else {
+    bytes.set(data.subarray(0, DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES));
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return {
+    refId: view.getInt32(0, true),
+    animId: view.getInt32(4, true),
+  };
+}
+
+function isAllowedPortraitEventAnimation(animation: number): boolean {
+  return (
+    animation === PortraitAnimationType.VehicleCaptured ||
+    animation === PortraitAnimationType.GunCaptured ||
+    animation === PortraitAnimationType.TerritoryTaken ||
+    animation === PortraitAnimationType.TargetDestroyed
+  );
+}
+
+/**
+ * Port of upstream `ZPlayer::do_portrait_anim_event`.
+ * Role: Starts an auxiliary portrait event animation for a local object and stores focus.
+ * Upstream: zplayer_events.cpp:1300-1328
+ */
+export function playerDoPortraitAnimEvent<
+  TObject extends PlayerPortraitAnimObject,
+>(
+  player: PlayerDoPortraitAnimEventState<TObject>,
+  data: Uint8Array | string | DoPortraitAnimPacket | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+
+  if (size !== DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES) return;
+
+  const packet = parseDoPortraitAnimPacket(data);
+  if (!packet) return;
+
+  const object = player.objectList.find((candidate) => candidate.refId === packet.refId);
+  if (!object) return;
+  if (object.getOwner() !== player.ourTeam) return;
+  if (player.aportrait.doingAnim()) return;
+
+  player.aportrait.setObject(object);
+  if (isAllowedPortraitEventAnimation(packet.animId)) {
+    player.aportrait.startAnim(packet.animId);
+  }
+
+  addPlayerSpaceBarEvent(player, new SpaceBarEvent(packet.refId, true));
 }
 
 /**
