@@ -15,6 +15,7 @@ import {
   UNIT_HISTORY_HEATMAP_TIME_DECAY,
   UNIT_HISTORY_HEATMAP_TIME_INCREMENT,
   ZGUN_PLACEMENT_HEATMAP_HEADER_GUARD_PORTED,
+  addHeatMapHeat,
   clearHeatMap,
   getHeatMapSize,
   lazyCreateGunPlacementRedTile,
@@ -218,6 +219,50 @@ describe("gun placement heatmap", () => {
 
     expect(state.heatMap).toEqual([0, 0, 0]);
     expect(state.lastTeam).toBe(TeamType.Blue);
+  });
+
+  it("ports ZHeatMapBase AddHeat as stacked radial tile heat", () => {
+    const state: HeatMapBaseState = {
+      heatMapSize: 9,
+      heatMap: Array.from({ length: 9 }, () => 0),
+    };
+
+    addHeatMapHeat(state, { width: 3, height: 3 }, 24, 24, 24, 2);
+
+    expect(state.heatMap?.[4]).toBe(2);
+    expect(state.heatMap?.[1]).toBeCloseTo(2 / 3);
+    expect(state.heatMap?.[3]).toBeCloseTo(2 / 3);
+    expect(state.heatMap?.[5]).toBeCloseTo(2 / 3);
+    expect(state.heatMap?.[7]).toBeCloseTo(2 / 3);
+    expect(state.heatMap?.[0]).toBeGreaterThan(0);
+    expect(state.heatMap?.[8]).toBeGreaterThan(0);
+
+    addHeatMapHeat(state, { width: 3, height: 3 }, 24, 24, 16, 1);
+
+    expect(state.heatMap?.[4]).toBe(3);
+    expect(state.heatMap?.[1]).toBeCloseTo(2 / 3);
+  });
+
+  it("ports ZHeatMapBase AddHeat as bounded non-stacking heat update", () => {
+    const state: HeatMapBaseState = {
+      heatMapSize: 4,
+      heatMap: [0.25, 0.25, -0.25, -0.25],
+    };
+
+    addHeatMapHeat(state, { width: 2, height: 2 }, 8, 8, 8, 0.5, false);
+    expect(state.heatMap).toEqual([0.5, 0.25, -0.25, -0.25]);
+
+    addHeatMapHeat(state, { width: 2, height: 2 }, 8, 8, 8, -0.5, false);
+    expect(state.heatMap).toEqual([-0.5, 0.25, -0.25, -0.25]);
+
+    addHeatMapHeat(
+      { heatMapSize: 4 },
+      { width: 2, height: 2 },
+      8,
+      8,
+      16,
+      1,
+    );
   });
 
   it("ports ZGunPlacementHeatMap LazyCreateRedTile as no-op when surface exists", () => {

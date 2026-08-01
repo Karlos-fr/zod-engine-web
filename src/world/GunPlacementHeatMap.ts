@@ -5,6 +5,7 @@
 import type { GameMap } from "./GameMap";
 import type { MapZoneInfo } from "./MapFormat";
 import type { GameEntity } from "../simulation/entities/GameEntity";
+import { distance, xyToIndex } from "../simulation/Common";
 
 /**
  * Marker exported from the gun placement heatmap module.
@@ -203,6 +204,53 @@ export function clearHeatMap(state: HeatMapBaseState, ourTeam: number): void {
 
   if (ourTeam !== -1) {
     state.lastTeam = ourTeam;
+  }
+}
+
+/**
+ * Port of upstream `ZHeatMapBase::AddHeat`.
+ * Role: Adds weighted radial heat into the cached tile heatmap.
+ * Upstream: zgun_placement_heatmap.cpp:412-460
+ */
+export function addHeatMapHeat(
+  state: HeatMapBaseState,
+  mapBasics: Pick<GameMap, "width" | "height">,
+  centerX: number,
+  centerY: number,
+  heatDistance: number,
+  weight: number,
+  heatStacks = true,
+): void {
+  if (!state.heatMap) return;
+
+  const heatTileDistance = Math.trunc(heatDistance / 16);
+  const tileX = Math.trunc(centerX / 16);
+  const tileY = Math.trunc(centerY / 16);
+  const startX = Math.max(0, tileX - heatTileDistance);
+  const endX = Math.min(mapBasics.width - 1, tileX + heatTileDistance);
+  const startY = Math.max(0, tileY - heatTileDistance);
+  const endY = Math.min(mapBasics.height - 1, tileY + heatTileDistance);
+
+  for (let x = startX; x <= endX; x += 1) {
+    for (let y = startY; y <= endY; y += 1) {
+      const index = xyToIndex(x, y, mapBasics.height);
+
+      if (index < 0) continue;
+      if (index >= state.heatMapSize) continue;
+
+      const tileDistance = distance(centerX, centerY, x * 16 + 8, y * 16 + 8);
+      if (tileDistance > heatDistance) continue;
+
+      const heat = weight * ((heatDistance - tileDistance) / heatDistance);
+
+      if (heatStacks) {
+        state.heatMap[index] += heat;
+      } else if (weight > 0) {
+        if (heat > state.heatMap[index]) state.heatMap[index] = heat;
+      } else if (heat < state.heatMap[index]) {
+        state.heatMap[index] = heat;
+      }
+    }
   }
 }
 

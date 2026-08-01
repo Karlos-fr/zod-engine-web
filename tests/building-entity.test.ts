@@ -295,6 +295,107 @@ describe("building entity", () => {
     expect(building.productionCalls).toEqual([{ objectType: 3, objectId: 7 }]);
   });
 
+  it("ports ZBuilding SetBuildingProduction guard exits", () => {
+    class TestBuilding extends BuildingEntity {
+      override producesUnits(): boolean {
+        return true;
+      }
+    }
+    const availabilityChecks: Array<[number, number, number, number]> = [];
+    const building = new TestBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      objectId: BuildingType.RobotFactory,
+    });
+    building.level = 1;
+    building.bot = 3;
+    building.boid = 4;
+    building.initialProductionTime = 7;
+    building.finalProductionTime = 11;
+    building.buildList = {
+      getFirstUnitInBuildList: () => ({
+        hasUnit: false,
+        objectType: 0,
+        objectId: 0,
+      }),
+      unitBuildTime: () => 9,
+      unitInBuildList: (buildingType, level, objectType, objectId) => {
+        availabilityChecks.push([buildingType, level, objectType, objectId]);
+        return false;
+      },
+    };
+
+    expect(building.setBuildingProduction(9, 1)).toBe(false);
+
+    building.owner = TeamType.Blue;
+    expect(building.setBuildingProduction(3, 4)).toBe(false);
+
+    expect(building.setBuildingProduction(9, 1)).toBe(false);
+    expect(building.bot).toBe(3);
+    expect(building.boid).toBe(4);
+    expect(building.buildState).toBe(BuildingState.Select);
+    expect(building.initialProductionTime).toBe(7);
+    expect(building.finalProductionTime).toBe(11);
+    expect(building.queueList).toEqual([]);
+    expect(availabilityChecks).toEqual([[BuildingType.RobotFactory, 1, 9, 1]]);
+  });
+
+  it("ports ZBuilding SetBuildingProduction as state update and queue seed", () => {
+    class ProducingBuilding extends BuildingEntity {
+      override producesUnits(): boolean {
+        return true;
+      }
+
+      override buildTimeModified(baseBuildTime: number): number {
+        return baseBuildTime + 2;
+      }
+    }
+    const availabilityChecks: Array<[number, number, number, number]> = [];
+    const building = new ProducingBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      objectId: BuildingType.RobotFactory,
+      owner: TeamType.Blue,
+    });
+    building.level = 1;
+    building.ztime = { ztime: 12.5 };
+    building.buildList = {
+      getFirstUnitInBuildList: () => ({
+        hasUnit: false,
+        objectType: 0,
+        objectId: 0,
+      }),
+      unitBuildTime: (objectType, objectId) =>
+        objectType === 3 && objectId === 4 ? 8 : 0,
+      unitInBuildList: (buildingType, level, objectType, objectId) => {
+        availabilityChecks.push([buildingType, level, objectType, objectId]);
+        return (
+          buildingType === BuildingType.RobotFactory &&
+          level === 1 &&
+          objectType === 3 &&
+          objectId === 4
+        );
+      },
+    };
+
+    expect(building.setBuildingProduction(3, 4)).toBe(true);
+    expect(building.bot).toBe(3);
+    expect(building.boid).toBe(4);
+    expect(building.buildState).toBe(BuildingState.Building);
+    expect(building.initialProductionTime).toBe(12.5);
+    expect(building.finalProductionTime).toBe(22.5);
+    expect(building.queueList).toEqual([new ZBProductionUnit(3, 4)]);
+    expect(availabilityChecks).toEqual([[BuildingType.RobotFactory, 1, 3, 4]]);
+
+    building.bot = -1;
+    building.boid = -1;
+    building.ztime = { ztime: 20 };
+    expect(building.setBuildingProduction(3, 4)).toBe(true);
+    expect(building.queueList).toEqual([new ZBProductionUnit(3, 4)]);
+  });
+
   it("ports ZBuilding BuildTimeModified as zone and health adjusted build time", () => {
     const building = new BuildingEntity({
       id: "building-1",
@@ -886,6 +987,76 @@ describe("building entity", () => {
       bot: -1,
       boid: -1,
       queueList: [queuedUnit],
+    });
+  });
+
+  it("ports ZBuilding ResetProduction as restart from first queued unit", () => {
+    class TestBuilding extends BuildingEntity {
+      stopCalls: boolean[] = [];
+      productionCalls: Array<{ objectType: number; objectId: number }> = [];
+
+      override stopBuildingProduction(clearQueueList = true): boolean {
+        this.stopCalls.push(clearQueueList);
+        return super.stopBuildingProduction(clearQueueList);
+      }
+
+      override setBuildingProduction(objectType: number, objectId: number): boolean {
+        this.productionCalls.push({ objectType, objectId });
+        return true;
+      }
+    }
+    const queuedUnit = new ZBProductionUnit(3, 4);
+    const remainingUnit = new ZBProductionUnit(5, 6);
+    const building = new TestBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.buildState = BuildingState.Building;
+    building.bot = 1;
+    building.boid = 2;
+    building.queueList = [queuedUnit, remainingUnit];
+
+    building.resetProduction();
+
+    expect(building.stopCalls).toEqual([false]);
+    expect(building.productionCalls).toEqual([{ objectType: 3, objectId: 4 }]);
+    expect(building.queueList).toEqual([remainingUnit]);
+  });
+
+  it("ports ZBuilding ResetProduction as stop when queue is empty", () => {
+    class TestBuilding extends BuildingEntity {
+      stopCalls: boolean[] = [];
+      productionCalls: Array<{ objectType: number; objectId: number }> = [];
+
+      override stopBuildingProduction(clearQueueList = true): boolean {
+        this.stopCalls.push(clearQueueList);
+        return super.stopBuildingProduction(clearQueueList);
+      }
+
+      override setBuildingProduction(objectType: number, objectId: number): boolean {
+        this.productionCalls.push({ objectType, objectId });
+        return true;
+      }
+    }
+    const building = new TestBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.buildState = BuildingState.Building;
+    building.bot = 1;
+    building.boid = 2;
+
+    building.resetProduction();
+
+    expect(building.stopCalls).toEqual([true]);
+    expect(building.productionCalls).toEqual([]);
+    expect(building).toMatchObject({
+      buildState: BuildingState.Select,
+      bot: -1,
+      boid: -1,
+      queueList: [],
     });
   });
 });

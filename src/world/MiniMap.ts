@@ -43,6 +43,17 @@ export type MiniMapSetupState<TMap = unknown, TObject = unknown> = {
 };
 
 /**
+ * Minimal state consumed by ported `ZMiniMap::Setup_Boundaries`.
+ * Role: Stores map bindings plus the computed minimap render rectangle and map scaling ratio.
+ * Upstream: zmini_map.h:18-19, zmini_map.h:31, zmini_map.h:34
+ */
+export type MiniMapBoundaryState<TMap = unknown, TObject = unknown> =
+  MiniMapSetupState<TMap, TObject> & {
+    renderArea: MiniMapRenderArea;
+    renderRatio: number;
+  };
+
+/**
  * Port of upstream `ZMiniMap::render_area` shape.
  * Role: Defines the minimap screen rectangle used for click-to-map conversion.
  * Upstream: zmini_map.h:34, zmini_map.cpp:61-75
@@ -97,6 +108,55 @@ export function setupMiniMap<TMap, TObject, TState extends MiniMapSetupState<TMa
     ...state,
     zmap,
     objectList,
+  };
+}
+
+/**
+ * Port of upstream `ZMiniMap::Setup_Boundaries`.
+ * Role: Fits the map aspect ratio into the fixed minimap bounds and computes map pixel scaling.
+ * Upstream: zmini_map.cpp:24-59
+ */
+export function setupMiniMapBoundaries<
+  TMap extends { width: number; height: number },
+  TObject,
+  TState extends MiniMapBoundaryState<TMap, TObject>,
+>(state: TState): TState {
+  if (!state.zmap) return state;
+  if (!state.objectList) return state;
+
+  const mapRatio = state.zmap.width / state.zmap.height;
+  const maxMiniRatio = MINIMAP_MAX_WIDTH_PIXELS / MINIMAP_MAX_HEIGHT_PIXELS;
+  const renderArea: MiniMapRenderArea = {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  };
+
+  if (mapRatio < maxMiniRatio) {
+    renderArea.width = Math.trunc(mapRatio * MINIMAP_MAX_HEIGHT_PIXELS);
+    renderArea.height = MINIMAP_MAX_HEIGHT_PIXELS;
+    renderArea.x = (MINIMAP_MAX_WIDTH_PIXELS - renderArea.width) >> 1;
+    renderArea.y = (MINIMAP_MAX_HEIGHT_PIXELS - renderArea.height) >> 1;
+  } else {
+    renderArea.width = MINIMAP_MAX_WIDTH_PIXELS;
+    renderArea.height = Math.trunc(MINIMAP_MAX_WIDTH_PIXELS / mapRatio);
+    renderArea.x = (MINIMAP_MAX_WIDTH_PIXELS - renderArea.width) >> 1;
+    renderArea.y = (MINIMAP_MAX_HEIGHT_PIXELS - renderArea.height) >> 1;
+  }
+
+  renderArea.x += 2;
+  renderArea.y += 2;
+  renderArea.width -= 4;
+  renderArea.height -= 4;
+
+  if (renderArea.width < 0) renderArea.width = 0;
+  if (renderArea.height < 0) renderArea.height = 0;
+
+  return {
+    ...state,
+    renderArea,
+    renderRatio: renderArea.height / (state.zmap.height * 16.0),
   };
 }
 

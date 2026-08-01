@@ -35,6 +35,29 @@ export class PathFindingRegionInfo {
   vehicleRegion: number[][] | null = null;
 
   /**
+   * Port of upstream `ZPath_Finding_RegionInfo::Init`.
+   * Role: Reallocates flood-fill storage and zeroed robot/vehicle region grids.
+   * Upstream: zpath_finding.cpp:103-134
+   */
+  init(width: number, height: number): void {
+    this.delete();
+
+    this.width = width;
+    this.height = height;
+    this.floodFillQueue = Array.from(
+      { length: width * height },
+      () => new PathFindingPoint(0, 0),
+    );
+    this.robotRegion = Array.from({ length: width }, () =>
+      Array.from({ length: height }, () => 0),
+    );
+    this.vehicleRegion = Array.from({ length: width }, () =>
+      Array.from({ length: height }, () => 0),
+    );
+    this.allocated = true;
+  }
+
+  /**
    * Port of upstream `ZPath_Finding_RegionInfo::Delete`.
    * Role: Releases allocated flood-fill and region grids.
    * Upstream: zpath_finding.cpp:136-157

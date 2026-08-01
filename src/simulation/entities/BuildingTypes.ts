@@ -661,6 +661,23 @@ export class BuildingEntity extends GameEntity {
   }
 
   /**
+   * Port of upstream `ZBuilding::ResetProduction`.
+   * Role: Restarts production from the first queued unit or stops production when the queue is empty.
+   * Upstream: zbuilding.cpp:481-510
+   */
+  override resetProduction(): void {
+    const queuedUnit = this.queueList.shift();
+
+    if (queuedUnit) {
+      this.stopBuildingProduction(false);
+      this.setBuildingProduction(queuedUnit.ot, queuedUnit.oid);
+      return;
+    }
+
+    this.stopBuildingProduction();
+  }
+
+  /**
    * Port of upstream `ZBuilding::StopBuildingProduction`.
    * Role: Resets active building production and optionally clears queued units.
    * Upstream: zbuilding.cpp:278-290

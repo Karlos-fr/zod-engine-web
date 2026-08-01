@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EROCK_PARTICLE_HEADER_GUARD_PORTED,
   initRockParticleEffect,
+  processRockParticleEffect,
   RockParticleType,
 } from "../src/simulation/RockParticleEffect";
 import { PlanetType } from "../src/simulation/SimulationConstants";
@@ -61,4 +62,75 @@ describe("rock particle effect", () => {
     ]);
     expect(state.finishedInit).toBe(true);
   });
+
+  it("ports ERockParticle Process guard cases", () => {
+    const killedState = createRockParticleProcessState({
+      killme: true,
+      ztime: { ztime: 2 },
+      renderIndex: 5,
+    });
+
+    processRockParticleEffect(killedState);
+    expect(killedState).toMatchObject({
+      killme: true,
+      renderIndex: 5,
+      x: 10,
+      y: 20,
+    });
+
+    const expiredState = createRockParticleProcessState({
+      ztime: { ztime: 6 },
+      finalTime: 6,
+    });
+
+    processRockParticleEffect(expiredState);
+    expect(expiredState.killme).toBe(true);
+    expect(expiredState.renderIndex).toBe(0);
+  });
+
+  it("ports ERockParticle Process as animation and ballistic motion update", () => {
+    const state = createRockParticleProcessState({
+      ztime: { ztime: 1.5 },
+      initTime: 1,
+      finalTime: 3,
+      nextProcessTime: 1.25,
+      renderIndex: 5,
+      startX: 10,
+      startY: 20,
+      deltaX: 4,
+      deltaY: -2,
+      rise: 3,
+    });
+
+    processRockParticleEffect(state);
+
+    expect(state.killme).toBe(false);
+    expect(state.renderIndex).toBe(0);
+    expect(state.nextProcessTime).toBeCloseTo(1.57);
+    expect(state.x).toBe(12);
+    expect(state.size).toBeCloseTo(2.125);
+    expect(state.y).toBeCloseTo(-149.75);
+  });
 });
+
+function createRockParticleProcessState(
+  overrides: Partial<Parameters<typeof processRockParticleEffect>[0]> = {},
+): Parameters<typeof processRockParticleEffect>[0] {
+  return {
+    killme: false,
+    ztime: { ztime: 0 },
+    initTime: 0,
+    finalTime: 10,
+    nextProcessTime: 1,
+    renderIndex: 0,
+    x: 10,
+    y: 20,
+    startX: 10,
+    startY: 20,
+    deltaX: 0,
+    deltaY: 0,
+    rise: 1,
+    size: 1,
+    ...overrides,
+  };
+}

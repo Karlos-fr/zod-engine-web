@@ -57,6 +57,28 @@ export type RockParticleInitState<TImage = unknown> = {
 };
 
 /**
+ * Port of upstream `ERockParticle::Process` mutable fields.
+ * Role: Tracks rock debris animation, lifetime, and ballistic motion.
+ * Upstream: erockparticle.cpp:98-130
+ */
+export type RockParticleProcessState = {
+  killme: boolean;
+  ztime: { ztime: number } | null;
+  initTime: number;
+  finalTime: number;
+  nextProcessTime: number;
+  renderIndex: number;
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  deltaX: number;
+  deltaY: number;
+  rise: number;
+  size: number;
+};
+
+/**
  * Replacement for upstream `ZSDL_Surface::LoadBaseImage`.
  * Role: Loads one rock debris frame asset.
  * Upstream: erockparticle.cpp:82, erockparticle.cpp:85, erockparticle.cpp:91
@@ -101,4 +123,40 @@ export function initRockParticleEffect<TImage>(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `ERockParticle::Process`.
+ * Role: Advances rock debris animation, lifetime, and ballistic position.
+ * Upstream: erockparticle.cpp:98-130
+ */
+export function processRockParticleEffect(
+  state: RockParticleProcessState,
+): void {
+  const currentTime = state.ztime?.ztime ?? 0;
+
+  if (state.killme) return;
+
+  if (currentTime >= state.finalTime) {
+    state.killme = true;
+    return;
+  }
+
+  if (currentTime >= state.nextProcessTime) {
+    state.renderIndex += 1;
+    if (state.renderIndex >= 6) state.renderIndex = 0;
+
+    state.nextProcessTime = currentTime + 0.07;
+  }
+
+  const timeDifference = currentTime - state.initTime;
+
+  state.x = state.startX + state.deltaX * timeDifference;
+  state.y = state.startY + state.deltaY * timeDifference;
+  state.size =
+    -(state.rise / (state.finalTime - state.initTime)) *
+      (timeDifference * timeDifference) +
+    state.rise * timeDifference;
+  state.size += 1;
+  state.y -= (state.size - 1) * 150;
 }

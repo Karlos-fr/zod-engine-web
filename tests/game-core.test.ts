@@ -5,9 +5,12 @@ import {
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   PlayerConnectionMode,
+  RobotType,
   TeamType,
+  VehicleType,
 } from "../src/simulation/SimulationConstants";
 import { WaypointMode } from "../src/simulation/entities/EntityTypes";
+import { ZEncryptAES } from "../src/simulation/EncryptionAES";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import { MapObjectType } from "../src/world/MapFormat";
 import {
@@ -17,6 +20,7 @@ import {
   createCoreObjectOk,
   createCoreRandomBotBypassData,
   createCoreWaypointSendData,
+  CORE_ENCRYPTION_KEY_BYTES,
   deleteCoreObjectCleanUp,
   GAMES_PER_VOTING_POWER_POINT,
   CORE_PACKED_WAYPOINT_BYTES,
@@ -26,6 +30,7 @@ import {
   getCoreVotesFor,
   getCoreVotesNeeded,
   getRealVotingPower,
+  initCoreEncryption,
   PlayerInfo,
   PlayerVoteChoice,
   resetCoreUnitLimitReached,
@@ -33,6 +38,7 @@ import {
   setCoreBotBypassData,
   setupCore,
   setupCoreRandomizer,
+  unitRequiresActivation,
   ZCORE_HEADER_GUARD_PORTED,
 } from "../src/simulation/GameCore";
 import type {
@@ -60,6 +66,36 @@ describe("game core", () => {
     expect(getRealVotingPower(2, 4)).toBe(2);
     expect(getRealVotingPower(2, 5)).toBe(3);
     expect(getRealVotingPower(2, 12)).toBe(4);
+  });
+
+  it("ports ZCore InitEncryption as fixed AES-128 key initialization", () => {
+    const encryption = new ZEncryptAES();
+
+    expect(CORE_ENCRYPTION_KEY_BYTES).toEqual([
+      0xfe, 0xea, 0x42, 0x35, 0x78, 0x02, 0x57, 0xec, 0xee, 0x92, 0x11, 0x58,
+      0xc2, 0x5d, 0xc3, 0x23,
+    ]);
+    expect(initCoreEncryption(encryption)).toBe(1);
+    expect(encryption.nr).toBe(10);
+    expect(encryption.nk).toBe(4);
+    expect(encryption.key).toEqual([...CORE_ENCRYPTION_KEY_BYTES]);
+    expect(encryption.roundKey).toHaveLength(176);
+  });
+
+  it("ports ZCore UnitRequiresActivation as unit type/id policy", () => {
+    expect(unitRequiresActivation(MapObjectType.Robot, RobotType.Pyro)).toBe(true);
+    expect(unitRequiresActivation(MapObjectType.Robot, RobotType.Laser)).toBe(true);
+    expect(unitRequiresActivation(MapObjectType.Robot, RobotType.Grunt)).toBe(false);
+
+    expect(unitRequiresActivation(MapObjectType.Vehicle, VehicleType.Jeep)).toBe(false);
+    expect(unitRequiresActivation(MapObjectType.Vehicle, VehicleType.Light)).toBe(false);
+    expect(unitRequiresActivation(MapObjectType.Vehicle, VehicleType.Medium)).toBe(true);
+    expect(
+      unitRequiresActivation(MapObjectType.Vehicle, VehicleType.MissileLauncher),
+    ).toBe(true);
+
+    expect(unitRequiresActivation(MapObjectType.Cannon, 0)).toBe(false);
+    expect(unitRequiresActivation(MapObjectType.MapItem, 0)).toBe(false);
   });
 
   it("ports player vote choices", () => {

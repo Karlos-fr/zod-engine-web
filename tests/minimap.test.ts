@@ -3,10 +3,12 @@ import {
   clickedMiniMap,
   MINIMAP_MAX_HEIGHT_PIXELS,
   MINIMAP_MAX_WIDTH_PIXELS,
+  type MiniMapBoundaryState,
   type MiniMapSetupState,
   type MiniMapTerrainState,
   ZMINIMAP_HEADER_GUARD_PORTED,
   setupMiniMap,
+  setupMiniMapBoundaries,
   setMiniMapShowTerrain,
   toggleMiniMapShowTerrain,
 } from "../src/world/MiniMap";
@@ -72,6 +74,60 @@ describe("minimap", () => {
     expect(nextState.showTerrain).toBe(true);
     expect(state.zmap).toBeNull();
     expect(state.objectList).toBeNull();
+  });
+
+  it("ports Setup_Boundaries as tall-map minimap render area fitting", () => {
+    const state: MiniMapBoundaryState<{ width: number; height: number }, { id: number }> = {
+      zmap: { width: 40, height: 80 },
+      objectList: [{ id: 1 }],
+      renderArea: { x: 0, y: 0, width: 0, height: 0 },
+      renderRatio: 0,
+    };
+
+    const nextState = setupMiniMapBoundaries(state);
+
+    expect(nextState).toEqual({
+      zmap: state.zmap,
+      objectList: state.objectList,
+      renderArea: { x: 26, y: 2, width: 40, height: 85 },
+      renderRatio: 85 / (80 * 16),
+    });
+    expect(nextState).not.toBe(state);
+  });
+
+  it("ports Setup_Boundaries as wide-map minimap render area fitting", () => {
+    const state: MiniMapBoundaryState<{ width: number; height: number }, { id: number }> = {
+      zmap: { width: 80, height: 40 },
+      objectList: [{ id: 1 }],
+      renderArea: { x: 99, y: 99, width: 1, height: 1 },
+      renderRatio: 9,
+    };
+
+    const nextState = setupMiniMapBoundaries(state);
+
+    expect(nextState.renderArea).toEqual({ x: 2, y: 23, width: 88, height: 42 });
+    expect(nextState.renderRatio).toBe(42 / (40 * 16));
+  });
+
+  it("ports Setup_Boundaries guard exits when missing map or object list", () => {
+    const missingMap: MiniMapBoundaryState<{ width: number; height: number }, { id: number }> = {
+      zmap: null,
+      objectList: [{ id: 1 }],
+      renderArea: { x: 1, y: 2, width: 3, height: 4 },
+      renderRatio: 5,
+    };
+    const missingObjectList: MiniMapBoundaryState<
+      { width: number; height: number },
+      { id: number }
+    > = {
+      zmap: { width: 80, height: 40 },
+      objectList: null,
+      renderArea: { x: 1, y: 2, width: 3, height: 4 },
+      renderRatio: 5,
+    };
+
+    expect(setupMiniMapBoundaries(missingMap)).toBe(missingMap);
+    expect(setupMiniMapBoundaries(missingObjectList)).toBe(missingObjectList);
   });
 
   it("ports ClickedMap as minimap click to map pixel conversion", () => {

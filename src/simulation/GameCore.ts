@@ -4,13 +4,16 @@
 
 import { GameEntity } from "./entities/GameEntity";
 import { WaypointMode, type Waypoint } from "./entities/EntityTypes";
+import { ZEncryptAES } from "./EncryptionAES";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   BuildingType,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   PlayerConnectionMode,
+  RobotType,
   TeamType,
+  VehicleType,
 } from "./SimulationConstants";
 import { MapObjectType } from "../world/MapFormat";
 
@@ -47,6 +50,55 @@ export const GAMES_PER_VOTING_POWER_POINT = 5;
  * Upstream: zcore.cpp:30-33
  */
 export function runCore(): void {}
+
+/**
+ * Port of upstream `ZCore::InitEncryption` key bytes.
+ * Role: Defines the fixed AES-128 key used by the core protocol encryption helper.
+ * Upstream: zcore.cpp:62
+ */
+export const CORE_ENCRYPTION_KEY_BYTES = [
+  0xfe, 0xea, 0x42, 0x35, 0x78, 0x02, 0x57, 0xec, 0xee, 0x92, 0x11, 0x58,
+  0xc2, 0x5d, 0xc3, 0x23,
+] as const;
+
+/**
+ * Port of upstream `ZCore::InitEncryption`.
+ * Role: Initializes the core AES helper with the fixed 128-bit protocol key.
+ * Upstream: zcore.cpp:60-93
+ */
+export function initCoreEncryption(encryption: ZEncryptAES): 0 | 1 {
+  return encryption.initKey(CORE_ENCRYPTION_KEY_BYTES, 128);
+}
+
+/**
+ * Port of upstream `ZCore::UnitRequiresActivation`.
+ * Role: Reports whether a unit type requires player activation before use.
+ * Upstream: zcore.cpp:320-353
+ */
+export function unitRequiresActivation(
+  objectType: number,
+  objectId: number,
+): boolean {
+  switch (objectType) {
+    case MapObjectType.Robot:
+      switch (objectId) {
+        case RobotType.Pyro:
+        case RobotType.Laser:
+          return true;
+      }
+      break;
+    case MapObjectType.Vehicle:
+      switch (objectId) {
+        case VehicleType.Jeep:
+        case VehicleType.Light:
+          return false;
+        default:
+          return true;
+      }
+  }
+
+  return false;
+}
 
 /**
  * Port of upstream `real_voting_power`.

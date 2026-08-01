@@ -15,6 +15,42 @@ import {
 import { ROAD_SPEED, WATER_SPEED } from "../src/simulation/SimulationConstants";
 
 describe("PathFindingEngine", () => {
+  it("ports ZPath_Finding_RegionInfo::Init as zeroed region allocation", () => {
+    const regionInfo = new PathFindingRegionInfo();
+    regionInfo.width = 1;
+    regionInfo.height = 1;
+    regionInfo.allocated = true;
+    regionInfo.floodFillQueue = [new PathFindingPoint(9, 9)];
+    regionInfo.robotRegion = [[7]];
+    regionInfo.vehicleRegion = [[8]];
+    const oldQueue = regionInfo.floodFillQueue;
+    const oldRobotRegion = regionInfo.robotRegion;
+    const oldVehicleRegion = regionInfo.vehicleRegion;
+
+    regionInfo.init(3, 2);
+
+    expect(oldQueue).toEqual([]);
+    expect(oldRobotRegion).toEqual([]);
+    expect(oldVehicleRegion).toEqual([]);
+    expect(regionInfo).toMatchObject({
+      allocated: true,
+      width: 3,
+      height: 2,
+    });
+    expect(regionInfo.floodFillQueue).toHaveLength(6);
+    expect(regionInfo.floodFillQueue?.[0]).toEqual(new PathFindingPoint(0, 0));
+    expect(regionInfo.robotRegion).toEqual([
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ]);
+    expect(regionInfo.vehicleRegion).toEqual([
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ]);
+  });
+
   it("ports ZPath_Finding_RegionInfo::Delete as allocated region cleanup", () => {
     const regionInfo = new PathFindingRegionInfo();
     regionInfo.width = 2;
