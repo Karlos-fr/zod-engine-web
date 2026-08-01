@@ -353,6 +353,155 @@ describe("building entity", () => {
     expect(building.recalcCalls).toBe(2);
   });
 
+  it("ports ZBuilding RecalcBuildTime guard exits", () => {
+    const building = new BuildingEntity({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.initialProductionTime = 10;
+    building.finalProductionTime = 20;
+
+    expect(building.recalcBuildTime()).toBe(false);
+
+    building.buildList = {
+      getFirstUnitInBuildList: () => ({
+        hasUnit: false,
+        objectType: 0,
+        objectId: 0,
+      }),
+      unitBuildTime: () => 12,
+      unitInBuildList: () => false,
+    };
+    expect(building.recalcBuildTime()).toBe(false);
+
+    building.bot = 1;
+    expect(building.recalcBuildTime()).toBe(false);
+
+    building.boid = 2;
+    building.buildState = BuildingState.Select;
+    expect(building.recalcBuildTime()).toBe(false);
+    expect(building.finalProductionTime).toBe(20);
+  });
+
+  it("ports ZBuilding RecalcBuildTime as modified final-time update", () => {
+    class TestBuilding extends BuildingEntity {
+      override buildTimeModified(baseBuildTime: number): number {
+        return baseBuildTime + 3;
+      }
+    }
+    const unitBuildTimes: Array<[number, number]> = [];
+    const building = new TestBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.initialProductionTime = 10;
+    building.finalProductionTime = 20;
+    building.bot = 3;
+    building.boid = 4;
+    building.buildState = BuildingState.Building;
+    building.buildList = {
+      getFirstUnitInBuildList: () => ({
+        hasUnit: false,
+        objectType: 0,
+        objectId: 0,
+      }),
+      unitBuildTime(objectType, objectId) {
+        unitBuildTimes.push([objectType, objectId]);
+        return 12;
+      },
+      unitInBuildList: () => false,
+    };
+
+    expect(building.recalcBuildTime()).toBe(true);
+    expect(building.finalProductionTime).toBe(25);
+    expect(unitBuildTimes).toEqual([[3, 4]]);
+
+    expect(building.recalcBuildTime()).toBe(false);
+    expect(building.finalProductionTime).toBe(25);
+  });
+
+  it("ports ZBuilding AddBuildingQueue guard exits", () => {
+    class ProducingBuilding extends BuildingEntity {
+      override producesUnits(): boolean {
+        return true;
+      }
+    }
+    const availabilityChecks: Array<[number, number, number, number]> = [];
+    const building = new ProducingBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.objectId = BuildingType.RobotFactory;
+    building.level = 2;
+    building.buildList = {
+      getFirstUnitInBuildList: () => ({
+        hasUnit: false,
+        objectType: 0,
+        objectId: 0,
+      }),
+      unitBuildTime: () => 0,
+      unitInBuildList: (buildingType, level, objectType, objectId) => {
+        availabilityChecks.push([buildingType, level, objectType, objectId]);
+        return objectType === 3 && objectId === 4;
+      },
+    };
+
+    expect(building.addBuildingQueue(3, 4)).toBe(false);
+
+    building.owner = TeamType.Red;
+    building.queueList = Array.from(
+      { length: 5 },
+      (_, index) => new ZBProductionUnit(1, index),
+    );
+    expect(building.addBuildingQueue(3, 4)).toBe(false);
+
+    building.queueList = [];
+    expect(building.addBuildingQueue(9, 4)).toBe(false);
+    expect(building.queueList).toEqual([]);
+    expect(availabilityChecks).toEqual([[BuildingType.RobotFactory, 2, 9, 4]]);
+  });
+
+  it("ports ZBuilding AddBuildingQueue as front and back insertion", () => {
+    class ProducingBuilding extends BuildingEntity {
+      override producesUnits(): boolean {
+        return true;
+      }
+    }
+    const building = new ProducingBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+    building.objectId = BuildingType.VehicleFactory;
+    building.level = 1;
+    building.queueList = [new ZBProductionUnit(1, 2)];
+    building.buildList = {
+      getFirstUnitInBuildList: () => ({
+        hasUnit: false,
+        objectType: 0,
+        objectId: 0,
+      }),
+      unitBuildTime: () => 0,
+      unitInBuildList: (buildingType, level, objectType, objectId) =>
+        buildingType === BuildingType.VehicleFactory &&
+        level === 1 &&
+        objectType + objectId > 0,
+    };
+
+    expect(building.addBuildingQueue(3, 4, false)).toBe(true);
+    expect(building.addBuildingQueue(5, 6)).toBe(true);
+
+    expect(building.queueList).toEqual([
+      new ZBProductionUnit(5, 6),
+      new ZBProductionUnit(1, 2),
+      new ZBProductionUnit(3, 4),
+    ]);
+  });
+
   it("ports ZBuilding CancelBuildingQueue guard exits", () => {
     class ProducingBuilding extends BuildingEntity {
       override producesUnits(): boolean {
@@ -627,6 +776,53 @@ describe("building entity", () => {
       0x00,
       0x00,
       0x03,
+      0xff,
+      0x00,
+    ]);
+  });
+
+  it("ports ZBuilding CreateBuildingQueueData guard for non-producing buildings", () => {
+    const building = new BuildingEntity({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.queueList = [new ZBProductionUnit(1, 2)];
+
+    expect(building.createBuildingQueueData()).toEqual({ data: null, size: 0 });
+  });
+
+  it("ports ZBuilding CreateBuildingQueueData as ref/count/unit serialization", () => {
+    class ProducingBuilding extends BuildingEntity {
+      override producesUnits(): boolean {
+        return true;
+      }
+    }
+    const building = new ProducingBuilding({
+      id: "building-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      refId: 0x01020304,
+    });
+    building.queueList = [
+      new ZBProductionUnit(3, 4),
+      new ZBProductionUnit(255, 256),
+    ];
+
+    const packet = building.createBuildingQueueData();
+
+    expect(packet.size).toBe(12);
+    expect(Array.from(packet.data!)).toEqual([
+      0x04,
+      0x03,
+      0x02,
+      0x01,
+      0x02,
+      0x00,
+      0x00,
+      0x00,
+      0x03,
+      0x04,
       0xff,
       0x00,
     ]);

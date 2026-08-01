@@ -17,6 +17,7 @@ import {
   ZGUN_PLACEMENT_HEATMAP_HEADER_GUARD_PORTED,
   clearHeatMap,
   getHeatMapSize,
+  lazyCreateGunPlacementRedTile,
   resetHeatMap,
   shouldClearHeatMap,
   shouldResetHeatMap,
@@ -217,5 +218,61 @@ describe("gun placement heatmap", () => {
 
     expect(state.heatMap).toEqual([0, 0, 0]);
     expect(state.lastTeam).toBe(TeamType.Blue);
+  });
+
+  it("ports ZGunPlacementHeatMap LazyCreateRedTile as no-op when surface exists", () => {
+    const calls: string[] = [];
+    const redTile = {
+      getBaseSurface: () => ({ id: "existing" }),
+      loadNewSurface: () => calls.push("load"),
+      makeAlphable: () => calls.push("alpha"),
+      fillRectOnToMe: () => calls.push("fill"),
+    };
+
+    expect(lazyCreateGunPlacementRedTile(redTile)).toBe(true);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZGunPlacementHeatMap LazyCreateRedTile as lazy 16px red surface creation", () => {
+    const calls: unknown[] = [];
+    let surface: { id: string } | null = null;
+    const redTile = {
+      getBaseSurface: () => surface,
+      loadNewSurface(width: number, height: number): void {
+        calls.push(["load", width, height]);
+        surface = { id: "red-tile" };
+      },
+      makeAlphable(): void {
+        calls.push("alpha");
+      },
+      fillRectOnToMe(
+        rect: { x: number; y: number; width: number; height: number },
+        red: number,
+        green: number,
+        blue: number,
+      ): void {
+        calls.push(["fill", rect, red, green, blue]);
+      },
+    };
+
+    expect(lazyCreateGunPlacementRedTile(redTile)).toBe(true);
+    expect(calls).toEqual([
+      ["load", 16, 16],
+      "alpha",
+      ["fill", { x: 0, y: 0, width: 16, height: 16 }, 255, 0, 0],
+    ]);
+  });
+
+  it("ports ZGunPlacementHeatMap LazyCreateRedTile as false when allocation fails", () => {
+    const calls: string[] = [];
+    const redTile = {
+      getBaseSurface: () => null,
+      loadNewSurface: () => calls.push("load"),
+      makeAlphable: () => calls.push("alpha"),
+      fillRectOnToMe: () => calls.push("fill"),
+    };
+
+    expect(lazyCreateGunPlacementRedTile(redTile)).toBe(false);
+    expect(calls).toEqual(["load"]);
   });
 });

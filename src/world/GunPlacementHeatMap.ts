@@ -24,6 +24,18 @@ export type HeatMapBaseState = {
   lastTeam?: number;
 };
 
+export type GunPlacementRedTileSurface<TSurface = unknown> = {
+  getBaseSurface(): TSurface | null;
+  loadNewSurface(width: number, height: number): void;
+  makeAlphable(): void;
+  fillRectOnToMe(
+    rect: { x: number; y: number; width: number; height: number },
+    red: number,
+    green: number,
+    blue: number,
+  ): void;
+};
+
 /**
  * Port of upstream `ZCore` forward declaration.
  * Role: References the game core passed into gun placement searches.
@@ -192,4 +204,26 @@ export function clearHeatMap(state: HeatMapBaseState, ourTeam: number): void {
   if (ourTeam !== -1) {
     state.lastTeam = ourTeam;
   }
+}
+
+/**
+ * Port of upstream `ZGunPlacementHeatMap::LazyCreateRedTile`.
+ * Role: Lazily creates and fills the red tile surface used by gun placement heatmap display.
+ * Upstream: zgun_placement_heatmap.cpp:272-295
+ */
+export function lazyCreateGunPlacementRedTile<TSurface>(
+  redTile: GunPlacementRedTileSurface<TSurface>,
+): boolean {
+  if (!redTile.getBaseSurface()) {
+    redTile.loadNewSurface(16, 16);
+
+    if (!redTile.getBaseSurface()) {
+      return false;
+    }
+
+    redTile.makeAlphable();
+    redTile.fillRectOnToMe({ x: 0, y: 0, width: 16, height: 16 }, 255, 0, 0);
+  }
+
+  return true;
 }

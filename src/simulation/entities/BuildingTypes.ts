@@ -3,6 +3,7 @@
  */
 
 import {
+  MAX_BUILDING_LEVELS,
   MAX_STORED_CANNONS,
   PlanetType,
   TeamType,
@@ -10,6 +11,7 @@ import {
 import type { SetBuildingStatePacket } from "../EventHandler";
 import {
   GameEntity,
+  type BuildingQueueData,
   type BuildingStateData,
   type BuildUnitResult,
 } from "./GameEntity";
@@ -134,6 +136,33 @@ export type BuildingProductionProgressState = {
   finalProductionTime: number;
 };
 
+export type BuildingImageLoadTarget = {
+  loadBaseImage(filename: string): void;
+};
+
+/**
+ * Port of upstream `ZBuilding::Init`.
+ * Role: Loads shared building level and exhaust image assets.
+ * Upstream: zbuilding.cpp:56-78
+ */
+export function initBuildingImages(
+  levelImages: readonly BuildingImageLoadTarget[],
+  exhaustImages: readonly BuildingImageLoadTarget[],
+  littleExhaustImages: readonly BuildingImageLoadTarget[],
+): void {
+  for (let i = 0; i < MAX_BUILDING_LEVELS; i += 1) {
+    levelImages[i]?.loadBaseImage(`assets/buildings/level_${i + 1}.bmp`);
+  }
+
+  for (let i = 0; i < 13; i += 1) {
+    exhaustImages[i]?.loadBaseImage(`assets/buildings/exhaust_${i}.png`);
+  }
+
+  for (let i = 0; i < 4; i += 1) {
+    littleExhaustImages[i]?.loadBaseImage(`assets/buildings/little_exhaust_${i}.png`);
+  }
+}
+
 /**
  * Browser simulation entity containing the subset of `ZBuilding` behavior already ported.
  * Role: Owns shared building render and production state over the generic game entity base.
@@ -157,7 +186,10 @@ export class BuildingEntity extends GameEntity {
   finalProductionTime = 0;
   totalProductionTime = 0;
   ztime: { ztime: number } | null = null;
-  buildList: Pick<BuildList, "getFirstUnitInBuildList"> | null = null;
+  buildList: Pick<
+    BuildList,
+    "getFirstUnitInBuildList" | "unitBuildTime" | "unitInBuildList"
+  > | null = null;
   queueList: ZBProductionUnit[] = [];
   builtCannonList: number[] = [];
   extraEffects: unknown[] = [];
@@ -313,6 +345,61 @@ export class BuildingEntity extends GameEntity {
   }
 
   /**
+   * Port of upstream `ZBuilding::SetBuildingProduction`.
+   * Role: Starts production for an available unit and seeds the production queue when empty.
+   * Upstream: zbuilding.cpp:118-147
+   */
+  override setBuildingProduction(objectType: number, objectId: number): boolean {
+    const theTime = this.ztime?.ztime ?? 0;
+
+    if (this.owner === TeamType.Null) return false;
+    if (!this.producesUnits()) return false;
+    if (objectType === this.bot && objectId === this.boid) return false;
+    if (!this.buildList?.unitInBuildList(this.objectId, this.level, objectType, objectId)) {
+      return false;
+    }
+
+    this.bot = objectType;
+    this.boid = objectId;
+    this.buildState = BuildingState.Building;
+    this.initialProductionTime = theTime;
+    this.recalcBuildTime();
+
+    if (!this.queueList.length) {
+      this.addBuildingQueue(objectType, objectId);
+    }
+
+    return true;
+  }
+
+  /**
+   * Port of upstream `ZBuilding::AddBuildingQueue`.
+   * Role: Adds an available production unit to the front or back of the building queue.
+   * Upstream: zbuilding.cpp:149-171
+   */
+  override addBuildingQueue(
+    objectType: number,
+    objectId: number,
+    pushToFront = true,
+  ): boolean {
+    if (this.owner === TeamType.Null) return false;
+    if (!this.producesUnits()) return false;
+    if (this.queueList.length >= BUILDING_MAX_QUEUE_ITEMS) return false;
+    if (!this.buildList?.unitInBuildList(this.objectId, this.level, objectType, objectId)) {
+      return false;
+    }
+
+    const queuedUnit = new ZBProductionUnit(objectType, objectId);
+    if (pushToFront) {
+      this.queueList.unshift(queuedUnit);
+    } else {
+      this.queueList.push(queuedUnit);
+    }
+
+    return true;
+  }
+
+  /**
    * Port of upstream `ZBuilding::DoReviveEffect`.
    * Role: Marks the building base for rerendering and clears transient extra effects.
    * Upstream: zbuilding.cpp:569-578
@@ -349,6 +436,27 @@ export class BuildingEntity extends GameEntity {
     if (this.zoneOwnage < 0) this.zoneOwnage = 0;
 
     return this.recalcBuildTime();
+  }
+
+  /**
+   * Port of upstream `ZBuilding::RecalcBuildTime`.
+   * Role: Recalculates the current production final time from build-list timing and building modifiers.
+   * Upstream: zbuilding.cpp:637-663
+   */
+  override recalcBuildTime(): boolean {
+    const finalProductionTimeOld = this.finalProductionTime;
+
+    if (!this.buildList) return false;
+    if (this.bot === -1) return false;
+    if (this.boid === -1) return false;
+    if (this.buildState === BuildingState.Select) return false;
+
+    const buildTime = this.buildTimeModified(
+      this.buildList.unitBuildTime(this.bot, this.boid),
+    );
+    this.finalProductionTime = this.initialProductionTime + buildTime;
+
+    return finalProductionTimeOld !== this.finalProductionTime;
   }
 
   /**
@@ -521,6 +629,32 @@ export class BuildingEntity extends GameEntity {
 
     this.builtCannonList.forEach((objectId, index) => {
       data[8 + index] = objectId & 0xff;
+    });
+
+    return { data, size };
+  }
+
+  /**
+   * Port of upstream `ZBuilding::CreateBuildingQueueData`.
+   * Role: Serializes the building reference id and queued production units for network updates.
+   * Upstream: zbuilding.cpp:194-222
+   */
+  override createBuildingQueueData(): BuildingQueueData {
+    if (!this.producesUnits()) {
+      return { data: null, size: 0 };
+    }
+
+    const size = 8 + this.queueList.length * 2;
+    const data = new Uint8Array(size);
+    const view = new DataView(data.buffer);
+
+    view.setInt32(0, this.refId, true);
+    view.setInt32(4, this.queueList.length, true);
+
+    this.queueList.forEach((queuedUnit, index) => {
+      const offset = 8 + index * 2;
+      data[offset] = queuedUnit.ot & 0xff;
+      data[offset + 1] = queuedUnit.oid & 0xff;
     });
 
     return { data, size };

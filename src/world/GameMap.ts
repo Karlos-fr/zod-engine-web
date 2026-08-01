@@ -370,6 +370,33 @@ export class GameMap {
   }
 
   /**
+   * Port of upstream `ZMap::ClearMap`.
+   * Role: Clears loaded map state, view offsets, cached helpers, render surface, and retained map data.
+   * Upstream: zmap.cpp:635-658
+   */
+  clearMap(): void {
+    this.fileLoaded = false;
+    this.mapName = "";
+    this.terrainType = 0;
+    this.playerCount = 0;
+    this.zoneCount = 0;
+    this.zoneList = [];
+    this.zoneInfoList = [];
+    this.objectList.splice(0);
+    this.shiftX = 0;
+    this.shiftY = 0;
+    this.viewWidth = 0;
+    this.viewHeight = 0;
+
+    this.deRenderMap();
+    this.deletePathfindingInfo();
+    this.deleteSubmergeAmounts();
+    this.deleteRockList();
+    this.deleteStampList();
+    this.freeMapData();
+  }
+
+  /**
    * Port of upstream `ZMap::GetMapData`.
    * Role: Reports the retained raw map-data buffer and its stored byte size.
    * Upstream: zmap.cpp:889-895

@@ -9,6 +9,7 @@ import {
   BUILDING_MAX_QUEUE_ITEMS,
   BuildingState,
   getBuildingProductionTimeTotal,
+  initBuildingImages,
   RADAR_BOX_SPINNER_X_PIXELS,
   RADAR_BOX_SPINNER_Y_PIXELS,
   RADAR_DISH_X_PIXELS,
@@ -192,6 +193,48 @@ describe("building types", () => {
       ot: 1,
       oid: 4,
     });
+  });
+
+  it("ports ZBuilding Init as shared building image loading", () => {
+    const loaded: Array<[string, number, string]> = [];
+    const makeTargets = (group: string, count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        loadBaseImage(filename: string): void {
+          loaded.push([group, index, filename]);
+        },
+      }));
+
+    initBuildingImages(
+      makeTargets("level", 6),
+      makeTargets("exhaust", 13),
+      makeTargets("little", 4),
+    );
+
+    expect(loaded).toEqual([
+      ["level", 0, "assets/buildings/level_1.bmp"],
+      ["level", 1, "assets/buildings/level_2.bmp"],
+      ["level", 2, "assets/buildings/level_3.bmp"],
+      ["level", 3, "assets/buildings/level_4.bmp"],
+      ["level", 4, "assets/buildings/level_5.bmp"],
+      ["level", 5, "assets/buildings/level_6.bmp"],
+      ["exhaust", 0, "assets/buildings/exhaust_0.png"],
+      ["exhaust", 1, "assets/buildings/exhaust_1.png"],
+      ["exhaust", 2, "assets/buildings/exhaust_2.png"],
+      ["exhaust", 3, "assets/buildings/exhaust_3.png"],
+      ["exhaust", 4, "assets/buildings/exhaust_4.png"],
+      ["exhaust", 5, "assets/buildings/exhaust_5.png"],
+      ["exhaust", 6, "assets/buildings/exhaust_6.png"],
+      ["exhaust", 7, "assets/buildings/exhaust_7.png"],
+      ["exhaust", 8, "assets/buildings/exhaust_8.png"],
+      ["exhaust", 9, "assets/buildings/exhaust_9.png"],
+      ["exhaust", 10, "assets/buildings/exhaust_10.png"],
+      ["exhaust", 11, "assets/buildings/exhaust_11.png"],
+      ["exhaust", 12, "assets/buildings/exhaust_12.png"],
+      ["little", 0, "assets/buildings/little_exhaust_0.png"],
+      ["little", 1, "assets/buildings/little_exhaust_1.png"],
+      ["little", 2, "assets/buildings/little_exhaust_2.png"],
+      ["little", 3, "assets/buildings/little_exhaust_3.png"],
+    ]);
   });
 
   it("ports ZBuilding SetZoneOwnage as a direct zone ownership assignment", () => {

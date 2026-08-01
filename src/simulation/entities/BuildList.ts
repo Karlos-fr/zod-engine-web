@@ -2,7 +2,14 @@
  * Upstream: zbuildlist.h
  */
 import type { ZSettings } from "../../data/ZSettingsData";
-import { BuildingType, MAX_BUILDING_LEVELS } from "../SimulationConstants";
+import {
+  BuildingType,
+  CannonType,
+  MAX_BUILDING_LEVELS,
+  RobotType,
+  VehicleType,
+} from "../SimulationConstants";
+import { MapObjectType } from "../../world/MapFormat";
 
 /**
  * Port of upstream `_ZBUILDLIST_H_`.
@@ -53,13 +60,215 @@ export type BuildListFirstUnitResult = {
   objectId: number;
 };
 
+export type BuildListUnitSettingsSource = {
+  getUnitSettings(objectType: number, objectId: number): { buildTime: number };
+};
+
+type BuildListDefaultEntry = readonly [objectType: number, objectId: number];
+
+const FORT_FRONT_DEFAULTS: readonly (readonly BuildListDefaultEntry[])[] = [
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Crane],
+    [MapObjectType.Cannon, CannonType.Gatling],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Crane],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Crane],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Robot, RobotType.Pyro],
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Apc],
+    [MapObjectType.Vehicle, VehicleType.Crane],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Robot, RobotType.Pyro],
+    [MapObjectType.Robot, RobotType.Laser],
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Heavy],
+    [MapObjectType.Vehicle, VehicleType.Apc],
+    [MapObjectType.Vehicle, VehicleType.Crane],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+    [MapObjectType.Cannon, CannonType.MissileCannon],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Robot, RobotType.Pyro],
+    [MapObjectType.Robot, RobotType.Laser],
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Heavy],
+    [MapObjectType.Vehicle, VehicleType.Apc],
+    [MapObjectType.Vehicle, VehicleType.MissileLauncher],
+    [MapObjectType.Vehicle, VehicleType.Crane],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+    [MapObjectType.Cannon, CannonType.MissileCannon],
+  ],
+];
+
+const ROBOT_FACTORY_DEFAULTS: readonly (readonly BuildListDefaultEntry[])[] = [
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Cannon, CannonType.Gatling],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Cannon, CannonType.Gatling],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Robot, RobotType.Pyro],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Robot, RobotType.Pyro],
+    [MapObjectType.Robot, RobotType.Laser],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+  ],
+  [
+    [MapObjectType.Robot, RobotType.Grunt],
+    [MapObjectType.Robot, RobotType.Psycho],
+    [MapObjectType.Robot, RobotType.Sniper],
+    [MapObjectType.Robot, RobotType.Tough],
+    [MapObjectType.Robot, RobotType.Pyro],
+    [MapObjectType.Robot, RobotType.Laser],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+    [MapObjectType.Cannon, CannonType.MissileCannon],
+  ],
+];
+
+const VEHICLE_FACTORY_DEFAULTS: readonly (readonly BuildListDefaultEntry[])[] = [
+  [
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Cannon, CannonType.Gatling],
+  ],
+  [
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+  ],
+  [
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+  ],
+  [
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Apc],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+  ],
+  [
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Heavy],
+    [MapObjectType.Vehicle, VehicleType.Apc],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+  ],
+  [
+    [MapObjectType.Vehicle, VehicleType.Jeep],
+    [MapObjectType.Vehicle, VehicleType.Light],
+    [MapObjectType.Vehicle, VehicleType.Medium],
+    [MapObjectType.Vehicle, VehicleType.Heavy],
+    [MapObjectType.Vehicle, VehicleType.Apc],
+    [MapObjectType.Vehicle, VehicleType.MissileLauncher],
+    [MapObjectType.Cannon, CannonType.Gatling],
+    [MapObjectType.Cannon, CannonType.Gun],
+    [MapObjectType.Cannon, CannonType.Howitzer],
+    [MapObjectType.Cannon, CannonType.MissileCannon],
+  ],
+];
+
+const BUILD_LIST_DEFAULTS: ReadonlyMap<
+  BuildingType,
+  readonly (readonly BuildListDefaultEntry[])[]
+> = new Map([
+  [BuildingType.FortFront, FORT_FRONT_DEFAULTS],
+  [BuildingType.RobotFactory, ROBOT_FACTORY_DEFAULTS],
+  [BuildingType.VehicleFactory, VEHICLE_FACTORY_DEFAULTS],
+]);
+
 /**
- * Browser simulation build list containing the subset of `ZBuildList` behavior already ported.
+ * Port of upstream `ZBuildList`.
  * Role: Stores production-list data and its global settings dependency.
- * Upstream: zbuildlist.h
+ * Upstream: zbuildlist.h:27-44
  */
 export class BuildList {
-  zsettings: ZSettings | null = null;
+  zsettings: (ZSettings & Partial<BuildListUnitSettingsSource>) | null = null;
   buildlistData: BuildListObject[][][];
 
   constructor() {
@@ -86,6 +295,26 @@ export class BuildList {
     for (let i = 0; i < BuildingType.Max; i += 1) {
       for (let j = 0; j < MAX_BUILDING_LEVELS; j += 1) {
         this.buildlistData[i]?.[j]?.splice(0);
+      }
+    }
+  }
+
+  /**
+   * Port of upstream `ZBuildList::LoadDefaults`.
+   * Role: Loads the default production entries for fort, robot factory, and vehicle factory levels.
+   * Upstream: zbuildlist.cpp:22-204
+   */
+  loadDefaults(): void {
+    this.clearData();
+
+    for (const [buildingType, levelDefaults] of BUILD_LIST_DEFAULTS) {
+      for (let level = 0; level < levelDefaults.length; level += 1) {
+        const buildList = this.buildlistData[buildingType]?.[level];
+        if (!buildList) continue;
+
+        for (const [objectType, objectId] of levelDefaults[level]) {
+          buildList.push(new BuildListObject(objectType, objectId));
+        }
       }
     }
   }
@@ -152,5 +381,23 @@ export class BuildList {
     return buildList.some(
       (entry) => entry.ot === objectType && entry.oid === objectId,
     );
+  }
+
+  /**
+   * Port of upstream `ZBuildList::UnitBuildTime`.
+   * Role: Reads the configured build time for an object type/id, or falls back when settings are absent.
+   * Upstream: zbuildlist.cpp:250-331
+   */
+  unitBuildTime(
+    objectType: number,
+    objectId: number,
+    log: (message: string) => void = (): void => undefined,
+  ): number {
+    if (!this.zsettings?.getUnitSettings) {
+      log("ZBuildList::UnitBuildTime:zsettings not set");
+      return 5;
+    }
+
+    return this.zsettings.getUnitSettings(objectType, objectId).buildTime;
   }
 }

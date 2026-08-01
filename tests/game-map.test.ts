@@ -136,6 +136,91 @@ describe("GameMap", () => {
     ).toBe(true);
   });
 
+  it("ports ZMap::ClearMap as loaded map state cleanup", () => {
+    const unload = vi.fn();
+    const deleteAllTileInfo = vi.fn();
+    const mapObject: MapObject = {
+      x: 1,
+      y: 2,
+      owner: TeamType.Blue,
+      objectType: MapObjectType.Robot,
+      objectId: 3,
+      buildingLevel: 0,
+      extraLinks: 0,
+      healthPercent: 1,
+    };
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      objectList: [mapObject],
+      mapName: "loaded-map",
+      terrainType: 2,
+      playerCount: 3,
+      zoneCount: 1,
+      zoneList: [{ x: 0, y: 0, width: 1, height: 1 }],
+      zoneInfoList: [
+        {
+          owner: TeamType.Red,
+          tiles: [],
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+          id: 1,
+        },
+      ],
+      submergeInfoSetup: true,
+      submergeAmounts: [[1], [2]],
+      rockListSetup: true,
+      rockList: [[true], [false]],
+      stampListSetup: true,
+      stampList: [[true], [false]],
+      stampListWidth: 2,
+      stampListHeight: 1,
+      shiftX: 4,
+      shiftY: 5,
+      viewWidth: 80,
+      viewHeight: 60,
+      mapData: new Uint8Array([1, 2, 3]),
+      mapDataSize: 3,
+      fullRenderSurface: { unload },
+      fileLoaded: true,
+      pathFinder: {
+        rebuildRegions: vi.fn(),
+        setImpassable: vi.fn(),
+        withinImpassable: vi.fn(() => ({ within: false, stopX: 0, stopY: 0 })),
+        deleteAllTileInfo,
+      },
+    });
+
+    map.clearMap();
+
+    expect(map.loaded()).toBe(false);
+    expect(map.mapName).toBe("");
+    expect(map.terrainType).toBe(0);
+    expect(map.playerCount).toBe(0);
+    expect(map.zoneCount).toBe(0);
+    expect(map.objectList).toEqual([]);
+    expect(map.zoneList).toEqual([]);
+    expect(map.zoneInfoList).toEqual([]);
+    expect(map.shiftX).toBe(0);
+    expect(map.shiftY).toBe(0);
+    expect(map.viewWidth).toBe(0);
+    expect(map.viewHeight).toBe(0);
+    expect(map.submergeInfoSetup).toBe(false);
+    expect(map.submergeAmounts).toEqual([]);
+    expect(map.rockListSetup).toBe(false);
+    expect(map.rockList).toEqual([]);
+    expect(map.stampListSetup).toBe(false);
+    expect(map.stampList).toEqual([]);
+    expect(map.stampListWidth).toBe(-1);
+    expect(map.stampListHeight).toBe(-1);
+    expect(map.getMapData()).toEqual({ hasData: true, data: null, size: 0 });
+    expect(unload).toHaveBeenCalledOnce();
+    expect(deleteAllTileInfo).toHaveBeenCalledOnce();
+  });
+
   it("ports ZMap::DebugMapInfo as unloaded map diagnostic text", () => {
     const map = GameMap.createFlat({ width: 1, height: 1 });
 

@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import { ZSettings } from "../src/data/ZSettingsData";
 import {
   BuildingType,
+  CannonType,
   MAX_BUILDING_LEVELS,
+  RobotType,
+  VehicleType,
 } from "../src/simulation/SimulationConstants";
+import { MapObjectType } from "../src/world/MapFormat";
 import {
   BuildList,
   BuildListObject,
@@ -46,6 +50,20 @@ describe("build list", () => {
     });
   });
 
+  it("ports ZBuildList construction as empty production tables and null settings", () => {
+    const buildList = new BuildList();
+
+    expect(buildList.zsettings).toBeNull();
+    expect(buildList.buildlistData).toHaveLength(BuildingType.Max);
+    expect(buildList.buildlistData[BuildingType.FortFront]).toHaveLength(
+      MAX_BUILDING_LEVELS,
+    );
+    expect(buildList.buildlistData[BuildingType.FortFront][0]).toEqual([]);
+    expect(
+      buildList.buildlistData[BuildingType.VehicleFactory][MAX_BUILDING_LEVELS - 1],
+    ).toEqual([]);
+  });
+
   it("ports ZBuildList SetZSettings as settings dependency assignment", () => {
     const buildList = new BuildList();
     const settings = new ZSettings();
@@ -79,6 +97,51 @@ describe("build list", () => {
     expect(
       buildList.buildlistData[BuildingType.Max - 1][MAX_BUILDING_LEVELS - 1],
     ).toBe(lastList);
+  });
+
+  it("ports ZBuildList LoadDefaults as default production table loading", () => {
+    const buildList = new BuildList();
+    buildList.buildlistData[BuildingType.FortFront][0].push(
+      new BuildListObject(99, 99),
+    );
+
+    buildList.loadDefaults();
+
+    expect(buildList.buildlistData[BuildingType.FortFront][0]).toEqual([
+      new BuildListObject(MapObjectType.Robot, RobotType.Grunt),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Jeep),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Crane),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Gatling),
+    ]);
+    expect(buildList.buildlistData[BuildingType.RobotFactory][5]).toEqual([
+      new BuildListObject(MapObjectType.Robot, RobotType.Grunt),
+      new BuildListObject(MapObjectType.Robot, RobotType.Psycho),
+      new BuildListObject(MapObjectType.Robot, RobotType.Sniper),
+      new BuildListObject(MapObjectType.Robot, RobotType.Tough),
+      new BuildListObject(MapObjectType.Robot, RobotType.Pyro),
+      new BuildListObject(MapObjectType.Robot, RobotType.Laser),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Gatling),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Gun),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Howitzer),
+      new BuildListObject(MapObjectType.Cannon, CannonType.MissileCannon),
+    ]);
+    expect(buildList.buildlistData[BuildingType.VehicleFactory][5]).toEqual([
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Jeep),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Light),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Medium),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Heavy),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.Apc),
+      new BuildListObject(MapObjectType.Vehicle, VehicleType.MissileLauncher),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Gatling),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Gun),
+      new BuildListObject(MapObjectType.Cannon, CannonType.Howitzer),
+      new BuildListObject(MapObjectType.Cannon, CannonType.MissileCannon),
+    ]);
+    expect(buildList.getFirstUnitInBuildList(BuildingType.FortBack, 0)).toEqual({
+      hasUnit: true,
+      objectType: MapObjectType.Robot,
+      objectId: RobotType.Grunt,
+    });
   });
 
   it("ports ZBuildList GetFirstUnitInBuildList as first entry lookup", () => {
@@ -132,5 +195,27 @@ describe("build list", () => {
     expect(buildList.unitInBuildList(BuildingType.FortBack, 2, 2, 4)).toBe(
       false,
     );
+  });
+
+  it("ports ZBuildList UnitBuildTime as fallback when settings are absent", () => {
+    const buildList = new BuildList();
+    const messages: string[] = [];
+
+    expect(buildList.unitBuildTime(2, 4, (message) => messages.push(message))).toBe(5);
+    expect(messages).toEqual(["ZBuildList::UnitBuildTime:zsettings not set"]);
+  });
+
+  it("ports ZBuildList UnitBuildTime as configured unit settings lookup", () => {
+    const buildList = new BuildList();
+    const calls: Array<[number, number]> = [];
+    buildList.zsettings = {
+      getUnitSettings(objectType: number, objectId: number): { buildTime: number } {
+        calls.push([objectType, objectId]);
+        return { buildTime: 42 };
+      },
+    } as typeof buildList.zsettings;
+
+    expect(buildList.unitBuildTime(3, 7)).toBe(42);
+    expect(calls).toEqual([[3, 7]]);
   });
 });

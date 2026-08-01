@@ -63,6 +63,7 @@ import {
   setProductionZTime,
   setProductionType,
   setProductionUnitSelectorActive,
+  setProductionUnitSelectorBuildList,
   setProductionUnitSelectorCoords,
   setProductionUnitSelectorRefId,
   setProductionUnitSelectorSelection,
@@ -1303,6 +1304,21 @@ describe("production window", () => {
     expect(noBuilding.selectedIndex).toBe(0);
     expect(noBuildList.selectedIndex).toBe(0);
     expect(emptyBuildList.selectedIndex).toBe(0);
+  });
+
+  it("ports GWPUnitSelector SetBuildList as selector build-list assignment", () => {
+    const buildList = {
+      getBuildList: () => [{ ot: 1, oid: 2 }],
+    };
+    const state = {
+      buildList: null as typeof buildList | null,
+    };
+
+    setProductionUnitSelectorBuildList(state, buildList);
+    expect(state.buildList).toBe(buildList);
+
+    setProductionUnitSelectorBuildList(state, null);
+    expect(state.buildList).toBeNull();
   });
 
   it("ports GWPUnitSelector SetSelection as object type/id index selection", () => {

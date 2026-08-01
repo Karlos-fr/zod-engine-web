@@ -63,9 +63,31 @@ export type TeamPaletteColorState = {
   replaceColor: TeamPaletteColor[];
 };
 
+/**
+ * Port of upstream `ZTeam_Palette`.
+ * Role: Creates the browser-side palette state that replaces the upstream SDL_Color arrays.
+ * Upstream: zteam.h:18-30
+ */
+export function createTeamPaletteColorState(): TeamPaletteColorState {
+  return {
+    baseColor: [],
+    replaceColor: [],
+  };
+}
+
+export type TeamPaletteSurface = {
+  width: number;
+  height: number;
+  getPixelColor(x: number, y: number): TeamPaletteColor;
+};
+
 export type TeamPaletteSaveTarget = {
   saveSurfacePalette(filename: string): void;
 };
+
+export type TeamPaletteSurfaceLoader<TSurface> = (filename: string) => TSurface | null;
+
+export type TeamPaletteSurfaceConverter<TSurface> = (surface: TSurface) => TeamPaletteSurface;
 
 export type TeamRenderingBaseSurfaceSource<TSurface> = {
   getBaseSurface(): TSurface | null;
@@ -83,6 +105,12 @@ export type TeamSurfaceFactory<TSurface> = (
 export const TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE =
   "ZTeam_Palette::AddColor: this function requires color arrays be vectors";
 
+export const TEAM_PALETTE_SAVE_REQUIRES_VECTOR_MESSAGE =
+  "ZTeam_Palette::SaveSurfacePalette: this function requires color arrays be vectors";
+
+export const TEAM_PALETTE_LOAD_WIDTH_MESSAGE =
+  "ZTeam_Palette::LoadSurfacePalette:palette width not 2";
+
 export const TEAM_RENDERING_TEAM_NAMES = [
   "null",
   "red",
@@ -97,6 +125,10 @@ export const TEAM_RENDERING_TEAM_NAMES = [
 
 export const TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE =
   "ZTeam::SavePalette:You can not save the base palette (red)";
+
+export function getTeamPaletteLoadFailureMessage(teamName: string, filename: string): string {
+  return `ZTeam::Could not load palette for the ${teamName} team:'${filename}'`;
+}
 
 /**
  * Port of upstream `ZTeam::Init`.
@@ -133,6 +165,38 @@ export function addTeamPaletteColor(
 }
 
 /**
+ * Port of upstream `ZTeam_Palette::LoadSurfacePalette`.
+ * Role: Loads base and replacement RGB palette rows from a browser-side surface abstraction.
+ * Upstream: zteam.cpp:8-61
+ */
+export function loadTeamSurfacePalette(
+  state: TeamPaletteColorState,
+  surface: TeamPaletteSurface,
+  log: (message: string) => void = (): void => undefined,
+): boolean {
+  if (surface.width !== 2) {
+    log(TEAM_PALETTE_LOAD_WIDTH_MESSAGE);
+    return false;
+  }
+
+  if (surface.height !== TEAM_RENDERING_PALETTE_MAX) {
+    log(`ZTeam_Palette::LoadSurfacePalette:palette height not ${TEAM_RENDERING_PALETTE_MAX}`);
+  }
+
+  for (let row = 0; row < surface.height; row += 1) {
+    const baseColor = surface.getPixelColor(0, row);
+    const replaceColor = surface.getPixelColor(1, row);
+
+    if (row < TEAM_RENDERING_PALETTE_MAX) {
+      state.baseColor[row] = { ...baseColor };
+      state.replaceColor[row] = { ...replaceColor };
+    }
+  }
+
+  return true;
+}
+
+/**
  * Port of upstream `ZTeam_Palette::GetReplacement`.
  * Role: Finds a replacement palette color for a matching base RGB entry.
  * Upstream: zteam.cpp:144-185
@@ -160,6 +224,20 @@ export function getTeamPaletteReplacement(
 }
 
 /**
+ * Port of upstream `ZTeam_Palette::SaveSurfacePalette`.
+ * Role: Preserves the upstream active behavior, which reports unsupported storage and returns false.
+ * Upstream: zteam.cpp:63-124
+ */
+export function saveTeamSurfacePalette(
+  filename: string,
+  log: (message: string) => void = (): void => undefined,
+): boolean {
+  void filename;
+  log(TEAM_PALETTE_SAVE_REQUIRES_VECTOR_MESSAGE);
+  return false;
+}
+
+/**
  * Port of upstream `ZTeam::SaveAllPalettes`.
  * Role: Delegates palette saving once for every active team slot.
  * Upstream: zteam.cpp:300-306
@@ -168,6 +246,38 @@ export function saveAllTeamPalettes(savePalette: (team: TeamType | number) => vo
   for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
     savePalette(team);
   }
+}
+
+/**
+ * Port of upstream `ZTeam::LoadPalette`.
+ * Role: Loads one non-base team palette from an image surface and delegates row loading.
+ * Upstream: zteam.cpp:259-281
+ */
+export function loadTeamPalette<TSurface>(
+  team: TeamType | number,
+  teamPalettes: readonly (TeamPaletteColorState | null | undefined)[],
+  loadSurface: TeamPaletteSurfaceLoader<TSurface>,
+  convertSurface: TeamPaletteSurfaceConverter<TSurface>,
+  freeSurface: (surface: TeamPaletteSurface) => void = (): void => undefined,
+  log: (message: string) => void = (): void => undefined,
+): void {
+  if (team === TEAM_RENDERING_BASE_TEAM) return;
+
+  const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+  const palette = teamPalettes[team];
+  if (!teamName || !palette) return;
+
+  const filename = `assets/teams/${teamName}_palette.bmp`;
+  const sourceSurface = loadSurface(filename);
+
+  if (!sourceSurface) {
+    log(getTeamPaletteLoadFailureMessage(teamName, filename));
+    return;
+  }
+
+  const convertedSurface = convertSurface(sourceSurface);
+  loadTeamSurfacePalette(palette, convertedSurface, log);
+  freeSurface(convertedSurface);
 }
 
 /**

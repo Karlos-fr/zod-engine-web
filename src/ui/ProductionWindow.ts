@@ -660,6 +660,18 @@ export type ProductionUnitSelectorScrollState<TUnit = unknown> = {
 };
 
 /**
+ * Port of upstream `GWPUnitSelector::SetBuildList`.
+ * Role: Assigns the build-list dependency used by a production unit selector.
+ * Upstream: gwproduction.h:46
+ */
+export function setProductionUnitSelectorBuildList<TUnit>(
+  state: Pick<ProductionUnitSelectorScrollState<TUnit>, "buildList">,
+  buildList: ProductionBuildListSource<TUnit> | null,
+): void {
+  state.buildList = buildList;
+}
+
+/**
  * Port of upstream `GWPUnitSelector::SetSelection` fields.
  * Role: Holds the selectable unit list, selected index, and draw refresh callback.
  * Upstream: gwproduction_us.cpp:315-336
