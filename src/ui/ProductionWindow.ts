@@ -1,16 +1,19 @@
 import { BuildingType } from "../simulation/SimulationConstants";
 import type { SimulationTime } from "../simulation/SimulationTime";
 import type { GameEntity } from "../simulation/entities/GameEntity";
+import { MapObjectType } from "../world/MapFormat";
 import {
   loadRotozoomCacheBaseImage,
   type BaseImageFileLoadState,
 } from "../rendering/SurfaceLifecycle";
 import {
+  initProductionFullUnitSelector,
   PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS,
   PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_HEIGHT_PIXELS,
   PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_WIDTH_PIXELS,
   PRODUCTION_FULL_UNIT_SELECTOR_SIDE_SIZE_PIXELS,
   PRODUCTION_FULL_UNIT_SELECTOR_TOP_HEIGHT_PIXELS,
+  type ProductionFullUnitSelectorImageState,
 } from "./ProductionFullUnitSelector";
 
 /**
@@ -104,6 +107,84 @@ export type ProductionActiveState = {
   isActive: boolean;
 };
 
+export type ProductionClickTarget = {
+  click(x: number, y: number): void;
+};
+
+export type ProductionClickSelectorTarget = {
+  click(x: number, y: number): boolean;
+};
+
+export type ProductionBaseImageTarget = {
+  loadBaseImage(filename: string): void;
+};
+
+export type ProductionWindowTypeLabelImages<
+  TImage extends ProductionBaseImageTarget = ProductionBaseImageTarget,
+> = {
+  [ProductionType.Robot]: TImage;
+  [ProductionType.Vehicle]: TImage;
+  [ProductionType.Fort]: TImage;
+};
+
+export type ProductionWindowStateLabelImages<
+  TImage extends ProductionBaseImageTarget = ProductionBaseImageTarget,
+> = {
+  [ProductionBuildingState.Place]: [TImage, TImage];
+  [ProductionBuildingState.Select]: [TImage, TImage];
+  [ProductionBuildingState.Building]: [TImage, TImage];
+  [ProductionBuildingState.Paused]: [TImage, TImage];
+};
+
+/**
+ * Port of upstream `GWProduction::Init` static image fields.
+ * Role: Holds production window images and selector init state loaded once for the GUI.
+ * Upstream: gwproduction.cpp:73-98
+ */
+export type ProductionWindowInitState<
+  TSurface = unknown,
+  TImage extends ProductionBaseImageTarget = ProductionBaseImageTarget,
+> = {
+  baseImage: TImage;
+  baseExpandedImage: TImage;
+  nameLabels: ProductionWindowTypeLabelImages<TImage>;
+  percentageBarImage: TImage;
+  yellowPercentageBarImage: TImage;
+  stateLabels: ProductionWindowStateLabelImages<TImage>;
+  unitSelector: ProductionUnitSelectorInitState;
+  fullSelector: ProductionFullUnitSelectorImageState;
+  loadImage(filename: string): TSurface | null;
+  loadUnitSelectorPercentageBarImage(surface: TSurface | null): void;
+  loadUnitSelectorYellowPercentageBarImage(surface: TSurface | null): void;
+};
+
+export const PRODUCTION_BASE_IMAGE_PATH =
+  "assets/other/production_gui/base_image.png";
+export const PRODUCTION_BASE_EXPANDED_IMAGE_PATH =
+  "assets/other/production_gui/base_image_expanded.png";
+export const PRODUCTION_ROBOT_FACTORY_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/robot_factory_label.png";
+export const PRODUCTION_FORT_FACTORY_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/fort_factory_label.png";
+export const PRODUCTION_VEHICLE_FACTORY_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/vehicle_factory_label.png";
+export const PRODUCTION_PLACE_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/place_label.png";
+export const PRODUCTION_PLACELESS_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/placeless_label.png";
+export const PRODUCTION_SELECT_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/select_label.png";
+export const PRODUCTION_SELECTLESS_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/selectless_label.png";
+export const PRODUCTION_BUILDING_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/building_label.png";
+export const PRODUCTION_BUILDINGLESS_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/buildingless_label.png";
+export const PRODUCTION_PAUSED_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/paused_label.png";
+export const PRODUCTION_PAUSEDLESS_LABEL_IMAGE_PATH =
+  "assets/other/production_gui/pausedless_label.png";
+
 /**
  * Port of upstream `SetActive` dependency surface for production expansion widgets.
  * Role: Receives active-state changes from production window expansion processing.
@@ -111,6 +192,24 @@ export type ProductionActiveState = {
  */
 export type ProductionExpansionActiveTarget = {
   setActive(isActive: boolean): void;
+};
+
+export type ProductionStateBuilding = {
+  getBuiltCannonList(): readonly unknown[];
+  isDestroyed(): boolean;
+};
+
+/**
+ * Port of upstream `GWProduction::SetState` fields.
+ * Role: Holds production state, building status, and action buttons toggled by state changes.
+ * Upstream: gwproduction.cpp:383-415
+ */
+export type ProductionBuildingStateSetState = {
+  state: ProductionBuildingState | number;
+  buildingObject: ProductionStateBuilding | null;
+  okButton: ProductionExpansionActiveTarget;
+  cancelButton: ProductionExpansionActiveTarget;
+  placeButton: ProductionExpansionActiveTarget;
 };
 
 /**
@@ -368,6 +467,39 @@ export type ProductionUnitSelectorZTimeState = {
   ztime: SimulationTime | null;
 };
 
+export type ProductionUnitSelectorProcessButton = ProductionExpansionActiveTarget;
+
+export type ProductionUnitSelectorProcessBuilding = {
+  getBuildState(): ProductionBuildingState | number;
+  getBuiltCannonList(): readonly unknown[];
+  isDestroyed(): boolean;
+  percentageProduced(currentTime: number): number;
+};
+
+export type ProductionUnitSelectorProcessDrawObject = {
+  process(): void;
+};
+
+/**
+ * Port of upstream `GWPUnitSelector::Process` fields.
+ * Role: Holds selector production state, buttons, and draw object processing dependencies.
+ * Upstream: gwproduction_us.cpp:281-313
+ */
+export type ProductionUnitSelectorProcessState<
+  TDrawObject extends ProductionUnitSelectorProcessDrawObject =
+    ProductionUnitSelectorProcessDrawObject,
+> = {
+  ztime: Pick<SimulationTime, "ztime"> | null;
+  buildingObject: ProductionUnitSelectorProcessBuilding | null;
+  buildState: ProductionBuildingState | number;
+  isOnlySelector: boolean;
+  percentageProduced: number;
+  upButton: ProductionUnitSelectorProcessButton;
+  downButton: ProductionUnitSelectorProcessButton;
+  setDrawObject(): void;
+  drawObject: TDrawObject | null;
+};
+
 /**
  * Port of upstream `GWPUnitSelector` initialization image fields.
  * Role: Tracks the production unit selector percentage bar images and initialization completion.
@@ -409,6 +541,25 @@ export type ProductionFullUnitSelectorListsState<
   listsBuildingType: number;
   listsBuildingLevel: number;
   buttonList: TButton[];
+};
+
+/**
+ * Port of upstream `GWPFullUnitSelector::LoadLists` fields.
+ * Role: Holds build-list source, building cache keys, and callbacks used to populate selector lists.
+ * Upstream: gwproduction_fus.cpp:292-322
+ */
+export type ProductionFullUnitSelectorLoadListsState<
+  TUnit extends ProductionUnitSelectorBuildListObject =
+    ProductionUnitSelectorBuildListObject,
+> = ProductionFullUnitSelectorListsState<
+  ProductionFullUnitSelectorObjectIdSource,
+  ProductionFullUnitSelectorButtonState
+> &
+  Pick<ProductionFullUnitSelectorSizeState, "width" | "height"> & {
+  buildingObject: ProductionBuildingLevelSource | null;
+  buildList: ProductionBuildListSource<TUnit> | null;
+  buildingType: number;
+  loadUnitToLists(objectType: number, objectId: number): void;
 };
 
 /**
@@ -683,6 +834,29 @@ export type ProductionUnitSelectorSelectionState<
   setDrawObject(): void;
 };
 
+export type ProductionDrawObjectBuilding = ProductionBuildingLevelSource & {
+  getBuiltCannonList(): readonly number[];
+  getBuildUnit(): { hasUnit: boolean; objectType: number; objectId: number };
+};
+
+/**
+ * Port of upstream `GWPUnitSelector::SetDrawObject` fields.
+ * Role: Holds selector mode and production sources used to choose the displayed object.
+ * Upstream: gwproduction_us.cpp:83-130
+ */
+export type ProductionUnitSelectorSetDrawObjectState<
+  TUnit extends ProductionUnitSelectorBuildListObject =
+    ProductionUnitSelectorBuildListObject,
+> = {
+  buildingObject: ProductionDrawObjectBuilding | null;
+  buildList: ProductionBuildListSource<TUnit> | null;
+  isOnlySelector: boolean;
+  buildState: ProductionBuildingState | number;
+  buildingType: number;
+  selectedIndex: number;
+  resetDrawObjectTo(objectType: number, objectId: number): void;
+};
+
 /**
  * Port of upstream production queue button object fields.
  * Role: Carries the queued object type and object id used by queue cancellation.
@@ -691,6 +865,60 @@ export type ProductionUnitSelectorSelectionState<
 export type ProductionQueueButtonInfo = {
   ot: number;
   oid: number;
+};
+
+export type ProductionQueueButtonListItem = ProductionQueueButtonInfo & {
+  offsetX: number;
+  offsetY: number;
+};
+
+export type ProductionQueuedUnit = {
+  ot: number;
+  oid: number;
+};
+
+export type ProductionQueueListBuilding = {
+  getQueueList(): readonly ProductionQueuedUnit[];
+};
+
+/**
+ * Port of upstream `GWProduction::MakeQueueButtonList` fields.
+ * Role: Holds a production building queue source and the generated queue button list.
+ * Upstream: gwproduction.cpp:188-212
+ */
+export type ProductionMakeQueueButtonListState = {
+  buildingObject: ProductionQueueListBuilding | null;
+  queueButtonList: ProductionQueueButtonListItem[];
+};
+
+export type ProductionCheckQueueButtonListState =
+  ProductionMakeQueueButtonListState;
+
+export type ProductionQueueButtonClickItem = ProductionQueueButtonListItem & {
+  objectButton: ProductionClickTarget;
+};
+
+/**
+ * Port of upstream `GWProduction::Click` fields.
+ * Role: Holds production window geometry and click targets used for mouse-down routing.
+ * Upstream: gwproduction.cpp:586-621
+ */
+export type ProductionWindowClickState = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isExpanded: boolean;
+  fullSelector: ProductionClickSelectorTarget;
+  okButton: ProductionClickTarget;
+  cancelButton: ProductionClickTarget;
+  placeButton: ProductionClickTarget;
+  smallPlusButton: ProductionClickTarget;
+  smallMinusButton: ProductionClickTarget;
+  queueButton: ProductionClickTarget;
+  queueButtonList: ProductionQueueButtonClickItem[];
+  unitSelector: ProductionClickSelectorTarget;
+  queueSelector: ProductionClickSelectorTarget;
 };
 
 /**
@@ -1007,6 +1235,44 @@ export function setProductionUnitSelectorActive(
 }
 
 /**
+ * Port of upstream `GWProduction::SetState`.
+ * Role: Applies building-driven production state overrides and toggles action buttons.
+ * Upstream: gwproduction.cpp:383-415
+ */
+export function setProductionBuildingState(
+  state: ProductionBuildingStateSetState,
+  nextState: ProductionBuildingState | number,
+): void {
+  let resolvedState = nextState;
+
+  if (state.buildingObject && state.buildingObject.getBuiltCannonList().length) {
+    resolvedState = ProductionBuildingState.Place;
+  }
+  if (state.buildingObject?.isDestroyed()) {
+    resolvedState = ProductionBuildingState.Paused;
+  }
+
+  if (state.state === resolvedState) return;
+
+  state.state = resolvedState;
+
+  switch (state.state) {
+    case ProductionBuildingState.Place:
+      state.okButton.setActive(false);
+      state.cancelButton.setActive(true);
+      state.placeButton.setActive(true);
+      break;
+    case ProductionBuildingState.Select:
+    case ProductionBuildingState.Building:
+    case ProductionBuildingState.Paused:
+      state.okButton.setActive(true);
+      state.cancelButton.setActive(true);
+      state.placeButton.setActive(false);
+      break;
+  }
+}
+
+/**
  * Port of upstream `GWProduction::SetCoords`.
  * Role: Updates the production window origin.
  * Upstream: gwproduction.h:49
@@ -1095,6 +1361,66 @@ export function resetProductionShowTime(
 }
 
 /**
+ * Port of upstream `GWProduction::Init`.
+ * Role: Loads static production window images and initializes the private production selectors.
+ * Upstream: gwproduction.cpp:73-98
+ */
+export function initProductionWindow<TSurface>(
+  state: ProductionWindowInitState<TSurface>,
+): void {
+  state.baseImage.loadBaseImage(PRODUCTION_BASE_IMAGE_PATH);
+  state.baseExpandedImage.loadBaseImage(PRODUCTION_BASE_EXPANDED_IMAGE_PATH);
+  state.nameLabels[ProductionType.Robot].loadBaseImage(
+    PRODUCTION_ROBOT_FACTORY_LABEL_IMAGE_PATH,
+  );
+  state.nameLabels[ProductionType.Fort].loadBaseImage(
+    PRODUCTION_FORT_FACTORY_LABEL_IMAGE_PATH,
+  );
+  state.nameLabels[ProductionType.Vehicle].loadBaseImage(
+    PRODUCTION_VEHICLE_FACTORY_LABEL_IMAGE_PATH,
+  );
+  state.percentageBarImage.loadBaseImage(
+    PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH,
+  );
+  state.yellowPercentageBarImage.loadBaseImage(
+    PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
+  );
+
+  state.stateLabels[ProductionBuildingState.Place][0].loadBaseImage(
+    PRODUCTION_PLACE_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Place][1].loadBaseImage(
+    PRODUCTION_PLACELESS_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Select][0].loadBaseImage(
+    PRODUCTION_SELECT_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Select][1].loadBaseImage(
+    PRODUCTION_SELECTLESS_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Building][0].loadBaseImage(
+    PRODUCTION_BUILDING_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Building][1].loadBaseImage(
+    PRODUCTION_BUILDINGLESS_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Paused][0].loadBaseImage(
+    PRODUCTION_PAUSED_LABEL_IMAGE_PATH,
+  );
+  state.stateLabels[ProductionBuildingState.Paused][1].loadBaseImage(
+    PRODUCTION_PAUSEDLESS_LABEL_IMAGE_PATH,
+  );
+
+  initProductionUnitSelector(
+    state.unitSelector,
+    state.loadImage,
+    state.loadUnitSelectorPercentageBarImage,
+    state.loadUnitSelectorYellowPercentageBarImage,
+  );
+  initProductionFullUnitSelector(state.fullSelector, state.loadImage);
+}
+
+/**
  * Port of upstream `GWProduction::RecalcShowTime`.
  * Role: Recomputes the production countdown and refreshes the label when it changes.
  * Upstream: gwproduction.cpp:240-263
@@ -1175,6 +1501,42 @@ export function initProductionUnitSelector<TSurface>(
     loadYellowPercentageBarImage,
   );
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `GWPUnitSelector::Process`.
+ * Role: Updates selector build state, button visibility, draw object selection, and draw object processing.
+ * Upstream: gwproduction_us.cpp:281-313
+ */
+export function processProductionUnitSelector<
+  TDrawObject extends ProductionUnitSelectorProcessDrawObject,
+>(state: ProductionUnitSelectorProcessState<TDrawObject>): void {
+  if (!state.ztime) return;
+
+  if (state.buildingObject) {
+    state.buildState = state.buildingObject.getBuildState();
+
+    if (state.buildingObject.getBuiltCannonList().length) {
+      state.buildState = ProductionBuildingState.Place;
+    }
+    if (state.buildingObject.isDestroyed()) {
+      state.buildState = ProductionBuildingState.Paused;
+    }
+
+    if (state.buildState !== ProductionBuildingState.Select) {
+      state.percentageProduced = state.buildingObject.percentageProduced(
+        state.ztime.ztime,
+      );
+    }
+
+    const showButtons =
+      state.isOnlySelector || state.buildState === ProductionBuildingState.Select;
+    state.upButton.setActive(showButtons);
+    state.downButton.setActive(showButtons);
+  }
+
+  state.setDrawObject();
+  state.drawObject?.process();
 }
 
 /**
@@ -1330,6 +1692,41 @@ export function loadProductionFullUnitSelectorButtonList(
   if (state.cannonList.length) {
     appendProductionFullUnitSelectorButtonList(state, x, y, state.cannonList);
   }
+}
+
+/**
+ * Port of upstream `GWPFullUnitSelector::LoadLists`.
+ * Role: Refreshes cached full-selector unit lists for the current building type and level.
+ * Upstream: gwproduction_fus.cpp:292-322
+ */
+export function loadProductionFullUnitSelectorLists(
+  state: ProductionFullUnitSelectorLoadListsState,
+): void {
+  if (!state.buildList) return;
+  if (!state.buildingObject) return;
+
+  const buildingLevel = state.buildingObject.getLevel();
+  if (
+    state.buildingType === state.listsBuildingType &&
+    state.listsBuildingLevel === buildingLevel
+  ) {
+    return;
+  }
+
+  clearProductionFullUnitSelectorLists(state);
+
+  const units = state.buildList.getBuildList(state.buildingType, buildingLevel);
+  if (!units.length) return;
+
+  state.listsBuildingType = state.buildingType;
+  state.listsBuildingLevel = buildingLevel;
+
+  for (const unit of units) {
+    state.loadUnitToLists(unit.ot, unit.oid);
+  }
+
+  loadProductionFullUnitSelectorButtonList(state);
+  calculateProductionFullUnitSelectorWH(state);
 }
 
 /**
@@ -1689,6 +2086,50 @@ export function setProductionUnitSelectorSelection(
 }
 
 /**
+ * Port of upstream `GWPUnitSelector::SetDrawObject`.
+ * Role: Chooses the production object displayed by the unit selector.
+ * Upstream: gwproduction_us.cpp:83-130
+ */
+export function setProductionUnitSelectorDrawObject(
+  state: ProductionUnitSelectorSetDrawObjectState,
+): void {
+  if (!state.buildingObject) return;
+  if (!state.buildList) return;
+
+  if (
+    state.isOnlySelector ||
+    state.buildState === ProductionBuildingState.Select
+  ) {
+    const buildingLevel = state.buildingObject.getLevel();
+    const units = state.buildList.getBuildList(state.buildingType, buildingLevel);
+    if (!units.length) return;
+
+    if (state.selectedIndex >= units.length) {
+      state.selectedIndex = 0;
+    }
+
+    const selectedUnit = units[state.selectedIndex];
+    if (!selectedUnit) return;
+
+    state.resetDrawObjectTo(selectedUnit.ot, selectedUnit.oid);
+    return;
+  }
+
+  const builtCannonList = state.buildingObject.getBuiltCannonList();
+  if (builtCannonList.length) {
+    const firstCannon = builtCannonList[0];
+    if (firstCannon === undefined) return;
+    state.resetDrawObjectTo(MapObjectType.Cannon, firstCannon);
+    return;
+  }
+
+  const buildUnit = state.buildingObject.getBuildUnit();
+  if (!buildUnit.hasUnit) return;
+
+  state.resetDrawObjectTo(buildUnit.objectType, buildUnit.objectId);
+}
+
+/**
  * Port of upstream `GWProduction::DoQueueButton`.
  * Role: Emits a new queue item request when the queue selector has a selected object.
  * Upstream: gwproduction.cpp:540-551
@@ -1703,6 +2144,99 @@ export function doProductionQueueButton(
   state.flags.qot = selectedId.objectType;
   state.flags.qoid = selectedId.objectId;
   state.flags.qrefId = state.buildingObject.getRefId();
+}
+
+/**
+ * Port of upstream `GWProduction::MakeQueueButtonList`.
+ * Role: Rebuilds the queue button list from the building production queue.
+ * Upstream: gwproduction.cpp:188-212
+ */
+export function makeProductionQueueButtonList(
+  state: ProductionMakeQueueButtonListState,
+): void {
+  if (!state.buildingObject) return;
+
+  let offsetY = PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS;
+  state.queueButtonList.length = 0;
+
+  for (const queuedUnit of state.buildingObject.getQueueList()) {
+    state.queueButtonList.push({
+      offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+      offsetY,
+      ot: queuedUnit.ot,
+      oid: queuedUnit.oid,
+    });
+    offsetY +=
+      PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS +
+      PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS;
+  }
+}
+
+/**
+ * Port of upstream `GWProduction::CheckQueueButtonList`.
+ * Role: Refreshes generated queue buttons when the building queue size or item ids changed.
+ * Upstream: gwproduction.cpp:160-186
+ */
+export function checkProductionQueueButtonList(
+  state: ProductionCheckQueueButtonListState,
+): void {
+  if (!state.buildingObject) return;
+
+  const queueList = state.buildingObject.getQueueList();
+  if (state.queueButtonList.length !== queueList.length) {
+    makeProductionQueueButtonList(state);
+    return;
+  }
+
+  for (let index = 0; index < state.queueButtonList.length; index += 1) {
+    const queueButton = state.queueButtonList[index];
+    const queuedUnit = queueList[index];
+    if (!queueButton || !queuedUnit) continue;
+
+    if (queueButton.ot !== queuedUnit.ot || queueButton.oid !== queuedUnit.oid) {
+      makeProductionQueueButtonList(state);
+      return;
+    }
+  }
+}
+
+/**
+ * Port of upstream `GWProduction::Click`.
+ * Role: Routes mouse-down events to production controls and reports whether the window bounds were hit.
+ * Upstream: gwproduction.cpp:586-621
+ */
+export function clickProductionWindow(
+  state: ProductionWindowClickState,
+  x: number,
+  y: number,
+): boolean {
+  if (state.fullSelector.click(x, y)) return true;
+
+  const localX = x - state.x;
+  const localY = y - state.y;
+
+  state.okButton.click(localX, localY);
+  state.cancelButton.click(localX, localY);
+  state.placeButton.click(localX, localY);
+  state.smallPlusButton.click(localX, localY);
+  state.smallMinusButton.click(localX, localY);
+  state.queueButton.click(localX, localY);
+
+  if (state.isExpanded) {
+    for (const queueButton of state.queueButtonList) {
+      queueButton.objectButton.click(localX, localY);
+    }
+  }
+
+  state.unitSelector.click(localX, localY);
+  state.queueSelector.click(localX, localY);
+
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x >= state.x + state.width) return false;
+  if (y >= state.y + state.height) return false;
+
+  return true;
 }
 
 /**
@@ -2030,3 +2564,17 @@ export const PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS = 13;
  * Upstream: gwproduction.cpp:191
  */
 export const PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS = 1;
+
+/**
+ * Port of upstream queue button `lx`.
+ * Role: Defines the local x offset for generated production queue buttons.
+ * Upstream: gwproduction.cpp:194
+ */
+export const PRODUCTION_QUEUE_BUTTON_START_X_PIXELS = 177;
+
+/**
+ * Port of upstream queue button `ly`.
+ * Role: Defines the first local y offset for generated production queue buttons.
+ * Upstream: gwproduction.cpp:195
+ */
+export const PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS = 22;

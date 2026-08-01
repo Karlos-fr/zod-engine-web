@@ -4,7 +4,7 @@
 
 import { GameEntity } from "./GameEntity";
 import { pointsWithinArea } from "../Common";
-import { BuildingType, TeamType } from "../SimulationConstants";
+import { BuildingType, PlanetType, TeamType } from "../SimulationConstants";
 
 /**
  * Browser simulation entity containing the subset of `BFort` behavior already ported.
@@ -12,6 +12,52 @@ import { BuildingType, TeamType } from "../SimulationConstants";
  * Upstream: bfort.h
  */
 export class FortEntity extends GameEntity {
+  isFront = true;
+  palette = PlanetType.Desert;
+  unitCreateX = 0;
+  unitCreateY = 0;
+  unitMoveX = 0;
+  unitMoveY = 0;
+
+  /**
+   * Port of upstream `BFort::SetIsFront`.
+   * Role: Configures fort orientation, footprint, spawn offsets, and center coordinates.
+   * Upstream: bfort.cpp:137-175
+   */
+  setIsFront(isFront: boolean): void {
+    this.isFront = isFront;
+
+    if (this.isFront) {
+      this.objectId = BuildingType.FortFront;
+      this.width = 10;
+      this.height = 12;
+      this.pixelWidth = this.width * 16;
+      this.pixelHeight = this.height * 16;
+      this.unitCreateX = 80;
+      this.unitCreateY = 128;
+      this.unitMoveX = 80;
+      this.unitMoveY = 192 + 16;
+
+      if (this.palette === PlanetType.Jungle) {
+        this.height -= 1;
+        this.pixelHeight = this.height * 16;
+      }
+    } else {
+      this.objectId = BuildingType.FortBack;
+      this.width = 10;
+      this.height = 11;
+      this.pixelWidth = this.width * 16;
+      this.pixelHeight = this.height * 16;
+      this.unitCreateX = 80;
+      this.unitCreateY = 32;
+      this.unitMoveX = 80;
+      this.unitMoveY = -16;
+    }
+
+    this.centerX = this.position.x + (this.pixelWidth >> 1);
+    this.centerY = this.position.y + (this.pixelHeight >> 1);
+  }
+
   /**
    * Port of upstream `CanSetRallypoints`.
    * Role: Reports whether forts can set rally points.

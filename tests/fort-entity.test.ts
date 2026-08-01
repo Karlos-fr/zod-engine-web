@@ -1,8 +1,74 @@
 import { describe, expect, it } from "vitest";
 import { FortEntity } from "../src/simulation/entities/FortEntity";
-import { BuildingType, TeamType } from "../src/simulation/SimulationConstants";
+import {
+  BuildingType,
+  PlanetType,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
 
 describe("fort entity", () => {
+  it("ports BFort SetIsFront as front fort dimensions and production offsets", () => {
+    const entity = new FortEntity({
+      id: "fort-front",
+      kind: "fort",
+      position: { x: 100, y: 200 },
+    });
+
+    entity.setIsFront(true);
+
+    expect(entity.isFront).toBe(true);
+    expect(entity.objectId).toBe(BuildingType.FortFront);
+    expect(entity.width).toBe(10);
+    expect(entity.height).toBe(12);
+    expect(entity.pixelWidth).toBe(160);
+    expect(entity.pixelHeight).toBe(192);
+    expect(entity.unitCreateX).toBe(80);
+    expect(entity.unitCreateY).toBe(128);
+    expect(entity.unitMoveX).toBe(80);
+    expect(entity.unitMoveY).toBe(208);
+    expect(entity.centerX).toBe(180);
+    expect(entity.centerY).toBe(296);
+  });
+
+  it("ports BFort SetIsFront as jungle front fort height adjustment", () => {
+    const entity = new FortEntity({
+      id: "fort-jungle-front",
+      kind: "fort",
+      position: { x: 100, y: 200 },
+    });
+    entity.palette = PlanetType.Jungle;
+
+    entity.setIsFront(true);
+
+    expect(entity.objectId).toBe(BuildingType.FortFront);
+    expect(entity.height).toBe(11);
+    expect(entity.pixelHeight).toBe(176);
+    expect(entity.centerY).toBe(288);
+  });
+
+  it("ports BFort SetIsFront as back fort dimensions and production offsets", () => {
+    const entity = new FortEntity({
+      id: "fort-back",
+      kind: "fort",
+      position: { x: 100, y: 200 },
+    });
+
+    entity.setIsFront(false);
+
+    expect(entity.isFront).toBe(false);
+    expect(entity.objectId).toBe(BuildingType.FortBack);
+    expect(entity.width).toBe(10);
+    expect(entity.height).toBe(11);
+    expect(entity.pixelWidth).toBe(160);
+    expect(entity.pixelHeight).toBe(176);
+    expect(entity.unitCreateX).toBe(80);
+    expect(entity.unitCreateY).toBe(32);
+    expect(entity.unitMoveX).toBe(80);
+    expect(entity.unitMoveY).toBe(-16);
+    expect(entity.centerX).toBe(180);
+    expect(entity.centerY).toBe(288);
+  });
+
   it("ports BFort CanSetRallypoints as enabled rally points", () => {
     const entity = new FortEntity({
       id: "fort-1",

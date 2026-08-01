@@ -3,10 +3,13 @@ import { GameEntity } from "../src/simulation/entities/GameEntity";
 import { RobotFactoryEntity } from "../src/simulation/entities/RobotFactoryEntity";
 import { BuildingType } from "../src/simulation/SimulationConstants";
 import { SimulationTime } from "../src/simulation/SimulationTime";
+import { MapObjectType } from "../src/world/MapFormat";
 import {
   appendProductionFullUnitSelectorButtonList,
   calculateProductionFullUnitSelectorXY,
   calculateProductionFullUnitSelectorWH,
+  checkProductionQueueButtonList,
+  clickProductionWindow,
   clickProductionFullUnitSelector,
   clickProductionUnitSelector,
   clearProductionFullUnitSelectorLists,
@@ -27,32 +30,55 @@ import {
   getProductionUnitSelectorObjectRefId,
   getProductionUnitSelectorRefId,
   getProductionUnitSelectorSelectedId,
+  initProductionWindow,
   initProductionUnitSelector,
   isProductionActive,
   loadProductionFullSelector,
   loadProductionFullUnitSelectorButtonList,
+  loadProductionFullUnitSelectorLists,
+  makeProductionQueueButtonList,
   processProductionSetExpanded,
+  processProductionUnitSelector,
   type ProductionBuildingReference,
+  type ProductionBaseImageTarget,
   type ProductionObjectReference,
   type ProductionPlaceButtonState,
+  type ProductionWindowClickState,
+  type ProductionWindowInitState,
   type ProductionUnitSelectorInitState,
+  PRODUCTION_BASE_EXPANDED_IMAGE_PATH,
+  PRODUCTION_BASE_IMAGE_PATH,
+  PRODUCTION_BUILDING_LABEL_IMAGE_PATH,
+  PRODUCTION_BUILDINGLESS_LABEL_IMAGE_PATH,
   PRODUCTION_COLLAPSED_HEIGHT_PIXELS,
   PRODUCTION_COLLAPSED_WIDTH_PIXELS,
   PRODUCTION_EXPANDED_HEIGHT_PIXELS,
   PRODUCTION_EXPANDED_WIDTH_PIXELS,
+  PRODUCTION_FORT_FACTORY_LABEL_IMAGE_PATH,
+  PRODUCTION_PAUSED_LABEL_IMAGE_PATH,
+  PRODUCTION_PAUSEDLESS_LABEL_IMAGE_PATH,
+  PRODUCTION_PLACE_LABEL_IMAGE_PATH,
+  PRODUCTION_PLACELESS_LABEL_IMAGE_PATH,
+  PRODUCTION_ROBOT_FACTORY_LABEL_IMAGE_PATH,
+  PRODUCTION_SELECT_LABEL_IMAGE_PATH,
+  PRODUCTION_SELECTLESS_LABEL_IMAGE_PATH,
   PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH,
   PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
+  PRODUCTION_VEHICLE_FACTORY_LABEL_IMAGE_PATH,
   ProductionBuildingState,
   ProductionType,
   PRODUCTION_SELECTOR_CENTER_X_OFFSET_PIXELS,
   PRODUCTION_SELECTOR_CENTER_Y_OFFSET_PIXELS,
   PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS,
   PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS,
+  PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+  PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS,
   recalcProductionShowTime,
   resetProductionShowTime,
   setProductionActive,
   setProductionBuildList,
   setProductionBuildingObject,
+  setProductionBuildingState,
   setProductionBuildingType,
   setProductionCenterCoords,
   setProductionCoords,
@@ -65,6 +91,7 @@ import {
   setProductionUnitSelectorActive,
   setProductionUnitSelectorBuildList,
   setProductionUnitSelectorCoords,
+  setProductionUnitSelectorDrawObject,
   setProductionUnitSelectorRefId,
   setProductionUnitSelectorSelection,
   setProductionUnitSelectorZTime,
@@ -81,6 +108,105 @@ import {
 } from "../src/ui/ProductionWindow";
 
 describe("production window", () => {
+  const imageTarget = (
+    name: string,
+    loaded: Array<[string, string]>,
+  ): ProductionBaseImageTarget => ({
+    loadBaseImage: (filename: string): void => {
+      loaded.push([name, filename]);
+    },
+  });
+
+  const productionClickState = (
+    calls: unknown[],
+    overrides: Partial<ProductionWindowClickState> = {},
+  ): ProductionWindowClickState => ({
+    x: 10,
+    y: 20,
+    width: 100,
+    height: 80,
+    isExpanded: true,
+    fullSelector: {
+      click: (x: number, y: number) => {
+        calls.push(["full", x, y]);
+        return false;
+      },
+    },
+    okButton: {
+      click: (x: number, y: number) => calls.push(["ok", x, y]),
+    },
+    cancelButton: {
+      click: (x: number, y: number) => calls.push(["cancel", x, y]),
+    },
+    placeButton: {
+      click: (x: number, y: number) => calls.push(["place", x, y]),
+    },
+    smallPlusButton: {
+      click: (x: number, y: number) => calls.push(["plus", x, y]),
+    },
+    smallMinusButton: {
+      click: (x: number, y: number) => calls.push(["minus", x, y]),
+    },
+    queueButton: {
+      click: (x: number, y: number) => calls.push(["queue", x, y]),
+    },
+    queueButtonList: [
+      {
+        offsetX: 1,
+        offsetY: 2,
+        ot: 3,
+        oid: 4,
+        objectButton: {
+          click: (x: number, y: number) =>
+            calls.push(["queue-item", x, y]),
+        },
+      },
+    ],
+    unitSelector: {
+      click: (x: number, y: number) => {
+        calls.push(["unit-selector", x, y]);
+        return false;
+      },
+    },
+    queueSelector: {
+      click: (x: number, y: number) => {
+        calls.push(["queue-selector", x, y]);
+        return false;
+      },
+    },
+    ...overrides,
+  });
+
+  const productionUnitSelectorProcessState = (
+    calls: unknown[],
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    ztime: { ztime: 12.5 },
+    buildingObject: {
+      getBuildState: () => ProductionBuildingState.Select,
+      getBuiltCannonList: () => [],
+      isDestroyed: () => false,
+      percentageProduced: (currentTime: number) => {
+        calls.push(["percentage", currentTime]);
+        return 0.4;
+      },
+    },
+    buildState: ProductionBuildingState.Building,
+    isOnlySelector: false,
+    percentageProduced: 0,
+    upButton: {
+      setActive: (active: boolean) => calls.push(["up", active]),
+    },
+    downButton: {
+      setActive: (active: boolean) => calls.push(["down", active]),
+    },
+    setDrawObject: () => calls.push("set-draw-object"),
+    drawObject: {
+      process: () => calls.push("draw-process"),
+    },
+    ...overrides,
+  });
+
   it("adapts the gwproduction.h include guard to an ES module marker", async () => {
     const firstImport = await import("../src/ui/ProductionWindow");
     const secondImport = await import("../src/ui/ProductionWindow");
@@ -190,6 +316,235 @@ describe("production window", () => {
 
     setProductionUnitSelectorActive(state, false);
     expect(state.isActive).toBe(false);
+  });
+
+  it("ports GWProduction Init as static image loading and selector init", () => {
+    const loadedImages: Array<[string, string]> = [];
+    const loadedSurfaces: string[] = [];
+    const percentageBarSurfaces: Array<{ filename: string } | null> = [];
+    const yellowPercentageBarSurfaces: Array<{ filename: string } | null> = [];
+    const state: ProductionWindowInitState<{ filename: string }> = {
+      baseImage: imageTarget("base", loadedImages),
+      baseExpandedImage: imageTarget("base-expanded", loadedImages),
+      nameLabels: {
+        [ProductionType.Robot]: imageTarget("robot-label", loadedImages),
+        [ProductionType.Vehicle]: imageTarget("vehicle-label", loadedImages),
+        [ProductionType.Fort]: imageTarget("fort-label", loadedImages),
+      },
+      percentageBarImage: imageTarget("percentage-bar", loadedImages),
+      yellowPercentageBarImage: imageTarget("yellow-percentage-bar", loadedImages),
+      stateLabels: {
+        [ProductionBuildingState.Place]: [
+          imageTarget("place-label", loadedImages),
+          imageTarget("placeless-label", loadedImages),
+        ],
+        [ProductionBuildingState.Select]: [
+          imageTarget("select-label", loadedImages),
+          imageTarget("selectless-label", loadedImages),
+        ],
+        [ProductionBuildingState.Building]: [
+          imageTarget("building-label", loadedImages),
+          imageTarget("buildingless-label", loadedImages),
+        ],
+        [ProductionBuildingState.Paused]: [
+          imageTarget("paused-label", loadedImages),
+          imageTarget("pausedless-label", loadedImages),
+        ],
+      },
+      unitSelector: {
+        percentageBarImage: { imageFilename: "" },
+        yellowPercentageBarImage: { imageFilename: "" },
+        finishedInit: false,
+      },
+      fullSelector: {
+        finishedInit: false,
+      },
+      loadImage: (filename: string) => {
+        loadedSurfaces.push(filename);
+        return { filename };
+      },
+      loadUnitSelectorPercentageBarImage: (surface) => {
+        percentageBarSurfaces.push(surface);
+      },
+      loadUnitSelectorYellowPercentageBarImage: (surface) => {
+        yellowPercentageBarSurfaces.push(surface);
+      },
+    };
+
+    initProductionWindow(state);
+
+    expect(loadedImages).toEqual([
+      ["base", PRODUCTION_BASE_IMAGE_PATH],
+      ["base-expanded", PRODUCTION_BASE_EXPANDED_IMAGE_PATH],
+      ["robot-label", PRODUCTION_ROBOT_FACTORY_LABEL_IMAGE_PATH],
+      ["fort-label", PRODUCTION_FORT_FACTORY_LABEL_IMAGE_PATH],
+      ["vehicle-label", PRODUCTION_VEHICLE_FACTORY_LABEL_IMAGE_PATH],
+      ["percentage-bar", PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH],
+      [
+        "yellow-percentage-bar",
+        PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
+      ],
+      ["place-label", PRODUCTION_PLACE_LABEL_IMAGE_PATH],
+      ["placeless-label", PRODUCTION_PLACELESS_LABEL_IMAGE_PATH],
+      ["select-label", PRODUCTION_SELECT_LABEL_IMAGE_PATH],
+      ["selectless-label", PRODUCTION_SELECTLESS_LABEL_IMAGE_PATH],
+      ["building-label", PRODUCTION_BUILDING_LABEL_IMAGE_PATH],
+      ["buildingless-label", PRODUCTION_BUILDINGLESS_LABEL_IMAGE_PATH],
+      ["paused-label", PRODUCTION_PAUSED_LABEL_IMAGE_PATH],
+      ["pausedless-label", PRODUCTION_PAUSEDLESS_LABEL_IMAGE_PATH],
+    ]);
+    expect(loadedSurfaces).toEqual([
+      PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH,
+      PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
+      "assets/other/production_gui/fus_top_left.png",
+      "assets/other/production_gui/fus_top_right.png",
+      "assets/other/production_gui/fus_bottom_left.png",
+      "assets/other/production_gui/fus_bottom_right.png",
+      "assets/other/production_gui/fus_top.png",
+      "assets/other/production_gui/fus_bottom.png",
+      "assets/other/production_gui/fus_left.png",
+      "assets/other/production_gui/fus_right.png",
+      "assets/other/production_gui/object_back.png",
+    ]);
+    expect(state.unitSelector.finishedInit).toBe(true);
+    expect(state.unitSelector.percentageBarImage.imageFilename).toBe(
+      PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH,
+    );
+    expect(state.unitSelector.yellowPercentageBarImage.imageFilename).toBe(
+      PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
+    );
+    expect(percentageBarSurfaces).toEqual([
+      { filename: PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH },
+    ]);
+    expect(yellowPercentageBarSurfaces).toEqual([
+      { filename: PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH },
+    ]);
+    expect(state.fullSelector.finishedInit).toBe(true);
+    expect(state.fullSelector.images?.objectBack).toEqual({
+      filename: "assets/other/production_gui/object_back.png",
+    });
+  });
+
+  it("ports GWProduction SetState as no-op when the resolved state is unchanged", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Select,
+      buildingObject: null,
+      okButton: { setActive: (active: boolean) => calls.push(["ok", active]) },
+      cancelButton: {
+        setActive: (active: boolean) => calls.push(["cancel", active]),
+      },
+      placeButton: {
+        setActive: (active: boolean) => calls.push(["place", active]),
+      },
+    };
+
+    setProductionBuildingState(state, ProductionBuildingState.Select);
+
+    expect(state.state).toBe(ProductionBuildingState.Select);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWProduction SetState place button activation", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Select,
+      buildingObject: null,
+      okButton: { setActive: (active: boolean) => calls.push(["ok", active]) },
+      cancelButton: {
+        setActive: (active: boolean) => calls.push(["cancel", active]),
+      },
+      placeButton: {
+        setActive: (active: boolean) => calls.push(["place", active]),
+      },
+    };
+
+    setProductionBuildingState(state, ProductionBuildingState.Place);
+
+    expect(state.state).toBe(ProductionBuildingState.Place);
+    expect(calls).toEqual([
+      ["ok", false],
+      ["cancel", true],
+      ["place", true],
+    ]);
+  });
+
+  it("ports GWProduction SetState non-place button activation", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Place,
+      buildingObject: null,
+      okButton: { setActive: (active: boolean) => calls.push(["ok", active]) },
+      cancelButton: {
+        setActive: (active: boolean) => calls.push(["cancel", active]),
+      },
+      placeButton: {
+        setActive: (active: boolean) => calls.push(["place", active]),
+      },
+    };
+
+    setProductionBuildingState(state, ProductionBuildingState.Building);
+
+    expect(state.state).toBe(ProductionBuildingState.Building);
+    expect(calls).toEqual([
+      ["ok", true],
+      ["cancel", true],
+      ["place", false],
+    ]);
+  });
+
+  it("ports GWProduction SetState as cannon placement override", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Select,
+      buildingObject: {
+        getBuiltCannonList: () => [4],
+        isDestroyed: () => false,
+      },
+      okButton: { setActive: (active: boolean) => calls.push(["ok", active]) },
+      cancelButton: {
+        setActive: (active: boolean) => calls.push(["cancel", active]),
+      },
+      placeButton: {
+        setActive: (active: boolean) => calls.push(["place", active]),
+      },
+    };
+
+    setProductionBuildingState(state, ProductionBuildingState.Building);
+
+    expect(state.state).toBe(ProductionBuildingState.Place);
+    expect(calls).toEqual([
+      ["ok", false],
+      ["cancel", true],
+      ["place", true],
+    ]);
+  });
+
+  it("ports GWProduction SetState as destroyed building pause override", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Select,
+      buildingObject: {
+        getBuiltCannonList: () => [4],
+        isDestroyed: () => true,
+      },
+      okButton: { setActive: (active: boolean) => calls.push(["ok", active]) },
+      cancelButton: {
+        setActive: (active: boolean) => calls.push(["cancel", active]),
+      },
+      placeButton: {
+        setActive: (active: boolean) => calls.push(["place", active]),
+      },
+    };
+
+    setProductionBuildingState(state, ProductionBuildingState.Building);
+
+    expect(state.state).toBe(ProductionBuildingState.Paused);
+    expect(calls).toEqual([
+      ["ok", true],
+      ["cancel", true],
+      ["place", false],
+    ]);
   });
 
   it("ports GWProduction ProcessSetExpanded as expanded queue controls", () => {
@@ -674,6 +1029,112 @@ describe("production window", () => {
     expect(state.finishedInit).toBe(true);
   });
 
+  it("ports GWPUnitSelector Process as no-op without simulation time", () => {
+    const calls: unknown[] = [];
+    const state = productionUnitSelectorProcessState(calls, {
+      ztime: null,
+    });
+
+    processProductionUnitSelector(state);
+
+    expect(calls).toEqual([]);
+    expect(state.buildState).toBe(ProductionBuildingState.Building);
+  });
+
+  it("ports GWPUnitSelector Process select state as button selector mode", () => {
+    const calls: unknown[] = [];
+    const state = productionUnitSelectorProcessState(calls);
+
+    processProductionUnitSelector(state);
+
+    expect(state.buildState).toBe(ProductionBuildingState.Select);
+    expect(state.percentageProduced).toBe(0);
+    expect(calls).toEqual([
+      ["up", true],
+      ["down", true],
+      "set-draw-object",
+      "draw-process",
+    ]);
+  });
+
+  it("ports GWPUnitSelector Process active production as percentage mode", () => {
+    const calls: unknown[] = [];
+    const state = productionUnitSelectorProcessState(calls, {
+      buildingObject: {
+        getBuildState: () => ProductionBuildingState.Building,
+        getBuiltCannonList: () => [],
+        isDestroyed: () => false,
+        percentageProduced: (currentTime: number) => {
+          calls.push(["percentage", currentTime]);
+          return 0.65;
+        },
+      },
+    });
+
+    processProductionUnitSelector(state);
+
+    expect(state.buildState).toBe(ProductionBuildingState.Building);
+    expect(state.percentageProduced).toBe(0.65);
+    expect(calls).toEqual([
+      ["percentage", 12.5],
+      ["up", false],
+      ["down", false],
+      "set-draw-object",
+      "draw-process",
+    ]);
+  });
+
+  it("ports GWPUnitSelector Process as only-selector button mode", () => {
+    const calls: unknown[] = [];
+    const state = productionUnitSelectorProcessState(calls, {
+      isOnlySelector: true,
+      buildingObject: {
+        getBuildState: () => ProductionBuildingState.Building,
+        getBuiltCannonList: () => [],
+        isDestroyed: () => false,
+        percentageProduced: () => 0.25,
+      },
+    });
+
+    processProductionUnitSelector(state);
+
+    expect(state.buildState).toBe(ProductionBuildingState.Building);
+    expect(state.percentageProduced).toBe(0.25);
+    expect(calls).toEqual([
+      ["up", true],
+      ["down", true],
+      "set-draw-object",
+      "draw-process",
+    ]);
+  });
+
+  it("ports GWPUnitSelector Process building overrides and missing draw object", () => {
+    const calls: unknown[] = [];
+    const state = productionUnitSelectorProcessState(calls, {
+      buildingObject: {
+        getBuildState: () => ProductionBuildingState.Building,
+        getBuiltCannonList: () => [9],
+        isDestroyed: () => true,
+        percentageProduced: (currentTime: number) => {
+          calls.push(["percentage", currentTime]);
+          return 0.1;
+        },
+      },
+      drawObject: null,
+    });
+
+    processProductionUnitSelector(state);
+
+    expect(state.buildState).toBe(ProductionBuildingState.Paused);
+    expect(state.percentageProduced).toBe(0.1);
+    expect(calls).toEqual([
+      ["percentage", 12.5],
+      ["up", false],
+      ["down", false],
+      "set-draw-object",
+    ]);
+  });
+
   it("ports GWPUnitSelector DeleteDrawObject as transient draw object cleanup", () => {
     const state = { drawObject: { id: "draw-object" } as { id: string } | null };
 
@@ -711,6 +1172,156 @@ describe("production window", () => {
       listsBuildingType: -1,
       listsBuildingLevel: -1,
       buttonList: [],
+    });
+  });
+
+  it("ports GWPFullUnitSelector LoadLists guard exits", () => {
+    const calls: unknown[] = [];
+    const baseState = {
+      robotList: [],
+      vehicleList: [],
+      cannonList: [],
+      listsBuildingType: -1,
+      listsBuildingLevel: -1,
+      buttonList: [],
+      buildingType: BuildingType.RobotFactory,
+      width: 0,
+      height: 0,
+      loadUnitToLists: (objectType: number, objectId: number) =>
+        calls.push([objectType, objectId]),
+    };
+    const noBuildList = {
+      ...baseState,
+      buildingObject: { getLevel: () => 2 },
+      buildList: null,
+    };
+    const noBuilding = {
+      ...baseState,
+      buildingObject: null,
+      buildList: { getBuildList: () => [{ ot: 1, oid: 2 }] },
+    };
+
+    loadProductionFullUnitSelectorLists(noBuildList);
+    loadProductionFullUnitSelectorLists(noBuilding);
+
+    expect(calls).toEqual([]);
+    expect(noBuildList.listsBuildingType).toBe(-1);
+    expect(noBuilding.listsBuildingLevel).toBe(-1);
+  });
+
+  it("ports GWPFullUnitSelector LoadLists cache hit as no-op", () => {
+    const calls: unknown[] = [];
+    const state = {
+      robotList: [{ getObjectId: () => ({ objectType: 1, objectId: 2 }) }],
+      vehicleList: [],
+      cannonList: [],
+      listsBuildingType: BuildingType.RobotFactory,
+      listsBuildingLevel: 2,
+      buttonList: [],
+      buildingObject: { getLevel: () => 2 },
+      buildList: {
+        getBuildList: () => {
+          calls.push("get-build-list");
+          return [{ ot: 1, oid: 2 }];
+        },
+      },
+      buildingType: BuildingType.RobotFactory,
+      width: 0,
+      height: 0,
+      loadUnitToLists: (objectType: number, objectId: number) =>
+        calls.push([objectType, objectId]),
+    };
+
+    loadProductionFullUnitSelectorLists(state);
+
+    expect(calls).toEqual([]);
+    expect(state.robotList).toHaveLength(1);
+  });
+
+  it("ports GWPFullUnitSelector LoadLists empty build-list as cleared cache", () => {
+    const state = {
+      robotList: [{ getObjectId: () => ({ objectType: 1, objectId: 2 }) }],
+      vehicleList: [{ getObjectId: () => ({ objectType: 4, objectId: 3 }) }],
+      cannonList: [],
+      listsBuildingType: BuildingType.RobotFactory,
+      listsBuildingLevel: 1,
+      buttonList: [{ objectType: 1, objectId: 2, offsetX: 6, offsetY: 22 }],
+      buildingObject: { getLevel: () => 2 },
+      buildList: {
+        getBuildList: () => [],
+      },
+      buildingType: BuildingType.VehicleFactory,
+      loadUnitToLists: () => undefined,
+      width: 999,
+      height: 999,
+    };
+
+    loadProductionFullUnitSelectorLists(state);
+
+    expect(state.robotList).toEqual([]);
+    expect(state.vehicleList).toEqual([]);
+    expect(state.buttonList).toEqual([]);
+    expect(state.listsBuildingType).toBe(-1);
+    expect(state.listsBuildingLevel).toBe(-1);
+    expect(state.width).toBe(999);
+    expect(state.height).toBe(999);
+  });
+
+  it("ports GWPFullUnitSelector LoadLists as cache refresh and layout rebuild", () => {
+    const calls: unknown[] = [];
+    const state = {
+      robotList: [] as Array<{ getObjectId(): { objectType: number; objectId: number } }>,
+      vehicleList: [] as Array<{ getObjectId(): { objectType: number; objectId: number } }>,
+      cannonList: [] as Array<{ getObjectId(): { objectType: number; objectId: number } }>,
+      listsBuildingType: -1,
+      listsBuildingLevel: -1,
+      buttonList: [] as Array<{
+        objectType: number;
+        objectId: number;
+        offsetX: number;
+        offsetY: number;
+      }>,
+      buildingObject: { getLevel: () => 3 },
+      buildList: {
+        getBuildList(buildingType: number, buildingLevel: number) {
+          calls.push(["get-build-list", buildingType, buildingLevel]);
+          return [
+            { ot: MapObjectType.Robot, oid: 2 },
+            { ot: MapObjectType.Vehicle, oid: 4 },
+            { ot: MapObjectType.Cannon, oid: 6 },
+          ];
+        },
+      },
+      buildingType: BuildingType.FortFront,
+      loadUnitToLists(objectType: number, objectId: number) {
+        calls.push(["load-unit", objectType, objectId]);
+        const object = { getObjectId: () => ({ objectType, objectId }) };
+        if (objectType === MapObjectType.Robot) state.robotList.push(object);
+        if (objectType === MapObjectType.Vehicle) state.vehicleList.push(object);
+        if (objectType === MapObjectType.Cannon) state.cannonList.push(object);
+      },
+      width: 0,
+      height: 0,
+    };
+
+    loadProductionFullUnitSelectorLists(state);
+
+    expect(calls).toEqual([
+      ["get-build-list", BuildingType.FortFront, 3],
+      ["load-unit", MapObjectType.Robot, 2],
+      ["load-unit", MapObjectType.Vehicle, 4],
+      ["load-unit", MapObjectType.Cannon, 6],
+    ]);
+    expect(state.listsBuildingType).toBe(BuildingType.FortFront);
+    expect(state.listsBuildingLevel).toBe(3);
+    expect(state.buttonList).toEqual([
+      { objectType: MapObjectType.Robot, objectId: 2, offsetX: 6, offsetY: 22 },
+      { objectType: MapObjectType.Vehicle, objectId: 4, offsetX: 6, offsetY: 75 },
+      { objectType: MapObjectType.Cannon, objectId: 6, offsetX: 6, offsetY: 128 },
+    ]);
+    expect({ width: state.width, height: state.height }).toEqual({
+      width: 104,
+      height: 185,
     });
   });
 
@@ -1404,6 +2015,164 @@ describe("production window", () => {
     expect(drawCalls).toBe(1);
   });
 
+  it("ports GWPUnitSelector SetDrawObject guard exits", () => {
+    const resets: Array<[number, number]> = [];
+    const noBuilding = {
+      buildingObject: null,
+      buildList: {
+        getBuildList: () => [{ ot: 1, oid: 2 }],
+      },
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Select,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 0,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+    const noBuildList = {
+      buildingObject: {
+        getLevel: () => 2,
+        getBuiltCannonList: () => [],
+        getBuildUnit: () => ({ hasUnit: true, objectType: 1, objectId: 2 }),
+      },
+      buildList: null,
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Select,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 0,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+    const emptyList = {
+      buildingObject: {
+        getLevel: () => 2,
+        getBuiltCannonList: () => [],
+        getBuildUnit: () => ({ hasUnit: true, objectType: 1, objectId: 2 }),
+      },
+      buildList: {
+        getBuildList: () => [],
+      },
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Select,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 0,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+
+    setProductionUnitSelectorDrawObject(noBuilding);
+    setProductionUnitSelectorDrawObject(noBuildList);
+    setProductionUnitSelectorDrawObject(emptyList);
+
+    expect(resets).toEqual([]);
+  });
+
+  it("ports GWPUnitSelector SetDrawObject as selected build-list object", () => {
+    const calls: Array<[number, number]> = [];
+    const resets: Array<[number, number]> = [];
+    const state = {
+      buildingObject: {
+        getLevel: () => 2,
+        getBuiltCannonList: () => [],
+        getBuildUnit: () => ({ hasUnit: false, objectType: 0, objectId: 0 }),
+      },
+      buildList: {
+        getBuildList(buildingType: number, buildingLevel: number) {
+          calls.push([buildingType, buildingLevel]);
+          return [
+            { ot: 1, oid: 7 },
+            { ot: 3, oid: 4 },
+          ];
+        },
+      },
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Select,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 1,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+
+    setProductionUnitSelectorDrawObject(state);
+
+    expect(calls).toEqual([[BuildingType.RobotFactory, 2]]);
+    expect(state.selectedIndex).toBe(1);
+    expect(resets).toEqual([[3, 4]]);
+  });
+
+  it("ports GWPUnitSelector SetDrawObject selected index wrap", () => {
+    const resets: Array<[number, number]> = [];
+    const state = {
+      buildingObject: {
+        getLevel: () => 2,
+        getBuiltCannonList: () => [],
+        getBuildUnit: () => ({ hasUnit: false, objectType: 0, objectId: 0 }),
+      },
+      buildList: {
+        getBuildList: () => [{ ot: 1, oid: 7 }],
+      },
+      isOnlySelector: true,
+      buildState: ProductionBuildingState.Building,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 9,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+
+    setProductionUnitSelectorDrawObject(state);
+
+    expect(state.selectedIndex).toBe(0);
+    expect(resets).toEqual([[1, 7]]);
+  });
+
+  it("ports GWPUnitSelector SetDrawObject as built cannon draw object", () => {
+    const resets: Array<[number, number]> = [];
+    const state = {
+      buildingObject: {
+        getLevel: () => 2,
+        getBuiltCannonList: () => [8, 9],
+        getBuildUnit: () => ({ hasUnit: true, objectType: 1, objectId: 2 }),
+      },
+      buildList: {
+        getBuildList: () => [{ ot: 1, oid: 7 }],
+      },
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Building,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 0,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+
+    setProductionUnitSelectorDrawObject(state);
+
+    expect(resets).toEqual([[MapObjectType.Cannon, 8]]);
+  });
+
+  it("ports GWPUnitSelector SetDrawObject as current build unit fallback", () => {
+    const resets: Array<[number, number]> = [];
+    const state = {
+      buildingObject: {
+        getLevel: () => 2,
+        getBuiltCannonList: () => [],
+        getBuildUnit: () => ({ hasUnit: true, objectType: 4, objectId: 6 }),
+      },
+      buildList: {
+        getBuildList: () => [{ ot: 1, oid: 7 }],
+      },
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Building,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 0,
+      resetDrawObjectTo: (objectType: number, objectId: number) =>
+        resets.push([objectType, objectId]),
+    };
+
+    setProductionUnitSelectorDrawObject(state);
+
+    expect(resets).toEqual([[4, 6]]);
+  });
+
   it("ports GWPUnitSelector DoDownButton as selected index decrement with wrap", () => {
     const calls: Array<[number, number]> = [];
     const state = {
@@ -1887,6 +2656,258 @@ describe("production window", () => {
     });
   });
 
+  it("ports GWProduction Click as full selector map-coordinate short circuit", () => {
+    const calls: unknown[] = [];
+    const state = productionClickState(calls, {
+      fullSelector: {
+        click: (x: number, y: number) => {
+          calls.push(["full", x, y]);
+          return true;
+        },
+      },
+    });
+
+    expect(clickProductionWindow(state, 35, 45)).toBe(true);
+    expect(calls).toEqual([["full", 35, 45]]);
+  });
+
+  it("ports GWProduction Click as local control routing and bounds hit testing", () => {
+    const calls: unknown[] = [];
+    const state = productionClickState(calls);
+
+    expect(clickProductionWindow(state, 35, 45)).toBe(true);
+    expect(clickProductionWindow(state, 9, 45)).toBe(false);
+    expect(clickProductionWindow(state, 35, 19)).toBe(false);
+    expect(clickProductionWindow(state, 110, 45)).toBe(false);
+    expect(clickProductionWindow(state, 35, 100)).toBe(false);
+
+    expect(calls).toEqual([
+      ["full", 35, 45],
+      ["ok", 25, 25],
+      ["cancel", 25, 25],
+      ["place", 25, 25],
+      ["plus", 25, 25],
+      ["minus", 25, 25],
+      ["queue", 25, 25],
+      ["queue-item", 25, 25],
+      ["unit-selector", 25, 25],
+      ["queue-selector", 25, 25],
+      ["full", 9, 45],
+      ["ok", -1, 25],
+      ["cancel", -1, 25],
+      ["place", -1, 25],
+      ["plus", -1, 25],
+      ["minus", -1, 25],
+      ["queue", -1, 25],
+      ["queue-item", -1, 25],
+      ["unit-selector", -1, 25],
+      ["queue-selector", -1, 25],
+      ["full", 35, 19],
+      ["ok", 25, -1],
+      ["cancel", 25, -1],
+      ["place", 25, -1],
+      ["plus", 25, -1],
+      ["minus", 25, -1],
+      ["queue", 25, -1],
+      ["queue-item", 25, -1],
+      ["unit-selector", 25, -1],
+      ["queue-selector", 25, -1],
+      ["full", 110, 45],
+      ["ok", 100, 25],
+      ["cancel", 100, 25],
+      ["place", 100, 25],
+      ["plus", 100, 25],
+      ["minus", 100, 25],
+      ["queue", 100, 25],
+      ["queue-item", 100, 25],
+      ["unit-selector", 100, 25],
+      ["queue-selector", 100, 25],
+      ["full", 35, 100],
+      ["ok", 25, 80],
+      ["cancel", 25, 80],
+      ["place", 25, 80],
+      ["plus", 25, 80],
+      ["minus", 25, 80],
+      ["queue", 25, 80],
+      ["queue-item", 25, 80],
+      ["unit-selector", 25, 80],
+      ["queue-selector", 25, 80],
+    ]);
+  });
+
+  it("ports GWProduction Click collapsed state without queue item routing", () => {
+    const calls: unknown[] = [];
+    const state = productionClickState(calls, { isExpanded: false });
+
+    expect(clickProductionWindow(state, 35, 45)).toBe(true);
+
+    expect(calls).toEqual([
+      ["full", 35, 45],
+      ["ok", 25, 25],
+      ["cancel", 25, 25],
+      ["place", 25, 25],
+      ["plus", 25, 25],
+      ["minus", 25, 25],
+      ["queue", 25, 25],
+      ["unit-selector", 25, 25],
+      ["queue-selector", 25, 25],
+    ]);
+  });
+
+  it("ports GWProduction MakeQueueButtonList as a no-op without a building", () => {
+    const queueButtonList = [{ offsetX: 1, offsetY: 2, ot: 3, oid: 4 }];
+
+    makeProductionQueueButtonList({
+      buildingObject: null,
+      queueButtonList,
+    });
+
+    expect(queueButtonList).toEqual([{ offsetX: 1, offsetY: 2, ot: 3, oid: 4 }]);
+  });
+
+  it("ports GWProduction MakeQueueButtonList as queued unit button layout", () => {
+    const queueButtonList = [{ offsetX: 1, offsetY: 2, ot: 3, oid: 4 }];
+
+    makeProductionQueueButtonList({
+      buildingObject: {
+        getQueueList: () => [
+          { ot: 2, oid: 7 },
+          { ot: 1, oid: 5 },
+          { ot: 3, oid: 9 },
+        ],
+      },
+      queueButtonList,
+    });
+
+    expect(queueButtonList).toEqual([
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY: PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS,
+        ot: 2,
+        oid: 7,
+      },
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY:
+          PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS +
+          PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS +
+          PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS,
+        ot: 1,
+        oid: 5,
+      },
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY:
+          PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS +
+          (PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS +
+            PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS) *
+            2,
+        ot: 3,
+        oid: 9,
+      },
+    ]);
+  });
+
+  it("ports GWProduction CheckQueueButtonList as a no-op without a building", () => {
+    const queueButtonList = [{ offsetX: 1, offsetY: 2, ot: 3, oid: 4 }];
+
+    checkProductionQueueButtonList({
+      buildingObject: null,
+      queueButtonList,
+    });
+
+    expect(queueButtonList).toEqual([{ offsetX: 1, offsetY: 2, ot: 3, oid: 4 }]);
+  });
+
+  it("ports GWProduction CheckQueueButtonList size refresh", () => {
+    const queueButtonList = [{ offsetX: 1, offsetY: 2, ot: 3, oid: 4 }];
+
+    checkProductionQueueButtonList({
+      buildingObject: {
+        getQueueList: () => [
+          { ot: 2, oid: 7 },
+          { ot: 1, oid: 5 },
+        ],
+      },
+      queueButtonList,
+    });
+
+    expect(queueButtonList).toEqual([
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY: PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS,
+        ot: 2,
+        oid: 7,
+      },
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY:
+          PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS +
+          PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS +
+          PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS,
+        ot: 1,
+        oid: 5,
+      },
+    ]);
+  });
+
+  it("ports GWProduction CheckQueueButtonList item refresh", () => {
+    const queueButtonList = [
+      { offsetX: 99, offsetY: 88, ot: 2, oid: 7 },
+      { offsetX: 77, offsetY: 66, ot: 1, oid: 4 },
+    ];
+
+    checkProductionQueueButtonList({
+      buildingObject: {
+        getQueueList: () => [
+          { ot: 2, oid: 7 },
+          { ot: 1, oid: 5 },
+        ],
+      },
+      queueButtonList,
+    });
+
+    expect(queueButtonList).toEqual([
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY: PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS,
+        ot: 2,
+        oid: 7,
+      },
+      {
+        offsetX: PRODUCTION_QUEUE_BUTTON_START_X_PIXELS,
+        offsetY:
+          PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS +
+          PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS +
+          PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS,
+        ot: 1,
+        oid: 5,
+      },
+    ]);
+  });
+
+  it("ports GWProduction CheckQueueButtonList unchanged queue as retained layout", () => {
+    const queueButtonList = [
+      { offsetX: 99, offsetY: 88, ot: 2, oid: 7 },
+      { offsetX: 77, offsetY: 66, ot: 1, oid: 5 },
+    ];
+
+    checkProductionQueueButtonList({
+      buildingObject: {
+        getQueueList: () => [
+          { ot: 2, oid: 7 },
+          { ot: 1, oid: 5 },
+        ],
+      },
+      queueButtonList,
+    });
+
+    expect(queueButtonList).toEqual([
+      { offsetX: 99, offsetY: 88, ot: 2, oid: 7 },
+      { offsetX: 77, offsetY: 66, ot: 1, oid: 5 },
+    ]);
+  });
+
   it("ports GWProduction DoOkButton select state as new production flag emission", () => {
     const flags = {
       sendNewProduction: false,
@@ -2177,5 +3198,7 @@ describe("production window", () => {
   it("ports production queue button vertical layout constants", () => {
     expect(PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS).toBe(13);
     expect(PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS).toBe(1);
+    expect(PRODUCTION_QUEUE_BUTTON_START_X_PIXELS).toBe(177);
+    expect(PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS).toBe(22);
   });
 });
