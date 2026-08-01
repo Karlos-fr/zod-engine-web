@@ -5,9 +5,12 @@
 import type { EntityPortraitAnimationTarget } from "./GameEntity";
 import { GameEntity } from "./GameEntity";
 import { PortraitAnimationType } from "../PortraitAnimation";
+import type { RobotDeathEffectSpawn } from "../RobotDeathEffect";
+import type { RobotTurretEffectSpawn } from "../RobotTurretEffect";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   MAX_ANGLE_TYPES,
+  TeamType,
 } from "../SimulationConstants";
 import {
   loadTeamZSurface,
@@ -272,6 +275,48 @@ export function playToughSelectedAnim(
     PortraitAnimationType.ToughsReporting,
     randomInt,
   );
+}
+
+export type RobotDeathEffectListItem<TTime = unknown> =
+  | RobotDeathEffectSpawn<TTime>
+  | RobotTurretEffectSpawn<TTime>;
+
+/**
+ * Port of upstream `ZRobot::DoDeathEffect`.
+ * Role: Spawns robot death debris or robot turret debris into the shared effect list.
+ * Upstream: zrobot.cpp:369-378
+ */
+export function doRobotDeathEffect<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    centerX: number;
+    centerY: number;
+    owner: TeamType | number;
+  },
+  effectList: RobotDeathEffectListItem<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  if (!effectList) return;
+
+  if (doMissileDeath) {
+    effectList.push({
+      ztime: state.ztime,
+      x: state.centerX,
+      y: state.centerY,
+      owner: state.owner,
+    });
+    return;
+  }
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    owner: state.owner,
+    doFireDeath,
+  });
 }
 
 /**

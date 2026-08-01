@@ -21,6 +21,8 @@ import {
   fireLightVehicleTurrentMissile,
   fireMediumVehicleTurrentMissile,
   initVehicleSharedImages,
+  processHeavyVehicle,
+  processMissileLauncherVehicle,
   type VehicleRestrictedSoundCommand,
   VehicleEntity,
 } from "../src/simulation/entities/VehicleEntity";
@@ -313,6 +315,142 @@ describe("vehicle entity", () => {
     expect(entity.moving).toBe(false);
     expect(entity.direction).toBe(6);
     expect(entity.moveIndex).toBe(3);
+  });
+
+  it("ports VMissileLauncher Process as movement frame advancement", () => {
+    const state = {
+      moving: true,
+      moveIndex: 2,
+      nextMoveTime: 10,
+      nextTurretTime: 20,
+      turretDirection: 4,
+      position: { x: 0, y: 0 },
+      attackObject: null,
+      speedOffsetPercentInv: () => 2,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    expect(processMissileLauncherVehicle(state, 10)).toBe(1);
+
+    expect(state.moveIndex).toBe(0);
+    expect(state.nextMoveTime).toBeCloseTo(10.2);
+    expect(state.turretDirection).toBe(4);
+  });
+
+  it("ports VMissileLauncher Process as attack-target turret facing", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: 4,
+      position: { x: 10, y: 20 },
+      attackObject: { centerX: 20, centerY: 20 },
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation(deltaX: number, deltaY: number) {
+        expect([deltaX, deltaY]).toEqual([10, 0]);
+        return 0;
+      },
+    };
+
+    processMissileLauncherVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(0);
+    expect(state.nextTurretTime).toBe(5);
+    expect(state.moveIndex).toBe(1);
+  });
+
+  it("ports VMissileLauncher Process as idle turret rotation cadence", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: MAX_ANGLE_TYPES - 1,
+      position: { x: 10, y: 20 },
+      attackObject: null,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    processMissileLauncherVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(0);
+    expect(state.nextTurretTime).toBe(6);
+  });
+
+  it("ports VHeavy Process as lid processing and reverse movement frame advancement", () => {
+    const calls: string[] = [];
+    const state = {
+      moving: true,
+      moveIndex: 0,
+      nextMoveTime: 10,
+      nextTurretTime: 20,
+      turretDirection: 4,
+      position: { x: 0, y: 0 },
+      attackObject: null,
+      processLid: () => calls.push("lid"),
+      speedOffsetPercentInv: () => 2,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    expect(processHeavyVehicle(state, 10)).toBe(1);
+
+    expect(calls).toEqual(["lid"]);
+    expect(state.moveIndex).toBe(2);
+    expect(state.nextMoveTime).toBeCloseTo(10.2);
+    expect(state.turretDirection).toBe(4);
+  });
+
+  it("ports VHeavy Process as attack-target turret facing", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: 4,
+      position: { x: 10, y: 20 },
+      attackObject: { centerX: 10, centerY: 30 },
+      processLid: () => undefined,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation(deltaX: number, deltaY: number) {
+        expect([deltaX, deltaY]).toEqual([0, 10]);
+        return 2;
+      },
+    };
+
+    processHeavyVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(2);
+    expect(state.nextTurretTime).toBe(5);
+  });
+
+  it("ports VHeavy Process as idle turret rotation cadence", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      nextTurretTime: 5,
+      turretDirection: MAX_ANGLE_TYPES - 1,
+      position: { x: 10, y: 20 },
+      attackObject: null,
+      processLid: () => undefined,
+      speedOffsetPercentInv: () => 1,
+      directionFromLocation: () => {
+        throw new Error("direction should not be recalculated");
+      },
+    };
+
+    processHeavyVehicle(state, 5);
+
+    expect(state.turretDirection).toBe(0);
+    expect(state.nextTurretTime).toBe(6);
   });
 
   it("keeps ZObject RunSpeed at walking speed when a vehicle is damaged", () => {

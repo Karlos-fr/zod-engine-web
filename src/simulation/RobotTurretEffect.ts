@@ -15,6 +15,18 @@ import {
  */
 export const EROBOT_TURRET_HEADER_GUARD_PORTED = true;
 
+/**
+ * Port of upstream `ERobotTurrent` construction arguments.
+ * Role: Describes a spawned robot turret debris effect.
+ * Upstream: erobotturrent.h:12-31
+ */
+export type RobotTurretEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  x: number;
+  y: number;
+  owner: number;
+};
+
 export type RobotTurretFlipImage<TSurface> = {
   getBaseSurface(): TSurface | null;
   loadBaseImage(source: string | TSurface | null): void;

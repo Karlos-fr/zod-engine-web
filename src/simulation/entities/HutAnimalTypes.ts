@@ -73,6 +73,12 @@ export type HutAnimalGoHomeState = {
  */
 export type HutAnimalsInPalette = readonly (readonly number[])[];
 
+export type HutAnimalInitState<TImage = unknown> = {
+  graphics: HutAnimalGraphics<TImage>[];
+  animalsInPalette: number[][];
+  finishedInit: boolean;
+};
+
 /**
  * Port of upstream `hut_animal_type`.
  * Role: Identifies the ambient animal species that can be spawned around hut objects.
@@ -255,6 +261,53 @@ export function loadHutAnimalGraphics<TImage>(
       }
     }
   }
+}
+
+/**
+ * Port of upstream `AHutAnimal::Init`.
+ * Role: Loads hut animal graphics and populates palette-specific animal spawn tables.
+ * Upstream: ahutanimal.cpp:96-125
+ */
+export function initHutAnimalTypes<TImage>(
+  state: HutAnimalInitState<TImage>,
+  loadImage: HutAnimalImageLoader<TImage>,
+): void {
+  for (let type = 0; type < HUT_ANIMAL_TYPE_COUNT; type += 1) {
+    if (!state.graphics[type]) {
+      state.graphics[type] = createHutAnimalGraphics<TImage>();
+    }
+
+    loadHutAnimalGraphics(state.graphics[type], type, loadImage);
+  }
+
+  state.animalsInPalette[PlanetType.Desert] = [
+    HutAnimalType.GreenSnake,
+    HutAnimalType.GreenLizard,
+    HutAnimalType.DesertRabbit,
+  ];
+  state.animalsInPalette[PlanetType.Volcanic] = [
+    HutAnimalType.Raptor,
+    HutAnimalType.MiniRaptor,
+    HutAnimalType.PigDino,
+    HutAnimalType.YellowWorm,
+  ];
+  state.animalsInPalette[PlanetType.Arctic] = [
+    HutAnimalType.ArcticRabbit,
+    HutAnimalType.Penguin,
+    HutAnimalType.WhiteWolf,
+  ];
+  state.animalsInPalette[PlanetType.Jungle] = [
+    HutAnimalType.Ostrich,
+    HutAnimalType.Rat,
+    HutAnimalType.Turtle,
+  ];
+  state.animalsInPalette[PlanetType.City] = [
+    HutAnimalType.RedWorm,
+    HutAnimalType.Rat,
+    HutAnimalType.GreenEyedFox,
+  ];
+
+  state.finishedInit = true;
 }
 
 /**

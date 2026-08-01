@@ -1,6 +1,11 @@
 /**
  * Upstream: emomissilerockets.h
  */
+import {
+  calcMobileMissileRocketTimeD,
+  calcMobileMissileRocketTimeD2,
+} from "./ProjectileConstants";
+import type { ToughSmokeEffectSpawn } from "./ToughSmokeEffect";
 
 /**
  * Port of upstream `_EMOMISSILEROCKETS_H_`.
@@ -33,6 +38,25 @@ export type MobileMissileRocketsEffectSpawn<TTime = unknown> = {
 };
 
 /**
+ * Port of upstream `EMoMissileRockets::PlaceSmoke` mutable fields.
+ * Role: Tracks mobile-missile rocket path timing, last smoke time, and paired side smoke offsets.
+ * Upstream: emomissilerockets.cpp:150-170
+ */
+export type MobileMissileRocketSmokePlacementState<TTime = unknown> = {
+  ztime: TTime;
+  startX: number;
+  startY: number;
+  directionX: number;
+  directionY: number;
+  initTime: number;
+  lastSmokeTime: number;
+  leftXShift: number;
+  leftYShift: number;
+  rightXShift: number;
+  rightYShift: number;
+};
+
+/**
  * Port of upstream `EMoMissileRockets::Init`.
  * Role: Initializes the mobile-missile bullet image path.
  * Upstream: emomissilerockets.cpp:61-69
@@ -42,4 +66,39 @@ export function initMobileMissileRocketsEffect(
 ): void {
   state.bulletImage = "assets/units/vehicles/missile_launcher/bullet.png";
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `EMoMissileRockets::PlaceSmoke`.
+ * Role: Spawns triple tough-smoke trail effects at fixed intervals behind the mobile-missile rocket.
+ * Upstream: emomissilerockets.cpp:150-170
+ */
+export function placeMobileMissileRocketSmoke<TTime>(
+  state: MobileMissileRocketSmokePlacementState<TTime>,
+  currentTime: number,
+  bulletSpeed: number,
+  effectList: ToughSmokeEffectSpawn<TTime>[] | null,
+): void {
+  const timeD = calcMobileMissileRocketTimeD(bulletSpeed);
+  const timeD2 = calcMobileMissileRocketTimeD2(bulletSpeed);
+
+  while (currentTime - state.lastSmokeTime > timeD2) {
+    const smokeTime = state.lastSmokeTime - timeD - state.initTime;
+    const smokeX = state.startX + state.directionX * smokeTime;
+    const smokeY = state.startY + state.directionY * smokeTime;
+
+    effectList?.push({ ztime: state.ztime, x: smokeX, y: smokeY });
+    effectList?.push({
+      ztime: state.ztime,
+      x: smokeX + state.leftXShift,
+      y: smokeY + state.leftYShift,
+    });
+    effectList?.push({
+      ztime: state.ztime,
+      x: smokeX + state.rightXShift,
+      y: smokeY + state.rightYShift,
+    });
+
+    state.lastSmokeTime += timeD2;
+  }
 }

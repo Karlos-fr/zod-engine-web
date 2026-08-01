@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
+  doRobotDeathEffect,
   initGruntFireImages,
   initLaserFireImages,
   initPsychoFireImages,
@@ -17,6 +18,8 @@ import {
 } from "../src/simulation/entities/RobotEntity";
 import { RobotObjectMode } from "../src/simulation/entities/RobotEntity";
 import { PortraitAnimationType } from "../src/simulation/PortraitAnimation";
+import type { RobotDeathEffectSpawn } from "../src/simulation/RobotDeathEffect";
+import type { RobotTurretEffectSpawn } from "../src/simulation/RobotTurretEffect";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   MAX_ANGLE_TYPES,
@@ -671,5 +674,96 @@ describe("robot entity", () => {
     entity.mode = RobotObjectMode.Standing;
     entity.setAttackObject(null);
     expect(entity.mode).toBe(RobotObjectMode.Standing);
+  });
+
+  it("ports ZRobot DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doRobotDeathEffect(
+        {
+          ztime: { now: 3 },
+          position: { x: 10, y: 20 },
+          centerX: 26,
+          centerY: 36,
+          owner: TeamType.Red,
+        },
+        null,
+        true,
+        false,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports ZRobot DoDeathEffect missile death as appended turret debris", () => {
+    const ztime = { now: 3 };
+    const existing: RobotDeathEffectSpawn<typeof ztime> = {
+      ztime,
+      x: 1,
+      y: 2,
+      owner: TeamType.Blue,
+      doFireDeath: false,
+    };
+    const effects: Array<
+      RobotDeathEffectSpawn<typeof ztime> | RobotTurretEffectSpawn<typeof ztime>
+    > = [existing];
+
+    doRobotDeathEffect(
+      {
+        ztime,
+        position: { x: 10, y: 20 },
+        centerX: 26,
+        centerY: 36,
+        owner: TeamType.Green,
+      },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([
+      existing,
+      {
+        ztime,
+        x: 26,
+        y: 36,
+        owner: TeamType.Green,
+      },
+    ]);
+  });
+
+  it("ports ZRobot DoDeathEffect body death as front-inserted robot death", () => {
+    const ztime = { now: 4 };
+    const existing: RobotTurretEffectSpawn<typeof ztime> = {
+      ztime,
+      x: 30,
+      y: 40,
+      owner: TeamType.Yellow,
+    };
+    const effects: Array<
+      RobotDeathEffectSpawn<typeof ztime> | RobotTurretEffectSpawn<typeof ztime>
+    > = [existing];
+
+    doRobotDeathEffect(
+      {
+        ztime,
+        position: { x: 10, y: 20 },
+        centerX: 26,
+        centerY: 36,
+        owner: TeamType.Red,
+      },
+      effects,
+      true,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 10,
+        y: 20,
+        owner: TeamType.Red,
+        doFireDeath: true,
+      },
+      existing,
+    ]);
   });
 });

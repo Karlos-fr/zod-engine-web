@@ -25,6 +25,19 @@ export type MissileCannonRocketsInitState = {
 };
 
 /**
+ * Port of upstream `EMissileCRockets` construction arguments.
+ * Role: Describes one spawned missile-cannon rocket effect.
+ * Upstream: emissilecrockets.h:13-30
+ */
+export type MissileCannonRocketsEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+};
+
+/**
  * Port of upstream `EMissileCRockets::PlaceSmoke` mutable fields.
  * Role: Tracks missile-cannon rocket path timing, last smoke time, and paired smoke offset.
  * Upstream: emissilecrockets.cpp:148-157

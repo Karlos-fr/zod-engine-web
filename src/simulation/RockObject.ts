@@ -31,6 +31,19 @@ export type RockObjectImpassableMap = {
   ): void;
 };
 
+export type RockObjectDeathMap<TSurface> = {
+  width: number;
+  height: number;
+  coordStamped(x: number, y: number): boolean;
+  permStamp(
+    x: number,
+    y: number,
+    surface: TSurface | null,
+    markStamped: boolean,
+    fullRenderSurfaceAvailable: boolean,
+  ): unknown;
+};
+
 /**
  * Replacement for upstream `ORock::render_img`.
  * Role: Holds cached rock render images by owner variant and damage frame.
@@ -114,6 +127,34 @@ export function setDefaultRockRender<TRenderImage>(
  */
 export function createRockMapEffects(map: unknown): void {
   void map;
+}
+
+/**
+ * Port of upstream `ORock::DeathMapEffects`.
+ * Role: Permanently stamps the destroyed lower rock tile when the map area is valid and unstamped.
+ * Upstream: orock.cpp:703-724
+ */
+export function deathRockMapEffects<TSurface>(
+  state: Pick<RockObjectState, "x" | "y" | "palette">,
+  map: RockObjectDeathMap<TSurface>,
+  rockDestroyedImages: readonly (readonly (TSurface | null)[])[],
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+  fullRenderSurfaceAvailable = true,
+): void {
+  const tx = state.x;
+  const ty = state.y + 32;
+
+  if (tx < 0) return;
+  if (ty < 0) return;
+  if (tx + 16 > map.width * 16) return;
+  if (ty + 16 > map.height * 16) return;
+  if (map.coordStamped(tx, ty)) return;
+
+  const destroyedIndex = Math.trunc(randomInt(6)) % 6;
+  const surface = rockDestroyedImages[state.palette]?.[destroyedIndex] ?? null;
+
+  map.permStamp(tx, ty, surface, false, fullRenderSurfaceAvailable);
 }
 
 /**

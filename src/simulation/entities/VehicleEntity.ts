@@ -20,7 +20,12 @@ import {
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
+  VEHICLE_MOVE_ANIMATION_SPEED,
 } from "../SimulationConstants";
+import {
+  HEAVY_TURRET_FRAME_INTERVAL_SECONDS,
+  MISSILE_LAUNCHER_TURRET_FRAME_INTERVAL_SECONDS,
+} from "./VehicleTypes";
 import { SoundEngineSound } from "../../audio/AudioService";
 import {
   loadTeamZSurface,
@@ -36,6 +41,22 @@ export type VehicleSharedImage<TSurface> = {
 export type VehicleSharedImageInitState<TSurface> = {
   lidImages: readonly (readonly VehicleSharedImage<TSurface>[])[];
   tankRobotImages: VehicleSharedImage<TSurface>[][][];
+};
+
+export type MissileLauncherVehicleProcessState = {
+  moving: boolean;
+  moveIndex: number;
+  nextMoveTime: number;
+  nextTurretTime: number;
+  turretDirection: number;
+  position: { x: number; y: number };
+  attackObject: { centerX: number; centerY: number } | null;
+  speedOffsetPercentInv(): number;
+  directionFromLocation(deltaX: number, deltaY: number): number;
+};
+
+export type HeavyVehicleProcessState = MissileLauncherVehicleProcessState & {
+  processLid(): void;
 };
 
 const VEHICLE_TANK_LID_FRAME_COUNT = 3;
@@ -103,6 +124,81 @@ export function initVehicleSharedImages<TSurface>(
       }
     }
   }
+}
+
+/**
+ * Port of upstream `VMissileLauncher::Process`.
+ * Role: Advances mobile-missile movement frames and updates turret facing or idle rotation.
+ * Upstream: vmissilelauncher.cpp:94-127
+ */
+export function processMissileLauncherVehicle(
+  state: MissileLauncherVehicleProcessState,
+  currentTime: number,
+): number {
+  if (state.moving && currentTime >= state.nextMoveTime) {
+    state.moveIndex += 1;
+    if (state.moveIndex >= 3) state.moveIndex = 0;
+
+    state.nextMoveTime =
+      currentTime + VEHICLE_MOVE_ANIMATION_SPEED * state.speedOffsetPercentInv();
+  }
+
+  if (currentTime >= state.nextTurretTime) {
+    if (state.attackObject) {
+      const newDirection = state.directionFromLocation(
+        state.attackObject.centerX - state.position.x,
+        state.attackObject.centerY - state.position.y,
+      );
+
+      if (newDirection !== -1) state.turretDirection = newDirection;
+    } else {
+      state.nextTurretTime =
+        currentTime + MISSILE_LAUNCHER_TURRET_FRAME_INTERVAL_SECONDS;
+
+      state.turretDirection += 1;
+      if (state.turretDirection >= MAX_ANGLE_TYPES) state.turretDirection = 0;
+    }
+  }
+
+  return 1;
+}
+
+/**
+ * Port of upstream `VHeavy::Process`.
+ * Role: Processes the heavy vehicle lid, movement frames, and turret facing or idle rotation.
+ * Upstream: vheavy.cpp:104-138
+ */
+export function processHeavyVehicle(
+  state: HeavyVehicleProcessState,
+  currentTime: number,
+): number {
+  state.processLid();
+
+  if (state.moving && currentTime >= state.nextMoveTime) {
+    state.moveIndex -= 1;
+    if (state.moveIndex < 0) state.moveIndex = 2;
+
+    state.nextMoveTime =
+      currentTime + VEHICLE_MOVE_ANIMATION_SPEED * state.speedOffsetPercentInv();
+  }
+
+  if (currentTime >= state.nextTurretTime) {
+    if (state.attackObject) {
+      const newDirection = state.directionFromLocation(
+        state.attackObject.centerX - state.position.x,
+        state.attackObject.centerY - state.position.y,
+      );
+
+      if (newDirection !== -1) state.turretDirection = newDirection;
+    } else {
+      state.nextTurretTime = currentTime + HEAVY_TURRET_FRAME_INTERVAL_SECONDS;
+
+      state.turretDirection += 1;
+      if (state.turretDirection >= MAX_ANGLE_TYPES) state.turretDirection = 0;
+    }
+  }
+
+  return 1;
 }
 
 /**

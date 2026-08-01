@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   GameMap,
   type FullMapRenderSurfaceState,
+  loadMapPaletteInfo,
   type PermanentStampBlitCommand,
   type PermanentRenderableStampBlitCommand,
   type MapSurfaceRenderCommand,
@@ -51,6 +52,103 @@ describe("GameMap", () => {
     expect(writes).toEqual([["assets/planets/volcanic.tileinfo", 480]]);
     expect(writeMapPaletteTileInfo(1, planetTileInfo, () => false)).toBe(0);
     expect(writeMapPaletteTileInfo(9, planetTileInfo, () => true)).toBe(0);
+  });
+
+  it("ports ZMap::LoadPaletteInfo through an injected persistence adapter", () => {
+    const loadedTiles = Array.from({ length: MAX_PLANET_TILES + 1 }, (_, index) => ({
+      ...paletteTileInfo,
+      nextTileInEffect: index,
+    }));
+    const planetTileInfo = [[]] as Array<Array<typeof paletteTileInfo>>;
+    const reads: string[] = [];
+    const writes: string[] = [];
+
+    const result = loadMapPaletteInfo(
+      PlanetType.Desert,
+      planetTileInfo,
+      (filename) => {
+        reads.push(filename);
+        return loadedTiles;
+      },
+      (filename) => {
+        writes.push(filename);
+        return true;
+      },
+    );
+
+    expect(result).toBe(MAX_PLANET_TILES);
+    expect(reads).toEqual(["assets/planets/desert.tileinfo"]);
+    expect(writes).toEqual([]);
+    expect(planetTileInfo[PlanetType.Desert]).toHaveLength(MAX_PLANET_TILES);
+    expect(
+      planetTileInfo[PlanetType.Desert]?.at(-1)?.nextTileInEffect,
+    ).toBe(MAX_PLANET_TILES - 1);
+  });
+
+  it("ports ZMap::LoadPaletteInfo missing file fallback before reread", () => {
+    const fallbackTiles = Array.from({ length: 2 }, (_, index) => ({
+      ...paletteTileInfo,
+      nextTileInEffect: index + 10,
+    }));
+    const planetTileInfo = [
+      [{ ...paletteTileInfo, nextTileInEffect: 99 }],
+      fallbackTiles,
+    ];
+    const reads: string[] = [];
+    const writes: Array<[string, number]> = [];
+
+    const result = loadMapPaletteInfo(
+      PlanetType.Volcanic,
+      planetTileInfo,
+      (filename) => {
+        reads.push(filename);
+        return reads.length === 1 ? null : fallbackTiles;
+      },
+      (filename, tiles) => {
+        writes.push([filename, tiles.length]);
+        return true;
+      },
+    );
+
+    expect(result).toBe(2);
+    expect(reads).toEqual([
+      "assets/planets/volcanic.tileinfo",
+      "assets/planets/volcanic.tileinfo",
+    ]);
+    expect(writes).toEqual([["assets/planets/volcanic.tileinfo", 2]]);
+    expect(planetTileInfo[PlanetType.Volcanic]).toEqual(fallbackTiles);
+  });
+
+  it("ports ZMap::LoadPaletteInfo as no-op for invalid terrain or unreadable data", () => {
+    const planetTileInfo = [[{ ...paletteTileInfo, nextTileInEffect: 1 }]];
+    const writes: string[] = [];
+
+    expect(
+      loadMapPaletteInfo(
+        99,
+        planetTileInfo,
+        () => {
+          throw new Error("reader should not be called");
+        },
+        (filename) => {
+          writes.push(filename);
+          return true;
+        },
+      ),
+    ).toBe(0);
+    expect(
+      loadMapPaletteInfo(
+        PlanetType.Desert,
+        planetTileInfo,
+        () => null,
+        (filename) => {
+          writes.push(filename);
+          return true;
+        },
+      ),
+    ).toBe(0);
+    expect(planetTileInfo).toEqual([[{ ...paletteTileInfo, nextTileInEffect: 1 }]]);
+    expect(writes).toEqual(["assets/planets/desert.tileinfo"]);
   });
 
   it("ports ZMap::RebuildRegions as a pathfinding-region rebuild delegate", () => {

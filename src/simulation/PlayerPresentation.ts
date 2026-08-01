@@ -10,6 +10,12 @@ import { MapObjectType } from "../world/MapFormat";
 import { currentTime } from "./Common";
 import { TcpEvent } from "./EventHandler";
 import { BuildingType, TeamType, VehicleType } from "./SimulationConstants";
+import {
+  crossReferenceUnits,
+  UnitCrossReference,
+  type UnitCrossReferenceTable,
+} from "./UnitRating";
+import { WaypointMode } from "./entities/EntityTypes";
 import type { GameEntity } from "./entities/GameEntity";
 import type { SimulationTime } from "./SimulationTime";
 
@@ -642,6 +648,21 @@ export type PlayerSelectedWaypointDevListState = {
   selectedList: PlayerSelectedWaypointDevListSource[];
 };
 
+export type PlayerDevWaypoint = {
+  mode: number;
+  refId: number;
+};
+
+export type PlayerDevWaypointObject = {
+  getWayPointDevList(): PlayerDevWaypoint[];
+  getObjectId(): { objectType: number; objectId: number };
+};
+
+export type PlayerDevWaypointsNoWayState = {
+  selectedList: PlayerDevWaypointObject[];
+  unitCrossReferences: UnitCrossReferenceTable | null;
+};
+
 export type PlayerObjectSelectionState<TObject = unknown> = {
   selectedList: TObject[];
 };
@@ -663,6 +684,22 @@ export type PlayerHudSelectionTarget<TObject = unknown> = {
 export type PlayerHudSelectedState<TObject = unknown> = {
   selectedList: TObject[];
   hud: PlayerHudSelectionTarget<TObject>;
+};
+
+export type PlayerSelectableZObject = PlayerSelectionGroupDetailsObject & {
+  getGroupLeader(): PlayerSelectableZObject | null;
+  selectable(): boolean;
+  getOwner(): number;
+};
+
+export type PlayerSelectZObjectState<
+  TObject extends PlayerSelectableZObject = PlayerSelectableZObject,
+> = Omit<PlayerSelectionGroupDetailsState, "selectedList"> & {
+  ourTeam: number;
+  selectedList: TObject[];
+  hud: PlayerHudSelectionTarget<TObject>;
+  determineCursor(): void;
+  clearDevWaypointsOfSelected(): void;
 };
 
 export type PlayerSelectionCenteredObject = {
@@ -1870,6 +1907,33 @@ export function givePlayerHudSelected<TObject>(
 }
 
 /**
+ * Port of upstream `ZPlayer::SelectZObject`.
+ * Role: Selects an owned selectable object or its group leader and refreshes player selection side effects.
+ * Upstream: zplayer.cpp:2504-2522
+ */
+export function selectPlayerZObject<TObject extends PlayerSelectableZObject>(
+  state: PlayerSelectZObjectState<TObject>,
+  object: TObject | null,
+): boolean {
+  if (!object) return false;
+
+  const groupLeader = object.getGroupLeader();
+  const selectedObject = (groupLeader ?? object) as TObject;
+
+  if (!selectedObject.selectable()) return false;
+  if (selectedObject.getOwner() !== state.ourTeam) return false;
+
+  clearPlayerSelectionInfo(state);
+  state.selectedList.push(selectedObject);
+  setupPlayerSelectionGroupDetails(state, false);
+  state.determineCursor();
+  givePlayerHudSelected(state);
+  state.clearDevWaypointsOfSelected();
+
+  return true;
+}
+
+/**
  * Port of upstream `selection_info::AverageCoordsOfSelected`.
  * Role: Returns the average center coordinates of the current selection.
  * Upstream: zplayer.cpp:22-43
@@ -2096,6 +2160,40 @@ export function clearPlayerSelectedDevWaypoints(
   for (const selected of state.selectedList) {
     selected.getWayPointDevList().length = 0;
   }
+}
+
+/**
+ * Port of upstream `ZPlayer::DevWayPointsNoWay`.
+ * Role: Reports whether the selected unit's first attack waypoint targets a unit it is rated to lose against.
+ * Upstream: zplayer.cpp:2897-2921
+ */
+export function playerDevWaypointsNoWay(
+  state: PlayerDevWaypointsNoWayState,
+  getObjectFromId: (refId: number) => PlayerDevWaypointObject | null,
+): boolean {
+  if (state.selectedList.length !== 1) return false;
+
+  const selected = state.selectedList[0];
+  const waypoint = selected?.getWayPointDevList()[0];
+
+  if (!selected || !waypoint) return false;
+  if (waypoint.mode !== WaypointMode.Attack) return false;
+
+  const victim = getObjectFromId(waypoint.refId);
+  if (!victim) return false;
+
+  const attackerId = selected.getObjectId();
+  const victimId = victim.getObjectId();
+
+  return (
+    crossReferenceUnits(
+      state,
+      attackerId.objectType,
+      attackerId.objectId,
+      victimId.objectType,
+      victimId.objectId,
+    ) === UnitCrossReference.WillDie
+  );
 }
 
 /**

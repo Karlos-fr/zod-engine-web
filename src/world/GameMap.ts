@@ -130,6 +130,10 @@ export type MapPaletteTileInfoWriter = (
   tiles: readonly PaletteTileInfo[],
 ) => boolean;
 
+export type MapPaletteTileInfoReader = (
+  filename: string,
+) => readonly PaletteTileInfo[] | null;
+
 /**
  * Port of upstream `ZMap::WriteMapPaletteTileInfo`.
  * Role: Writes one planet palette's tile metadata through a browser-supplied persistence adapter.
@@ -148,6 +152,36 @@ export function writeMapPaletteTileInfo(
   const filename = `assets/planets/${planetName}.tileinfo`;
 
   return writer(filename, tiles) ? 1 : 0;
+}
+
+/**
+ * Port of upstream `ZMap::LoadPaletteInfo`.
+ * Role: Loads one planet palette's tile metadata through a browser-supplied persistence adapter.
+ * Upstream: zmap.cpp:117-146
+ */
+export function loadMapPaletteInfo(
+  terrainType: number,
+  planetTileInfo: PaletteTileInfo[][],
+  reader: MapPaletteTileInfoReader,
+  writer: MapPaletteTileInfoWriter,
+): number {
+  const planetName = ZMAP_PLANET_TYPE_ASSET_NAMES[terrainType];
+  if (!planetName) return 0;
+
+  const filename = `assets/planets/${planetName}.tileinfo`;
+  let tiles = reader(filename);
+
+  if (!tiles) {
+    writeMapPaletteTileInfo(terrainType, planetTileInfo, writer);
+    tiles = reader(filename);
+  }
+
+  if (!tiles) return 0;
+
+  const loadedTiles = tiles.slice(0, MAX_PLANET_TILES);
+  planetTileInfo[terrainType] = [...loadedTiles];
+
+  return loadedTiles.length;
 }
 
 /**

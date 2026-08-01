@@ -20,7 +20,9 @@ import {
   fireGunCannonMissile,
   GATLING_CANNON_UNIT_X_PIXELS,
   GATLING_CANNON_UNIT_Y_PIXELS,
+  fireHowitzerCannonMissile,
   fireHowitzerCannonTurrentMissile,
+  fireMissileCannonMissile,
   GatlingCannonEntity,
   fireGunCannonTurrentMissile,
   GUN_CANNON_UNIT_X_PIXELS,
@@ -42,6 +44,7 @@ import {
   TeamType,
 } from "../src/simulation/SimulationConstants";
 import type { LightRocketEffectSpawn } from "../src/simulation/LightRocketEffect";
+import type { MissileCannonRocketsEffectSpawn } from "../src/simulation/MissileCannonRocketsEffect";
 import { SoundEngineSound } from "../src/audio/AudioService";
 
 describe("cannon types", () => {
@@ -692,6 +695,154 @@ describe("cannon types", () => {
     expect(sounds).toEqual([
       {
         sound: SoundEngineSound.GunFireSnd,
+        x: 16,
+        y: 24,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports CHowitzer FireMissile as render timing and restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+    const state = {
+      ztime: { tick: 55 },
+      position: { x: 16, y: 24 },
+      direction: 0,
+      endRenderFireTime: 0,
+      renderFire: false,
+      missileSpeed: 120,
+      pixelWidth: 32,
+      pixelHeight: 48,
+    };
+
+    fireHowitzerCannonMissile(state, 10, null, 100, 120, sounds, () => 50);
+
+    expect(state.renderFire).toBe(true);
+    expect(state.endRenderFireTime).toBeCloseTo(10.065);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.HeavyFireSnd,
+        x: 16,
+        y: 24,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports CHowitzer FireMissile as light rocket spawning with howitzer flags", () => {
+    const ztime = { tick: 55 };
+    const effects: LightRocketEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+    const state = {
+      ztime,
+      position: { x: 16, y: 24 },
+      direction: 1,
+      endRenderFireTime: 0,
+      renderFire: false,
+      missileSpeed: 120,
+      pixelWidth: 32,
+      pixelHeight: 48,
+    };
+
+    fireHowitzerCannonMissile(
+      state,
+      10,
+      effects,
+      100,
+      120,
+      sounds,
+      () => 99,
+    );
+
+    expect(state.renderFire).toBe(true);
+    expect(state.endRenderFireTime).toBeCloseTo(10.0797);
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 45,
+        startY: 26,
+        targetX: 100,
+        targetY: 120,
+        speed: 120,
+        extraSmall: 1,
+        extraLarge: 1,
+        extraExtraLarge: 0,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.HeavyFireSnd,
+        x: 16,
+        y: 24,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports CMissileCannon FireMissile as render timing and restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+    const state = {
+      ztime: { tick: 55 },
+      position: { x: 16, y: 24 },
+      direction: 0,
+      endRenderFireTime: 0,
+      pixelWidth: 32,
+      pixelHeight: 48,
+    };
+
+    fireMissileCannonMissile(state, 10, null, 100, 120, sounds, () => 50);
+
+    expect(state.endRenderFireTime).toBeCloseTo(10.065);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.MomissileFireSnd,
+        x: 16,
+        y: 24,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports CMissileCannon FireMissile as missile-cannon rocket spawning", () => {
+    const ztime = { tick: 55 };
+    const effects: MissileCannonRocketsEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+    const state = {
+      ztime,
+      position: { x: 16, y: 24 },
+      direction: 1,
+      endRenderFireTime: 0,
+      pixelWidth: 32,
+      pixelHeight: 48,
+    };
+
+    fireMissileCannonMissile(
+      state,
+      10,
+      effects,
+      100,
+      120,
+      sounds,
+      () => 99,
+    );
+
+    expect(state.endRenderFireTime).toBeCloseTo(10.0797);
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 45,
+        startY: 26,
+        targetX: 100,
+        targetY: 120,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.MomissileFireSnd,
         x: 16,
         y: 24,
         width: 32,

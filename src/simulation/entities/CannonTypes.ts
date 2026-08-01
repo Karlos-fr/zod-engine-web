@@ -9,6 +9,7 @@ import {
   type CannonDeathEffectSpawn,
 } from "../CannonDeathEffect";
 import type { LightRocketEffectSpawn } from "../LightRocketEffect";
+import type { MissileCannonRocketsEffectSpawn } from "../MissileCannonRocketsEffect";
 import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
 import { SoundEngineSound } from "../../audio/AudioService";
 import type { VehicleRestrictedSoundCommand } from "./VehicleEntity";
@@ -269,6 +270,20 @@ export type MissileCannonTurrentMissileState<TTime = unknown> =
 const GUN_CANNON_FIRE_OFFSET_X = [20, 12, 0, -12, -20, -12, 0, 12] as const;
 const GUN_CANNON_FIRE_OFFSET_Y = [0, -12, -20, -12, 0, 12, 20, 12] as const;
 
+export type MissileCannonFireState<TTime = unknown> = {
+  ztime: TTime | null;
+  position: { x: number; y: number };
+  direction: number;
+  endRenderFireTime: number;
+  pixelWidth: number;
+  pixelHeight: number;
+};
+
+export type HowitzerCannonFireState<TTime = unknown> = MissileCannonFireState<TTime> & {
+  renderFire: boolean;
+  missileSpeed: number;
+};
+
 /**
  * Port of upstream `CGun::FireMissile`.
  * Role: Spawns a gun cannon rocket and requests its restricted fire sound.
@@ -307,6 +322,93 @@ export function fireGunCannonMissile<TTime>(
   if (soundCommands) {
     soundCommands.push({
       sound: SoundEngineSound.GunFireSnd,
+      x: state.position.x,
+      y: state.position.y,
+      width: state.pixelWidth,
+      height: state.pixelHeight,
+    });
+  }
+}
+
+/**
+ * Port of upstream `CHowitzer::FireMissile`.
+ * Role: Spawns a howitzer rocket, starts fire rendering, and requests its restricted fire sound.
+ * Upstream: chowitzer.cpp:209-223
+ */
+export function fireHowitzerCannonMissile<TTime>(
+  state: HowitzerCannonFireState<TTime>,
+  currentTime: number,
+  effectList: LightRocketEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  soundCommands: VehicleRestrictedSoundCommand[] | null = null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  const direction = Math.trunc(state.direction) & 7;
+
+  state.renderFire = true;
+  state.endRenderFireTime =
+    currentTime + 0.05 + (Math.trunc(randomInt(100)) % 100) * 0.0003;
+
+  if (effectList) {
+    effectList.push({
+      ztime: state.ztime,
+      startX: state.position.x + 17 + GUN_CANNON_FIRE_OFFSET_X[direction],
+      startY: state.position.y + 14 + GUN_CANNON_FIRE_OFFSET_Y[direction],
+      targetX,
+      targetY,
+      speed: state.missileSpeed,
+      extraSmall: 1,
+      extraLarge: 1,
+      extraExtraLarge: 0,
+    });
+  }
+
+  if (soundCommands) {
+    soundCommands.push({
+      sound: SoundEngineSound.HeavyFireSnd,
+      x: state.position.x,
+      y: state.position.y,
+      width: state.pixelWidth,
+      height: state.pixelHeight,
+    });
+  }
+}
+
+/**
+ * Port of upstream `CMissileCannon::FireMissile`.
+ * Role: Spawns a missile-cannon rocket, updates fire-render timing, and requests its restricted fire sound.
+ * Upstream: cmissilecannon.cpp:215-227
+ */
+export function fireMissileCannonMissile<TTime>(
+  state: MissileCannonFireState<TTime>,
+  currentTime: number,
+  effectList: MissileCannonRocketsEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  soundCommands: VehicleRestrictedSoundCommand[] | null = null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  const direction = Math.trunc(state.direction) & 7;
+
+  state.endRenderFireTime =
+    currentTime + 0.05 + (Math.trunc(randomInt(100)) % 100) * 0.0003;
+
+  if (effectList) {
+    effectList.push({
+      ztime: state.ztime,
+      startX: state.position.x + 17 + GUN_CANNON_FIRE_OFFSET_X[direction],
+      startY: state.position.y + 14 + GUN_CANNON_FIRE_OFFSET_Y[direction],
+      targetX,
+      targetY,
+    });
+  }
+
+  if (soundCommands) {
+    soundCommands.push({
+      sound: SoundEngineSound.MomissileFireSnd,
       x: state.position.x,
       y: state.position.y,
       width: state.pixelWidth,

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  TeamType,
+} from "../src/simulation/SimulationConstants";
+import {
   EROBOT_DEATH_HEADER_GUARD_PORTED,
+  initRobotDeathEffect,
   processRobotDeathEffect,
   ROBOT_DEATH_PROCESS_INTERVAL_SECONDS,
   type RobotDeathProcessState,
@@ -15,6 +20,100 @@ describe("robot death effect", () => {
     expect(secondImport.EROBOT_DEATH_HEADER_GUARD_PORTED).toBe(
       firstImport.EROBOT_DEATH_HEADER_GUARD_PORTED,
     );
+  });
+
+  it("ports ERobotDeath Init as team-colored robot death and melt image loading", () => {
+    const loaded: Array<[string, number, number, number, string | { id: string } | null]> =
+      [];
+    const made: Array<[number, { id: string } | null]> = [];
+    const dieBaseSurfaces = Array.from({ length: 4 }, (_, dieSet) =>
+      Array.from({ length: 10 }, (_, frame) => ({
+        id: `die-${dieSet}-red-base-${frame}`,
+      })),
+    );
+    const meltBaseSurfaces = Array.from({ length: 17 }, (_, frame) => ({
+      id: `melt-red-base-${frame}`,
+    }));
+    const state = {
+      dieImages: Array.from({ length: 4 }, (_, dieSet) =>
+        Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+          Array.from({ length: 10 }, (_, frame) => ({
+            getBaseSurface: () =>
+              team === TeamType.Red ? dieBaseSurfaces[dieSet]?.[frame] ?? null : null,
+            loadBaseImage(source: string | { id: string } | null): void {
+              loaded.push(["die", dieSet, team, frame, source]);
+            },
+          })),
+        ),
+      ),
+      meltImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+        Array.from({ length: 17 }, (_, frame) => ({
+          getBaseSurface: () =>
+            team === TeamType.Red ? meltBaseSurfaces[frame] ?? null : null,
+          loadBaseImage(source: string | { id: string } | null): void {
+            loaded.push(["melt", -1, team, frame, source]);
+          },
+        })),
+      ),
+      finishedInit: false,
+    };
+
+    initRobotDeathEffect(state, (team, surface) => {
+      made.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loaded).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 1) * 55);
+    expect(loaded.slice(0, 3)).toEqual([
+      [ "die", 0, TeamType.Red, 0, "assets/units/robots/die1_red_n00.png" ],
+      [ "die", 0, TeamType.Red, 1, "assets/units/robots/die1_red_n01.png" ],
+      [ "die", 0, TeamType.Red, 2, "assets/units/robots/die1_red_n02.png" ],
+    ]);
+    expect(loaded).toContainEqual([
+      "die",
+      3,
+      TeamType.Red,
+      7,
+      "assets/units/robots/die4_red_n07.png",
+    ]);
+    expect(loaded).not.toContainEqual([
+      "die",
+      3,
+      TeamType.Red,
+      8,
+      "assets/units/robots/die4_red_n08.png",
+    ]);
+    expect(loaded).toContainEqual([
+      "melt",
+      -1,
+      TeamType.Red,
+      16,
+      "assets/units/robots/melt_red_n16.png",
+    ]);
+    expect(loaded).not.toContainEqual([
+      "melt",
+      -1,
+      TeamType.Null,
+      0,
+      "assets/units/robots/melt_null_n00.png",
+    ]);
+    expect(loaded).toContainEqual([
+      "die",
+      0,
+      TeamType.Blue,
+      0,
+      { id: "team-2-die-0-red-base-0" },
+    ]);
+    expect(loaded).toContainEqual([
+      "melt",
+      -1,
+      TeamType.Blue,
+      0,
+      { id: "team-2-melt-red-base-0" },
+    ]);
+    expect(made).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 55);
+    expect(made[0]).toEqual([TeamType.Blue, dieBaseSurfaces[0]?.[0]]);
+    expect(state.finishedInit).toBe(true);
   });
 
   it("keeps killed robot death effects unchanged while processing", () => {

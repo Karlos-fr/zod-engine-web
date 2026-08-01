@@ -5,8 +5,10 @@ import {
   HUT_ANIMAL_TYPE_COUNT,
   chooseRandomHutAnimal,
   createHutAnimalGraphics,
+  initHutAnimalTypes,
   loadHutAnimalGraphics,
   type HutAnimalGraphics,
+  type HutAnimalInitState,
   type HutAnimalGoHomeState,
   type HutAnimalHomeCoordsState,
   type HutAnimalHomeState,
@@ -150,6 +152,58 @@ describe("hut animal types", () => {
     );
     expect(graphics.look[7][3]).toBe(graphics.look[6][3]);
     expect(loaded).toHaveLength(2 + 8 * 4 + 4 * 4);
+  });
+
+  it("ports AHutAnimal Init as graphics loading and palette spawn tables", () => {
+    const loaded: string[] = [];
+    const state: HutAnimalInitState<string> = {
+      graphics: [],
+      animalsInPalette: [],
+      finishedInit: false,
+    };
+
+    initHutAnimalTypes(state, (filename) => {
+      loaded.push(filename);
+      return filename;
+    });
+
+    expect(state.graphics).toHaveLength(HUT_ANIMAL_TYPE_COUNT);
+    expect(state.graphics[HutAnimalType.GreenSnake]?.walkFrameCount).toBe(8);
+    expect(state.graphics[HutAnimalType.DesertRabbit]?.walkToZero).toBe(true);
+    expect(state.graphics[HutAnimalType.RedWorm]?.lookFrameCount).toBe(0);
+    expect(state.animalsInPalette[PlanetType.Desert]).toEqual([
+      HutAnimalType.GreenSnake,
+      HutAnimalType.GreenLizard,
+      HutAnimalType.DesertRabbit,
+    ]);
+    expect(state.animalsInPalette[PlanetType.Volcanic]).toEqual([
+      HutAnimalType.Raptor,
+      HutAnimalType.MiniRaptor,
+      HutAnimalType.PigDino,
+      HutAnimalType.YellowWorm,
+    ]);
+    expect(state.animalsInPalette[PlanetType.Arctic]).toEqual([
+      HutAnimalType.ArcticRabbit,
+      HutAnimalType.Penguin,
+      HutAnimalType.WhiteWolf,
+    ]);
+    expect(state.animalsInPalette[PlanetType.Jungle]).toEqual([
+      HutAnimalType.Ostrich,
+      HutAnimalType.Rat,
+      HutAnimalType.Turtle,
+    ]);
+    expect(state.animalsInPalette[PlanetType.City]).toEqual([
+      HutAnimalType.RedWorm,
+      HutAnimalType.Rat,
+      HutAnimalType.GreenEyedFox,
+    ]);
+    expect(loaded).toContain(
+      "assets/other/hut_animals/green_snake_walk_r315_n07.png",
+    );
+    expect(loaded).toContain(
+      "assets/other/hut_animals/green_eyed_fox_look_r270_n03.png",
+    );
+    expect(state.finishedInit).toBe(true);
   });
 
   it("ports IsGoingHome as a hut animal home-state accessor", () => {

@@ -65,6 +65,7 @@ import {
   PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS,
   PLAYER_SPLASH_FADE_PER_SECOND,
   processPlayerChangeObjectAmount,
+  playerDevWaypointsNoWay,
   playerMiddleClickEvent,
   playerMiddleUnclickEvent,
   refindPlayerFortRefId,
@@ -94,6 +95,7 @@ import {
   sendPlayerVoteYes,
   setPlayerMusicOff,
   setNextPlayerSoundSetting,
+  selectPlayerZObject,
   setPlayerPlaceCannonCoords,
   setPlayerSelectionZTime,
   setPlayerSelectionGroup,
@@ -113,6 +115,12 @@ import type {
   PlayerKeyEvent,
   PlayerNewsEntry,
 } from "../src/simulation/PlayerPresentation";
+import { WaypointMode } from "../src/simulation/entities/EntityTypes";
+import {
+  initUnitCrossReferenceTable,
+  insertUnitCrossReference,
+  UnitCrossReference,
+} from "../src/simulation/UnitRating";
 
 describe("player presentation constants", () => {
   it("adapts the zplayer.h include guard to an ES module marker", async () => {
@@ -1835,6 +1843,56 @@ describe("player presentation constants", () => {
     expect(calls).toEqual([null]);
   });
 
+  it("ports ZPlayer SelectZObject guard exits without changing selection", () => {
+    const object = createSelectablePlayerObject({
+      selectable: false,
+      owner: TeamType.Red,
+    });
+    const state = createSelectZObjectState([createSelectablePlayerObject()]);
+
+    expect(selectPlayerZObject(state, null)).toBe(false);
+    expect(selectPlayerZObject(state, object)).toBe(false);
+    expect(
+      selectPlayerZObject(
+        state,
+        createSelectablePlayerObject({ owner: TeamType.Blue }),
+      ),
+    ).toBe(false);
+
+    expect(state.selectedList).toHaveLength(1);
+    expect(state.calls).toEqual([]);
+  });
+
+  it("ports ZPlayer SelectZObject as selecting the group leader and refreshing selection hooks", () => {
+    const leader = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Red,
+      canAttack: true,
+      canPickupGrenades: true,
+    });
+    const member = createSelectablePlayerObject({
+      groupLeader: leader,
+      owner: TeamType.Red,
+    });
+    const previous = createSelectablePlayerObject({
+      owner: TeamType.Red,
+    });
+    const state = createSelectZObjectState([previous]);
+
+    expect(selectPlayerZObject(state, member)).toBe(true);
+
+    expect(state.selectedList).toEqual([leader]);
+    expect(state.canEquip).toBe(true);
+    expect(state.canAttack).toBe(true);
+    expect(state.canPickupGrenades).toBe(true);
+    expect(leader.showWaypointsCalls).toBe(1);
+    expect(state.calls).toEqual([
+      "determine-cursor",
+      ["hud", leader],
+      "clear-dev-waypoints",
+    ]);
+  });
+
   it("ports selection_info::AverageCoordsOfSelected as null for empty selection", () => {
     expect(averageCoordsOfPlayerSelection({ selectedList: [] })).toBeNull();
   });
@@ -2336,6 +2394,85 @@ describe("player presentation constants", () => {
     expect(secondWaypoints).toEqual([]);
   });
 
+  it("ports ZPlayer DevWayPointsNoWay guard exits", () => {
+    const attacker = createDevWaypointObject(
+      MapObjectType.Robot,
+      RobotType.Grunt,
+      [{ mode: WaypointMode.Attack, refId: 7 }],
+    );
+    const state = {
+      selectedList: [] as ReturnType<typeof createDevWaypointObject>[],
+      unitCrossReferences: null,
+    };
+
+    expect(playerDevWaypointsNoWay(state, () => attacker)).toBe(false);
+
+    state.selectedList = [attacker, attacker];
+    expect(playerDevWaypointsNoWay(state, () => attacker)).toBe(false);
+
+    state.selectedList = [
+      createDevWaypointObject(MapObjectType.Robot, RobotType.Grunt, []),
+    ];
+    expect(playerDevWaypointsNoWay(state, () => attacker)).toBe(false);
+
+    state.selectedList = [
+      createDevWaypointObject(MapObjectType.Robot, RobotType.Grunt, [
+        { mode: WaypointMode.Move, refId: 7 },
+      ]),
+    ];
+    expect(playerDevWaypointsNoWay(state, () => attacker)).toBe(false);
+
+    state.selectedList = [attacker];
+    expect(playerDevWaypointsNoWay(state, () => null)).toBe(false);
+  });
+
+  it("ports ZPlayer DevWayPointsNoWay as losing attack waypoint rating", () => {
+    const ratingState = { unitCrossReferences: null };
+    initUnitCrossReferenceTable(ratingState);
+    if (!ratingState.unitCrossReferences) {
+      throw new Error("unit rating table should be initialized");
+    }
+    insertUnitCrossReference(
+      { unitCrossReferences: ratingState.unitCrossReferences },
+      MapObjectType.Robot,
+      RobotType.Grunt,
+      MapObjectType.Vehicle,
+      VehicleType.Heavy,
+      UnitCrossReference.WillDie,
+    );
+    const attacker = createDevWaypointObject(MapObjectType.Robot, RobotType.Grunt, [
+      { mode: WaypointMode.Attack, refId: 7 },
+    ]);
+    const victim = createDevWaypointObject(MapObjectType.Vehicle, VehicleType.Heavy);
+
+    expect(
+      playerDevWaypointsNoWay(
+        {
+          selectedList: [attacker],
+          unitCrossReferences: ratingState.unitCrossReferences,
+        },
+        (refId) => (refId === 7 ? victim : null),
+      ),
+    ).toBe(true);
+  });
+
+  it("ports ZPlayer DevWayPointsNoWay as false for non-losing attack waypoint rating", () => {
+    const attacker = createDevWaypointObject(MapObjectType.Robot, RobotType.Grunt, [
+      { mode: WaypointMode.Attack, refId: 7 },
+    ]);
+    const victim = createDevWaypointObject(MapObjectType.Vehicle, VehicleType.Jeep);
+
+    expect(
+      playerDevWaypointsNoWay(
+        {
+          selectedList: [attacker],
+          unitCrossReferences: null,
+        },
+        () => victim,
+      ),
+    ).toBe(false);
+  });
+
   it("ports ZPlayer UnitNearHostiles as false without a unit", () => {
     expect(
       unitNearPlayerHostiles({ passiveEngagableObjectList: [] }, null),
@@ -2381,6 +2518,138 @@ describe("player presentation constants", () => {
     ).toBe(true);
   });
 });
+
+type SelectablePlayerTestObject = {
+  showWaypointsCalls: number;
+  groupLeader: SelectablePlayerTestObject | null;
+  objectType: MapObjectType;
+  objectId: number;
+  owner: TeamType;
+  selectableValue: boolean;
+  canAttackValue: boolean;
+  canPickupGrenadesValue: boolean;
+  getGroupLeader(): SelectablePlayerTestObject | null;
+  selectable(): boolean;
+  getOwner(): number;
+  getObjectId(): { objectType: number; objectId: number };
+  hasExplosives(): boolean;
+  canAttack(): boolean;
+  canBeRepaired(): boolean;
+  canPickupGrenades(): boolean;
+  showWaypoints(): void;
+};
+
+function createSelectablePlayerObject(
+  overrides: Partial<{
+    groupLeader: SelectablePlayerTestObject | null;
+    objectType: MapObjectType;
+    objectId: number;
+    owner: TeamType;
+    selectable: boolean;
+    canAttack: boolean;
+    canPickupGrenades: boolean;
+  }> = {},
+): SelectablePlayerTestObject {
+  return {
+    showWaypointsCalls: 0,
+    groupLeader: overrides.groupLeader ?? null,
+    objectType: overrides.objectType ?? MapObjectType.Vehicle,
+    objectId: overrides.objectId ?? VehicleType.Jeep,
+    owner: overrides.owner ?? TeamType.Red,
+    selectableValue: overrides.selectable ?? true,
+    canAttackValue: overrides.canAttack ?? false,
+    canPickupGrenadesValue: overrides.canPickupGrenades ?? false,
+    getGroupLeader() {
+      return this.groupLeader;
+    },
+    selectable() {
+      return this.selectableValue;
+    },
+    getOwner() {
+      return this.owner;
+    },
+    getObjectId() {
+      return { objectType: this.objectType, objectId: this.objectId };
+    },
+    hasExplosives() {
+      return false;
+    },
+    canAttack() {
+      return this.canAttackValue;
+    },
+    canBeRepaired() {
+      return false;
+    },
+    canPickupGrenades() {
+      return this.canPickupGrenadesValue;
+    },
+    showWaypoints() {
+      this.showWaypointsCalls += 1;
+    },
+  };
+}
+
+function createSelectZObjectState(
+  selectedList: SelectablePlayerTestObject[],
+): {
+  calls: Array<string | ["hud", SelectablePlayerTestObject | null]>;
+  ourTeam: TeamType;
+  haveExplosives: boolean;
+  canPickupGrenades: boolean;
+  canMove: boolean;
+  canEquip: boolean;
+  canAttack: boolean;
+  canRepair: boolean;
+  canBeRepaired: boolean;
+  selectedList: SelectablePlayerTestObject[];
+  hud: { setSelectedObject(selectedObject: SelectablePlayerTestObject | null): void };
+  determineCursor(): void;
+  clearDevWaypointsOfSelected(): void;
+} {
+  const calls: Array<string | ["hud", SelectablePlayerTestObject | null]> = [];
+
+  return {
+    calls,
+    ourTeam: TeamType.Red,
+    haveExplosives: true,
+    canPickupGrenades: true,
+    canMove: true,
+    canEquip: true,
+    canAttack: true,
+    canRepair: true,
+    canBeRepaired: true,
+    selectedList,
+    hud: {
+      setSelectedObject(selectedObject) {
+        calls.push(["hud", selectedObject]);
+      },
+    },
+    determineCursor() {
+      calls.push("determine-cursor");
+    },
+    clearDevWaypointsOfSelected() {
+      calls.push("clear-dev-waypoints");
+    },
+  };
+}
+
+function createDevWaypointObject(
+  objectType: MapObjectType,
+  objectId: number,
+  waypoints: Array<{ mode: number; refId: number }> = [],
+): {
+  getWayPointDevList(): Array<{ mode: number; refId: number }>;
+  getObjectId(): { objectType: number; objectId: number };
+} {
+  return {
+    getWayPointDevList() {
+      return waypoints;
+    },
+    getObjectId() {
+      return { objectType, objectId };
+    },
+  };
+}
 
 function createPlayerUnit(
   id: string,

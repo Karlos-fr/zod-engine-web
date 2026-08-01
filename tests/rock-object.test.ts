@@ -4,6 +4,7 @@ import {
   changeRockPalette,
   clearRockRender,
   createRockMapEffects,
+  deathRockMapEffects,
   isRockDestroyableImpassable,
   OROCK_HEADER_GUARD_PORTED,
   rockCausesImpassAtCoord,
@@ -133,5 +134,107 @@ describe("rock object", () => {
     createRockMapEffects(mapState);
 
     expect(mapState).toEqual({ effects: ["existing"], changed: false });
+  });
+
+  it("ports ORock DeathMapEffects guard exits before stamping", () => {
+    const rockDestroyedImages = [["d0", "d1", "d2", "d3", "d4", "d5"]];
+    const stamps: Array<[number, number, string | null, boolean, boolean]> = [];
+    const map = {
+      width: 4,
+      height: 4,
+      coordStamped() {
+        return false;
+      },
+      permStamp(
+        x: number,
+        y: number,
+        surface: string | null,
+        markStamped: boolean,
+        fullRenderSurfaceAvailable: boolean,
+      ) {
+        stamps.push([x, y, surface, markStamped, fullRenderSurfaceAvailable]);
+      },
+    };
+
+    deathRockMapEffects(
+      { x: -1, y: 16, palette: PlanetType.Desert },
+      map,
+      rockDestroyedImages,
+    );
+    deathRockMapEffects(
+      { x: 0, y: -48, palette: PlanetType.Desert },
+      map,
+      rockDestroyedImages,
+    );
+    deathRockMapEffects(
+      { x: 49, y: 16, palette: PlanetType.Desert },
+      map,
+      rockDestroyedImages,
+    );
+    deathRockMapEffects(
+      { x: 0, y: 49, palette: PlanetType.Desert },
+      map,
+      rockDestroyedImages,
+    );
+
+    expect(stamps).toEqual([]);
+  });
+
+  it("ports ORock DeathMapEffects as no stamp when the destination is already stamped", () => {
+    const coordChecks: Array<[number, number]> = [];
+    const stamps: unknown[] = [];
+
+    deathRockMapEffects(
+      { x: 16, y: 0, palette: PlanetType.Desert },
+      {
+        width: 4,
+        height: 4,
+        coordStamped(x, y) {
+          coordChecks.push([x, y]);
+          return true;
+        },
+        permStamp() {
+          stamps.push("stamp");
+        },
+      },
+      [["d0", "d1", "d2", "d3", "d4", "d5"]],
+    );
+
+    expect(coordChecks).toEqual([[16, 32]]);
+    expect(stamps).toEqual([]);
+  });
+
+  it("ports ORock DeathMapEffects as destroyed-rock permanent stamp", () => {
+    const stamps: Array<[number, number, string | null, boolean, boolean]> = [];
+    const rockDestroyedImages = [
+      ["desert-0", "desert-1", "desert-2", "desert-3", "desert-4", "desert-5"],
+      [
+        "volcanic-0",
+        "volcanic-1",
+        "volcanic-2",
+        "volcanic-3",
+        "volcanic-4",
+        "volcanic-5",
+      ],
+    ];
+
+    deathRockMapEffects(
+      { x: 16, y: 0, palette: PlanetType.Volcanic },
+      {
+        width: 4,
+        height: 4,
+        coordStamped() {
+          return false;
+        },
+        permStamp(x, y, surface, markStamped, fullRenderSurfaceAvailable) {
+          stamps.push([x, y, surface, markStamped, fullRenderSurfaceAvailable]);
+        },
+      },
+      rockDestroyedImages,
+      () => 8,
+      false,
+    );
+
+    expect(stamps).toEqual([[16, 32, "volcanic-2", false, false]]);
   });
 });
