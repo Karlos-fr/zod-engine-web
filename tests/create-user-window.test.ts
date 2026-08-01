@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  clickCreateUserWindow,
   CREATE_USER_MENU_BASE_IMAGE_PATH,
   doCancelCreateUserWindow,
   doOkCreateUserWindow,
   initCreateUserWindow,
+  keyPressCreateUserWindow,
   removeCreateUserSelections,
   unclickCreateUserWindow,
   ZGW_CREATE_USER_HEADER_GUARD_PORTED,
@@ -122,6 +124,268 @@ describe("create user window", () => {
       "cancel:20:30",
       "do-cancel",
     ]);
+  });
+
+  it("ports GWCreateUser Click as button press routing and field focus", () => {
+    const calls: string[] = [];
+    const field = (name: string, clicked: boolean) => ({
+      click(x: number, y: number) {
+        calls.push(`${name}-click:${x}:${y}`);
+        return clicked;
+      },
+      setSelected(selected: boolean) {
+        calls.push(`${name}-selected:${selected}`);
+      },
+    });
+    const state = {
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 80,
+      okButton: {
+        click: (x: number, y: number) => calls.push(`ok:${x}:${y}`),
+      },
+      cancelButton: {
+        click: (x: number, y: number) => calls.push(`cancel:${x}:${y}`),
+      },
+      loginNameBox: field("login", true),
+      loginPasswordBox: field("password", false),
+      userNameBox: field("user", false),
+      emailBox: field("email", false),
+    };
+
+    const inside = clickCreateUserWindow(state, 30, 50);
+
+    expect(inside).toBe(true);
+    expect(calls).toEqual([
+      "ok:20:30",
+      "cancel:20:30",
+      "login-click:20:30",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "login-selected:true",
+      "password-click:20:30",
+      "user-click:20:30",
+      "email-click:20:30",
+    ]);
+  });
+
+  it("ports GWCreateUser Click as repeated selection removal for later matching fields", () => {
+    const calls: string[] = [];
+    const field = (name: string, clicked: boolean) => ({
+      click: () => {
+        calls.push(`${name}-click`);
+        return clicked;
+      },
+      setSelected: (selected: boolean) => calls.push(`${name}-selected:${selected}`),
+    });
+    const state = {
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 80,
+      okButton: { click: () => calls.push("ok") },
+      cancelButton: { click: () => calls.push("cancel") },
+      loginNameBox: field("login", false),
+      loginPasswordBox: field("password", true),
+      userNameBox: field("user", true),
+      emailBox: field("email", false),
+    };
+
+    expect(clickCreateUserWindow(state, 30, 50)).toBe(true);
+
+    expect(calls).toEqual([
+      "ok",
+      "cancel",
+      "login-click",
+      "password-click",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "password-selected:true",
+      "user-click",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "user-selected:true",
+      "email-click",
+    ]);
+  });
+
+  it("ports GWCreateUser Click bounds checks after press routing", () => {
+    const calls: string[] = [];
+    const field = () => ({
+      click: () => false,
+      setSelected: (selected: boolean) => calls.push(`selected:${selected}`),
+    });
+    const state = {
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 80,
+      okButton: {
+        click: (x: number, y: number) => calls.push(`ok:${x}:${y}`),
+      },
+      cancelButton: {
+        click: (x: number, y: number) => calls.push(`cancel:${x}:${y}`),
+      },
+      loginNameBox: field(),
+      loginPasswordBox: field(),
+      userNameBox: field(),
+      emailBox: field(),
+    };
+
+    expect(clickCreateUserWindow(state, 9, 50)).toBe(false);
+    expect(clickCreateUserWindow(state, 30, 19)).toBe(false);
+    expect(clickCreateUserWindow(state, 110, 50)).toBe(false);
+    expect(clickCreateUserWindow(state, 30, 100)).toBe(false);
+
+    expect(calls).toEqual([
+      "ok:-1:30",
+      "cancel:-1:30",
+      "ok:20:-1",
+      "cancel:20:-1",
+      "ok:100:30",
+      "cancel:100:30",
+      "ok:20:80",
+      "cancel:20:80",
+    ]);
+  });
+
+  it("ports GWCreateUser KeyPress as tab cycle from user name to login name", () => {
+    const calls: string[] = [];
+    const field = (name: string, selected: boolean) => ({
+      isSelected: () => selected,
+      keyPress: (c: number) => calls.push(`${name}-key:${c}`),
+      setSelected: (nextSelected: boolean) =>
+        calls.push(`${name}-selected:${nextSelected}`),
+    });
+    const state = {
+      flags: { clear: () => calls.push("clear") },
+      loginNameBox: field("login", false),
+      loginPasswordBox: field("password", false),
+      userNameBox: field("user", true),
+      emailBox: field("email", false),
+      doOk: () => calls.push("do-ok"),
+    };
+
+    expect(keyPressCreateUserWindow(state, 9)).toBe(true);
+
+    expect(calls).toEqual([
+      "clear",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "login-selected:true",
+    ]);
+  });
+
+  it("ports GWCreateUser KeyPress as tab cycle through login, password, email, and user fields", () => {
+    const runTab = (
+      selectedField: "login" | "password" | "email",
+    ): string[] => {
+      const calls: string[] = [];
+      const field = (name: string) => ({
+        isSelected: () => name === selectedField,
+        keyPress: (c: number) => calls.push(`${name}-key:${c}`),
+        setSelected: (selected: boolean) => calls.push(`${name}-selected:${selected}`),
+      });
+
+      keyPressCreateUserWindow(
+        {
+          flags: { clear: () => calls.push("clear") },
+          loginNameBox: field("login"),
+          loginPasswordBox: field("password"),
+          userNameBox: field("user"),
+          emailBox: field("email"),
+          doOk: () => calls.push("do-ok"),
+        },
+        9,
+      );
+
+      return calls;
+    };
+
+    expect(runTab("login")).toEqual([
+      "clear",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "password-selected:true",
+    ]);
+    expect(runTab("password")).toEqual([
+      "clear",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "email-selected:true",
+    ]);
+    expect(runTab("email")).toEqual([
+      "clear",
+      "login-selected:false",
+      "password-selected:false",
+      "user-selected:false",
+      "email-selected:false",
+      "user-selected:true",
+    ]);
+  });
+
+  it("ports GWCreateUser KeyPress as enter create-user action", () => {
+    const calls: string[] = [];
+    const field = () => ({
+      isSelected: () => false,
+      keyPress: (c: number) => calls.push(`key:${c}`),
+      setSelected: (selected: boolean) => calls.push(`selected:${selected}`),
+    });
+
+    expect(
+      keyPressCreateUserWindow(
+        {
+          flags: { clear: () => calls.push("clear") },
+          loginNameBox: field(),
+          loginPasswordBox: field(),
+          userNameBox: field(),
+          emailBox: field(),
+          doOk: () => calls.push("do-ok"),
+        },
+        13,
+      ),
+    ).toBe(true);
+
+    expect(calls).toEqual(["clear", "do-ok"]);
+  });
+
+  it("ports GWCreateUser KeyPress as forwarding to the selected text field", () => {
+    const calls: string[] = [];
+    const field = (name: string, selected: boolean) => ({
+      isSelected: () => selected,
+      keyPress: (c: number) => calls.push(`${name}-key:${c}`),
+      setSelected: (nextSelected: boolean) =>
+        calls.push(`${name}-selected:${nextSelected}`),
+    });
+
+    expect(
+      keyPressCreateUserWindow(
+        {
+          flags: { clear: () => calls.push("clear") },
+          loginNameBox: field("login", false),
+          loginPasswordBox: field("password", false),
+          userNameBox: field("user", false),
+          emailBox: field("email", true),
+          doOk: () => calls.push("do-ok"),
+        },
+        "z".charCodeAt(0),
+      ),
+    ).toBe(true);
+
+    expect(calls).toEqual(["clear", "email-key:122"]);
   });
 
   it("ports GWCreateUser UnClick bounds checks as outside release misses", () => {

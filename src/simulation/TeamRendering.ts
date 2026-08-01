@@ -1,3 +1,5 @@
+import type { RgbaSurface } from "../rendering/ImageScaling";
+import { fillRgbaSurfaceRect } from "../rendering/SurfacePixels";
 import { ACTIVE_TEAM_TYPE_COUNT, TeamType } from "./SimulationConstants";
 
 /**
@@ -52,6 +54,46 @@ export const TEAM_RENDERING_COLORS: Readonly<Record<TeamType, TeamPaletteColor>>
   [TeamType.White]: { red: 223, green: 0, blue: 0 },
   [TeamType.Black]: { red: 223, green: 0, blue: 0 },
 };
+
+/**
+ * Port of upstream `ZPlayer::SetupSelectionImages`.
+ * Role: Builds one 4x4 selection marker surface per team with the 2x2 top-left marker tinted from team_color.
+ * Upstream: zplayer.cpp:860-883
+ */
+export function setupTeamSelectionImages(
+  teamColors: Readonly<Record<TeamType, TeamPaletteColor>> = TEAM_RENDERING_COLORS,
+): RgbaSurface[] {
+  const selectionImages: RgbaSurface[] = [];
+
+  for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const color = teamColors[team as TeamType];
+    const surface: RgbaSurface = {
+      width: 4,
+      height: 4,
+      data: new Uint8ClampedArray(4 * 4 * 4),
+    };
+
+    fillRgbaSurfaceRect(
+      surface,
+      { x: 0, y: 0, width: 2, height: 2 },
+      {
+        red: color.red - Math.trunc(color.red * 0.2),
+        green: color.green - Math.trunc(color.green * 0.2),
+        blue: color.blue - Math.trunc(color.blue * 0.2),
+      },
+      {
+        useRenderCommands: false,
+        rotozoomSurface: null,
+        rotozoomLoaded: false,
+        texture: null,
+        textureLoaded: false,
+      },
+    );
+    selectionImages[team] = surface;
+  }
+
+  return selectionImages;
+}
 
 /**
  * Port of upstream `ZTeam_Palette` color arrays used by `AddColor`.

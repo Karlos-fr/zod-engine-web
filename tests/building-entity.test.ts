@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { FontType } from "../src/rendering/FontEngine";
 import {
   BuildingType,
   MAX_STORED_CANNONS,
@@ -70,6 +71,70 @@ describe("building entity", () => {
       objectType: 3,
       objectId: 5,
     });
+  });
+
+  it("ports ZBuilding ResetShowTime as no-op for unchanged countdown", () => {
+    const building = new BuildingEntity({
+      id: "building-show-time-noop",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    const calls: string[] = [];
+    building.showTime = 25;
+    building.showTimeImage = {
+      unload: () => calls.push("unload"),
+      loadBaseImage: (image) => calls.push(`load:${image}`),
+    };
+
+    building.resetShowTime(25, (font, text) => `${font}:${text}`);
+
+    expect(calls).toEqual([]);
+    expect(building.showTime).toBe(25);
+  });
+
+  it("ports ZBuilding ResetShowTime as green countdown text image refresh", () => {
+    const building = new BuildingEntity({
+      id: "building-show-time-refresh",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    const calls: unknown[] = [];
+    building.showTime = 0;
+    building.showTimeImage = {
+      unload: () => calls.push("unload"),
+      loadBaseImage: (image) => calls.push(["load", image]),
+    };
+
+    building.resetShowTime(125, (font, text) => {
+      calls.push(["render", font, text]);
+      return `image:${text}`;
+    });
+
+    expect(building.showTime).toBe(125);
+    expect(calls).toEqual([
+      "unload",
+      ["render", FontType.GreenBuilding, "2:05"],
+      ["load", "image:2:05"],
+    ]);
+  });
+
+  it("ports ZBuilding ResetShowTime as unload-only for hidden countdown", () => {
+    const building = new BuildingEntity({
+      id: "building-show-time-hidden",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    const calls: string[] = [];
+    building.showTime = 15;
+    building.showTimeImage = {
+      unload: () => calls.push("unload"),
+      loadBaseImage: (image) => calls.push(`load:${image}`),
+    };
+
+    building.resetShowTime(-1, (font, text) => `${font}:${text}`);
+
+    expect(building.showTime).toBe(15);
+    expect(calls).toEqual(["unload"]);
   });
 
   it("ports ZBuilding GetBuildState as production state with unit-cap pause", () => {

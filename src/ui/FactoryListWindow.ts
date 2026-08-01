@@ -115,6 +115,25 @@ export type FactoryListFlagClearTarget = {
 };
 
 /**
+ * Port of upstream factory-list click flags.
+ * Role: Stores pending jump-to-building action emitted by `GWFactoryList::Click`.
+ * Upstream: gwfactory_list.cpp:267-268
+ */
+export type FactoryListClickFlagsTarget = FactoryListFlagClearTarget & {
+  jumpToBuilding?: boolean;
+  brefId?: number;
+};
+
+/**
+ * Port of upstream factory-list scroll button press dependency.
+ * Role: Receives local click coordinates for scroll buttons.
+ * Upstream: gwfactory_list.cpp:256-257
+ */
+export type FactoryListClickButton = {
+  click?(x: number, y: number): void;
+};
+
+/**
  * Port of upstream factory-list scroll button dependency.
  * Role: Receives local unclick coordinates and reports whether the button was released.
  * Upstream: gwfactory_list.cpp:292-293
@@ -174,9 +193,15 @@ export class FactoryListWindow {
     imageFilename: "",
     baseSurface: null,
   };
-  gflags: FactoryListFlagClearTarget = { clear: (): void => undefined };
-  upButton: FactoryListUnclickButton = { unClick: () => false };
-  downButton: FactoryListUnclickButton = { unClick: () => false };
+  gflags: FactoryListClickFlagsTarget = { clear: (): void => undefined };
+  upButton: FactoryListUnclickButton & FactoryListClickButton = {
+    click: (): void => undefined,
+    unClick: () => false,
+  };
+  downButton: FactoryListUnclickButton & FactoryListClickButton = {
+    click: (): void => undefined,
+    unClick: () => false,
+  };
 
   /**
    * Port of upstream `SetTeam`.
@@ -344,6 +369,47 @@ export class FactoryListWindow {
 
     if (this.upButton.unClick(localX, localY)) this.doUpButton();
     if (this.downButton.unClick(localX, localY)) this.doDownButton();
+
+    if (x < this.x) return false;
+    if (y < this.y) return false;
+    if (x >= this.x + this.width) return false;
+    if (y >= this.y + this.height) return false;
+
+    return true;
+  }
+
+  /**
+   * Port of upstream `GWFactoryList::Click`.
+   * Role: Routes button press input and selects a clicked factory entry for map jump.
+   * Upstream: gwfactory_list.cpp:245-279
+   */
+  click(x: number, y: number): boolean {
+    if (!this.show) return false;
+
+    this.gflags.clear();
+
+    const localX = x - this.x;
+    const localY = y - this.y;
+
+    this.upButton.click?.(localX, localY);
+    this.downButton.click?.(localX, localY);
+
+    for (const entry of this.entryList) {
+      const renderEntry = entry as Partial<FactoryListRenderEntry>;
+      const entryX = renderEntry.x ?? 0;
+      const entryY = renderEntry.y ?? 0;
+      const entryWidth = renderEntry.width ?? 0;
+      const entryHeight = renderEntry.height ?? 0;
+
+      if (localX < entryX) continue;
+      if (localY < entryY) continue;
+      if (localX > entryX + entryWidth) continue;
+      if (localY > entryY + entryHeight) continue;
+
+      this.gflags.jumpToBuilding = true;
+      this.gflags.brefId = renderEntry.refId ?? -1;
+      break;
+    }
 
     if (x < this.x) return false;
     if (y < this.y) return false;

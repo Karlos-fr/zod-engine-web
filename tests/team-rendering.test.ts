@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getRgbaSurfacePixel } from "../src/rendering/SurfacePixels";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
@@ -12,6 +13,7 @@ import {
   saveAllTeamPalettes,
   saveTeamSurfacePalette,
   saveTeamPalette,
+  setupTeamSelectionImages,
   TEAM_RENDERING_COLORS,
   TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE,
   TEAM_PALETTE_LOAD_WIDTH_MESSAGE,
@@ -80,6 +82,68 @@ describe("team rendering", () => {
     expect(TEAM_RENDERING_COLORS[TeamType.Blue]).toEqual({ red: 19, green: 55, blue: 251 });
     expect(TEAM_RENDERING_COLORS[TeamType.Green]).toEqual({ red: 23, green: 143, blue: 19 });
     expect(TEAM_RENDERING_COLORS[TeamType.Yellow]).toEqual({ red: 203, green: 99, blue: 47 });
+  });
+
+  it("ports ZPlayer SetupSelectionImages as 4x4 tinted team surfaces", () => {
+    const selectionImages = setupTeamSelectionImages();
+
+    expect(selectionImages).toHaveLength(9);
+    expect(selectionImages[TeamType.Blue].width).toBe(4);
+    expect(selectionImages[TeamType.Blue].height).toBe(4);
+    expect(selectionImages[TeamType.Blue].data).toHaveLength(4 * 4 * 4);
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Blue], 0, 0)).toEqual({
+      red: 16,
+      green: 44,
+      blue: 201,
+      alpha: 255,
+    });
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Blue], 1, 1)).toEqual({
+      red: 16,
+      green: 44,
+      blue: 201,
+      alpha: 255,
+    });
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Blue], 2, 0)).toEqual({
+      red: 0,
+      green: 0,
+      blue: 0,
+      alpha: 0,
+    });
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Blue], 0, 2)).toEqual({
+      red: 0,
+      green: 0,
+      blue: 0,
+      alpha: 0,
+    });
+  });
+
+  it("ports ZPlayer SetupSelectionImages over every active team in order", () => {
+    const selectionImages = setupTeamSelectionImages();
+
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Null], 0, 0)).toEqual({
+      red: 92,
+      green: 92,
+      blue: 92,
+      alpha: 255,
+    });
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Red], 0, 0)).toEqual({
+      red: 179,
+      green: 0,
+      blue: 0,
+      alpha: 255,
+    });
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Green], 0, 0)).toEqual({
+      red: 19,
+      green: 115,
+      blue: 16,
+      alpha: 255,
+    });
+    expect(getRgbaSurfacePixel(selectionImages[TeamType.Yellow], 0, 0)).toEqual({
+      red: 163,
+      green: 80,
+      blue: 38,
+      alpha: 255,
+    });
   });
 
   it("ports ZTeam_Palette as independent base and replacement color state", () => {

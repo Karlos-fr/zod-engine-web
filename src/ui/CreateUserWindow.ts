@@ -49,6 +49,25 @@ export type CreateUserSelectableField = {
 };
 
 /**
+ * Port of upstream create-user text-box click dependency surface.
+ * Role: Reports whether a local click focused the text field.
+ * Upstream: gwcreateuser.cpp:96-114
+ */
+export type CreateUserClickableField = CreateUserSelectableField & {
+  click(x: number, y: number): boolean;
+};
+
+/**
+ * Port of upstream create-user text-box key dependency surface.
+ * Role: Handles selection checks and key input forwarding for create-user fields.
+ * Upstream: gwcreateuser.cpp:151-184
+ */
+export type CreateUserKeyPressField = CreateUserSelectableField & {
+  isSelected(): boolean;
+  keyPress(c: number): void;
+};
+
+/**
  * Port of upstream create-user text-box selection fields.
  * Role: Holds the editable fields cleared by create-user focus removal.
  * Upstream: gwcreateuser.cpp:191-194
@@ -67,6 +86,15 @@ export type CreateUserSelectionState = {
  */
 export type CreateUserUnclickButton = {
   unClick(x: number, y: number): boolean;
+};
+
+/**
+ * Port of upstream create-user button press dependency surface.
+ * Role: Receives local click coordinates for create-user buttons.
+ * Upstream: gwcreateuser.cpp:93-94
+ */
+export type CreateUserClickButton = {
+  click(x: number, y: number): void;
 };
 
 /**
@@ -93,6 +121,38 @@ export type CreateUserUnclickState = {
   cancelButton: CreateUserUnclickButton;
   doOk(): void;
   doCancel(): void;
+};
+
+/**
+ * Port of upstream `GWCreateUser::Click` dependencies.
+ * Role: Holds window bounds, buttons, and text boxes used by a mouse press.
+ * Upstream: gwcreateuser.cpp:86-123
+ */
+export type CreateUserClickState = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  okButton: CreateUserClickButton;
+  cancelButton: CreateUserClickButton;
+  loginNameBox: CreateUserClickableField;
+  loginPasswordBox: CreateUserClickableField;
+  userNameBox: CreateUserClickableField;
+  emailBox: CreateUserClickableField;
+};
+
+/**
+ * Port of upstream `GWCreateUser::KeyPress` dependencies.
+ * Role: Holds transient flags, text boxes, and create-user action used by keyboard input.
+ * Upstream: gwcreateuser.cpp:145-187
+ */
+export type CreateUserKeyPressState = {
+  flags: CreateUserFlagsClearer;
+  loginNameBox: CreateUserKeyPressField;
+  loginPasswordBox: CreateUserKeyPressField;
+  userNameBox: CreateUserKeyPressField;
+  emailBox: CreateUserKeyPressField;
+  doOk(): void;
 };
 
 /**
@@ -163,6 +223,97 @@ export function unclickCreateUserWindow(
   if (y < state.y) return false;
   if (x >= state.x + state.width) return false;
   if (y >= state.y + state.height) return false;
+
+  return true;
+}
+
+/**
+ * Port of upstream `GWCreateUser::Click`.
+ * Role: Processes button presses and focuses the clicked create-user text field.
+ * Upstream: gwcreateuser.cpp:86-123
+ */
+export function clickCreateUserWindow(
+  state: CreateUserClickState,
+  x: number,
+  y: number,
+): boolean {
+  const localX = x - state.x;
+  const localY = y - state.y;
+
+  state.okButton.click(localX, localY);
+  state.cancelButton.click(localX, localY);
+
+  if (state.loginNameBox.click(localX, localY)) {
+    removeCreateUserSelections(state);
+    state.loginNameBox.setSelected(true);
+  }
+
+  if (state.loginPasswordBox.click(localX, localY)) {
+    removeCreateUserSelections(state);
+    state.loginPasswordBox.setSelected(true);
+  }
+
+  if (state.userNameBox.click(localX, localY)) {
+    removeCreateUserSelections(state);
+    state.userNameBox.setSelected(true);
+  }
+
+  if (state.emailBox.click(localX, localY)) {
+    removeCreateUserSelections(state);
+    state.emailBox.setSelected(true);
+  }
+
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x >= state.x + state.width) return false;
+  if (y >= state.y + state.height) return false;
+
+  return true;
+}
+
+/**
+ * Port of upstream `GWCreateUser::KeyPress`.
+ * Role: Routes tab, enter, and text input for the create-user window.
+ * Upstream: gwcreateuser.cpp:145-187
+ */
+export function keyPressCreateUserWindow(
+  state: CreateUserKeyPressState,
+  c: number,
+): boolean {
+  state.flags.clear();
+
+  if (c === 9) {
+    if (state.userNameBox.isSelected()) {
+      removeCreateUserSelections(state);
+      state.loginNameBox.setSelected(true);
+    } else if (state.loginNameBox.isSelected()) {
+      removeCreateUserSelections(state);
+      state.loginPasswordBox.setSelected(true);
+    } else if (state.loginPasswordBox.isSelected()) {
+      removeCreateUserSelections(state);
+      state.emailBox.setSelected(true);
+    } else if (state.emailBox.isSelected()) {
+      removeCreateUserSelections(state);
+      state.userNameBox.setSelected(true);
+    }
+
+    return true;
+  }
+
+  if (c === 13) {
+    state.doOk();
+    return true;
+  }
+
+  if (state.loginNameBox.isSelected()) {
+    state.loginNameBox.keyPress(c);
+  } else if (state.loginPasswordBox.isSelected()) {
+    state.loginPasswordBox.keyPress(c);
+  } else if (state.userNameBox.isSelected()) {
+    state.userNameBox.keyPress(c);
+  } else if (state.emailBox.isSelected()) {
+    state.emailBox.keyPress(c);
+  }
 
   return true;
 }

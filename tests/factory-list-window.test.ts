@@ -285,6 +285,108 @@ describe("factory list window", () => {
     expect(calls).toEqual([]);
   });
 
+  it("ports GWFactoryList Click as hidden no-op", () => {
+    const calls: string[] = [];
+    const window = new FactoryListWindow();
+    window.show = false;
+    window.gflags = { clear: () => calls.push("clear") };
+    window.upButton = { click: () => calls.push("up"), unClick: () => false };
+    window.downButton = { click: () => calls.push("down"), unClick: () => false };
+
+    expect(window.click(10, 20)).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWFactoryList Click as local button routing and entry jump selection", () => {
+    const calls: unknown[] = [];
+    const window = new FactoryListWindow();
+    window.show = true;
+    window.x = 30;
+    window.y = 40;
+    window.width = 80;
+    window.height = 90;
+    window.gflags = { clear: () => calls.push("clear") };
+    window.upButton = {
+      click: (x: number, y: number) => calls.push(["up", x, y]),
+      unClick: () => false,
+    };
+    window.downButton = {
+      click: (x: number, y: number) => calls.push(["down", x, y]),
+      unClick: () => false,
+    };
+    const first = new FactoryListRenderEntry();
+    first.x = 5;
+    first.y = 5;
+    first.width = 20;
+    first.height = 10;
+    first.refId = 42;
+    const second = new FactoryListRenderEntry();
+    second.x = 25;
+    second.y = 5;
+    second.width = 20;
+    second.height = 10;
+    second.refId = 77;
+    window.entryList = [first, second];
+
+    expect(window.click(40, 50)).toBe(true);
+
+    expect(calls).toEqual([
+      "clear",
+      ["up", 10, 10],
+      ["down", 10, 10],
+    ]);
+    expect(window.gflags.jumpToBuilding).toBe(true);
+    expect(window.gflags.brefId).toBe(42);
+  });
+
+  it("ports GWFactoryList Click bounds after button and entry routing", () => {
+    const calls: unknown[] = [];
+    const window = new FactoryListWindow();
+    window.show = true;
+    window.x = 30;
+    window.y = 40;
+    window.width = 50;
+    window.height = 60;
+    window.gflags = { clear: () => calls.push("clear") };
+    window.upButton = {
+      click: (x: number, y: number) => calls.push(["up", x, y]),
+      unClick: () => false,
+    };
+    window.downButton = {
+      click: (x: number, y: number) => calls.push(["down", x, y]),
+      unClick: () => false,
+    };
+    const entry = new FactoryListRenderEntry();
+    entry.x = -1;
+    entry.y = 5;
+    entry.width = 4;
+    entry.height = 4;
+    entry.refId = 9;
+    window.entryList = [entry];
+
+    expect(window.click(29, 45)).toBe(false);
+    expect(window.gflags.jumpToBuilding).toBe(true);
+    expect(window.gflags.brefId).toBe(9);
+    expect(window.click(35, 39)).toBe(false);
+    expect(window.click(80, 45)).toBe(false);
+    expect(window.click(35, 100)).toBe(false);
+
+    expect(calls).toEqual([
+      "clear",
+      ["up", -1, 5],
+      ["down", -1, 5],
+      "clear",
+      ["up", 5, -1],
+      ["down", 5, -1],
+      "clear",
+      ["up", 50, 5],
+      ["down", 50, 5],
+      "clear",
+      ["up", 5, 60],
+      ["down", 5, 60],
+    ]);
+  });
+
   it("ports GWFactoryList UnClick as local scroll button routing", () => {
     const calls: unknown[] = [];
     const window = new FactoryListWindow();

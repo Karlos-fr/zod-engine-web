@@ -22,6 +22,7 @@ import {
   deleteHudObject,
   getHudARefId,
   giveHudSelectedCommand,
+  handleHudMouseMotion,
   overHudMiniMap,
   overHudPortrait,
   rerenderAllHud,
@@ -265,6 +266,96 @@ describe("HUD layout", () => {
         600,
       ),
     ).toBeNull();
+  });
+
+  it("ports ZHud MouseMotion as response clear and no-op outside HUD strips", () => {
+    const response = new HudClickResponse();
+    response.used = true;
+    response.type = HudResponseType.MiniMap;
+    response.jumpRefId = 33;
+    let called = false;
+
+    handleHudMouseMotion(
+      {
+        clickedMap() {
+          called = true;
+          return { mapX: 1, mapY: 2 };
+        },
+      },
+      699,
+      563,
+      800,
+      600,
+      response,
+    );
+
+    expect(called).toBe(false);
+    expect(response).toEqual({
+      used: false,
+      type: -1,
+      button: 0,
+      miniX: 0,
+      miniY: 0,
+      jumpRefId: -1,
+    });
+  });
+
+  it("ports ZHud MouseMotion as minimap response over HUD area", () => {
+    const calls: Array<{ x: number; y: number }> = [];
+    const response = new HudClickResponse();
+
+    handleHudMouseMotion(
+      {
+        clickedMap(x, y) {
+          calls.push({ x, y });
+          return { mapX: 123, mapY: 456 };
+        },
+      },
+      760,
+      500,
+      800,
+      600,
+      response,
+    );
+
+    expect(calls).toEqual([{ x: 53, y: 85 }]);
+    expect(response).toEqual({
+      used: true,
+      type: HudResponseType.MiniMap,
+      button: 0,
+      miniX: 123,
+      miniY: 456,
+      jumpRefId: -1,
+    });
+  });
+
+  it("ports ZHud MouseMotion as HUD consumption when minimap misses", () => {
+    const calls: Array<{ x: number; y: number }> = [];
+    const response = new HudClickResponse();
+
+    handleHudMouseMotion(
+      {
+        clickedMap(x, y) {
+          calls.push({ x, y });
+          return null;
+        },
+      },
+      400,
+      570,
+      800,
+      600,
+      response,
+    );
+
+    expect(calls).toEqual([{ x: -307, y: 155 }]);
+    expect(response).toEqual({
+      used: true,
+      type: -1,
+      button: 0,
+      miniX: 0,
+      miniY: 0,
+      jumpRefId: -1,
+    });
   });
 
   it("ports HUD end-unit identifiers", () => {

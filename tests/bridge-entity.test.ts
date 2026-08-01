@@ -476,6 +476,90 @@ describe("bridge entity", () => {
     expect(randomValues).toEqual([]);
   });
 
+  it("ports BBridge Process as half-health explosion transition", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-process-half-health",
+      kind: "building",
+      position: { x: 40, y: 80 },
+    });
+    bridge.pixelWidth = 50;
+    bridge.palette = PlanetType.City;
+    bridge.maxHealth = 100;
+    bridge.lastProcessHealth = 50;
+    bridge.health = 49;
+    const effects: BridgeTurrentEffectSpawn[] = [];
+    const randomValues = [3, 5, 4, 12, 6];
+
+    const result = bridge.process(10, effects, (maxExclusive) => {
+      expect(maxExclusive === 10 || maxExclusive === 32).toBe(true);
+      const value = randomValues.shift();
+      if (value === undefined) throw new Error("unexpected random call");
+      return value;
+    });
+
+    expect(result).toBe(1);
+    expect(bridge.lastProcessHealth).toBe(49);
+    expect(bridge.doBaseRerender).toBe(true);
+    expect(effects).toEqual([
+      {
+        x: 64,
+        y: 101,
+        palette: PlanetType.City,
+        width: 140,
+        height: 140,
+        isReversed: false,
+      },
+      {
+        x: 73,
+        y: 108,
+        palette: PlanetType.City,
+        width: 140,
+        height: 140,
+        isReversed: false,
+      },
+    ]);
+    expect(randomValues).toEqual([]);
+  });
+
+  it("ports BBridge Process as health bookkeeping without death explosion", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-process-zero-health",
+      kind: "building",
+      position: { x: 40, y: 80 },
+    });
+    bridge.pixelWidth = 50;
+    bridge.maxHealth = 100;
+    bridge.lastProcessHealth = 50;
+    bridge.health = 0;
+    const effects: BridgeTurrentEffectSpawn[] = [];
+
+    expect(bridge.process(10, effects)).toBe(1);
+
+    expect(bridge.lastProcessHealth).toBe(0);
+    expect(bridge.doBaseRerender).toBe(false);
+    expect(effects).toEqual([]);
+  });
+
+  it("ports BBridge Process as delayed revive rerender completion", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-process-revive",
+      kind: "building",
+      position: { x: 40, y: 80 },
+    });
+    bridge.doReviveRerender = true;
+    bridge.nextReviveRerenderTime = 12;
+
+    bridge.process(11.99);
+
+    expect(bridge.doReviveRerender).toBe(true);
+    expect(bridge.doBaseRerender).toBe(false);
+
+    bridge.process(12);
+
+    expect(bridge.doReviveRerender).toBe(false);
+    expect(bridge.doBaseRerender).toBe(true);
+  });
+
   it("ports BBridge DoReviveEffect as revive rerender scheduling plus reversed effects", () => {
     const bridge = new BridgeEntity({
       id: "bridge-revive",
@@ -589,6 +673,56 @@ describe("bridge entity", () => {
       [3, 5, false],
       [4, 4, false],
       [4, 5, false],
+    ]);
+  });
+
+  it("ports BBridge SetMapImpassables for vertical bridge edge rails", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-set-map-vertical",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = true;
+    bridge.width = 4;
+    bridge.height = 3;
+    const calls: Array<[number, number]> = [];
+
+    bridge.setMapImpassables({
+      setImpassable: (x, y) => calls.push([x, y]),
+    });
+
+    expect(calls).toEqual([
+      [2, 3],
+      [5, 3],
+      [2, 4],
+      [5, 4],
+      [2, 5],
+      [5, 5],
+    ]);
+  });
+
+  it("ports BBridge SetMapImpassables for horizontal bridge edge rails", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-set-map-horizontal",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = false;
+    bridge.width = 3;
+    bridge.height = 4;
+    const calls: Array<[number, number]> = [];
+
+    bridge.setMapImpassables({
+      setImpassable: (x, y) => calls.push([x, y]),
+    });
+
+    expect(calls).toEqual([
+      [2, 3],
+      [2, 6],
+      [3, 3],
+      [3, 6],
+      [4, 3],
+      [4, 6],
     ]);
   });
 

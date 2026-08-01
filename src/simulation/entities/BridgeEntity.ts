@@ -69,6 +69,7 @@ export class BridgeEntity extends GameEntity {
   doBaseRerender = false;
   doReviveRerender = false;
   nextReviveRerenderTime = 0;
+  lastProcessHealth = 0;
   isVertical = false;
   renderImage: BridgeRenderableImage | null = null;
   renderDamagedImage: BridgeRenderableImage | null = null;
@@ -333,6 +334,43 @@ export class BridgeEntity extends GameEntity {
   }
 
   /**
+   * Port of upstream `BBridge::Process`.
+   * Role: Detects bridge damage threshold transitions and completes delayed revive rerendering.
+   * Upstream: bbridge.cpp:46-70
+   */
+  override process(
+    currentTime = 0,
+    effectList: BridgeTurrentEffectSpawn[] | null = null,
+    randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+      Math.floor(Math.random() * maxExclusive),
+  ): number {
+    if (this.lastProcessHealth !== this.health) {
+      const halfHealth = this.maxHealth >> 1;
+
+      if (
+        this.lastProcessHealth >= halfHealth &&
+        this.health !== 0 &&
+        this.health < halfHealth
+      ) {
+        this.doExplosions(effectList, randomInt);
+        this.doBaseRerender = true;
+      }
+
+      this.lastProcessHealth = this.health;
+    }
+
+    if (
+      this.doReviveRerender &&
+      currentTime >= this.nextReviveRerenderTime
+    ) {
+      this.doReviveRerender = false;
+      this.doBaseRerender = true;
+    }
+
+    return 1;
+  }
+
+  /**
    * Port of upstream `BBridge::ImpassCenter`.
    * Role: Updates passability for the bridge center tiles.
    * Upstream: bbridge.cpp:196-222
@@ -374,6 +412,32 @@ export class BridgeEntity extends GameEntity {
    */
   override unsetDestroyMapImpassables(tmap: BridgeImpassableMap): void {
     this.impassCenter(tmap, false);
+  }
+
+  /**
+   * Port of upstream `BBridge::SetMapImpassables`.
+   * Role: Marks the bridge edge rails as blocked while leaving the center passable.
+   * Upstream: bbridge.cpp:168-194
+   */
+  override setMapImpassables(tmap: BridgeImpassableMap): void {
+    let tileX = Math.trunc(this.position.x / 16);
+    let tileY = Math.trunc(this.position.y / 16);
+    const endX = tileX + this.width;
+    const endY = tileY + this.height;
+
+    if (this.isVertical) {
+      for (; tileY < endY; tileY += 1) {
+        tmap.setImpassable(tileX, tileY);
+        tmap.setImpassable(tileX + 3, tileY);
+      }
+
+      return;
+    }
+
+    for (; tileX < endX; tileX += 1) {
+      tmap.setImpassable(tileX, tileY);
+      tmap.setImpassable(tileX, tileY + 3);
+    }
   }
 
   /**

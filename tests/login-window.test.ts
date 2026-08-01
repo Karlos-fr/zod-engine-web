@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  clickLoginWindow,
   doCreateLoginWindow,
   doLoginWindow,
   initLoginWindow,
+  keyPressLoginWindow,
   LOGIN_MENU_BASE_IMAGE_PATH,
   unclickLoginWindow,
   ZGW_LOGIN_HEADER_GUARD_PORTED,
@@ -87,6 +89,192 @@ describe("login window", () => {
       "create:20:30",
       "do-create",
     ]);
+  });
+
+  it("ports GWLogin Click as button press routing and login-name selection", () => {
+    const calls: string[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 80,
+      loginButton: {
+        click: (x: number, y: number) => calls.push(`login:${x}:${y}`),
+      },
+      createButton: {
+        click: (x: number, y: number) => calls.push(`create:${x}:${y}`),
+      },
+      loginNameBox: {
+        click: (x: number, y: number) => {
+          calls.push(`name-click:${x}:${y}`);
+          return true;
+        },
+        setSelected: (selected: boolean) => calls.push(`name-selected:${selected}`),
+      },
+      loginPasswordBox: {
+        click: (x: number, y: number) => {
+          calls.push(`pass-click:${x}:${y}`);
+          return false;
+        },
+        setSelected: (selected: boolean) => calls.push(`pass-selected:${selected}`),
+      },
+    };
+
+    const inside = clickLoginWindow(state, 30, 50);
+
+    expect(inside).toBe(true);
+    expect(calls).toEqual([
+      "login:20:30",
+      "create:20:30",
+      "name-click:20:30",
+      "name-selected:true",
+      "pass-selected:false",
+      "pass-click:20:30",
+    ]);
+  });
+
+  it("ports GWLogin Click as password selection and bounds checks", () => {
+    const calls: string[] = [];
+    const state = {
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 80,
+      loginButton: {
+        click: (x: number, y: number) => calls.push(`login:${x}:${y}`),
+      },
+      createButton: {
+        click: (x: number, y: number) => calls.push(`create:${x}:${y}`),
+      },
+      loginNameBox: {
+        click: () => false,
+        setSelected: (selected: boolean) => calls.push(`name-selected:${selected}`),
+      },
+      loginPasswordBox: {
+        click: () => true,
+        setSelected: (selected: boolean) => calls.push(`pass-selected:${selected}`),
+      },
+    };
+
+    expect(clickLoginWindow(state, 9, 50)).toBe(false);
+    expect(clickLoginWindow(state, 30, 19)).toBe(false);
+    expect(clickLoginWindow(state, 110, 50)).toBe(false);
+    expect(clickLoginWindow(state, 30, 100)).toBe(false);
+
+    expect(calls).toEqual([
+      "login:-1:30",
+      "create:-1:30",
+      "name-selected:false",
+      "pass-selected:true",
+      "login:20:-1",
+      "create:20:-1",
+      "name-selected:false",
+      "pass-selected:true",
+      "login:100:30",
+      "create:100:30",
+      "name-selected:false",
+      "pass-selected:true",
+      "login:20:80",
+      "create:20:80",
+      "name-selected:false",
+      "pass-selected:true",
+    ]);
+  });
+
+  it("ports GWLogin KeyPress as tab selection toggle from login name", () => {
+    const calls: string[] = [];
+    const state = {
+      flags: { clear: () => calls.push("clear") },
+      loginNameBox: {
+        isSelected: () => true,
+        setSelected: (selected: boolean) => calls.push(`name-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`name-key:${c}`),
+      },
+      loginPasswordBox: {
+        isSelected: () => false,
+        setSelected: (selected: boolean) => calls.push(`pass-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`pass-key:${c}`),
+      },
+      doLogin: () => calls.push("do-login"),
+    };
+
+    expect(keyPressLoginWindow(state, 9)).toBe(true);
+
+    expect(calls).toEqual([
+      "clear",
+      "name-selected:false",
+      "pass-selected:true",
+    ]);
+  });
+
+  it("ports GWLogin KeyPress as tab selection toggle to login name", () => {
+    const calls: string[] = [];
+    const state = {
+      flags: { clear: () => calls.push("clear") },
+      loginNameBox: {
+        isSelected: () => false,
+        setSelected: (selected: boolean) => calls.push(`name-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`name-key:${c}`),
+      },
+      loginPasswordBox: {
+        isSelected: () => true,
+        setSelected: (selected: boolean) => calls.push(`pass-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`pass-key:${c}`),
+      },
+      doLogin: () => calls.push("do-login"),
+    };
+
+    expect(keyPressLoginWindow(state, 9)).toBe(true);
+
+    expect(calls).toEqual([
+      "clear",
+      "name-selected:true",
+      "pass-selected:false",
+    ]);
+  });
+
+  it("ports GWLogin KeyPress as enter login action", () => {
+    const calls: string[] = [];
+    const state = {
+      flags: { clear: () => calls.push("clear") },
+      loginNameBox: {
+        isSelected: () => true,
+        setSelected: (selected: boolean) => calls.push(`name-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`name-key:${c}`),
+      },
+      loginPasswordBox: {
+        isSelected: () => false,
+        setSelected: (selected: boolean) => calls.push(`pass-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`pass-key:${c}`),
+      },
+      doLogin: () => calls.push("do-login"),
+    };
+
+    expect(keyPressLoginWindow(state, 13)).toBe(true);
+
+    expect(calls).toEqual(["clear", "do-login"]);
+  });
+
+  it("ports GWLogin KeyPress as forwarding to the selected text box", () => {
+    const calls: string[] = [];
+    const state = {
+      flags: { clear: () => calls.push("clear") },
+      loginNameBox: {
+        isSelected: () => false,
+        setSelected: (selected: boolean) => calls.push(`name-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`name-key:${c}`),
+      },
+      loginPasswordBox: {
+        isSelected: () => true,
+        setSelected: (selected: boolean) => calls.push(`pass-selected:${selected}`),
+        keyPress: (c: number) => calls.push(`pass-key:${c}`),
+      },
+      doLogin: () => calls.push("do-login"),
+    };
+
+    expect(keyPressLoginWindow(state, "a".charCodeAt(0))).toBe(true);
+
+    expect(calls).toEqual(["clear", "pass-key:97"]);
   });
 
   it("ports GWLogin UnClick bounds checks as outside release misses", () => {

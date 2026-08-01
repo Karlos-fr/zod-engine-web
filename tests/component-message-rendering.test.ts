@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { FontType } from "../src/rendering/FontEngine";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
   ComponentMessage,
   ComponentMessageEngine,
   ComponentMessageFlags,
+  COMPONENT_MESSAGE_CLICK_TO_RESUME_IMAGE_PATH,
+  COMPONENT_MESSAGE_FORT_UNDER_ATTACK_IMAGE_PATH,
+  COMPONENT_MESSAGE_GUN_IMAGE_PATH,
+  COMPONENT_MESSAGE_GUN_MANUFACTURED_IMAGE_PATH,
+  COMPONENT_MESSAGE_PAUSED_IMAGE_PATH,
+  COMPONENT_MESSAGE_ROBOT_MANUFACTURED_IMAGE_PATH,
+  COMPONENT_MESSAGE_VEHICLE_MANUFACTURED_IMAGE_PATH,
+  initComponentMessageEngine,
   renderComponentMessageResume,
   type ComponentMessageObjectReference,
   type ComponentMessageResumeRenderState,
@@ -31,6 +40,82 @@ describe("component message rendering constants", () => {
     expect(ComponentMessage.VehicleManufactured).toBe(1);
     expect(ComponentMessage.GunManufactured).toBe(2);
     expect(ComponentMessage.Fort).toBe(3);
+  });
+
+  it("ports ZCompMessageEngine Init as static image loading", () => {
+    const loads: Array<[string, string]> = [];
+    const makeTarget = (id: string) => ({
+      loadBaseImage: (source: string) => loads.push([id, source]),
+    });
+
+    initComponentMessageEngine(
+      {
+        robotManufacturedImage: makeTarget("robot"),
+        vehicleManufacturedImage: makeTarget("vehicle"),
+        gunManufacturedImage: makeTarget("gun-manufactured"),
+        fortUnderAttackedImage: makeTarget("fort"),
+        gunImage: makeTarget("gun"),
+        pausedImage: makeTarget("paused"),
+        clickToResumeImage: makeTarget("resume"),
+        xImages: [],
+      },
+      (font, text) => `${font}:${text}`,
+    );
+
+    expect(loads).toEqual([
+      ["robot", COMPONENT_MESSAGE_ROBOT_MANUFACTURED_IMAGE_PATH],
+      ["vehicle", COMPONENT_MESSAGE_VEHICLE_MANUFACTURED_IMAGE_PATH],
+      ["gun-manufactured", COMPONENT_MESSAGE_GUN_MANUFACTURED_IMAGE_PATH],
+      ["fort", COMPONENT_MESSAGE_FORT_UNDER_ATTACK_IMAGE_PATH],
+      ["gun", COMPONENT_MESSAGE_GUN_IMAGE_PATH],
+      ["paused", COMPONENT_MESSAGE_PAUSED_IMAGE_PATH],
+      ["resume", COMPONENT_MESSAGE_CLICK_TO_RESUME_IMAGE_PATH],
+    ]);
+  });
+
+  it("ports ZCompMessageEngine Init as stored gun count text rendering", () => {
+    const rendered: Array<[FontType, string]> = [];
+    const loads: Array<[number, string]> = [];
+
+    initComponentMessageEngine(
+      {
+        robotManufacturedImage: { loadBaseImage: () => undefined },
+        vehicleManufacturedImage: { loadBaseImage: () => undefined },
+        gunManufacturedImage: { loadBaseImage: () => undefined },
+        fortUnderAttackedImage: { loadBaseImage: () => undefined },
+        gunImage: { loadBaseImage: () => undefined },
+        pausedImage: { loadBaseImage: () => undefined },
+        clickToResumeImage: { loadBaseImage: () => undefined },
+        xImages: Array.from({ length: MAX_RENDERABLE_STORED_GUNS }, (_, index) => ({
+          loadBaseImage: (source: string) => loads.push([index, source]),
+        })),
+      },
+      (font, text) => {
+        rendered.push([font, text]);
+        return `image:${text}`;
+      },
+    );
+
+    expect(rendered).toEqual([
+      [FontType.SmallWhite, "X1"],
+      [FontType.SmallWhite, "X2"],
+      [FontType.SmallWhite, "X3"],
+      [FontType.SmallWhite, "X4"],
+      [FontType.SmallWhite, "X5"],
+      [FontType.SmallWhite, "X6"],
+      [FontType.SmallWhite, "X7"],
+      [FontType.SmallWhite, "X8"],
+    ]);
+    expect(loads).toEqual([
+      [0, "image:X1"],
+      [1, "image:X2"],
+      [2, "image:X3"],
+      [3, "image:X4"],
+      [4, "image:X5"],
+      [5, "image:X6"],
+      [6, "image:X7"],
+      [7, "image:X8"],
+    ]);
   });
 
   it("ports the ZObject forward declaration as a component message entity reference", () => {
@@ -89,6 +174,99 @@ describe("component message rendering constants", () => {
       flipsDone: 0,
       refId: 88,
     });
+  });
+
+  it("ports ZCompMessageEngine Process as message image selection before flip time", () => {
+    const engine = new ComponentMessageEngine<unknown, unknown, string>();
+    engine.showMessage = ComponentMessage.GunManufactured;
+    engine.nextFlipTime = 10;
+    engine.showTheMessage = true;
+    engine.flipsDone = 2;
+
+    engine.process(9.99, {
+      robotManufactured: "robot",
+      vehicleManufactured: "vehicle",
+      gunManufactured: "gun",
+      fortUnderAttacked: "fort",
+    });
+
+    expect(engine.showMessageImage).toBe("gun");
+    expect(engine.showTheMessage).toBe(true);
+    expect(engine.flipsDone).toBe(2);
+    expect(engine.nextFlipTime).toBe(10);
+  });
+
+  it("ports ZCompMessageEngine Process as timed visibility flip", () => {
+    const engine = new ComponentMessageEngine<unknown, unknown, string>();
+    engine.showMessage = ComponentMessage.VehicleManufactured;
+    engine.nextFlipTime = 10;
+    engine.showTheMessage = true;
+    engine.flipsDone = 4;
+
+    engine.process(10, {
+      robotManufactured: "robot",
+      vehicleManufactured: "vehicle",
+      gunManufactured: "gun",
+      fortUnderAttacked: "fort",
+    });
+
+    expect(engine.showMessageImage).toBe("vehicle");
+    expect(engine.showTheMessage).toBe(false);
+    expect(engine.flipsDone).toBe(5);
+    expect(engine.nextFlipTime).toBe(10.3);
+    expect(engine.finalTime).toBe(0);
+  });
+
+  it("ports ZCompMessageEngine Process as final display timeout scheduling", () => {
+    const engine = new ComponentMessageEngine<unknown, unknown, string>();
+    engine.showMessage = ComponentMessage.Fort;
+    engine.nextFlipTime = 20;
+    engine.showTheMessage = false;
+    engine.flipsDone = 9;
+
+    engine.process(20, {
+      robotManufactured: "robot",
+      vehicleManufactured: "vehicle",
+      gunManufactured: "gun",
+      fortUnderAttacked: "fort",
+    });
+
+    expect(engine.showMessageImage).toBe("fort");
+    expect(engine.showTheMessage).toBe(true);
+    expect(engine.flipsDone).toBe(10);
+    expect(engine.nextFlipTime).toBe(20.3);
+    expect(engine.finalTime).toBe(25);
+  });
+
+  it("ports ZCompMessageEngine Process as expiry after final time", () => {
+    const engine = new ComponentMessageEngine<unknown, unknown, string>();
+    engine.showMessage = ComponentMessage.RobotManufactured;
+    engine.showMessageImage = "robot";
+    engine.showTheMessage = true;
+    engine.flipsDone = 10;
+    engine.finalTime = 25;
+
+    engine.process(24.99, {
+      robotManufactured: "robot",
+      vehicleManufactured: "vehicle",
+      gunManufactured: "gun",
+      fortUnderAttacked: "fort",
+    });
+
+    expect(engine.showMessage).toBe(ComponentMessage.RobotManufactured);
+    expect(engine.showMessageImage).toBe("robot");
+    expect(engine.showTheMessage).toBe(true);
+
+    engine.process(25, {
+      robotManufactured: "robot",
+      vehicleManufactured: "vehicle",
+      gunManufactured: "gun",
+      fortUnderAttacked: "fort",
+    });
+
+    expect(engine.showMessage).toBe(-1);
+    expect(engine.showMessageImage).toBeNull();
+    expect(engine.showTheMessage).toBe(false);
   });
 
   it("replaces ZCompMessageEngine RenderResume as no command while unpaused", () => {

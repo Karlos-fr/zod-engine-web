@@ -7,6 +7,7 @@ import {
   processCursor,
   setCursor,
   setCursorTeam,
+  setPlayerPreviewCursor,
 } from "../src/input/CursorTiming";
 import { TeamType } from "../src/simulation/SimulationConstants";
 
@@ -151,5 +152,74 @@ describe("cursor timing", () => {
     expect(state.currentSurface).toBe(
       surfaces[CursorType.Grab]![TeamType.Green]![0],
     );
+  });
+
+  it("ports ZPlayer SetPcursor as command cursor feedback mapping", () => {
+    const surfaces = [] as Array<Array<Array<{ id: string }>>>;
+    for (const cursor of [
+      CursorType.Placed,
+      CursorType.Attacked,
+      CursorType.Grabbed,
+      CursorType.Grenaded,
+      CursorType.Repaired,
+      CursorType.Entered,
+      CursorType.Exited,
+      CursorType.Cannoned,
+    ]) {
+      surfaces[cursor] = [];
+      surfaces[cursor]![TeamType.Red] = [{ id: `surface-${cursor}` }];
+    }
+    const state = {
+      cursor: { currentCursor: CursorType.Place },
+      previewCursor: {
+        currentCursor: CursorType.Cursor,
+        owner: TeamType.Red,
+        cursorFrameIndex: 0,
+        currentSurface: null as { id: string } | null,
+      },
+    };
+
+    const expectedMappings = [
+      [CursorType.Place, CursorType.Placed],
+      [CursorType.Attack, CursorType.Attacked],
+      [CursorType.Grab, CursorType.Grabbed],
+      [CursorType.Grenade, CursorType.Grenaded],
+      [CursorType.Repair, CursorType.Repaired],
+      [CursorType.Enter, CursorType.Entered],
+      [CursorType.Exit, CursorType.Exited],
+      [CursorType.Cannon, CursorType.Cannoned],
+    ] as const;
+
+    for (const [sourceCursor, previewCursor] of expectedMappings) {
+      state.cursor.currentCursor = sourceCursor;
+
+      setPlayerPreviewCursor(state, surfaces);
+
+      expect(state.previewCursor.currentCursor).toBe(previewCursor);
+      expect(state.previewCursor.currentSurface).toBe(
+        surfaces[previewCursor]![TeamType.Red]![0],
+      );
+    }
+  });
+
+  it("ports ZPlayer SetPcursor default as placed feedback cursor", () => {
+    const placedSurface = { id: "placed-red-frame-0" };
+    const surfaces = [] as Array<Array<Array<{ id: string }>>>;
+    surfaces[CursorType.Placed] = [];
+    surfaces[CursorType.Placed]![TeamType.Red] = [placedSurface];
+    const state = {
+      cursor: { currentCursor: CursorType.Cursor },
+      previewCursor: {
+        currentCursor: CursorType.Attacked,
+        owner: TeamType.Red,
+        cursorFrameIndex: 0,
+        currentSurface: null as { id: string } | null,
+      },
+    };
+
+    setPlayerPreviewCursor(state, surfaces);
+
+    expect(state.previewCursor.currentCursor).toBe(CursorType.Placed);
+    expect(state.previewCursor.currentSurface).toBe(placedSurface);
   });
 });

@@ -71,6 +71,16 @@ export type CursorProcessState<TSurface = unknown> =
 export type CursorSurfaceTable<TSurface> = TSurface[][][];
 
 /**
+ * Port of upstream `ZPlayer::SetPcursor` dependency surface.
+ * Role: Holds the active player cursor and the preview cursor updated from it.
+ * Upstream: zplayer.cpp:2024-2051
+ */
+export type PlayerPreviewCursorState<TSurface = unknown> = {
+  cursor: CursorSelectionState;
+  previewCursor: CursorSurfaceState<TSurface>;
+};
+
+/**
  * Port of upstream `ZCursor::GetCursor`.
  * Role: Returns the currently selected cursor sprite and interaction feedback mode.
  * Upstream: cursor.cpp:158-161
@@ -130,4 +140,44 @@ export function processCursor<TSurface>(
 
   state.currentSurface =
     surfaces[state.currentCursor]?.[state.owner]?.[state.cursorFrameIndex] ?? null;
+}
+
+/**
+ * Port of upstream `ZPlayer::SetPcursor`.
+ * Role: Maps the active command cursor to its preview/feedback cursor variant.
+ * Upstream: zplayer.cpp:2022-2054
+ */
+export function setPlayerPreviewCursor<TSurface>(
+  state: PlayerPreviewCursorState<TSurface>,
+  surfaces: CursorSurfaceTable<TSurface>,
+): void {
+  switch (getCursor(state.cursor)) {
+    case CursorType.Place:
+      setCursor(state.previewCursor, CursorType.Placed, surfaces);
+      break;
+    case CursorType.Attack:
+      setCursor(state.previewCursor, CursorType.Attacked, surfaces);
+      break;
+    case CursorType.Grab:
+      setCursor(state.previewCursor, CursorType.Grabbed, surfaces);
+      break;
+    case CursorType.Grenade:
+      setCursor(state.previewCursor, CursorType.Grenaded, surfaces);
+      break;
+    case CursorType.Repair:
+      setCursor(state.previewCursor, CursorType.Repaired, surfaces);
+      break;
+    case CursorType.Enter:
+      setCursor(state.previewCursor, CursorType.Entered, surfaces);
+      break;
+    case CursorType.Exit:
+      setCursor(state.previewCursor, CursorType.Exited, surfaces);
+      break;
+    case CursorType.Cannon:
+      setCursor(state.previewCursor, CursorType.Cannoned, surfaces);
+      break;
+    default:
+      setCursor(state.previewCursor, CursorType.Placed, surfaces);
+      break;
+  }
 }

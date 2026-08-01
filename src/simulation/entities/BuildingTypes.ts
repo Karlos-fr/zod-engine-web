@@ -16,6 +16,7 @@ import {
   type BuildUnitResult,
 } from "./GameEntity";
 import type { BuildList } from "./BuildList";
+import { FontType } from "../../rendering/FontEngine";
 
 /**
  * Marker exported from the building type module.
@@ -141,6 +142,21 @@ export type BuildingImageLoadTarget = {
 };
 
 /**
+ * Replacement for upstream `show_time_img`.
+ * Role: Stores the rendered production countdown image.
+ * Upstream: zbuilding.cpp:527, zbuilding.cpp:544
+ */
+export type BuildingShowTimeImageTarget<TImage = unknown> = {
+  unload(): void;
+  loadBaseImage(image: TImage): void;
+};
+
+export type BuildingShowTimeTextRenderer<TImage> = (
+  font: FontType,
+  text: string,
+) => TImage;
+
+/**
  * Port of upstream `ZBuilding::Init`.
  * Role: Loads shared building level and exhaust image assets.
  * Upstream: zbuilding.cpp:56-78
@@ -185,6 +201,8 @@ export class BuildingEntity extends GameEntity {
   initialProductionTime = 0;
   finalProductionTime = 0;
   totalProductionTime = 0;
+  showTime = -1;
+  showTimeImage: BuildingShowTimeImageTarget | null = null;
   ztime: { ztime: number } | null = null;
   buildList: Pick<
     BuildList,
@@ -223,6 +241,30 @@ export class BuildingEntity extends GameEntity {
       objectType: this.buildObjectType,
       objectId: this.buildObjectId,
     };
+  }
+
+  /**
+   * Port of upstream `ZBuilding::ResetShowTime`.
+   * Role: Refreshes the rendered production countdown image when the displayed seconds change.
+   * Upstream: zbuilding.cpp:520-546
+   */
+  resetShowTime<TImage>(
+    newTime: number,
+    renderText: BuildingShowTimeTextRenderer<TImage>,
+  ): void {
+    if (newTime === this.showTime) return;
+
+    this.showTimeImage?.unload();
+
+    if (newTime > -1) {
+      this.showTime = newTime;
+
+      const seconds = newTime % 60;
+      const minutes = Math.trunc(newTime / 60) % 60;
+      const text = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+      this.showTimeImage?.loadBaseImage(renderText(FontType.GreenBuilding, text));
+    }
   }
 
   /**

@@ -5,6 +5,7 @@
 import { currentTime } from "../simulation/Common";
 import type { GameEntity } from "../simulation/entities/GameEntity";
 import type { MapSurfaceRenderCommand } from "../world/GameMap";
+import { FontType } from "./FontEngine";
 
 /**
  * Port of upstream `_ZCOMP_MESSAGE_ENGINE_H_`.
@@ -19,6 +20,21 @@ export const ZCOMP_MESSAGE_ENGINE_HEADER_GUARD_PORTED = true;
  * Upstream: zcomp_message_engine.h:9
  */
 export const MAX_RENDERABLE_STORED_GUNS = 8;
+
+export const COMPONENT_MESSAGE_ROBOT_MANUFACTURED_IMAGE_PATH =
+  "assets/other/comp_messages/robot_manufactured.png";
+export const COMPONENT_MESSAGE_VEHICLE_MANUFACTURED_IMAGE_PATH =
+  "assets/other/comp_messages/vehicle_manufactured.png";
+export const COMPONENT_MESSAGE_GUN_MANUFACTURED_IMAGE_PATH =
+  "assets/other/comp_messages/gun_manufactured.png";
+export const COMPONENT_MESSAGE_FORT_UNDER_ATTACK_IMAGE_PATH =
+  "assets/other/comp_messages/fort_under_attack.png";
+export const COMPONENT_MESSAGE_GUN_IMAGE_PATH =
+  "assets/other/comp_messages/gun.png";
+export const COMPONENT_MESSAGE_PAUSED_IMAGE_PATH =
+  "assets/other/comp_messages/paused.png";
+export const COMPONENT_MESSAGE_CLICK_TO_RESUME_IMAGE_PATH =
+  "assets/other/comp_messages/click_to_resume.png";
 
 /**
  * Port of upstream `comp_message`.
@@ -68,6 +84,67 @@ export type ComponentMessageResumeRenderState<TSurface> = {
   clickToResumeImage: ComponentMessageResumeImage<TSurface>;
 };
 
+export type ComponentMessageImageSet<TImage> = {
+  robotManufactured: TImage;
+  vehicleManufactured: TImage;
+  gunManufactured: TImage;
+  fortUnderAttacked: TImage;
+};
+
+export type ComponentMessageImageLoadTarget<TImage = unknown> = {
+  loadBaseImage(source: string | TImage): void;
+};
+
+export type ComponentMessageInitState<TImage = unknown> = {
+  robotManufacturedImage: ComponentMessageImageLoadTarget<TImage>;
+  vehicleManufacturedImage: ComponentMessageImageLoadTarget<TImage>;
+  gunManufacturedImage: ComponentMessageImageLoadTarget<TImage>;
+  fortUnderAttackedImage: ComponentMessageImageLoadTarget<TImage>;
+  gunImage: ComponentMessageImageLoadTarget<TImage>;
+  pausedImage: ComponentMessageImageLoadTarget<TImage>;
+  clickToResumeImage: ComponentMessageImageLoadTarget<TImage>;
+  xImages: readonly ComponentMessageImageLoadTarget<TImage>[];
+};
+
+export type ComponentMessageTextRenderer<TImage> = (
+  font: FontType,
+  text: string,
+) => TImage;
+
+/**
+ * Port of upstream `ZCompMessageEngine::Init`.
+ * Role: Loads component-message images and renders stored-gun count labels.
+ * Upstream: zcomp_message_engine.cpp:51-69
+ */
+export function initComponentMessageEngine<TImage>(
+  state: ComponentMessageInitState<TImage>,
+  renderText: ComponentMessageTextRenderer<TImage>,
+): void {
+  state.robotManufacturedImage.loadBaseImage(
+    COMPONENT_MESSAGE_ROBOT_MANUFACTURED_IMAGE_PATH,
+  );
+  state.vehicleManufacturedImage.loadBaseImage(
+    COMPONENT_MESSAGE_VEHICLE_MANUFACTURED_IMAGE_PATH,
+  );
+  state.gunManufacturedImage.loadBaseImage(
+    COMPONENT_MESSAGE_GUN_MANUFACTURED_IMAGE_PATH,
+  );
+  state.fortUnderAttackedImage.loadBaseImage(
+    COMPONENT_MESSAGE_FORT_UNDER_ATTACK_IMAGE_PATH,
+  );
+  state.gunImage.loadBaseImage(COMPONENT_MESSAGE_GUN_IMAGE_PATH);
+  state.pausedImage.loadBaseImage(COMPONENT_MESSAGE_PAUSED_IMAGE_PATH);
+  state.clickToResumeImage.loadBaseImage(
+    COMPONENT_MESSAGE_CLICK_TO_RESUME_IMAGE_PATH,
+  );
+
+  for (let i = 0; i < MAX_RENDERABLE_STORED_GUNS; i += 1) {
+    state.xImages[i]?.loadBaseImage(
+      renderText(FontType.SmallWhite, `X${i + 1}`),
+    );
+  }
+}
+
 /**
  * Browser-side state for the ported subset of `ZCompMessageEngine`.
  * Role: Holds references consumed by component message rendering.
@@ -76,14 +153,17 @@ export type ComponentMessageResumeRenderState<TSurface> = {
 export class ComponentMessageEngine<
   TObject = ComponentMessageObjectReference,
   TTime = unknown,
+  TImage = unknown,
 > {
   objectList: TObject[] | null = null;
   ourTeam = 0;
   ztime: TTime | null = null;
   showMessage: ComponentMessage | number = -1;
+  showMessageImage: TImage | null = null;
   nextFlipTime = 0;
   showTheMessage = false;
   flipsDone = 0;
+  finalTime = 0;
   refId = -1;
 
   /**
@@ -130,6 +210,53 @@ export class ComponentMessageEngine<
     this.showTheMessage = true;
     this.flipsDone = 0;
     this.refId = refId;
+  }
+
+  /**
+   * Port of upstream `ZCompMessageEngine::Process`.
+   * Role: Selects the active message image, flips visibility, and expires finished messages.
+   * Upstream: zcomp_message_engine.cpp:196-233
+   */
+  process(theTime: number, images: ComponentMessageImageSet<TImage>): void {
+    if (this.showMessage === -1) return;
+
+    switch (this.showMessage) {
+      case ComponentMessage.RobotManufactured:
+        this.showMessageImage = images.robotManufactured;
+        break;
+      case ComponentMessage.VehicleManufactured:
+        this.showMessageImage = images.vehicleManufactured;
+        break;
+      case ComponentMessage.GunManufactured:
+        this.showMessageImage = images.gunManufactured;
+        break;
+      case ComponentMessage.Fort:
+        this.showMessageImage = images.fortUnderAttacked;
+        break;
+      default:
+        this.showMessageImage = null;
+        break;
+    }
+
+    if (this.flipsDone < 10) {
+      if (theTime >= this.nextFlipTime) {
+        this.flipsDone += 1;
+        this.showTheMessage = !this.showTheMessage;
+        this.nextFlipTime = theTime + 0.3;
+
+        if (this.flipsDone === 10) {
+          this.finalTime = theTime + 5;
+        }
+      }
+
+      return;
+    }
+
+    if (theTime >= this.finalTime) {
+      this.showMessage = -1;
+      this.showMessageImage = null;
+      this.showTheMessage = false;
+    }
   }
 }
 

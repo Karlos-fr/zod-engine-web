@@ -292,6 +292,42 @@ export function overHudMiniMap(
 }
 
 /**
+ * Port of upstream `ZHud::MouseMotion`.
+ * Role: Consumes mouse motion over HUD-reserved screen strips and reports minimap motion targets.
+ * Upstream: zhud.cpp:280-303
+ */
+export function handleHudMouseMotion(
+  miniMap: HudMiniMapClickTarget,
+  x: number,
+  y: number,
+  screenWidth: number,
+  screenHeight: number,
+  response: HudClickResponse,
+): void {
+  response.clear();
+
+  if (x < screenWidth - HUD_WIDTH_PIXELS && y < screenHeight - HUD_HEIGHT_PIXELS) {
+    return;
+  }
+
+  const offsetX = screenWidth - 648;
+  const offsetY = screenHeight - 484;
+  const rx = x - offsetX;
+  const ry = y - offsetY;
+
+  response.used = true;
+
+  const clicked = miniMap.clickedMap(rx - 555, ry - 299);
+  if (!clicked) {
+    return;
+  }
+
+  response.type = HudResponseType.MiniMap;
+  response.miniX = clicked.mapX;
+  response.miniY = clicked.mapY;
+}
+
+/**
  * Port of upstream `zhud_end_unit`.
  * Role: Stores object identifiers shown in the HUD end-unit sequence.
  * Upstream: zhud.h:77-89
