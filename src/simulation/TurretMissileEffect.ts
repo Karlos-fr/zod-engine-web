@@ -31,3 +31,19 @@ export enum TurretMissileEffectType {
   FortBuildingPiece4 = 13,
   Grenade = 14,
 }
+
+/**
+ * Port of upstream `ETurrentMissile` construction arguments.
+ * Role: Describes a turret missile effect spawned by a combat unit.
+ * Upstream: eturrentmissile.h:17-39
+ */
+export type TurretMissileEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  offsetTime: number;
+  type: TurretMissileEffectType;
+  owner?: number;
+};

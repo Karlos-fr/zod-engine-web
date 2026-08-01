@@ -4,7 +4,9 @@ import {
   ComponentMessage,
   ComponentMessageEngine,
   ComponentMessageFlags,
+  renderComponentMessageResume,
   type ComponentMessageObjectReference,
+  type ComponentMessageResumeRenderState,
   MAX_RENDERABLE_STORED_GUNS,
   ZCOMP_MESSAGE_ENGINE_HEADER_GUARD_PORTED,
 } from "../src/rendering/ComponentMessageRendering";
@@ -86,6 +88,81 @@ describe("component message rendering constants", () => {
       showTheMessage: true,
       flipsDone: 0,
       refId: 88,
+    });
+  });
+
+  it("replaces ZCompMessageEngine RenderResume as no command while unpaused", () => {
+    const state: ComponentMessageResumeRenderState<string> = {
+      ztime: { isPaused: () => false },
+      clickToResumeImage: {
+        surface: "resume",
+        baseSurface: { width: 80, height: 20 },
+      },
+    };
+
+    const command = renderComponentMessageResume(state, {
+      getViewShiftFull: () => {
+        throw new Error("view shift should not be read");
+      },
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    });
+
+    expect(command).toBeNull();
+  });
+
+  it("replaces ZCompMessageEngine RenderResume as no command without an image", () => {
+    const state: ComponentMessageResumeRenderState<string> = {
+      ztime: { isPaused: () => true },
+      clickToResumeImage: {
+        surface: "resume",
+        baseSurface: null,
+      },
+    };
+
+    const command = renderComponentMessageResume(state, {
+      getViewShiftFull: () => {
+        throw new Error("view shift should not be read");
+      },
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    });
+
+    expect(command).toBeNull();
+  });
+
+  it("replaces ZCompMessageEngine RenderResume as a centered map surface command", () => {
+    const calls: unknown[] = [];
+    const state: ComponentMessageResumeRenderState<string> = {
+      ztime: { isPaused: () => true },
+      clickToResumeImage: {
+        surface: "resume",
+        baseSurface: { width: 81, height: 21 },
+      },
+    };
+
+    const command = renderComponentMessageResume(state, {
+      getViewShiftFull: () => ({
+        x: 12,
+        y: 34,
+        viewWidth: 640,
+        viewHeight: 480,
+      }),
+      renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+        calls.push([surface, x, y, renderHit, aboutCenter]);
+        return { surface, x: x - 12, y: y - 34, renderHit, aboutCenter };
+      },
+    });
+
+    expect(calls).toEqual([["resume", 291, 263, false, false]]);
+    expect(command).toEqual({
+      surface: "resume",
+      x: 279,
+      y: 229,
+      renderHit: false,
+      aboutCenter: false,
     });
   });
 

@@ -55,6 +55,25 @@ export type HutPlanetTemplate = {
 };
 
 /**
+ * Port of upstream `AHutAnimal` home-return surface.
+ * Role: Reports and starts an animal's return-home state for hut coordination.
+ * Upstream: ohut.cpp:142-154
+ */
+export type HutAnimalHomeReturn = {
+  isGoingHome(): boolean;
+  goHome(): void;
+};
+
+/**
+ * Port of upstream `OHut::SendAnimalsHome` state.
+ * Role: Holds the hut animals managed by a hut object.
+ * Upstream: ohut.cpp:142-151
+ */
+export type HutAnimalsHomeState<TAnimal extends HutAnimalHomeReturn = HutAnimalHomeReturn> = {
+  hutAnimals: TAnimal[];
+};
+
+/**
  * Port of upstream `OHut::Init`.
  * Role: Loads one hut render image per planet palette.
  * Upstream: ohut.cpp:37-47
@@ -139,6 +158,36 @@ export function setMaxHutAnimals(
   state.maxHutAnimals = state.hutAnimalMin;
   if (randomDifference > 0) {
     state.maxHutAnimals += randomInt(randomDifference);
+  }
+}
+
+/**
+ * Port of upstream `OHut::SendAnimalsHome`.
+ * Role: Sends only enough non-returning hut animals home to satisfy the requested return count.
+ * Upstream: ohut.cpp:137-159
+ */
+export function sendHutAnimalsHome(
+  state: HutAnimalsHomeState,
+  amount: number,
+): void {
+  let amountGoingHome = 0;
+
+  for (const animal of state.hutAnimals) {
+    if (animal.isGoingHome()) {
+      amountGoingHome += 1;
+    }
+  }
+
+  let remainingAmount = amount - amountGoingHome;
+  if (remainingAmount <= 0) return;
+
+  for (const animal of state.hutAnimals) {
+    if (animal.isGoingHome()) continue;
+
+    animal.goHome();
+    remainingAmount -= 1;
+
+    if (remainingAmount <= 0) return;
   }
 }
 

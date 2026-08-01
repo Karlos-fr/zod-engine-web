@@ -35,6 +35,15 @@ export type MainMenuSelectMapState = {
 };
 
 /**
+ * Port of upstream `GMMSelectMap::Process` call target.
+ * Role: Provides widget processing for the select-map menu.
+ * Upstream: gmm_select_map.cpp:50
+ */
+export type MainMenuSelectMapProcessor = MainMenuSelectMapState & {
+  processWidgets(): void;
+};
+
+/**
  * Port of upstream `GMMSelectMap::SetupList`.
  * Role: Refreshes map-list entries from the selectable map names when the list size changes.
  * Upstream: gmm_select_map.cpp:87-100
@@ -54,4 +63,16 @@ export function setupMainMenuSelectMapList(
   });
 
   checkMainMenuListViewIndex(state.mapList);
+}
+
+/**
+ * Port of upstream `GMMSelectMap::Process`.
+ * Role: Refreshes the selectable map list and processes select-map widgets.
+ * Upstream: gmm_select_map.cpp:46-51
+ */
+export function processMainMenuSelectMap(
+  state: MainMenuSelectMapProcessor,
+): void {
+  setupMainMenuSelectMapList(state);
+  state.processWidgets();
 }

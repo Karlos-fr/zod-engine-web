@@ -1,12 +1,40 @@
 import { describe, expect, it } from "vitest";
 import { ZSettings } from "../src/data/ZSettingsData";
+import {
+  DeathEffectObject,
+  type DeathEffectSpawn,
+} from "../src/simulation/DeathEffect";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
-import { VehicleEntity } from "../src/simulation/entities/VehicleEntity";
+import {
+  doApcVehicleDeathEffect,
+  doCraneVehicleDeathEffect,
+  doHeavyVehicleDeathEffect,
+  doJeepVehicleDeathEffect,
+  doLightVehicleDeathEffect,
+  doMediumVehicleDeathEffect,
+  doMissileLauncherVehicleDeathEffect,
+  fireHeavyVehicleMissile,
+  fireLightVehicleMissile,
+  fireMediumVehicleMissile,
+  fireMissileLauncherMissile,
+  fireHeavyVehicleTurrentMissile,
+  fireLightVehicleTurrentMissile,
+  fireMediumVehicleTurrentMissile,
+  type VehicleRestrictedSoundCommand,
+  VehicleEntity,
+} from "../src/simulation/entities/VehicleEntity";
 import {
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
 } from "../src/simulation/SimulationConstants";
+import {
+  TurretMissileEffectType,
+  type TurretMissileEffectSpawn,
+} from "../src/simulation/TurretMissileEffect";
+import type { MobileMissileRocketsEffectSpawn } from "../src/simulation/MobileMissileRocketsEffect";
+import type { LightRocketEffectSpawn } from "../src/simulation/LightRocketEffect";
+import { SoundEngineSound } from "../src/audio/AudioService";
 
 describe("vehicle entity", () => {
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {
@@ -292,5 +320,872 @@ describe("vehicle entity", () => {
 
     entity.signalLidShouldClose(20, 6);
     expect(entity.nextCloseLidTime).toBeCloseTo(10.4);
+  });
+
+  it("ports ZVehicle ProcessLid as timed opening and robot reveal", () => {
+    const entity = new VehicleEntity({
+      id: "vehicle-process-lid-open",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+    });
+    entity.lidOpen = true;
+    entity.nextLidTime = 5;
+
+    entity.processLid(4.9);
+    expect(entity.lidI).toBe(0);
+    expect(entity.showRobot).toBe(false);
+    expect(entity.nextLidTime).toBe(5);
+
+    entity.processLid(5);
+    expect(entity.lidI).toBe(1);
+    expect(entity.showRobot).toBe(false);
+    expect(entity.nextLidTime).toBeCloseTo(5.2);
+
+    entity.processLid(5.2);
+    expect(entity.lidI).toBe(2);
+    expect(entity.showRobot).toBe(false);
+
+    entity.processLid(5.4);
+    expect(entity.lidI).toBe(2);
+    expect(entity.showRobot).toBe(true);
+  });
+
+  it("ports ZVehicle ProcessLid as timed closing and robot hide", () => {
+    const entity = new VehicleEntity({
+      id: "vehicle-process-lid-close",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+    });
+    entity.lidOpen = false;
+    entity.lidI = 2;
+    entity.showRobot = true;
+    entity.nextLidTime = 8;
+
+    entity.processLid(8);
+    expect(entity.lidI).toBe(1);
+    expect(entity.showRobot).toBe(false);
+    expect(entity.nextLidTime).toBeCloseTo(8.2);
+
+    entity.processLid(8.2);
+    expect(entity.lidI).toBe(0);
+    expect(entity.showRobot).toBe(false);
+
+    entity.processLid(8.4);
+    expect(entity.lidI).toBe(0);
+    expect(entity.showRobot).toBe(false);
+  });
+
+  it("ports VAPC DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doApcVehicleDeathEffect(
+        { ztime: { now: 12 }, position: { x: 40, y: 60 } },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VAPC DoDeathEffect as a front-inserted APC death effect", () => {
+    const ztime = { now: 12 };
+    const existing = {
+      ztime,
+      x: 1,
+      y: 2,
+      object: DeathEffectObject.Jeep,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doApcVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 40,
+        y: 60,
+        object: DeathEffectObject.Apc,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VCrane DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doCraneVehicleDeathEffect(
+        { ztime: { now: 12 }, position: { x: 44, y: 66 } },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VCrane DoDeathEffect as a front-inserted crane death effect", () => {
+    const ztime = { now: 14 };
+    const existing = {
+      ztime,
+      x: 5,
+      y: 6,
+      object: DeathEffectObject.Apc,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doCraneVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 44, y: 66 },
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 44,
+        y: 66,
+        object: DeathEffectObject.Crane,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VJeep DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doJeepVehicleDeathEffect(
+        { ztime: { now: 12 }, position: { x: 48, y: 72 } },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VJeep DoDeathEffect as a front-inserted jeep death effect", () => {
+    const ztime = { now: 15 };
+    const existing = {
+      ztime,
+      x: 7,
+      y: 8,
+      object: DeathEffectObject.Crane,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doJeepVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 48, y: 72 },
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 48,
+        y: 72,
+        object: DeathEffectObject.Jeep,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VMissileLauncher DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doMissileLauncherVehicleDeathEffect(
+        { ztime: { now: 12 }, position: { x: 52, y: 76 } },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VMissileLauncher DoDeathEffect as a front-inserted mobile-missile death effect", () => {
+    const ztime = { now: 16 };
+    const existing = {
+      ztime,
+      x: 9,
+      y: 10,
+      object: DeathEffectObject.Jeep,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doMissileLauncherVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 52, y: 76 },
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 52,
+        y: 76,
+        object: DeathEffectObject.MobileMissile,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VHeavy DoDeathEffect as no effect for null owner", () => {
+    const effects: DeathEffectSpawn<{ now: number }>[] = [];
+
+    doHeavyVehicleDeathEffect(
+      {
+        ztime: { now: 17 },
+        position: { x: 56, y: 80 },
+        owner: TeamType.Null,
+        direction: 1,
+        moveIndex: 2,
+        baseDamaged: [],
+      },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports VHeavy DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doHeavyVehicleDeathEffect(
+        {
+          ztime: { now: 17 },
+          position: { x: 56, y: 80 },
+          owner: TeamType.Red,
+          direction: 1,
+          moveIndex: 2,
+          baseDamaged: [],
+        },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VHeavy DoDeathEffect as a front-inserted tank death effect", () => {
+    const ztime = { now: 17 };
+    const tankImage = { id: "red-east-moving-heavy" };
+    const existing = {
+      ztime,
+      x: 11,
+      y: 12,
+      object: DeathEffectObject.Jeep,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+    const baseDamaged = [
+      [],
+      [],
+      [[], [undefined, undefined, tankImage]],
+    ];
+
+    doHeavyVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 56, y: 80 },
+        owner: TeamType.Red,
+        direction: 1,
+        moveIndex: 2,
+        baseDamaged,
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 56,
+        y: 80,
+        object: DeathEffectObject.Tank,
+        baseImage: tankImage,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VLight DoDeathEffect as no effect for null owner", () => {
+    const effects: DeathEffectSpawn<{ now: number }>[] = [];
+
+    doLightVehicleDeathEffect(
+      {
+        ztime: { now: 18 },
+        position: { x: 60, y: 84 },
+        owner: TeamType.Null,
+        direction: 0,
+        moveIndex: 1,
+        baseDamaged: [],
+      },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports VLight DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doLightVehicleDeathEffect(
+        {
+          ztime: { now: 18 },
+          position: { x: 60, y: 84 },
+          owner: TeamType.Blue,
+          direction: 0,
+          moveIndex: 1,
+          baseDamaged: [],
+        },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VLight DoDeathEffect as a front-inserted tank death effect", () => {
+    const ztime = { now: 18 };
+    const tankImage = { id: "blue-north-moving-light" };
+    const existing = {
+      ztime,
+      x: 13,
+      y: 14,
+      object: DeathEffectObject.Crane,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+    const baseDamaged = [
+      [],
+      [[], [undefined, tankImage]],
+    ];
+
+    doLightVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 60, y: 84 },
+        owner: TeamType.Blue,
+        direction: 1,
+        moveIndex: 1,
+        baseDamaged,
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 60,
+        y: 84,
+        object: DeathEffectObject.Tank,
+        baseImage: tankImage,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VMedium DoDeathEffect as no effect for null owner", () => {
+    const effects: DeathEffectSpawn<{ now: number }>[] = [];
+
+    doMediumVehicleDeathEffect(
+      {
+        ztime: { now: 19 },
+        position: { x: 64, y: 88 },
+        owner: TeamType.Null,
+        direction: 2,
+        moveIndex: 0,
+        baseDamaged: [],
+      },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports VMedium DoDeathEffect as no effect without an effect list", () => {
+    expect(() =>
+      doMediumVehicleDeathEffect(
+        {
+          ztime: { now: 19 },
+          position: { x: 64, y: 88 },
+          owner: TeamType.Green,
+          direction: 2,
+          moveIndex: 0,
+          baseDamaged: [],
+        },
+        null,
+        true,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports VMedium DoDeathEffect as a front-inserted tank death effect", () => {
+    const ztime = { now: 19 };
+    const tankImage = { id: "green-south-idle-medium" };
+    const existing = {
+      ztime,
+      x: 15,
+      y: 16,
+      object: DeathEffectObject.Apc,
+    };
+    const effects: DeathEffectSpawn<typeof ztime>[] = [existing];
+    const baseDamaged = [
+      [],
+      [],
+      [],
+      [[tankImage]],
+    ];
+
+    doMediumVehicleDeathEffect(
+      {
+        ztime,
+        position: { x: 64, y: 88 },
+        owner: TeamType.Green,
+        direction: 0,
+        moveIndex: 0,
+        baseDamaged,
+      },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        x: 64,
+        y: 88,
+        object: DeathEffectObject.Tank,
+        baseImage: tankImage,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports VHeavy FireTurrentMissile as no effect without an effect list", () => {
+    const state = {
+      ztime: { now: 12 },
+      position: { x: 40, y: 60 },
+      owner: TeamType.Blue,
+    };
+
+    expect(() =>
+      fireHeavyVehicleTurrentMissile(state, null, 100, 120, 3.25),
+    ).not.toThrow();
+  });
+
+  it("ports VHeavy FireTurrentMissile as a heavy turret missile spawn", () => {
+    const ztime = { now: 12 };
+    const effects: TurretMissileEffectSpawn<typeof ztime>[] = [];
+
+    fireHeavyVehicleTurrentMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+        owner: TeamType.Blue,
+      },
+      effects,
+      100,
+      120,
+      3.25,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 48,
+        startY: 68,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 3.25,
+        type: TurretMissileEffectType.Heavy,
+        owner: TeamType.Blue,
+      },
+    ]);
+  });
+
+  it("ports VLight FireTurrentMissile as no effect without an effect list", () => {
+    const state = {
+      ztime: { now: 12 },
+      position: { x: 40, y: 60 },
+    };
+
+    expect(() =>
+      fireLightVehicleTurrentMissile(state, null, 100, 120, 3.25),
+    ).not.toThrow();
+  });
+
+  it("ports VLight FireTurrentMissile as a light turret missile spawn", () => {
+    const ztime = { now: 12 };
+    const effects: TurretMissileEffectSpawn<typeof ztime>[] = [];
+
+    fireLightVehicleTurrentMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+      },
+      effects,
+      100,
+      120,
+      3.25,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 48,
+        startY: 68,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 3.25,
+        type: TurretMissileEffectType.Light,
+      },
+    ]);
+  });
+
+  it("ports VMedium FireTurrentMissile as no effect without an effect list", () => {
+    const state = {
+      ztime: { now: 12 },
+      position: { x: 40, y: 60 },
+    };
+
+    expect(() =>
+      fireMediumVehicleTurrentMissile(state, null, 100, 120, 3.25),
+    ).not.toThrow();
+  });
+
+  it("ports VMedium FireTurrentMissile as a medium turret missile spawn", () => {
+    const ztime = { now: 12 };
+    const effects: TurretMissileEffectSpawn<typeof ztime>[] = [];
+
+    fireMediumVehicleTurrentMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+      },
+      effects,
+      100,
+      120,
+      3.25,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 48,
+        startY: 68,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 3.25,
+        type: TurretMissileEffectType.Medium,
+      },
+    ]);
+  });
+
+  it("ports VMissileLauncher FireMissile as restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireMissileLauncherMissile(
+      {
+        ztime: { now: 12 },
+        position: { x: 40, y: 60 },
+        turretDirection: 0,
+        pixelWidth: 32,
+        pixelHeight: 32,
+      },
+      null,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.MomissileFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 32,
+      },
+    ]);
+  });
+
+  it("ports VMissileLauncher FireMissile as mobile missile rocket spawning", () => {
+    const ztime = { now: 12 };
+    const effects: MobileMissileRocketsEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireMissileLauncherMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+        turretDirection: 1,
+        pixelWidth: 32,
+        pixelHeight: 48,
+      },
+      effects,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 69,
+        startY: 62,
+        targetX: 100,
+        targetY: 120,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.MomissileFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports VHeavy FireMissile as restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireHeavyVehicleMissile(
+      {
+        ztime: { now: 12 },
+        position: { x: 40, y: 60 },
+        turretDirection: 0,
+        missileSpeed: 88,
+        pixelWidth: 32,
+        pixelHeight: 32,
+      },
+      null,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.HeavyFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 32,
+      },
+    ]);
+  });
+
+  it("ports VHeavy FireMissile as light rocket spawning with heavy flags", () => {
+    const ztime = { now: 12 };
+    const effects: LightRocketEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireHeavyVehicleMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+        turretDirection: 1,
+        missileSpeed: 88,
+        pixelWidth: 32,
+        pixelHeight: 48,
+      },
+      effects,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 69,
+        startY: 62,
+        targetX: 100,
+        targetY: 120,
+        speed: 88,
+        extraSmall: 0,
+        extraLarge: 1,
+        extraExtraLarge: 1,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.HeavyFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports VLight FireMissile as restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireLightVehicleMissile(
+      {
+        ztime: { now: 12 },
+        position: { x: 40, y: 60 },
+        turretDirection: 0,
+        missileSpeed: 72,
+        pixelWidth: 32,
+        pixelHeight: 32,
+      },
+      null,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.LightFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 32,
+      },
+    ]);
+  });
+
+  it("ports VLight FireMissile as light rocket spawning with default flags", () => {
+    const ztime = { now: 12 };
+    const effects: LightRocketEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireLightVehicleMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+        turretDirection: 1,
+        missileSpeed: 72,
+        pixelWidth: 32,
+        pixelHeight: 48,
+      },
+      effects,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 69,
+        startY: 62,
+        targetX: 100,
+        targetY: 120,
+        speed: 72,
+        extraSmall: 0,
+        extraLarge: 0,
+        extraExtraLarge: 0,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.LightFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports VMedium FireMissile as restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireMediumVehicleMissile(
+      {
+        ztime: { now: 12 },
+        position: { x: 40, y: 60 },
+        turretDirection: 0,
+        missileSpeed: 80,
+        pixelWidth: 32,
+        pixelHeight: 32,
+      },
+      null,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.MediumFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 32,
+      },
+    ]);
+  });
+
+  it("ports VMedium FireMissile as light rocket spawning with medium flags", () => {
+    const ztime = { now: 12 };
+    const effects: LightRocketEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireMediumVehicleMissile(
+      {
+        ztime,
+        position: { x: 40, y: 60 },
+        turretDirection: 1,
+        missileSpeed: 80,
+        pixelWidth: 32,
+        pixelHeight: 48,
+      },
+      effects,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 69,
+        startY: 62,
+        targetX: 100,
+        targetY: 120,
+        speed: 80,
+        extraSmall: 0,
+        extraLarge: 1,
+        extraExtraLarge: 0,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.MediumFireSnd,
+        x: 40,
+        y: 60,
+        width: 32,
+        height: 48,
+      },
+    ]);
   });
 });

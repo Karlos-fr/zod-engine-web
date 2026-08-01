@@ -4,6 +4,7 @@
 
 import { BuildingType, PlanetType, TeamType } from "../SimulationConstants";
 import type { BridgeTurrentEffectSpawn } from "../BridgeTurretEffect";
+import { pointsWithinArea } from "../Common";
 import { GameEntity } from "./GameEntity";
 
 const BRIDGE_TURRENT_EFFECT_WIDTH = 140;
@@ -28,6 +29,15 @@ export type BridgeRenderableImage = {
 export type BridgeRenderSurfaceCache = {
   getBaseSurface(): { width: number; height: number } | { w: number; h: number } | null;
   loadNewSurface(width: number, height: number): void;
+};
+
+export type BridgeImpassableMap = {
+  setImpassable(
+    x: number,
+    y: number,
+    impassable?: boolean,
+    destroyable?: boolean,
+  ): void;
 };
 
 /**
@@ -128,6 +138,37 @@ export class BridgeEntity extends GameEntity {
     if (!baseSurface || width !== this.pixelWidth || height !== this.pixelHeight) {
       surface.loadNewSurface(this.pixelWidth, this.pixelHeight);
     }
+  }
+
+  /**
+   * Port of upstream `BBridge::GetCraneEntrance`.
+   * Role: Reports the two crane entrance points at either end of the bridge.
+   * Upstream: bbridge.cpp:454-474
+   */
+  override getCraneEntrance(): {
+    canEnter: boolean;
+    x: number;
+    y: number;
+    exitX: number;
+    exitY: number;
+  } {
+    if (this.isVertical) {
+      return {
+        canEnter: true,
+        x: this.position.x + 32,
+        y: this.position.y - 32,
+        exitX: this.position.x + 32,
+        exitY: this.position.y + this.pixelHeight + 32,
+      };
+    }
+
+    return {
+      canEnter: true,
+      x: this.position.x - 31,
+      y: this.position.y + 31,
+      exitX: this.position.x + this.pixelWidth + 32,
+      exitY: this.position.y + 32,
+    };
   }
 
   /**
@@ -289,5 +330,75 @@ export class BridgeEntity extends GameEntity {
 
       x += 5 + randomInt(10);
     }
+  }
+
+  /**
+   * Port of upstream `BBridge::ImpassCenter`.
+   * Role: Updates passability for the bridge center tiles.
+   * Upstream: bbridge.cpp:196-222
+   */
+  impassCenter(tmap: BridgeImpassableMap, impassable: boolean): void {
+    let tileX = Math.trunc(this.position.x / 16);
+    let tileY = Math.trunc(this.position.y / 16);
+    const endX = tileX + this.width;
+    const endY = tileY + this.height;
+
+    if (this.isVertical) {
+      for (; tileY < endY; tileY += 1) {
+        tmap.setImpassable(tileX + 1, tileY, impassable);
+        tmap.setImpassable(tileX + 2, tileY, impassable);
+      }
+
+      return;
+    }
+
+    for (; tileX < endX; tileX += 1) {
+      tmap.setImpassable(tileX, tileY + 1, impassable);
+      tmap.setImpassable(tileX, tileY + 2, impassable);
+    }
+  }
+
+  /**
+   * Port of upstream `BBridge::SetDestroyMapImpassables`.
+   * Role: Marks bridge center tiles as blocked when the bridge is destroyed.
+   * Upstream: bbridge.cpp:224-227
+   */
+  override setDestroyMapImpassables(tmap: BridgeImpassableMap): void {
+    this.impassCenter(tmap, true);
+  }
+
+  /**
+   * Port of upstream `BBridge::UnSetDestroyMapImpassables`.
+   * Role: Clears bridge center tile blockage after destroy-time passability changes.
+   * Upstream: bbridge.cpp:229-232
+   */
+  override unsetDestroyMapImpassables(tmap: BridgeImpassableMap): void {
+    this.impassCenter(tmap, false);
+  }
+
+  /**
+   * Port of upstream `BBridge::UnderCursorCanAttack`.
+   * Role: Restricts bridge attack targeting to destroyed bridges or exposed edge sections.
+   * Upstream: bbridge.cpp:234-259
+   */
+  override underCursorCanAttack(mapX: number, mapY: number): boolean {
+    const localX = mapX - this.position.x;
+    const localY = mapY - this.position.y;
+
+    if (this.isDestroyed()) return true;
+
+    if (this.isVertical) {
+      if (pointsWithinArea(localX, localY, 0, 0, 16, this.pixelHeight)) {
+        return true;
+      }
+
+      return pointsWithinArea(localX, localY, 16 * 3, 0, 16, this.pixelHeight);
+    }
+
+    if (pointsWithinArea(localX, localY, 0, 0, this.pixelWidth, 16)) {
+      return true;
+    }
+
+    return pointsWithinArea(localX, localY, 0, 16 * 3, this.pixelWidth, 16);
   }
 }

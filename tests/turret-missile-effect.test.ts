@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ETURRET_MISSILE_HEADER_GUARD_PORTED,
   TurretMissileEffectType,
+  type TurretMissileEffectSpawn,
 } from "../src/simulation/TurretMissileEffect";
 
 describe("turret missile effect", () => {
@@ -31,5 +32,29 @@ describe("turret missile effect", () => {
     expect(TurretMissileEffectType.FortBuildingPiece3).toBe(12);
     expect(TurretMissileEffectType.FortBuildingPiece4).toBe(13);
     expect(TurretMissileEffectType.Grenade).toBe(14);
+  });
+
+  it("ports ETurrentMissile spawn descriptors as browser effect data", () => {
+    const spawn: TurretMissileEffectSpawn<{ now: number }> = {
+      ztime: { now: 12 },
+      startX: 20,
+      startY: 30,
+      targetX: 100,
+      targetY: 120,
+      offsetTime: 3.5,
+      type: TurretMissileEffectType.Heavy,
+      owner: 2,
+    };
+
+    expect(spawn).toEqual({
+      ztime: { now: 12 },
+      startX: 20,
+      startY: 30,
+      targetX: 100,
+      targetY: 120,
+      offsetTime: 3.5,
+      type: TurretMissileEffectType.Heavy,
+      owner: 2,
+    });
   });
 });

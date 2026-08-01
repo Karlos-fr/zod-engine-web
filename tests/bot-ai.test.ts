@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addBotBuildingProductionSums,
   botAddPlayerEvent,
+  botConnectEvent,
   type BotBuildComboReference,
   type BotBuildingUnitReference,
   BOT_CRANE_TARGET_MAX_LINE_DISTANCE_PIXELS,
@@ -11,6 +12,7 @@ import {
   botClearPlayerListEvent,
   botDeleteObjectEvent,
   botDeletePlayerEvent,
+  botDisconnectEvent,
   botDoCraneAnimEvent,
   botSetBuildQueueListEvent,
   botSetBuildingStateEvent,
@@ -18,8 +20,10 @@ import {
   botDisplayLoginEvent,
   botDisplayNewsEvent,
   botDriverHitEffectEvent,
+  botEndGameEvent,
   botFireObjectMissileEvent,
   botNothingEvent,
+  botResetGameEvent,
   botSetGrenadeAmountEvent,
   botSetComputerMessageEvent,
   botSetLidOpenEvent,
@@ -43,6 +47,7 @@ import {
   botSetTeamEvent,
   botSetVoteInfoEvent,
   botSetZoneInfoEvent,
+  botSetup,
   botSnipeObjectEvent,
   botStoreMapEvent,
   botTestEvent,
@@ -88,6 +93,43 @@ describe("bot AI", () => {
     const reference: BotBuildComboReference = buildCombo;
 
     expect(reference).toBe(buildCombo);
+  });
+
+  it("ports ZBot Setup as randomizer setup and client socket start", () => {
+    const startedAddresses: string[] = [];
+    const logs: string[] = [];
+    const bot = {
+      randomizerSeed: 0,
+      remoteAddress: "example.test:1234",
+      clientSocket: {
+        start: (remoteAddress: string) => {
+          startedAddresses.push(remoteAddress);
+          return true;
+        },
+      },
+    };
+
+    botSetup(bot, () => 12_345_678, (message) => logs.push(message));
+
+    expect(bot.randomizerSeed).toBe(12_345);
+    expect(startedAddresses).toEqual(["example.test:1234"]);
+    expect(logs).toEqual([]);
+  });
+
+  it("ports ZBot Setup socket failure diagnostic", () => {
+    const logs: string[] = [];
+    const bot = {
+      randomizerSeed: 0,
+      remoteAddress: "offline.test:1234",
+      clientSocket: {
+        start: () => false,
+      },
+    };
+
+    botSetup(bot, () => 1_000, (message) => logs.push(message));
+
+    expect(bot.randomizerSeed).toBe(1);
+    expect(logs).toEqual(["ZBot::Setup:socket not setup"]);
   });
 
   it("ports BuildingUnit default construction", () => {
@@ -300,6 +342,65 @@ describe("bot AI", () => {
     botStoreMapEvent(bot, data, 3, 99);
 
     expect(calls).toEqual([data, 3]);
+  });
+
+  it("ports ZBot end_game_event as end-game processing", () => {
+    const calls: string[] = [];
+
+    botEndGameEvent(
+      {
+        processEndGame: () => calls.push("process-end-game"),
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["process-end-game"]);
+  });
+
+  it("ports ZBot disconnect_event as disconnect processing", () => {
+    const calls: string[] = [];
+
+    botDisconnectEvent(
+      {
+        processDisconnect: () => calls.push("process-disconnect"),
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["process-disconnect"]);
+  });
+
+  it("ports ZBot reset_game_event as reset processing and flag-object clearing", () => {
+    const calls: string[] = [];
+    const bot = {
+      flagObjectList: [{ id: "flag-a" }, { id: "flag-b" }],
+      processResetGame: () => calls.push("process-reset-game"),
+    };
+
+    botResetGameEvent(bot, null, 0, 99);
+
+    expect(calls).toEqual(["process-reset-game"]);
+    expect(bot.flagObjectList).toEqual([]);
+  });
+
+  it("ports ZBot connect_event as bypass send then connect processing", () => {
+    const calls: string[] = [];
+
+    botConnectEvent(
+      {
+        sendBotBypassData: () => calls.push("send-bot-bypass-data"),
+        processConnect: () => calls.push("process-connect"),
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["send-bot-bypass-data", "process-connect"]);
   });
 
   it("ports disabled bot message and animation events as no-op handlers", () => {

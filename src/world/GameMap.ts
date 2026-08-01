@@ -490,6 +490,29 @@ export class GameMap {
   }
 
   /**
+   * Port of upstream `ZMap::SetViewShift`.
+   * Role: Sets the map view shift and clamps it inside the map pixel bounds.
+   * Upstream: zmap.cpp:1195-1225
+   */
+  setViewShift(x: number, y: number): void {
+    const fullWidth = this.width * ZMAP_TILE_SIZE_PIXELS;
+    const fullHeight = this.height * ZMAP_TILE_SIZE_PIXELS;
+
+    this.shiftX = x;
+    this.shiftY = y;
+
+    if (this.shiftX > fullWidth - this.viewWidth) {
+      this.shiftX = fullWidth - this.viewWidth;
+    }
+    if (this.shiftX < 0) this.shiftX = 0;
+
+    if (this.shiftY > fullHeight - this.viewHeight) {
+      this.shiftY = fullHeight - this.viewHeight;
+    }
+    if (this.shiftY < 0) this.shiftY = 0;
+  }
+
+  /**
    * Port of upstream `ZMap::ShiftViewRight(int)`.
    * Role: Moves the map view right and clamps it inside the map pixel width.
    * Upstream: zmap.cpp:1227-1248

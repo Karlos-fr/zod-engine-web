@@ -1,6 +1,10 @@
 /**
  * Upstream: erockturrent.h
  */
+import {
+  RockParticleType,
+  type RockParticleEffectSpawn,
+} from "./RockParticleEffect";
 import { PlanetType } from "./SimulationConstants";
 
 /**
@@ -51,4 +55,37 @@ export function initRockTurretEffect(state: RockTurretEffectImageState): void {
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `ERockTurrent::EndExplosion`.
+ * Role: Spawns small rock debris particles when a rock turret explosion finishes.
+ * Upstream: erockturrent.cpp:148-158
+ */
+export function endRockTurrentExplosion<TTime>(
+  state: {
+    ztime: TTime | null;
+    x: number;
+    y: number;
+    palette: PlanetType | number;
+  },
+  effectList: RockParticleEffectSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  const smallParticles = 12 + (Math.trunc(randomInt(6)) % 6);
+
+  for (let i = 0; i < smallParticles; i += 1) {
+    if (effectList) {
+      effectList.push({
+        ztime: state.ztime,
+        x: state.x,
+        y: state.y,
+        palette: state.palette,
+        particleType: RockParticleType.Small,
+        maxX: 80,
+        maxY: 60,
+      });
+    }
+  }
 }

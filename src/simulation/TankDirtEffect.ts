@@ -2,6 +2,7 @@
  * Upstream: etankdirt.h / etankdirt.cpp
  */
 import type { MapSurfaceRenderCommand } from "../world/GameMap";
+import { PlanetType } from "./SimulationConstants";
 
 /**
  * Port of upstream `_ETANKDIRT_H_`.
@@ -16,6 +17,56 @@ export const ETANK_DIRT_HEADER_GUARD_PORTED = true;
  * Upstream: etankdirt.cpp:33
  */
 export const TANK_DIRT_FRAME_INTERVAL_SECONDS = 0.15;
+
+const TANK_DIRT_PLANET_NAMES: Record<PlanetType, string> = {
+  [PlanetType.Desert]: "desert",
+  [PlanetType.Volcanic]: "volcanic",
+  [PlanetType.Arctic]: "arctic",
+  [PlanetType.Jungle]: "jungle",
+  [PlanetType.City]: "city",
+  [PlanetType.Max]: "max",
+};
+
+/**
+ * Port of upstream `tank_dirt_graphics`.
+ * Role: Holds loaded tank dirt frames and animation dimensions for one palette.
+ * Upstream: etankdirt.h:6-17
+ */
+export type TankDirtGraphics<TImage = unknown> = {
+  tankDirt: TImage[][];
+  dirtVariants: number;
+  frameCount: number;
+};
+
+/**
+ * Port of upstream `tank_dirt_graphics` construction.
+ * Role: Creates empty tank dirt graphics with zero animation dimensions.
+ * Upstream: etankdirt.h:9
+ */
+export function createTankDirtGraphics<TImage = unknown>(): TankDirtGraphics<TImage> {
+  return {
+    tankDirt: [],
+    dirtVariants: 0,
+    frameCount: 0,
+  };
+}
+
+/**
+ * Port of upstream `ETankDirt::Init` mutable fields.
+ * Role: Holds per-palette tank dirt graphics and the initialization flag.
+ * Upstream: etankdirt.cpp:29-30, etankdirt.cpp:64-70
+ */
+export type TankDirtInitState<TImage = unknown> = {
+  graphics: TankDirtGraphics<TImage>[];
+  finishedInit: boolean;
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::LoadBaseImage`.
+ * Role: Loads one tank dirt frame asset.
+ * Upstream: etankdirt.cpp:23
+ */
+export type TankDirtImageLoader<TImage> = (filename: string) => TImage;
 
 /**
  * Port of upstream `ETankDirt` render state.
@@ -76,6 +127,64 @@ export type TankDirtRenderSurface = {
   width: number;
   height: number;
 };
+
+/**
+ * Port of upstream `tank_dirt_graphics::LoadGraphics`.
+ * Role: Loads tank dirt animation frames for one planet palette.
+ * Upstream: etankdirt.cpp:3-25
+ */
+export function loadTankDirtGraphics<TImage>(
+  graphics: TankDirtGraphics<TImage>,
+  palette: PlanetType,
+  loadImage: TankDirtImageLoader<TImage>,
+): void {
+  let dirtVariants = 2;
+  let frameCount = 5;
+
+  switch (palette) {
+    case PlanetType.Jungle:
+      dirtVariants = 1;
+      frameCount = 6;
+      break;
+    case PlanetType.City:
+      dirtVariants = 0;
+      frameCount = 0;
+      break;
+    default:
+      break;
+  }
+
+  graphics.dirtVariants = dirtVariants;
+  graphics.frameCount = frameCount;
+  graphics.tankDirt = Array.from({ length: dirtVariants }, (_variant, dirt) =>
+    Array.from({ length: frameCount }, (_frame, frame) =>
+      loadImage(
+        `assets/units/vehicles/tank_dirt/tank_dirt_${dirt}_${
+          TANK_DIRT_PLANET_NAMES[palette]
+        }_n${frame.toString().padStart(2, "0")}.png`,
+      ),
+    ),
+  );
+}
+
+/**
+ * Port of upstream `ETankDirt::Init`.
+ * Role: Loads tank dirt graphics for every planet palette.
+ * Upstream: etankdirt.cpp:64-70
+ */
+export function initTankDirtEffect<TImage>(
+  state: TankDirtInitState<TImage>,
+  loadImage: TankDirtImageLoader<TImage>,
+): void {
+  for (let planet = 0; planet < PlanetType.Max; planet += 1) {
+    const graphics = state.graphics[planet];
+    if (graphics) {
+      loadTankDirtGraphics(graphics, planet, loadImage);
+    }
+  }
+
+  state.finishedInit = true;
+}
 
 /**
  * Replacement for upstream `ETankDirt::TheRender`.

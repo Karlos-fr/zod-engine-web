@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PlanetType } from "../src/simulation/SimulationConstants";
 import {
   AudioService,
+  createSoundState,
   DangerLevelStartInfo,
   MusicDangerLevel,
   SoundSetting,
@@ -11,11 +12,13 @@ import {
   ZMUSIC_ENGINE_HEADER_GUARD_PORTED,
   ZSOUND_ENGINE_HEADER_GUARD_PORTED,
   getMusicEngineDangerLevel,
+  initMusicEngine,
   loadSound,
   playPlanetMusic,
   playSound,
   playSplashMusic,
   playWavRestricted,
+  repeatSound,
   repeatWav,
   setMusicEngineDangerLevel,
   setMusicEngineMusicOn,
@@ -260,6 +263,69 @@ describe("audio service", () => {
     expect(resetCount).toBe(1);
   });
 
+  it("ports ZMusicEngine Init as splash and planet music loading", () => {
+    const loadedPaths: string[] = [];
+    const state = {
+      splashMusic: null as { path: string } | null,
+      planetMusic: [] as Array<{ path: string } | null>,
+    };
+    let initDangerLevelStartsCount = 0;
+
+    initMusicEngine(
+      state,
+      (filename) => {
+        loadedPaths.push(filename);
+        return { path: filename };
+      },
+      () => {
+        initDangerLevelStartsCount += 1;
+      },
+    );
+
+    expect(state.splashMusic).toEqual({ path: "assets/sounds/ABATTLE.mp3" });
+    expect(state.planetMusic).toEqual([
+      { path: "assets/sounds/music_desert.ogg" },
+      { path: "assets/sounds/music_volcanic.ogg" },
+      { path: "assets/sounds/music_arctic.ogg" },
+      { path: "assets/sounds/music_jungle.ogg" },
+      { path: "assets/sounds/music_city.ogg" },
+    ]);
+    expect(loadedPaths).toEqual([
+      "assets/sounds/ABATTLE.mp3",
+      "assets/sounds/music_desert.ogg",
+      "assets/sounds/music_volcanic.ogg",
+      "assets/sounds/music_arctic.ogg",
+      "assets/sounds/music_jungle.ogg",
+      "assets/sounds/music_city.ogg",
+    ]);
+    expect(initDangerLevelStartsCount).toBe(1);
+  });
+
+  it("ports ZMusicEngine Init paired fallback fixes for missing planet music", () => {
+    const arctic = { id: "arctic" };
+    const city = { id: "city" };
+    const state = {
+      splashMusic: null as { id: string } | null,
+      planetMusic: [] as Array<{ id: string } | null>,
+    };
+
+    initMusicEngine(
+      state,
+      (filename) => {
+        if (filename.endsWith("music_arctic.ogg")) return arctic;
+        if (filename.endsWith("music_city.ogg")) return city;
+        return null;
+      },
+      () => undefined,
+    );
+
+    expect(state.planetMusic[PlanetType.Desert]).toBe(arctic);
+    expect(state.planetMusic[PlanetType.Arctic]).toBe(arctic);
+    expect(state.planetMusic[PlanetType.Volcanic]).toBe(city);
+    expect(state.planetMusic[PlanetType.City]).toBe(city);
+    expect(state.planetMusic[PlanetType.Jungle]).toBeNull();
+  });
+
   it("replaces ZSDL_SetMusicOn with service music state", () => {
     const audio = new AudioService();
 
@@ -468,6 +534,17 @@ describe("audio service", () => {
     expect(chunk.volume).toBe(64);
   });
 
+  it("ports ZSound construction as an unloaded sound slot", () => {
+    expect(createSoundState()).toEqual({
+      soundChunk: null,
+      nextPlayTime: 0,
+      playTimeShift: 0,
+      baseVolume: 0,
+      volumeShift: 0,
+      repeatChannel: -1,
+    });
+  });
+
   it("ports ZSound LoadSound null chunk handling", () => {
     const state = {
       baseVolume: 0,
@@ -597,6 +674,86 @@ describe("audio service", () => {
 
     expect(haltedChannels).toEqual([7]);
     expect(state.repeatChannel).toBe(-1);
+  });
+
+  it("keeps ZSound RepeatSound silent without a loaded chunk", () => {
+    const state = { soundChunk: null as { volume: number } | null, repeatChannel: -1 };
+    const calls: unknown[][] = [];
+
+    repeatSound(
+      state,
+      () => {
+        throw new Error("channel scan should not run");
+      },
+      (channel, chunk, repeat) => {
+        calls.push([channel, chunk, repeat]);
+        return channel;
+      },
+    );
+
+    expect(state.repeatChannel).toBe(-1);
+    expect(calls).toEqual([]);
+  });
+
+  it("keeps ZSound RepeatSound unchanged when already repeating", () => {
+    const chunk = { volume: 10 };
+    const state = { soundChunk: chunk, repeatChannel: 4 };
+    const calls: unknown[][] = [];
+
+    repeatSound(
+      state,
+      () => {
+        throw new Error("channel scan should not run");
+      },
+      (channel, wav, repeat) => {
+        calls.push([channel, wav, repeat]);
+        return channel;
+      },
+    );
+
+    expect(state.repeatChannel).toBe(4);
+    expect(calls).toEqual([]);
+  });
+
+  it("keeps ZSound RepeatSound unchanged when no mixer channel is free", () => {
+    const chunk = { volume: 10 };
+    const state = { soundChunk: chunk, repeatChannel: -1 };
+    const calls: unknown[][] = [];
+
+    repeatSound(
+      state,
+      () => true,
+      (channel, wav, repeat) => {
+        calls.push([channel, wav, repeat]);
+        return channel;
+      },
+    );
+
+    expect(state.repeatChannel).toBe(-1);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZSound RepeatSound as first-free-channel looped playback", () => {
+    const chunk = { volume: 10 };
+    const state = { soundChunk: chunk, repeatChannel: -1 };
+    const checkedChannels: number[] = [];
+    const calls: unknown[][] = [];
+
+    repeatSound(
+      state,
+      (channel) => {
+        checkedChannels.push(channel);
+        return channel < 3;
+      },
+      (channel, wav, repeat) => {
+        calls.push([channel, wav, repeat]);
+        return channel;
+      },
+    );
+
+    expect(checkedChannels).toEqual([0, 1, 2, 3]);
+    expect(state.repeatChannel).toBe(3);
+    expect(calls).toEqual([[3, chunk, -1]]);
   });
 
   it("keeps ZSoundEngine RepeatWav unchanged before initialization finishes", () => {

@@ -57,6 +57,28 @@ export type ProductionFullUnitSelectorImageLoader = (
   filename: string,
 ) => unknown | null;
 
+/**
+ * Port of upstream `ZObject::ProcessList` dependency surface.
+ * Role: Processes one cached object list owned by the full production selector.
+ * Upstream: gwproduction_fus.cpp:223-225
+ */
+export type ProductionFullUnitSelectorListProcessor<TUnit = unknown> = (
+  units: TUnit[],
+) => void;
+
+/**
+ * Port of upstream `GWPFullUnitSelector::Process` fields.
+ * Role: Holds cached unit lists, active state, and list loading used during processing.
+ * Upstream: gwproduction_fus.cpp:221-228
+ */
+export type ProductionFullUnitSelectorProcessState<TUnit = unknown> = {
+  robotList: TUnit[];
+  vehicleList: TUnit[];
+  cannonList: TUnit[];
+  isActive: boolean;
+  loadLists(): void;
+};
+
 const PRODUCTION_FULL_UNIT_SELECTOR_IMAGE_FILES: ReadonlyArray<{
   name: ProductionFullUnitSelectorImageName;
   filename: string;
@@ -103,4 +125,20 @@ export function initProductionFullUnitSelector(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `GWPFullUnitSelector::Process`.
+ * Role: Processes cached unit lists and refreshes selector lists while active.
+ * Upstream: gwproduction_fus.cpp:221-228
+ */
+export function processProductionFullUnitSelector<TUnit>(
+  state: ProductionFullUnitSelectorProcessState<TUnit>,
+  processList: ProductionFullUnitSelectorListProcessor<TUnit>,
+): void {
+  processList(state.robotList);
+  processList(state.vehicleList);
+  processList(state.cannonList);
+
+  if (state.isActive) state.loadLists();
 }

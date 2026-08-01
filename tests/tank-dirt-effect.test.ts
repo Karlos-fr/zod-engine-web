@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { PlanetType } from "../src/simulation/SimulationConstants";
 import {
   ETANK_DIRT_HEADER_GUARD_PORTED,
   TANK_DIRT_FRAME_INTERVAL_SECONDS,
+  createTankDirtGraphics,
   doRenderTankDirtEffect,
+  initTankDirtEffect,
+  loadTankDirtGraphics,
   processTankDirtEffect,
   renderTankDirtEffect,
+  type TankDirtGraphics,
 } from "../src/simulation/TankDirtEffect";
 
 describe("tank dirt effect", () => {
@@ -20,6 +25,92 @@ describe("tank dirt effect", () => {
 
   it("ports ETANKDIRT_TIME as the tank dirt frame interval", () => {
     expect(TANK_DIRT_FRAME_INTERVAL_SECONDS).toBe(0.15);
+  });
+
+  it("ports tank_dirt_graphics construction as empty graphics state", () => {
+    expect(createTankDirtGraphics()).toEqual({
+      tankDirt: [],
+      dirtVariants: 0,
+      frameCount: 0,
+    });
+  });
+
+  it("ports tank_dirt_graphics LoadGraphics as default palette frames", () => {
+    const loaded: string[] = [];
+    const graphics: TankDirtGraphics<string> = {
+      tankDirt: [],
+      dirtVariants: 0,
+      frameCount: 0,
+    };
+
+    loadTankDirtGraphics(graphics, PlanetType.Desert, (filename) => {
+      loaded.push(filename);
+      return filename;
+    });
+
+    expect(graphics.dirtVariants).toBe(2);
+    expect(graphics.frameCount).toBe(5);
+    expect(loaded).toHaveLength(10);
+    expect(loaded[0]).toBe(
+      "assets/units/vehicles/tank_dirt/tank_dirt_0_desert_n00.png",
+    );
+    expect(loaded[9]).toBe(
+      "assets/units/vehicles/tank_dirt/tank_dirt_1_desert_n04.png",
+    );
+  });
+
+  it("ports tank_dirt_graphics LoadGraphics palette-specific frame counts", () => {
+    const jungle: TankDirtGraphics<string> = {
+      tankDirt: [],
+      dirtVariants: 0,
+      frameCount: 0,
+    };
+    const city: TankDirtGraphics<string> = {
+      tankDirt: [["stale"]],
+      dirtVariants: 9,
+      frameCount: 9,
+    };
+
+    loadTankDirtGraphics(jungle, PlanetType.Jungle, (filename) => filename);
+    loadTankDirtGraphics(city, PlanetType.City, (filename) => filename);
+
+    expect(jungle.dirtVariants).toBe(1);
+    expect(jungle.frameCount).toBe(6);
+    expect(jungle.tankDirt[0]).toHaveLength(6);
+    expect(jungle.tankDirt[0][5]).toBe(
+      "assets/units/vehicles/tank_dirt/tank_dirt_0_jungle_n05.png",
+    );
+    expect(city).toEqual({
+      tankDirt: [],
+      dirtVariants: 0,
+      frameCount: 0,
+    });
+  });
+
+  it("ports ETankDirt Init as loading every planet palette", () => {
+    const graphics = Array.from({ length: PlanetType.Max }, () => ({
+      tankDirt: [] as string[][],
+      dirtVariants: 0,
+      frameCount: 0,
+    }));
+    const loaded: string[] = [];
+    const state = { graphics, finishedInit: false };
+
+    initTankDirtEffect(state, (filename) => {
+      loaded.push(filename);
+      return filename;
+    });
+
+    expect(state.finishedInit).toBe(true);
+    expect(graphics[PlanetType.Desert].frameCount).toBe(5);
+    expect(graphics[PlanetType.Volcanic].frameCount).toBe(5);
+    expect(graphics[PlanetType.Arctic].frameCount).toBe(5);
+    expect(graphics[PlanetType.Jungle].frameCount).toBe(6);
+    expect(graphics[PlanetType.City].frameCount).toBe(0);
+    expect(loaded).toHaveLength(36);
+    expect(loaded).toContain(
+      "assets/units/vehicles/tank_dirt/tank_dirt_1_arctic_n04.png",
+    );
   });
 
   it("replaces ETankDirt::TheRender as no command once the effect is killed", () => {

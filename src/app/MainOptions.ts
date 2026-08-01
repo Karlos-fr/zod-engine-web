@@ -2,6 +2,8 @@
  * Upstream: main.h, xgetopt.h
  */
 
+import { TeamType } from "../simulation/SimulationConstants";
+
 /**
  * Port of upstream `_MAIN_H_`.
  * Role: Marks an upstream header boundary.
@@ -26,6 +28,52 @@ export type GetoptState = {
   optarg: string | null;
   next: string | null;
 };
+
+/**
+ * Port of upstream `input_options`.
+ * Role: Stores startup command-line options used to configure the game session.
+ * Upstream: main.h:23-74
+ */
+export type InputOptionsState = {
+  readConnectAddress: boolean;
+  connectAddress: string;
+  readPlayerName: boolean;
+  playerName: string;
+  readPlayerTeam: boolean;
+  playerTeamString: string;
+  team: TeamType;
+  resolution: string;
+  resolutionWidth: number;
+  resolutionHeight: number;
+  readResolution: boolean;
+  readIsWindowed: boolean;
+  readOpenglOff: boolean;
+};
+
+/**
+ * Port of upstream `input_options::setdefaults`.
+ * Role: Applies the startup defaults used when no command-line arguments are set.
+ * Upstream: main.cpp:221-244
+ */
+export function setInputOptionsDefaults(state: InputOptionsState): void {
+  state.readConnectAddress = true;
+  state.connectAddress = "hestia.nighsoft.net";
+
+  state.readPlayerName = true;
+  state.playerName = "zlover";
+
+  state.readPlayerTeam = true;
+  state.playerTeamString = "red";
+  state.team = TeamType.Red;
+
+  state.resolution = "800x600";
+  state.resolutionWidth = 800;
+  state.resolutionHeight = 600;
+  state.readResolution = true;
+
+  state.readIsWindowed = true;
+  state.readOpenglOff = true;
+}
 
 /**
  * Port of upstream `getopt`.

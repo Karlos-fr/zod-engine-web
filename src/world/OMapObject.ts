@@ -2,6 +2,10 @@
  * Upstream: omapobject.h
  */
 import { ItemType, TeamType } from "../simulation/SimulationConstants";
+import type {
+  MapObjectTurrentBaseImage,
+  MapObjectTurrentEffectSpawn,
+} from "./MapObjectTurretEffect";
 import { MAP_ITEM_TYPE_COUNT } from "./WorldConstants";
 
 /**
@@ -24,6 +28,45 @@ export type ObjectMapImpassableMap = {
     destroyable: boolean,
   ): void;
 };
+
+/**
+ * Port of upstream `OMapObject::FireTurrentMissile` consumed fields.
+ * Role: Holds the object-map state needed to spawn a map-object turret effect.
+ * Upstream: omapobject.cpp:127-132
+ */
+export type ObjectMapTurrentMissileState<TTime = unknown> = {
+  ztime: TTime | null;
+  x: number;
+  y: number;
+  objectIndex: number;
+  renderImages: readonly (MapObjectTurrentBaseImage | null | undefined)[];
+};
+
+/**
+ * Port of upstream `OMapObject::FireTurrentMissile`.
+ * Role: Spawns a map-object turret effect when the current object image is loaded.
+ * Upstream: omapobject.cpp:127-132
+ */
+export function fireObjectMapObjectTurrentMissile<TTime>(
+  state: ObjectMapTurrentMissileState<TTime>,
+  effectList: MapObjectTurrentEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  offsetTime: number,
+): void {
+  if (!state.renderImages[state.objectIndex]?.getBaseSurface()) return;
+  if (!effectList) return;
+
+  effectList.push({
+    ztime: state.ztime,
+    startX: state.x,
+    startY: state.y,
+    targetX,
+    targetY,
+    offsetTime,
+    objectIndex: state.objectIndex,
+  });
+}
 
 /**
  * Browser-side object map object containing the subset of `OMapObject` behavior already ported.

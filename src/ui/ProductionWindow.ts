@@ -1,4 +1,4 @@
-import type { BuildingType } from "../simulation/SimulationConstants";
+import { BuildingType } from "../simulation/SimulationConstants";
 import type { SimulationTime } from "../simulation/SimulationTime";
 import type { GameEntity } from "../simulation/entities/GameEntity";
 import {
@@ -105,6 +105,30 @@ export type ProductionActiveState = {
 };
 
 /**
+ * Port of upstream `SetActive` dependency surface for production expansion widgets.
+ * Role: Receives active-state changes from production window expansion processing.
+ * Upstream: gwproduction.cpp:221-236
+ */
+export type ProductionExpansionActiveTarget = {
+  setActive(isActive: boolean): void;
+};
+
+/**
+ * Port of upstream `GWProduction::ProcessSetExpanded` fields.
+ * Role: Holds expansion state, dimensions, and widgets toggled when the production window expands.
+ * Upstream: gwproduction.cpp:214-238
+ */
+export type ProductionSetExpandedState = {
+  isExpanded: boolean;
+  width: number;
+  height: number;
+  smallPlusButton: ProductionExpansionActiveTarget;
+  smallMinusButton: ProductionExpansionActiveTarget;
+  queueButton: ProductionExpansionActiveTarget;
+  queueSelector: ProductionExpansionActiveTarget;
+};
+
+/**
  * Port of upstream `GWProduction` coordinate fields.
  * Role: Holds the production window origin.
  * Upstream: gwproduction.h:49, gwproduction.h:92
@@ -125,6 +149,48 @@ export type ProductionCenterCoordinateState = {
 };
 
 /**
+ * Port of upstream `GWProduction::SetCords` full-selector dependency.
+ * Role: Receives the production window center anchor used by the expanded selector.
+ * Upstream: gwproduction.cpp:444
+ */
+export type ProductionFullSelectorCenterReceiver = {
+  setCenterCoords(centerX: number, centerY: number): void;
+};
+
+/**
+ * Port of upstream `GWProduction::LoadFullSelector` full-selector dependency.
+ * Role: Receives activation, reference, selection reset, and center updates.
+ * Upstream: gwproduction.cpp:569-583
+ */
+export type ProductionFullSelectorLoadReceiver =
+  ProductionFullSelectorCenterReceiver & {
+    setActive(isActive: boolean): void;
+    setUnitSelectorRefId(unitSelectorRefId: number): void;
+    clearSelected(): void;
+  };
+
+/**
+ * Port of upstream `ZMap::GetMapBasics` dependency surface for production placement.
+ * Role: Provides map dimensions in tiles for production window clamping.
+ * Upstream: gwproduction.cpp:430-431
+ */
+export type ProductionMapBasicsProvider = {
+  getMapBasics(): { width: number; height: number };
+};
+
+/**
+ * Port of upstream `GWProduction::SetCords` fields.
+ * Role: Holds production window origin, map bounds, and full-selector center receiver.
+ * Upstream: gwproduction.cpp:417-445
+ */
+export type ProductionWindowCordsState = {
+  x: number;
+  y: number;
+  zmap: ProductionMapBasicsProvider | null;
+  fullSelector: ProductionFullSelectorCenterReceiver;
+};
+
+/**
  * Port of upstream `GWPUnitSelector` coordinate fields.
  * Role: Holds the production unit selector origin.
  * Upstream: gwproduction.h:122, gwproduction.h:161
@@ -135,12 +201,38 @@ export type ProductionUnitSelectorCoordinateState = {
 };
 
 /**
+ * Port of upstream `GWProduction::LoadFullSelector` selector source.
+ * Role: Supplies a compact selector reference and local origin for full-selector placement.
+ * Upstream: gwproduction.cpp:573-576
+ */
+export type ProductionFullSelectorLoadSource =
+  ProductionUnitSelectorCoordinateState & ProductionUnitSelectorObjectRefState;
+
+/**
  * Port of upstream production selector button click dependency.
  * Role: Receives local click coordinates from the production unit selector.
  * Upstream: gwproduction_us.cpp:369-370
  */
 export type ProductionUnitSelectorClickButton = {
   click(x: number, y: number): void;
+};
+
+/**
+ * Port of upstream production selector button release dependency.
+ * Role: Reports whether a local release completed a selector button click.
+ * Upstream: gwproduction_us.cpp:391-392
+ */
+export type ProductionUnitSelectorUnclickButton = {
+  unclick(x: number, y: number): boolean;
+};
+
+/**
+ * Port of upstream production selector wheel button dependency.
+ * Role: Reports whether a selector wheel button is active.
+ * Upstream: gwproduction_us.cpp:351
+ */
+export type ProductionUnitSelectorWheelButton = {
+  isActive(): boolean;
 };
 
 /**
@@ -156,6 +248,46 @@ export type ProductionUnitSelectorClickState = {
   height: number;
   upButton: ProductionUnitSelectorClickButton;
   downButton: ProductionUnitSelectorClickButton;
+};
+
+/**
+ * Port of upstream `GWPUnitSelector` release fields.
+ * Role: Holds selector geometry, buttons, mode, and full-selector load flag for release handling.
+ * Upstream: gwproduction.h:124-130, gwproduction_us.cpp:380-404
+ */
+export type ProductionUnitSelectorUnclickState = {
+  isActive: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  upButton: ProductionUnitSelectorUnclickButton;
+  downButton: ProductionUnitSelectorUnclickButton;
+  isOnlySelector: boolean;
+  buildState: ProductionBuildingState | number;
+  loadFullSelector: boolean;
+  doUpButton(): void;
+  doDownButton(): void;
+};
+
+/**
+ * Port of upstream `GWPUnitSelector` wheel-up state.
+ * Role: Holds the selector up button and action callback for wheel-up routing.
+ * Upstream: gwproduction_us.cpp:338-347
+ */
+export type ProductionUnitSelectorWheelUpState = {
+  upButton: ProductionUnitSelectorWheelButton;
+  doUpButton(): void;
+};
+
+/**
+ * Port of upstream `GWPUnitSelector` wheel-down state.
+ * Role: Holds the selector down button and action callback for wheel-down routing.
+ * Upstream: gwproduction_us.cpp:349-358
+ */
+export type ProductionUnitSelectorWheelDownState = {
+  downButton: ProductionUnitSelectorWheelButton;
+  doDownButton(): void;
 };
 
 /**
@@ -183,6 +315,48 @@ export type ProductionUnitSelectorObjectRefState = {
  */
 export type ProductionZTimeState = {
   ztime: SimulationTime | null;
+};
+
+/**
+ * Port of upstream `GWProduction` show-time fields.
+ * Role: Holds the production countdown value and rendered text content.
+ * Upstream: gwproduction.h:206-207, gwproduction.cpp:276-285
+ */
+export type ProductionShowTimeState = {
+  showTime: number;
+  showTimeText: string;
+};
+
+/**
+ * Port of upstream `ZBuildList::UnitBuildTime` dependency surface.
+ * Role: Provides the base production time for a selected unit.
+ * Upstream: gwproduction.cpp:254
+ */
+export type ProductionBuildTimeList = {
+  unitBuildTime(objectType: number, objectId: number): number;
+};
+
+/**
+ * Port of upstream production building time dependency surface.
+ * Role: Provides modified build times and remaining production time.
+ * Upstream: gwproduction.cpp:254, gwproduction.cpp:258
+ */
+export type ProductionShowTimeBuilding = {
+  buildTimeModified(buildTime: number): number;
+  productionTimeLeft(currentTime: number): number;
+};
+
+/**
+ * Port of upstream `GWProduction::RecalcShowTime` fields.
+ * Role: Holds production countdown state and dependencies used to refresh the displayed time.
+ * Upstream: gwproduction.cpp:240-263
+ */
+export type ProductionRecalcShowTimeState = ProductionShowTimeState & {
+  state: ProductionBuildingState | number;
+  ztime: Pick<SimulationTime, "ztime">;
+  unitSelector: ProductionOkUnitSelector;
+  buildingObject: ProductionShowTimeBuilding | null;
+  buildList: ProductionBuildTimeList | null;
 };
 
 /**
@@ -255,6 +429,14 @@ export type ProductionFullUnitSelectorClickButton = {
   };
 };
 
+export type ProductionFullUnitSelectorUnclickButton = {
+  objectType: number;
+  objectId: number;
+  objectButton: {
+    unclick(x: number, y: number): boolean;
+  };
+};
+
 /**
  * Port of upstream `ZObject::GetObjectID` dependency surface.
  * Role: Provides object ids for full selector button creation.
@@ -311,6 +493,26 @@ export type ProductionFullUnitSelectorClickState<
   width: number;
   height: number;
   buttonList: TButton[];
+};
+
+/**
+ * Port of upstream `GWPFullUnitSelector::UnClick` fields.
+ * Role: Holds full-selector geometry, buttons, and selected object cache for release handling.
+ * Upstream: gwproduction_fus.cpp:446-469
+ */
+export type ProductionFullUnitSelectorUnclickState<
+  TButton extends ProductionFullUnitSelectorUnclickButton =
+    ProductionFullUnitSelectorUnclickButton,
+> = {
+  isActive: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  buttonList: TButton[];
+  objectSelected: boolean;
+  selectedObjectType: number;
+  selectedObjectId: number;
 };
 
 /**
@@ -375,6 +577,28 @@ export type ProductionBuildListState<TBuildList = unknown> = {
 };
 
 /**
+ * Port of upstream `SetType` dependency surface.
+ * Role: Provides building-type assignment for production selectors.
+ * Upstream: gwproduction.cpp:464-466
+ */
+export type ProductionBuildingTypeReceiver = {
+  setBuildingType(buildingType: BuildingType): void;
+};
+
+/**
+ * Port of upstream `GWProduction::SetType` fields.
+ * Role: Holds production type, mapped building type, and selectors sharing the mapped building type.
+ * Upstream: gwproduction.cpp:447-467
+ */
+export type ProductionTypeState = {
+  type: number;
+  buildingType: BuildingType;
+  unitSelector: ProductionBuildingTypeReceiver;
+  queueSelector: ProductionBuildingTypeReceiver;
+  fullSelector: ProductionBuildingTypeReceiver;
+};
+
+/**
  * Port of upstream `SetBuildingObj` dependency surface.
  * Role: Provides building object assignment for production selectors.
  * Upstream: gwproduction.cpp:473-475
@@ -414,6 +638,16 @@ export type ProductionBuildListSource<TUnit = unknown> = {
 };
 
 /**
+ * Port of upstream `buildlist_object` selection fields.
+ * Role: Carries the production object type and id matched by the unit selector.
+ * Upstream: gwproduction_us.cpp:326-329
+ */
+export type ProductionUnitSelectorBuildListObject = {
+  ot: number;
+  oid: number;
+};
+
+/**
  * Port of upstream `GWPUnitSelector` scroll state.
  * Role: Holds the selected unit index and build-list dependencies used by selector scrolling.
  * Upstream: gwproduction_us.cpp:416-430
@@ -423,6 +657,18 @@ export type ProductionUnitSelectorScrollState<TUnit = unknown> = {
   buildList: ProductionBuildListSource<TUnit> | null;
   buildingType: number;
   selectedIndex: number;
+};
+
+/**
+ * Port of upstream `GWPUnitSelector::SetSelection` fields.
+ * Role: Holds the selectable unit list, selected index, and draw refresh callback.
+ * Upstream: gwproduction_us.cpp:315-336
+ */
+export type ProductionUnitSelectorSelectionState<
+  TUnit extends ProductionUnitSelectorBuildListObject =
+    ProductionUnitSelectorBuildListObject,
+> = ProductionUnitSelectorScrollState<TUnit> & {
+  setDrawObject(): void;
 };
 
 /**
@@ -485,6 +731,40 @@ export type ProductionQueueButtonState = {
   queueSelector: ProductionQueueSelector;
   buildingObject: ProductionBuildingRefSource;
   flags: ProductionNewQueueFlags;
+};
+
+/**
+ * Port of upstream production new production flags.
+ * Role: Carries the selected production request emitted by the production window.
+ * Upstream: gwproduction.cpp:491-494
+ */
+export type ProductionNewProductionFlags = {
+  sendNewProduction: boolean;
+  pot: number;
+  poid: number;
+  prefId: number;
+};
+
+/**
+ * Port of upstream unit selector dependency surface for production OK.
+ * Role: Provides the selected production object read used by `GWProduction::DoOkButton`.
+ * Upstream: gwproduction.cpp:489
+ */
+export type ProductionOkUnitSelector = {
+  getSelectedId(): ProductionUnitSelectorSelectedIdResult;
+};
+
+/**
+ * Port of upstream `GWProduction` OK button dependencies.
+ * Role: Holds production state, selected unit, building reference, close flag, and emitted production flags.
+ * Upstream: gwproduction.cpp:478-503
+ */
+export type ProductionOkButtonState = {
+  state: ProductionBuildingState;
+  unitSelector: ProductionOkUnitSelector;
+  buildingObject: ProductionBuildingRefSource;
+  killme: boolean;
+  flags: ProductionNewProductionFlags;
 };
 
 /**
@@ -629,6 +909,80 @@ export function setProductionActive(
 }
 
 /**
+ * Port of upstream `GWProduction::ProcessSetExpanded`.
+ * Role: Applies expanded/collapsed dimensions and toggles production queue controls.
+ * Upstream: gwproduction.cpp:214-238
+ */
+export function processProductionSetExpanded(
+  state: ProductionSetExpandedState,
+): void {
+  if (state.isExpanded) {
+    state.width = PRODUCTION_EXPANDED_WIDTH_PIXELS;
+    state.height = PRODUCTION_EXPANDED_HEIGHT_PIXELS;
+
+    state.smallPlusButton.setActive(false);
+    state.smallMinusButton.setActive(true);
+    state.queueButton.setActive(true);
+    state.queueSelector.setActive(true);
+  } else {
+    state.width = PRODUCTION_COLLAPSED_WIDTH_PIXELS;
+    state.height = PRODUCTION_COLLAPSED_HEIGHT_PIXELS;
+
+    state.smallPlusButton.setActive(true);
+    state.smallMinusButton.setActive(false);
+    state.queueButton.setActive(false);
+    state.queueSelector.setActive(false);
+  }
+}
+
+/**
+ * Port of upstream `SetIsExpanded`.
+ * Role: Stores production window expansion state and applies the matching widget layout.
+ * Upstream: gwproduction.h:214
+ */
+export function setProductionIsExpanded(
+  state: ProductionSetExpandedState,
+  isExpanded: boolean,
+): void {
+  state.isExpanded = isExpanded;
+  processProductionSetExpanded(state);
+}
+
+/**
+ * Port of upstream `ToggleExpanded`.
+ * Role: Toggles production window expansion state and applies the matching layout.
+ * Upstream: gwproduction.h:213
+ */
+export function toggleProductionExpanded(
+  state: ProductionSetExpandedState,
+): void {
+  state.isExpanded = !state.isExpanded;
+  processProductionSetExpanded(state);
+}
+
+/**
+ * Port of upstream `DoMinusButton`.
+ * Role: Collapses the production window from the minus-button action.
+ * Upstream: gwproduction.h:235
+ */
+export function doProductionMinusButton(
+  state: ProductionSetExpandedState,
+): void {
+  setProductionIsExpanded(state, false);
+}
+
+/**
+ * Port of upstream `DoPlusButton`.
+ * Role: Expands the production window from the plus-button action.
+ * Upstream: gwproduction.h:234
+ */
+export function doProductionPlusButton(
+  state: ProductionSetExpandedState,
+): void {
+  setProductionIsExpanded(state, true);
+}
+
+/**
  * Port of upstream `GWPUnitSelector::SetActive`.
  * Role: Updates whether the production unit selector is currently active.
  * Upstream: gwproduction.h:124
@@ -669,6 +1023,38 @@ export function setProductionCenterCoords(
 }
 
 /**
+ * Port of upstream `GWProduction::SetCords`.
+ * Role: Places the production window near a center point, clamps it to the map, and updates the full selector center.
+ * Upstream: gwproduction.cpp:417-445
+ */
+export function setProductionWindowCords(
+  state: ProductionWindowCordsState,
+  centerX: number,
+  centerY: number,
+): void {
+  state.x = centerX - (112 >> 1);
+  state.y = centerY - (80 >> 1);
+
+  if (state.zmap) {
+    const mapBasics = state.zmap.getMapBasics();
+    const mapWidth = mapBasics.width * 16;
+    const mapHeight = mapBasics.height * 16;
+
+    if (state.x + 228 + 16 > mapWidth) {
+      state.x = mapWidth - (228 + 16);
+    }
+    if (state.y + 96 + 16 > mapHeight) {
+      state.y = mapHeight - (96 + 16);
+    }
+  }
+
+  if (state.x < 16) state.x = 16;
+  if (state.y < 16) state.y = 16;
+
+  state.fullSelector.setCenterCoords(centerX, centerY);
+}
+
+/**
  * Port of upstream `GWPFullUnitSelector::SetZTime`.
  * Role: Stores the simulation clock reference for the full production selector.
  * Upstream: gwproduction.h:44
@@ -678,6 +1064,53 @@ export function setProductionZTime(
   ztime: SimulationTime,
 ): void {
   state.ztime = ztime;
+}
+
+/**
+ * Port of upstream `GWProduction::ResetShowTime`.
+ * Role: Stores the production countdown and refreshes the `m:ss` label.
+ * Upstream: gwproduction.cpp:265-286
+ */
+export function resetProductionShowTime(
+  state: ProductionShowTimeState,
+  newTime: number,
+): void {
+  state.showTime = newTime;
+
+  const seconds = newTime % 60;
+  const minutes = Math.trunc(newTime / 60) % 60;
+  state.showTimeText = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Port of upstream `GWProduction::RecalcShowTime`.
+ * Role: Recomputes the production countdown and refreshes the label when it changes.
+ * Upstream: gwproduction.cpp:240-263
+ */
+export function recalcProductionShowTime(
+  state: ProductionRecalcShowTimeState,
+): void {
+  let newTime = -1;
+
+  if (state.state === ProductionBuildingState.Select) {
+    if (!state.buildingObject) return;
+    if (!state.buildList) return;
+
+    const selected = state.unitSelector.getSelectedId();
+    if (selected.selected) {
+      newTime = state.buildingObject.buildTimeModified(
+        state.buildList.unitBuildTime(selected.objectType, selected.objectId),
+      );
+    }
+  } else {
+    if (!state.buildingObject) return;
+    newTime = state.buildingObject.productionTimeLeft(state.ztime.ztime);
+  }
+
+  const nextShowTime = Math.trunc(newTime);
+  if (state.showTime !== nextShowTime) {
+    resetProductionShowTime(state, nextShowTime);
+  }
 }
 
 /**
@@ -915,6 +1348,37 @@ export function clickProductionFullUnitSelector(
 }
 
 /**
+ * Port of upstream `GWPFullUnitSelector::UnClick`.
+ * Role: Routes local releases to full-selector unit buttons, caches selected ids, and reports bounds hits.
+ * Upstream: gwproduction_fus.cpp:446-469
+ */
+export function unclickProductionFullUnitSelector(
+  state: ProductionFullUnitSelectorUnclickState,
+  x: number,
+  y: number,
+): boolean {
+  if (!state.isActive) return false;
+
+  const localX = x - state.x;
+  const localY = y - state.y;
+
+  for (const button of state.buttonList) {
+    if (button.objectButton.unclick(localX, localY)) {
+      state.objectSelected = true;
+      state.selectedObjectType = button.objectType;
+      state.selectedObjectId = button.objectId;
+    }
+  }
+
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x >= state.x + state.width) return false;
+  if (y >= state.y + state.height) return false;
+
+  return true;
+}
+
+/**
  * Port of upstream `GWPUnitSelector::GetCoords`.
  * Role: Returns the production unit selector origin.
  * Upstream: gwproduction.h:123
@@ -945,6 +1409,41 @@ export function clickProductionUnitSelector(
 
   state.upButton.click(localX, localY);
   state.downButton.click(localX, localY);
+
+  if (x < state.x) return false;
+  if (y < state.y) return false;
+  if (x >= state.x + state.width) return false;
+  if (y >= state.y + state.height) return false;
+
+  return true;
+}
+
+/**
+ * Port of upstream `GWPUnitSelector::UnClick`.
+ * Role: Handles selector button releases, full-selector loading, and bounds hit testing.
+ * Upstream: gwproduction_us.cpp:380-404
+ */
+export function unclickProductionUnitSelector(
+  state: ProductionUnitSelectorUnclickState,
+  x: number,
+  y: number,
+): boolean {
+  state.loadFullSelector = false;
+
+  if (!state.isActive) return false;
+
+  const localX = x - state.x;
+  const localY = y - state.y;
+
+  if (state.upButton.unclick(localX, localY)) state.doUpButton();
+  if (state.downButton.unclick(localX, localY)) state.doDownButton();
+
+  if (
+    state.isOnlySelector ||
+    state.buildState === ProductionBuildingState.Select
+  ) {
+    state.loadFullSelector = withinProductionUnitSelectorPortrait(localX, localY);
+  }
 
   if (x < state.x) return false;
   if (y < state.y) return false;
@@ -989,6 +1488,38 @@ export function withinProductionUnitSelectorPortrait(
 }
 
 /**
+ * Port of upstream `GWPUnitSelector::WheelUpButton`.
+ * Role: Triggers the selector up action when the up button is active.
+ * Upstream: gwproduction_us.cpp:338-347
+ */
+export function wheelUpProductionUnitSelector(
+  state: ProductionUnitSelectorWheelUpState,
+): boolean {
+  if (state.upButton.isActive()) {
+    state.doUpButton();
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Port of upstream `GWPUnitSelector::WheelDownButton`.
+ * Role: Triggers the selector down action when the down button is active.
+ * Upstream: gwproduction_us.cpp:349-358
+ */
+export function wheelDownProductionUnitSelector(
+  state: ProductionUnitSelectorWheelDownState,
+): boolean {
+  if (state.downButton.isActive()) {
+    state.doDownButton();
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Port of upstream `GWProduction::WheelUpButton`.
  * Role: Routes wheel-up input to the unit selector first, then the queue selector.
  * Upstream: gwproduction.cpp:698-704
@@ -1027,6 +1558,36 @@ export function setProductionBuildList<TBuildList>(
   state.unitSelector.setBuildList(buildList);
   state.queueSelector.setBuildList(buildList);
   state.fullSelector.setBuildList(buildList);
+}
+
+/**
+ * Port of upstream `GWProduction::SetType`.
+ * Role: Stores the production type, maps it to a building type, and updates all selectors.
+ * Upstream: gwproduction.cpp:447-467
+ */
+export function setProductionType(
+  state: ProductionTypeState,
+  type: ProductionType | number,
+): void {
+  state.type = type;
+
+  switch (type) {
+    case ProductionType.Fort:
+      state.buildingType = BuildingType.FortFront;
+      break;
+    case ProductionType.Vehicle:
+      state.buildingType = BuildingType.VehicleFactory;
+      break;
+    case ProductionType.Robot:
+      state.buildingType = BuildingType.RobotFactory;
+      break;
+    default:
+      break;
+  }
+
+  state.unitSelector.setBuildingType(state.buildingType);
+  state.queueSelector.setBuildingType(state.buildingType);
+  state.fullSelector.setBuildingType(state.buildingType);
 }
 
 /**
@@ -1089,6 +1650,33 @@ export function doProductionUnitSelectorDownButton(
 }
 
 /**
+ * Port of upstream `GWPUnitSelector::SetSelection`.
+ * Role: Selects the unit matching an object type/id pair and refreshes the draw object.
+ * Upstream: gwproduction_us.cpp:315-336
+ */
+export function setProductionUnitSelectorSelection(
+  state: ProductionUnitSelectorSelectionState,
+  objectType: number,
+  objectId: number,
+): void {
+  if (!state.buildList) return;
+  if (!state.buildingObject) return;
+
+  const buildingLevel = state.buildingObject.getLevel();
+  const units = state.buildList.getBuildList(state.buildingType, buildingLevel);
+
+  for (let index = 0; index < units.length; index += 1) {
+    const unit = units[index];
+    if (unit.ot === objectType && unit.oid === objectId) {
+      state.selectedIndex = index;
+      break;
+    }
+  }
+
+  state.setDrawObject();
+}
+
+/**
  * Port of upstream `GWProduction::DoQueueButton`.
  * Role: Emits a new queue item request when the queue selector has a selected object.
  * Upstream: gwproduction.cpp:540-551
@@ -1103,6 +1691,32 @@ export function doProductionQueueButton(
   state.flags.qot = selectedId.objectType;
   state.flags.qoid = selectedId.objectId;
   state.flags.qrefId = state.buildingObject.getRefId();
+}
+
+/**
+ * Port of upstream `GWProduction::DoOkButton`.
+ * Role: Emits a selected production request or closes the production window based on the building state.
+ * Upstream: gwproduction.cpp:478-503
+ */
+export function doProductionOkButton(state: ProductionOkButtonState): void {
+  switch (state.state) {
+    case ProductionBuildingState.Place:
+      break;
+    case ProductionBuildingState.Select: {
+      const selectedId = state.unitSelector.getSelectedId();
+      if (selectedId.selected) {
+        state.flags.sendNewProduction = true;
+        state.flags.pot = selectedId.objectType;
+        state.flags.poid = selectedId.objectId;
+        state.flags.prefId = state.buildingObject.getRefId();
+      }
+      break;
+    }
+    case ProductionBuildingState.Paused:
+    case ProductionBuildingState.Building:
+      state.killme = true;
+      break;
+  }
 }
 
 /**
@@ -1226,6 +1840,21 @@ export type ProductionUnitSelectorLoadState = {
 };
 
 /**
+ * Port of upstream `GWProduction::LoadFullSelector` fields.
+ * Role: Holds production window geometry and selector dependencies for expanded selector loading.
+ * Upstream: gwproduction.cpp:565-584
+ */
+export type ProductionLoadFullSelectorState = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fullSelector: ProductionFullSelectorLoadReceiver;
+  unitSelector: ProductionFullSelectorLoadSource;
+  queueSelector: ProductionFullSelectorLoadSource;
+};
+
+/**
  * Port of upstream `SetUnitSelectorRefID`.
  * Role: Updates the object reference for the production unit selector.
  * Upstream: gwproduction.h:51
@@ -1257,6 +1886,39 @@ export function shouldLoadProductionFullSelector(
   state: ProductionUnitSelectorLoadState,
 ): boolean {
   return state.loadFullSelector;
+}
+
+/**
+ * Port of upstream `GWProduction::LoadFullSelector`.
+ * Role: Opens the full selector and centers it from the matching compact selector.
+ * Upstream: gwproduction.cpp:565-584
+ */
+export function loadProductionFullSelector(
+  state: ProductionLoadFullSelectorState,
+  unitSelectorRefId: number,
+): void {
+  state.fullSelector.setActive(true);
+  state.fullSelector.setUnitSelectorRefId(unitSelectorRefId);
+  state.fullSelector.clearSelected();
+
+  let selectorX: number;
+  let selectorY: number;
+
+  if (unitSelectorRefId === state.unitSelector.refId) {
+    selectorX = state.unitSelector.x;
+    selectorY = state.unitSelector.y;
+  } else if (unitSelectorRefId === state.queueSelector.refId) {
+    selectorX = state.queueSelector.x;
+    selectorY = state.queueSelector.y;
+  } else {
+    selectorX = Math.trunc(state.width / 2);
+    selectorY = Math.trunc(state.height / 2);
+  }
+
+  state.fullSelector.setCenterCoords(
+    state.x + selectorX + PRODUCTION_SELECTOR_CENTER_X_OFFSET_PIXELS,
+    state.y + selectorY + PRODUCTION_SELECTOR_CENTER_Y_OFFSET_PIXELS,
+  );
 }
 
 /**
@@ -1314,6 +1976,34 @@ export const PRODUCTION_SELECTOR_CENTER_X_OFFSET_PIXELS = 24;
  * Upstream: gwproduction.h:103
  */
 export const PRODUCTION_SELECTOR_CENTER_Y_OFFSET_PIXELS = 21;
+
+/**
+ * Port of upstream expanded `GWProduction` width.
+ * Role: Defines the production window width while the queue panel is expanded.
+ * Upstream: gwproduction.cpp:218
+ */
+export const PRODUCTION_EXPANDED_WIDTH_PIXELS = 228;
+
+/**
+ * Port of upstream expanded `GWProduction` height.
+ * Role: Defines the production window height while the queue panel is expanded.
+ * Upstream: gwproduction.cpp:219
+ */
+export const PRODUCTION_EXPANDED_HEIGHT_PIXELS = 96;
+
+/**
+ * Port of upstream collapsed `GWProduction` width.
+ * Role: Defines the production window width while the queue panel is collapsed.
+ * Upstream: gwproduction.cpp:229
+ */
+export const PRODUCTION_COLLAPSED_WIDTH_PIXELS = 112;
+
+/**
+ * Port of upstream collapsed `GWProduction` height.
+ * Role: Defines the production window height while the queue panel is collapsed.
+ * Upstream: gwproduction.cpp:230
+ */
+export const PRODUCTION_COLLAPSED_HEIGHT_PIXELS = 80;
 
 /**
  * Port of upstream `button_h`.

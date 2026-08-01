@@ -1,6 +1,7 @@
 /**
  * Upstream: etoughrocket.h
  */
+import type { ToughSmokeEffectSpawn } from "./ToughSmokeEffect";
 
 /**
  * Port of upstream `_ETOUGHROCKET_H_`.
@@ -24,6 +25,21 @@ export const TOUGH_ROCKET_BULLET_FRAME_COUNT = 2;
 export type ToughRocketInitState = {
   bulletFrames: string[];
   finishedInit: boolean;
+};
+
+/**
+ * Port of upstream `EToughRocket::PlaceSmoke` mutable fields.
+ * Role: Tracks rocket path timing and the last tough-smoke placement time.
+ * Upstream: etoughrocket.cpp:122-130
+ */
+export type ToughRocketSmokePlacementState<TTime = unknown> = {
+  ztime: TTime;
+  startX: number;
+  startY: number;
+  directionX: number;
+  directionY: number;
+  initTime: number;
+  lastSmokeTime: number;
 };
 
 /**
@@ -56,4 +72,31 @@ export function calcToughRocketTimeD(bulletSpeed: number): number {
  */
 export function calcToughRocketTimeD2(bulletSpeed: number): number {
   return 8.0 / bulletSpeed;
+}
+
+/**
+ * Port of upstream `EToughRocket::PlaceSmoke`.
+ * Role: Spawns tough-smoke trail effects at fixed distance intervals behind the rocket.
+ * Upstream: etoughrocket.cpp:115-132
+ */
+export function placeToughRocketSmoke<TTime>(
+  state: ToughRocketSmokePlacementState<TTime>,
+  currentTime: number,
+  bulletSpeed: number,
+  effectList: ToughSmokeEffectSpawn<TTime>[],
+): void {
+  const timeD = calcToughRocketTimeD(bulletSpeed);
+  const timeD2 = calcToughRocketTimeD2(bulletSpeed);
+
+  while (currentTime - state.lastSmokeTime > timeD2) {
+    const smokeTime = state.lastSmokeTime - timeD - state.initTime;
+
+    effectList.push({
+      ztime: state.ztime,
+      x: state.startX + state.directionX * smokeTime,
+      y: state.startY + state.directionY * smokeTime,
+    });
+
+    state.lastSmokeTime += timeD2;
+  }
 }

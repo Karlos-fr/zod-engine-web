@@ -1,6 +1,7 @@
 /**
  * Upstream: etanksmoke.h / etanksmoke.cpp
  */
+import type { MapSurfaceRenderCommand } from "../world/GameMap";
 import { MAX_ANGLE_TYPES } from "./SimulationConstants";
 
 /**
@@ -67,6 +68,22 @@ export type TankSmokeProcessState = {
 };
 
 /**
+ * Replacement for upstream `ETankSmoke::DoPreRender` mutable fields.
+ * Role: Holds tank-smoke frame selection and map position for pre-rendering.
+ * Upstream: etanksmoke.cpp:70-85
+ */
+export type TankSmokePreRenderState<TSurface> = {
+  killMe: boolean;
+  doSpark: boolean;
+  frameIndex: number;
+  direction: number;
+  x: number;
+  y: number;
+  tankSmoke: readonly (readonly (TSurface | null | undefined)[])[];
+  tankSpark: readonly (readonly (TSurface | null | undefined)[])[];
+};
+
+/**
  * Port of upstream `ETankSmoke::Init`.
  * Role: Loads tank smoke and spark frames for every rotation bucket.
  * Upstream: etanksmoke.cpp:30-48
@@ -120,4 +137,33 @@ export function processTankSmokeEffect(
       state.killMe = true;
     }
   }
+}
+
+/**
+ * Replacement for upstream `ETankSmoke::DoPreRender`.
+ * Role: Builds the map render command for the current tank smoke or spark frame.
+ * Upstream: etanksmoke.cpp:70-85
+ */
+export function doPreRenderTankSmokeEffect<TSurface>(
+  state: TankSmokePreRenderState<TSurface>,
+  zmap: {
+    renderZSurface(
+      surface: TSurface,
+      x: number,
+      y: number,
+      renderHit: boolean,
+      aboutCenter: boolean,
+    ): MapSurfaceRenderCommand<TSurface>;
+  },
+): MapSurfaceRenderCommand<TSurface> | null {
+  if (state.killMe) return null;
+
+  const surface =
+    state.doSpark && state.frameIndex < TANK_SMOKE_SPARK_FRAME_COUNT
+      ? state.tankSpark[state.direction]?.[state.frameIndex]
+      : state.tankSmoke[state.direction]?.[state.frameIndex];
+
+  if (surface == null) return null;
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, false);
 }

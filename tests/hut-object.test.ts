@@ -7,6 +7,7 @@ import {
   initHutPlanetTemplates,
   isHutDestroyableImpassable,
   OHUT_HEADER_GUARD_PORTED,
+  sendHutAnimalsHome,
   setHutMapImpassables,
   setMaxHutAnimals,
   setHutOwner,
@@ -136,6 +137,64 @@ describe("hut object", () => {
 
     expect(state.maxHutAnimals).toBe(4);
     expect(randomCalled).toBe(false);
+  });
+
+  it("ports OHut SendAnimalsHome as sending only missing animals home", () => {
+    const calls: string[] = [];
+    const animalStates = [true, false, false, false];
+    const animals = animalStates.map((goingHome, index) => ({
+      isGoingHome: () => animalStates[index],
+      goHome() {
+        calls.push(`animal-${index}`);
+        animalStates[index] = true;
+      },
+    }));
+
+    sendHutAnimalsHome({ hutAnimals: animals }, 3);
+
+    expect(calls).toEqual(["animal-1", "animal-2"]);
+    expect(animalStates).toEqual([true, true, true, false]);
+  });
+
+  it("ports OHut SendAnimalsHome as no-op when enough animals are already returning", () => {
+    const calls: string[] = [];
+    const animals = [
+      {
+        isGoingHome: () => true,
+        goHome: () => calls.push("first"),
+      },
+      {
+        isGoingHome: () => true,
+        goHome: () => calls.push("second"),
+      },
+      {
+        isGoingHome: () => false,
+        goHome: () => calls.push("third"),
+      },
+    ];
+
+    sendHutAnimalsHome({ hutAnimals: animals }, 2);
+    sendHutAnimalsHome({ hutAnimals: animals }, 0);
+
+    expect(calls).toEqual([]);
+  });
+
+  it("ports OHut SendAnimalsHome as stopping when the animal list is exhausted", () => {
+    const calls: string[] = [];
+    const animals = [
+      {
+        isGoingHome: () => false,
+        goHome: () => calls.push("first"),
+      },
+      {
+        isGoingHome: () => false,
+        goHome: () => calls.push("second"),
+      },
+    ];
+
+    sendHutAnimalsHome({ hutAnimals: animals }, 5);
+
+    expect(calls).toEqual(["first", "second"]);
   });
 
   it("ports OHut SetOwner as an ownership no-op", () => {

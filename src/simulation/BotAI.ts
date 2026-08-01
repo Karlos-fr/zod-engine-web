@@ -3,6 +3,7 @@
  */
 
 import { MapObjectType } from "../world/MapFormat";
+import { setupCoreRandomizer, type CoreRandomizerState } from "./GameCore";
 import { CannonType, RobotType, VehicleType } from "./SimulationConstants";
 
 /**
@@ -221,6 +222,42 @@ export const BOT_MAX_GUNS_BUILDING_RATIO = 0.35;
 export const BOT_MAX_BUILD_COMBO_CHECK = 6;
 
 /**
+ * Port of upstream `ZBot::Setup` socket dependency surface.
+ * Role: Starts a bot client connection against the configured remote address.
+ * Upstream: zbot.cpp:36
+ */
+export type BotSetupClientSocket = {
+  start(remoteAddress: string): boolean;
+};
+
+/**
+ * Port of upstream `ZBot::Setup` state.
+ * Role: Holds randomizer state and network configuration used during bot setup.
+ * Upstream: zbot.cpp:34-36
+ */
+export type BotSetupState = CoreRandomizerState & {
+  remoteAddress: string;
+  clientSocket: BotSetupClientSocket;
+};
+
+/**
+ * Port of upstream `ZBot::Setup`.
+ * Role: Initializes bot randomization and starts the client socket.
+ * Upstream: zbot.cpp:31-38
+ */
+export function botSetup(
+  bot: BotSetupState,
+  now: () => number = Date.now,
+  log: (message: string) => void = (): void => undefined,
+): void {
+  setupCoreRandomizer(bot, now);
+
+  if (!bot.clientSocket.start(bot.remoteAddress)) {
+    log("ZBot::Setup:socket not setup");
+  }
+}
+
+/**
  * Port of upstream `ZBot::nothing_event`.
  * Role: Handles ignored bot/network events with no side effects.
  * Upstream: zbot_events.cpp:69-72
@@ -268,6 +305,44 @@ export type BotMapDownloadProcessor = {
 };
 
 /**
+ * Port of upstream `ZBot::end_game_event` call target.
+ * Role: Provides end-game processing for bot event dispatch.
+ * Upstream: zbot_events.cpp:196
+ */
+export type BotEndGameEventProcessor = {
+  processEndGame(): void;
+};
+
+/**
+ * Port of upstream `ZBot::disconnect_event` call target.
+ * Role: Provides disconnect processing for bot event dispatch.
+ * Upstream: zbot_events.cpp:90
+ */
+export type BotDisconnectEventProcessor = {
+  processDisconnect(): void;
+};
+
+/**
+ * Port of upstream `ZBot::reset_game_event` state and call target.
+ * Role: Provides reset-game processing and bot flag-object tracking.
+ * Upstream: zbot_events.cpp:201-204
+ */
+export type BotResetGameEventProcessor<TFlagObject = unknown> = {
+  processResetGame(): void;
+  flagObjectList: TFlagObject[];
+};
+
+/**
+ * Port of upstream `ZBot::connect_event` call targets.
+ * Role: Provides bot bypass-data sending followed by connection processing.
+ * Upstream: zbot_events.cpp:83-85
+ */
+export type BotConnectEventProcessor = {
+  sendBotBypassData(): void;
+  processConnect(): void;
+};
+
+/**
  * Port of upstream `ZBot::store_map_event`.
  * Role: Delegates a map-download payload to the bot processor.
  * Upstream: zbot_events.cpp:93-96
@@ -280,6 +355,76 @@ export function botStoreMapEvent(
 ): void {
   void dummy;
   bot.processMapDownload(data, size);
+}
+
+/**
+ * Port of upstream `ZBot::end_game_event`.
+ * Role: Processes a bot end-game event.
+ * Upstream: zbot_events.cpp:194-197
+ */
+export function botEndGameEvent(
+  bot: BotEndGameEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  bot.processEndGame();
+}
+
+/**
+ * Port of upstream `ZBot::disconnect_event`.
+ * Role: Processes a bot disconnect event.
+ * Upstream: zbot_events.cpp:88-91
+ */
+export function botDisconnectEvent(
+  bot: BotDisconnectEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  bot.processDisconnect();
+}
+
+/**
+ * Port of upstream `ZBot::reset_game_event`.
+ * Role: Processes a bot reset-game event and clears tracked flag objects.
+ * Upstream: zbot_events.cpp:199-205
+ */
+export function botResetGameEvent(
+  bot: BotResetGameEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  bot.processResetGame();
+  bot.flagObjectList.length = 0;
+}
+
+/**
+ * Port of upstream `ZBot::connect_event`.
+ * Role: Sends bot bypass data before processing the connection.
+ * Upstream: zbot_events.cpp:79-86
+ */
+export function botConnectEvent(
+  bot: BotConnectEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  bot.sendBotBypassData();
+  bot.processConnect();
 }
 
 /**

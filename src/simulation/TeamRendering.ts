@@ -99,6 +99,22 @@ export const TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE =
   "ZTeam::SavePalette:You can not save the base palette (red)";
 
 /**
+ * Port of upstream `ZTeam::Init`.
+ * Role: Loads every active team palette and then initializes team colors.
+ * Upstream: zteam.cpp:187-195
+ */
+export function initTeamRendering(
+  loadPalette: (team: TeamType | number) => void,
+  setupTeamColor: () => void,
+): void {
+  for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    loadPalette(team);
+  }
+
+  setupTeamColor();
+}
+
+/**
  * Port of upstream `ZTeam_Palette::AddColor`.
  * Role: Preserves the upstream active behavior, which reports unsupported storage and returns false.
  * Upstream: zteam.cpp:126-142

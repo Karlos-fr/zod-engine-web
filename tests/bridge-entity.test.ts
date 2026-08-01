@@ -162,6 +162,42 @@ describe("bridge entity", () => {
     });
   });
 
+  it("ports BBridge GetCraneEntrance for vertical bridge endpoints", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-crane-vertical",
+      kind: "building",
+      position: { x: 48, y: 80 },
+    });
+    bridge.isVertical = true;
+    bridge.pixelHeight = 96;
+
+    expect(bridge.getCraneEntrance()).toEqual({
+      canEnter: true,
+      x: 80,
+      y: 48,
+      exitX: 80,
+      exitY: 208,
+    });
+  });
+
+  it("ports BBridge GetCraneEntrance for horizontal bridge endpoints", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-crane-horizontal",
+      kind: "building",
+      position: { x: 48, y: 80 },
+    });
+    bridge.isVertical = false;
+    bridge.pixelWidth = 112;
+
+    expect(bridge.getCraneEntrance()).toEqual({
+      canEnter: true,
+      x: 17,
+      y: 111,
+      exitX: 192,
+      exitY: 112,
+    });
+  });
+
   it("ports BBridge ResetStats for vertical bridge dimensions", () => {
     const bridge = new BridgeEntity({
       id: "bridge-reset-vertical",
@@ -498,5 +534,150 @@ describe("bridge entity", () => {
     });
 
     expect(randomValues).toEqual([]);
+  });
+
+  it("ports BBridge ImpassCenter for vertical bridge center tiles", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-vertical-impass-center",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = true;
+    bridge.width = 4;
+    bridge.height = 3;
+    const calls: Array<[number, number, boolean | undefined]> = [];
+
+    bridge.impassCenter(
+      {
+        setImpassable: (x, y, impassable) => calls.push([x, y, impassable]),
+      },
+      true,
+    );
+
+    expect(calls).toEqual([
+      [3, 3, true],
+      [4, 3, true],
+      [3, 4, true],
+      [4, 4, true],
+      [3, 5, true],
+      [4, 5, true],
+    ]);
+  });
+
+  it("ports BBridge ImpassCenter for horizontal bridge center tiles", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-horizontal-impass-center",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = false;
+    bridge.width = 3;
+    bridge.height = 4;
+    const calls: Array<[number, number, boolean | undefined]> = [];
+
+    bridge.impassCenter(
+      {
+        setImpassable: (x, y, impassable) => calls.push([x, y, impassable]),
+      },
+      false,
+    );
+
+    expect(calls).toEqual([
+      [2, 4, false],
+      [2, 5, false],
+      [3, 4, false],
+      [3, 5, false],
+      [4, 4, false],
+      [4, 5, false],
+    ]);
+  });
+
+  it("ports BBridge SetDestroyMapImpassables by marking bridge center tiles", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-set-destroy-impassables",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = false;
+    bridge.width = 2;
+    bridge.height = 4;
+    const calls: Array<[number, number, boolean | undefined]> = [];
+
+    bridge.setDestroyMapImpassables({
+      setImpassable: (x, y, impassable) => calls.push([x, y, impassable]),
+    });
+
+    expect(calls).toEqual([
+      [2, 4, true],
+      [2, 5, true],
+      [3, 4, true],
+      [3, 5, true],
+    ]);
+  });
+
+  it("ports BBridge UnSetDestroyMapImpassables by clearing bridge center tiles", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-unset-destroy-impassables",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = false;
+    bridge.width = 2;
+    bridge.height = 4;
+    const calls: Array<[number, number, boolean | undefined]> = [];
+
+    bridge.unsetDestroyMapImpassables({
+      setImpassable: (x, y, impassable) => calls.push([x, y, impassable]),
+    });
+
+    expect(calls).toEqual([
+      [2, 4, false],
+      [2, 5, false],
+      [3, 4, false],
+      [3, 5, false],
+    ]);
+  });
+
+  it("ports BBridge UnderCursorCanAttack as true when destroyed", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-attack-destroyed",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.setDestroyed(true);
+
+    expect(bridge.underCursorCanAttack(1000, 1000)).toBe(true);
+  });
+
+  it("ports BBridge UnderCursorCanAttack for vertical edge sections", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-attack-vertical",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = true;
+    bridge.pixelHeight = 96;
+
+    expect(bridge.underCursorCanAttack(32, 48)).toBe(true);
+    expect(bridge.underCursorCanAttack(48, 144)).toBe(true);
+    expect(bridge.underCursorCanAttack(80, 80)).toBe(true);
+    expect(bridge.underCursorCanAttack(96, 144)).toBe(true);
+    expect(bridge.underCursorCanAttack(64, 80)).toBe(false);
+  });
+
+  it("ports BBridge UnderCursorCanAttack for horizontal edge sections", () => {
+    const bridge = new BridgeEntity({
+      id: "bridge-attack-horizontal",
+      kind: "building",
+      position: { x: 32, y: 48 },
+    });
+    bridge.isVertical = false;
+    bridge.pixelWidth = 112;
+
+    expect(bridge.underCursorCanAttack(32, 48)).toBe(true);
+    expect(bridge.underCursorCanAttack(144, 64)).toBe(true);
+    expect(bridge.underCursorCanAttack(32, 96)).toBe(true);
+    expect(bridge.underCursorCanAttack(144, 112)).toBe(true);
+    expect(bridge.underCursorCanAttack(64, 80)).toBe(false);
   });
 });

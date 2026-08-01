@@ -10,6 +10,7 @@ import {
 import {
   GameEntity,
   isObjectBeforeByRenderDepth,
+  setEntityHealthPercent,
 } from "../src/simulation/entities/GameEntity";
 import { DamageMissile } from "../src/simulation/ProjectileConstants";
 import {
@@ -510,6 +511,41 @@ describe("GameEntity", () => {
     expect(entity.getMaxHealth()).toBe(120);
   });
 
+  it("ports ZObject SetHealthPercent as clamped proportional health assignment", () => {
+    const map = { id: "map" };
+    const calls: Array<{ health: number; map: typeof map }> = [];
+    const entity = {
+      initialHealthPercent: 0,
+      maxHealth: 120,
+      setHealth: (health: number, map_: typeof map) => {
+        calls.push({ health, map: map_ });
+      },
+    };
+
+    setEntityHealthPercent(entity, 75, map);
+
+    expect(entity.initialHealthPercent).toBe(75);
+    expect(calls).toEqual([{ health: 90, map }]);
+  });
+
+  it("ports ZObject SetHealthPercent clamping before health assignment", () => {
+    const calls: number[] = [];
+    const entity = {
+      initialHealthPercent: 0,
+      maxHealth: 80,
+      setHealth: (health: number) => {
+        calls.push(health);
+      },
+    };
+
+    setEntityHealthPercent(entity, 125, {});
+    expect(entity.initialHealthPercent).toBe(100);
+
+    setEntityHealthPercent(entity, -20, {});
+    expect(entity.initialHealthPercent).toBe(0);
+    expect(calls).toEqual([80, 0]);
+  });
+
   it("does not recalculate build time for the base entity", () => {
     const entity = new GameEntity({
       id: "factory-2",
@@ -876,6 +912,52 @@ describe("GameEntity", () => {
     expect(entity.position).toEqual({ x: 20, y: 30 });
     expect(entity.centerX).toBe(25);
     expect(entity.centerY).toBe(34);
+  });
+
+  it("ports ZObject SetLoc as location, velocity, and center cache update", () => {
+    const entity = new GameEntity({
+      id: "robot-set-location",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    entity.pixelWidth = 11;
+    entity.pixelHeight = 8;
+
+    entity.setLocation({ x: 20, y: 30, deltaX: 2, deltaY: 0 }, 12.5);
+
+    expect(entity.position).toEqual({ x: 20, y: 30 });
+    expect(entity.locationDeltaX).toBe(2);
+    expect(entity.locationDeltaY).toBe(0);
+    expect(entity.lastLocation).toEqual({ x: 20, y: 30 });
+    expect(entity.lastLocationSetTime).toBe(12.5);
+    expect(entity.centerX).toBe(25);
+    expect(entity.centerY).toBe(34);
+    expect(entity.direction).toBe(0);
+  });
+
+  it("ports ZObject SetLoc as direction recalculation only when velocity changes", () => {
+    class RecalcCountingEntity extends GameEntity {
+      recalcCount = 0;
+
+      override recalcDirection(): void {
+        this.recalcCount += 1;
+        super.recalcDirection();
+      }
+    }
+    const entity = new RecalcCountingEntity({
+      id: "robot-set-location-recalc",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    entity.locationDeltaX = 1;
+    entity.locationDeltaY = 0;
+
+    entity.setLocation({ x: 4, y: 6, deltaX: 1, deltaY: 0 }, 10);
+    expect(entity.recalcCount).toBe(0);
+
+    entity.setLocation({ x: 5, y: 7, deltaX: 0, deltaY: 1 }, 11);
+    expect(entity.recalcCount).toBe(1);
+    expect(entity.direction).toBe(6);
   });
 
   it("smoothly estimates position from last location and velocity", () => {
@@ -1385,7 +1467,12 @@ describe("GameEntity", () => {
     target.centerX = 13;
     target.centerY = 24;
     entity.setMap({
-      engageBarrierBetweenCoords: (x1, y1, x2, y2) => {
+      engageBarrierBetweenCoords: (
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+      ) => {
         barrierChecks.push([x1, y1, x2, y2]);
         return false;
       },
@@ -1470,7 +1557,12 @@ describe("GameEntity", () => {
     target.centerX = 18;
     target.centerY = 20;
     entity.setMap({
-      engageBarrierBetweenCoords: (x1, y1, x2, y2) => {
+      engageBarrierBetweenCoords: (
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+      ) => {
         barrierChecks.push([x1, y1, x2, y2]);
         return false;
       },
@@ -3238,6 +3330,71 @@ describe("GameEntity", () => {
     entity.clearDrivers();
 
     expect(entity.driverInfo).toEqual([]);
+    expect(resetCount).toBe(1);
+  });
+
+  it("ports ZObject DamageDriverHealth guard exits", () => {
+    const noDriver = new GameEntity({
+      id: "vehicle-damage-driver-empty",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Red,
+    });
+
+    expect(noDriver.damageDriverHealth(10)).toBe(0);
+    expect(noDriver.owner).toBe(TeamType.Red);
+
+    const deadDriver = new GameEntity({
+      id: "vehicle-damage-driver-dead",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Red,
+    });
+    deadDriver.driverInfo.push({ health: 0, nextAttackTime: 9 });
+
+    expect(deadDriver.damageDriverHealth(10)).toBe(0);
+    expect(deadDriver.driverInfo).toEqual([{ health: 0, nextAttackTime: 9 }]);
+    expect(deadDriver.owner).toBe(TeamType.Red);
+  });
+
+  it("ports ZObject DamageDriverHealth as first-driver damage", () => {
+    const entity = new GameEntity({
+      id: "vehicle-damage-driver",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Blue,
+    });
+    entity.driverInfo.push(
+      { health: 40, nextAttackTime: 9 },
+      { health: 20, nextAttackTime: 3 },
+    );
+
+    expect(entity.damageDriverHealth(15)).toBe(1);
+
+    expect(entity.driverInfo).toEqual([
+      { health: 25, nextAttackTime: 9 },
+      { health: 20, nextAttackTime: 3 },
+    ]);
+    expect(entity.owner).toBe(TeamType.Blue);
+  });
+
+  it("ports ZObject DamageDriverHealth as driver death neutralization", () => {
+    const entity = new GameEntity({
+      id: "vehicle-damage-driver-kill",
+      kind: "vehicle",
+      position: { x: 0, y: 0 },
+      owner: TeamType.Green,
+    });
+    let resetCount = 0;
+    entity.driverInfo.push({ health: 12, nextAttackTime: 9 });
+    entity.resetDamageInfo = () => {
+      resetCount += 1;
+    };
+
+    expect(entity.damageDriverHealth(12)).toBe(1);
+
+    expect(entity.driverInfo).toEqual([]);
+    expect(entity.owner).toBe(TeamType.Null);
     expect(resetCount).toBe(1);
   });
 

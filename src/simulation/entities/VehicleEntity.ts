@@ -4,7 +4,18 @@
 
 import { GameEntity } from "./GameEntity";
 import type { ZSettings } from "../../data/ZSettingsData";
+import {
+  DeathEffectObject,
+  type DeathEffectSpawn,
+} from "../DeathEffect";
+import {
+  TurretMissileEffectType,
+  type TurretMissileEffectSpawn,
+} from "../TurretMissileEffect";
+import type { MobileMissileRocketsEffectSpawn } from "../MobileMissileRocketsEffect";
+import type { LightRocketEffectSpawn } from "../LightRocketEffect";
 import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
+import { SoundEngineSound } from "../../audio/AudioService";
 
 /**
  * Browser simulation entity containing the subset of `ZVehicle` behavior already ported.
@@ -13,6 +24,9 @@ import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
  */
 export class VehicleEntity extends GameEntity {
   lidOpen = false;
+  lidI = 0;
+  showRobot = false;
+  nextLidTime = 0;
   doCloseLid = false;
   nextCloseLidTime = 0;
   moving = false;
@@ -182,4 +196,526 @@ export class VehicleEntity extends GameEntity {
       this.nextCloseLidTime = theTime + 0.1 * randomModulo15;
     }
   }
+
+  /**
+   * Port of upstream `ZVehicle::ProcessLid`.
+   * Role: Advances the vehicle lid animation and robot visibility on its timer.
+   * Upstream: zvehicle.cpp:242-266
+   */
+  processLid(theTime: number): void {
+    if (theTime < this.nextLidTime) return;
+
+    this.nextLidTime = theTime + 0.2;
+
+    if (this.lidOpen) {
+      if (this.lidI >= 2) {
+        this.showRobot = true;
+      } else {
+        this.lidI += 1;
+      }
+
+      return;
+    }
+
+    this.showRobot = false;
+
+    if (this.lidI > 0) {
+      this.lidI -= 1;
+    }
+  }
+}
+
+/**
+ * Replacement for upstream `ZSoundEngine::PlayWavRestricted` arguments.
+ * Role: Describes restricted positional audio requested by a vehicle action.
+ * Upstream: zsound_engine.cpp:284-293
+ */
+export type VehicleRestrictedSoundCommand = {
+  sound: SoundEngineSound | number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+const MISSILE_LAUNCHER_FIRE_OFFSET_X = [20, 12, 0, -12, -20, -12, 0, 12] as const;
+const MISSILE_LAUNCHER_FIRE_OFFSET_Y = [0, -12, -20, -12, 0, 12, 20, 12] as const;
+
+/**
+ * Port of upstream `VMissileLauncher::FireMissile`.
+ * Role: Spawns a mobile-missile rocket and requests its restricted fire sound.
+ * Upstream: vmissilelauncher.cpp:192-202
+ */
+export function fireMissileLauncherMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    turretDirection: number;
+    pixelWidth: number;
+    pixelHeight: number;
+  },
+  effectList: MobileMissileRocketsEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  soundCommands: VehicleRestrictedSoundCommand[] | null = null,
+): void {
+  const direction = Math.trunc(state.turretDirection) & 7;
+
+  if (effectList) {
+    effectList.push({
+      ztime: state.ztime,
+      startX:
+        state.position.x + 17 + MISSILE_LAUNCHER_FIRE_OFFSET_X[direction],
+      startY:
+        state.position.y + 14 + MISSILE_LAUNCHER_FIRE_OFFSET_Y[direction],
+      targetX,
+      targetY,
+    });
+  }
+
+  if (soundCommands) {
+    soundCommands.push({
+      sound: SoundEngineSound.MomissileFireSnd,
+      x: state.position.x,
+      y: state.position.y,
+      width: state.pixelWidth,
+      height: state.pixelHeight,
+    });
+  }
+}
+
+/**
+ * Port of upstream `VHeavy::FireMissile`.
+ * Role: Spawns a heavy vehicle rocket and requests its restricted fire sound.
+ * Upstream: vheavy.cpp:213-224
+ */
+export function fireHeavyVehicleMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    turretDirection: number;
+    missileSpeed: number;
+    pixelWidth: number;
+    pixelHeight: number;
+  },
+  effectList: LightRocketEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  soundCommands: VehicleRestrictedSoundCommand[] | null = null,
+): void {
+  const direction = Math.trunc(state.turretDirection) & 7;
+
+  if (effectList) {
+    effectList.push({
+      ztime: state.ztime,
+      startX:
+        state.position.x + 17 + MISSILE_LAUNCHER_FIRE_OFFSET_X[direction],
+      startY:
+        state.position.y + 14 + MISSILE_LAUNCHER_FIRE_OFFSET_Y[direction],
+      targetX,
+      targetY,
+      speed: state.missileSpeed,
+      extraSmall: 0,
+      extraLarge: 1,
+      extraExtraLarge: 1,
+    });
+  }
+
+  if (soundCommands) {
+    soundCommands.push({
+      sound: SoundEngineSound.HeavyFireSnd,
+      x: state.position.x,
+      y: state.position.y,
+      width: state.pixelWidth,
+      height: state.pixelHeight,
+    });
+  }
+}
+
+/**
+ * Port of upstream `VLight::FireMissile`.
+ * Role: Spawns a light vehicle rocket and requests its restricted fire sound.
+ * Upstream: vlight.cpp:230-241
+ */
+export function fireLightVehicleMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    turretDirection: number;
+    missileSpeed: number;
+    pixelWidth: number;
+    pixelHeight: number;
+  },
+  effectList: LightRocketEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  soundCommands: VehicleRestrictedSoundCommand[] | null = null,
+): void {
+  const direction = Math.trunc(state.turretDirection) & 7;
+
+  if (effectList) {
+    effectList.push({
+      ztime: state.ztime,
+      startX:
+        state.position.x + 17 + MISSILE_LAUNCHER_FIRE_OFFSET_X[direction],
+      startY:
+        state.position.y + 14 + MISSILE_LAUNCHER_FIRE_OFFSET_Y[direction],
+      targetX,
+      targetY,
+      speed: state.missileSpeed,
+      extraSmall: 0,
+      extraLarge: 0,
+      extraExtraLarge: 0,
+    });
+  }
+
+  if (soundCommands) {
+    soundCommands.push({
+      sound: SoundEngineSound.LightFireSnd,
+      x: state.position.x,
+      y: state.position.y,
+      width: state.pixelWidth,
+      height: state.pixelHeight,
+    });
+  }
+}
+
+/**
+ * Port of upstream `VMedium::FireMissile`.
+ * Role: Spawns a medium vehicle rocket and requests its restricted fire sound.
+ * Upstream: vmedium.cpp:224-235
+ */
+export function fireMediumVehicleMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    turretDirection: number;
+    missileSpeed: number;
+    pixelWidth: number;
+    pixelHeight: number;
+  },
+  effectList: LightRocketEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  soundCommands: VehicleRestrictedSoundCommand[] | null = null,
+): void {
+  const direction = Math.trunc(state.turretDirection) & 7;
+
+  if (effectList) {
+    effectList.push({
+      ztime: state.ztime,
+      startX:
+        state.position.x + 17 + MISSILE_LAUNCHER_FIRE_OFFSET_X[direction],
+      startY:
+        state.position.y + 14 + MISSILE_LAUNCHER_FIRE_OFFSET_Y[direction],
+      targetX,
+      targetY,
+      speed: state.missileSpeed,
+      extraSmall: 0,
+      extraLarge: 1,
+      extraExtraLarge: 0,
+    });
+  }
+
+  if (soundCommands) {
+    soundCommands.push({
+      sound: SoundEngineSound.MediumFireSnd,
+      x: state.position.x,
+      y: state.position.y,
+      width: state.pixelWidth,
+      height: state.pixelHeight,
+    });
+  }
+}
+
+/**
+ * Port of upstream `VHeavy::FireTurrentMissile`.
+ * Role: Spawns a heavy vehicle turret missile effect from the vehicle body.
+ * Upstream: vheavy.cpp:263-266
+ */
+export function fireHeavyVehicleTurrentMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    owner: TeamType | number;
+  },
+  effectList: TurretMissileEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  offsetTime: number,
+): void {
+  if (!effectList) return;
+
+  effectList.push({
+    ztime: state.ztime,
+    startX: state.position.x + 8,
+    startY: state.position.y + 8,
+    targetX,
+    targetY,
+    offsetTime,
+    type: TurretMissileEffectType.Heavy,
+    owner: state.owner,
+  });
+}
+
+/**
+ * Port of upstream `VLight::FireTurrentMissile`.
+ * Role: Spawns a light vehicle turret missile effect from the vehicle body.
+ * Upstream: vlight.cpp:280-283
+ */
+export function fireLightVehicleTurrentMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+  },
+  effectList: TurretMissileEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  offsetTime: number,
+): void {
+  if (!effectList) return;
+
+  effectList.push({
+    ztime: state.ztime,
+    startX: state.position.x + 8,
+    startY: state.position.y + 8,
+    targetX,
+    targetY,
+    offsetTime,
+    type: TurretMissileEffectType.Light,
+  });
+}
+
+/**
+ * Port of upstream `VMedium::FireTurrentMissile`.
+ * Role: Spawns a medium vehicle turret missile effect from the vehicle body.
+ * Upstream: vmedium.cpp:274-277
+ */
+export function fireMediumVehicleTurrentMissile<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+  },
+  effectList: TurretMissileEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  offsetTime: number,
+): void {
+  if (!effectList) return;
+
+  effectList.push({
+    ztime: state.ztime,
+    startX: state.position.x + 8,
+    startY: state.position.y + 8,
+    targetX,
+    targetY,
+    offsetTime,
+    type: TurretMissileEffectType.Medium,
+  });
+}
+
+/**
+ * Port of upstream `VAPC::DoDeathEffect`.
+ * Role: Inserts an APC death effect at the front of the shared effect list.
+ * Upstream: vapc.cpp:219-223
+ */
+export function doApcVehicleDeathEffect<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.Apc,
+  });
+}
+
+/**
+ * Port of upstream `VCrane::DoDeathEffect`.
+ * Role: Inserts a crane death effect at the front of the shared effect list.
+ * Upstream: vcrane.cpp:239-243
+ */
+export function doCraneVehicleDeathEffect<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.Crane,
+  });
+}
+
+/**
+ * Port of upstream `VJeep::DoDeathEffect`.
+ * Role: Inserts a jeep death effect at the front of the shared effect list.
+ * Upstream: vjeep.cpp:290-294
+ */
+export function doJeepVehicleDeathEffect<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.Jeep,
+  });
+}
+
+/**
+ * Port of upstream `VMissileLauncher::DoDeathEffect`.
+ * Role: Inserts a mobile-missile death effect at the front of the shared effect list.
+ * Upstream: vmissilelauncher.cpp:204-208
+ */
+export function doMissileLauncherVehicleDeathEffect<TTime>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.MobileMissile,
+  });
+}
+
+/**
+ * Port of upstream `VHeavy::DoDeathEffect`.
+ * Role: Inserts a tank death effect with the current damaged base image at the front of the shared effect list.
+ * Upstream: vheavy.cpp:226-232
+ */
+export function doHeavyVehicleDeathEffect<TTime, TBaseImage>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    owner: TeamType | number;
+    direction: number;
+    moveIndex: number;
+    baseDamaged: readonly (readonly (readonly TBaseImage[])[])[];
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (state.owner === TeamType.Null) return;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.Tank,
+    baseImage:
+      state.baseDamaged[state.owner]?.[state.direction]?.[state.moveIndex] ??
+      null,
+  });
+}
+
+/**
+ * Port of upstream `VLight::DoDeathEffect`.
+ * Role: Inserts a tank death effect with the current damaged base image at the front of the shared effect list.
+ * Upstream: vlight.cpp:243-249
+ */
+export function doLightVehicleDeathEffect<TTime, TBaseImage>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    owner: TeamType | number;
+    direction: number;
+    moveIndex: number;
+    baseDamaged: readonly (readonly (readonly TBaseImage[])[])[];
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (state.owner === TeamType.Null) return;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.Tank,
+    baseImage:
+      state.baseDamaged[state.owner]?.[state.direction]?.[state.moveIndex] ??
+      null,
+  });
+}
+
+/**
+ * Port of upstream `VMedium::DoDeathEffect`.
+ * Role: Inserts a tank death effect with the current damaged base image at the front of the shared effect list.
+ * Upstream: vmedium.cpp:237-243
+ */
+export function doMediumVehicleDeathEffect<TTime, TBaseImage>(
+  state: {
+    ztime: TTime | null;
+    position: { x: number; y: number };
+    owner: TeamType | number;
+    direction: number;
+    moveIndex: number;
+    baseDamaged: readonly (readonly (readonly TBaseImage[])[])[];
+  },
+  effectList: DeathEffectSpawn<TTime>[] | null,
+  doFireDeath: boolean,
+  doMissileDeath: boolean,
+): void {
+  void doFireDeath;
+  void doMissileDeath;
+  if (state.owner === TeamType.Null) return;
+  if (!effectList) return;
+
+  effectList.unshift({
+    ztime: state.ztime,
+    x: state.position.x,
+    y: state.position.y,
+    object: DeathEffectObject.Tank,
+    baseImage:
+      state.baseDamaged[state.owner]?.[state.direction]?.[state.moveIndex] ??
+      null,
+  });
 }

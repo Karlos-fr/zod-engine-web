@@ -5,6 +5,7 @@ import {
   MANAGE_BOTS_START_BUTTON_WIDTH_PIXELS,
   MANAGE_BOTS_STOP_BUTTON_WIDTH_PIXELS,
   MANAGE_BOTS_TEAM_LABEL_WIDTH_PIXELS,
+  processMainMenuManageBots,
   ZGMM_MANAGE_BOTS_HEADER_GUARD_PORTED,
 } from "../src/ui/MainMenuManageBots";
 
@@ -37,5 +38,20 @@ describe("main menu manage bots", () => {
 
   it("ports button_spacer as the manage-bots control spacing", () => {
     expect(MANAGE_BOTS_BUTTON_SPACER_PIXELS).toBe(2);
+  });
+
+  it("ports GMMManageBots Process as check-bots then widget processing", () => {
+    const calls: string[] = [];
+
+    processMainMenuManageBots({
+      checkBots() {
+        calls.push("checkBots");
+      },
+      processWidgets() {
+        calls.push("processWidgets");
+      },
+    });
+
+    expect(calls).toEqual(["checkBots", "processWidgets"]);
   });
 });

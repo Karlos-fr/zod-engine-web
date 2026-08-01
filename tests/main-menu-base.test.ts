@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { FontType } from "../src/rendering/FontEngine";
 import { PlayerInfo } from "../src/simulation/GameCore";
 import { SimulationTime } from "../src/simulation/SimulationTime";
 import {
@@ -10,6 +11,7 @@ import {
   isMainMenuOverHud,
   isMainMenuKilled,
   killMainMenu,
+  makeMainMenuTitle,
   type MainMenuBaseImageState,
   MAIN_MENU_BOTTOM_MARGIN_PIXELS,
   MAIN_MENU_SIDE_MARGIN_PIXELS,
@@ -34,7 +36,10 @@ import {
   setMainMenuSoundSetting,
   setMainMenuWarningFlags,
   setMainMenuZTime,
+  updateMainMenuDimensions,
   withinMainMenuDimensions,
+  wheelDownMainMenuBase,
+  wheelUpMainMenuBase,
   ZGUI_MAIN_MENU_BASE_HEADER_GUARD_PORTED,
 } from "../src/ui/MainMenuBase";
 
@@ -217,6 +222,74 @@ describe("main menu base", () => {
     });
   });
 
+  it("ports ZGuiMainMenuBase MakeTitle as no-op without title text", () => {
+    const loaded: string[] = [];
+    const rendered: Array<{ font: FontType; text: string }> = [];
+
+    makeMainMenuTitle<string>(
+      {
+        title: "",
+        titleImage: {
+          getBaseSurface: () => null,
+          loadBaseImage: (image) => loaded.push(image),
+        },
+      },
+      (font, text) => {
+        rendered.push({ font, text });
+        return text;
+      },
+    );
+
+    expect(rendered).toEqual([]);
+    expect(loaded).toEqual([]);
+  });
+
+  it("ports ZGuiMainMenuBase MakeTitle as no-op when the title image exists", () => {
+    const loaded: string[] = [];
+    const rendered: Array<{ font: FontType; text: string }> = [];
+
+    makeMainMenuTitle<string>(
+      {
+        title: "Options",
+        titleImage: {
+          getBaseSurface: () => "existing",
+          loadBaseImage: (image) => loaded.push(image),
+        },
+      },
+      (font, text) => {
+        rendered.push({ font, text });
+        return text;
+      },
+    );
+
+    expect(rendered).toEqual([]);
+    expect(loaded).toEqual([]);
+  });
+
+  it("ports ZGuiMainMenuBase MakeTitle as yellow-menu title rendering", () => {
+    let surface: string | null = null;
+    const rendered: Array<{ font: FontType; text: string }> = [];
+
+    makeMainMenuTitle<string>(
+      {
+        title: "Options",
+        titleImage: {
+          getBaseSurface: () => surface,
+          loadBaseImage: (image) => {
+            surface = image;
+          },
+        },
+      },
+      (font, text) => {
+        rendered.push({ font, text });
+        return `rendered:${text}`;
+      },
+    );
+
+    expect(rendered).toEqual([{ font: FontType.YellowMenu, text: "Options" }]);
+    expect(surface).toBe("rendered:Options");
+  });
+
   it("ports the menu type getter", () => {
     const state: MainMenuTypeState = { menuType: MainMenuType.Options };
 
@@ -275,6 +348,19 @@ describe("main menu base", () => {
     state.width = 0;
 
     expect(dimensions).toEqual({ width: 160, height: 90 });
+  });
+
+  it("ports ZGuiMainMenuBase UpdateDimensions as close-button placement", () => {
+    const coords: Array<{ x: number; y: number }> = [];
+
+    updateMainMenuDimensions({
+      width: 240,
+      closeButton: {
+        setCoords: (x, y) => coords.push({ x, y }),
+      },
+    });
+
+    expect(coords).toEqual([{ x: 224, y: 4 }]);
   });
 
   it("ports ZGuiMainMenuBase::WithinDimensions as inclusive hit testing", () => {
@@ -412,5 +498,147 @@ describe("main menu base", () => {
     );
 
     expect(messages).toEqual([]);
+  });
+
+  it("ports ZGuiMainMenuBase WheelUpButton as widget routing with flag clear", () => {
+    const calls: unknown[] = [];
+    const handled = wheelUpMainMenuBase(
+      {
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            wheelUpButton() {
+              calls.push("first");
+              return false;
+            },
+          },
+          {
+            widgetType: 2,
+            refId: 20,
+            wheelUpButton() {
+              calls.push("second");
+              return true;
+            },
+          },
+          {
+            widgetType: 3,
+            refId: 30,
+            wheelUpButton() {
+              calls.push("third");
+              return true;
+            },
+          },
+        ],
+      },
+      (eventType, widget) => {
+        calls.push(["event", eventType, widget.refId]);
+      },
+    );
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual([
+      "clear",
+      "first",
+      "second",
+      ["event", MainMenuEventType.WheelUp, 20],
+      "third",
+      ["event", MainMenuEventType.WheelUp, 30],
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase WheelUpButton unhandled path", () => {
+    const calls: string[] = [];
+    const handled = wheelUpMainMenuBase(
+      {
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            wheelUpButton() {
+              calls.push("first");
+              return false;
+            },
+          },
+        ],
+      },
+      () => calls.push("event"),
+    );
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual(["clear", "first"]);
+  });
+
+  it("ports ZGuiMainMenuBase WheelDownButton as widget routing with flag clear", () => {
+    const calls: unknown[] = [];
+    const handled = wheelDownMainMenuBase(
+      {
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            wheelDownButton() {
+              calls.push("first");
+              return false;
+            },
+          },
+          {
+            widgetType: 2,
+            refId: 20,
+            wheelDownButton() {
+              calls.push("second");
+              return true;
+            },
+          },
+          {
+            widgetType: 3,
+            refId: 30,
+            wheelDownButton() {
+              calls.push("third");
+              return true;
+            },
+          },
+        ],
+      },
+      (eventType, widget) => {
+        calls.push(["event", eventType, widget.refId]);
+      },
+    );
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual([
+      "clear",
+      "first",
+      "second",
+      ["event", MainMenuEventType.WheelDown, 20],
+      "third",
+      ["event", MainMenuEventType.WheelDown, 30],
+    ]);
+  });
+
+  it("ports ZGuiMainMenuBase WheelDownButton unhandled path", () => {
+    const calls: string[] = [];
+    const handled = wheelDownMainMenuBase(
+      {
+        gmmFlags: { clear: () => calls.push("clear") },
+        widgetList: [
+          {
+            widgetType: 1,
+            refId: 10,
+            wheelDownButton() {
+              calls.push("first");
+              return false;
+            },
+          },
+        ],
+      },
+      () => calls.push("event"),
+    );
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual(["clear", "first"]);
   });
 });

@@ -575,6 +575,63 @@ describe("robot entity", () => {
     expect(downEntity.actionIndex).toBe(0);
   });
 
+  it("ports ZRobot RecalcDirection as walking direction refresh", () => {
+    const entity = new RobotEntity({
+      id: "robot-recalc-direction",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    entity.mode = RobotObjectMode.Standing;
+    entity.actionIndex = 4;
+    entity.direction = 6;
+    entity.locationDeltaX = 1;
+    entity.locationDeltaY = 0;
+
+    entity.recalcDirection();
+
+    expect(entity.mode).toBe(RobotObjectMode.Walking);
+    expect(entity.actionIndex).toBe(0);
+    expect(entity.direction).toBe(0);
+  });
+
+  it("ports ZRobot RecalcDirection as walking continuation without animation reset", () => {
+    const entity = new RobotEntity({
+      id: "robot-recalc-direction-walking",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    entity.mode = RobotObjectMode.Walking;
+    entity.actionIndex = 4;
+    entity.direction = 6;
+    entity.locationDeltaX = 0;
+    entity.locationDeltaY = 1;
+
+    entity.recalcDirection();
+
+    expect(entity.mode).toBe(RobotObjectMode.Walking);
+    expect(entity.actionIndex).toBe(4);
+    expect(entity.direction).toBe(6);
+  });
+
+  it("ports ZRobot RecalcDirection zero-vector handling as standing mode", () => {
+    const entity = new RobotEntity({
+      id: "robot-recalc-direction-standing",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    entity.mode = RobotObjectMode.Attacking;
+    entity.actionIndex = 4;
+    entity.direction = 2;
+    entity.locationDeltaX = 0;
+    entity.locationDeltaY = 0;
+
+    entity.recalcDirection();
+
+    expect(entity.mode).toBe(RobotObjectMode.Standing);
+    expect(entity.actionIndex).toBe(4);
+    expect(entity.direction).toBe(2);
+  });
+
   it("ports ZRobot SetAttackObject as attack mode and timing update", () => {
     const entity = new RobotEntity({
       id: "robot-attacker",

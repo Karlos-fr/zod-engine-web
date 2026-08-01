@@ -55,6 +55,17 @@ export type DeathSparksInitState = {
 };
 
 /**
+ * Port of upstream `EDeathSparks` construction arguments.
+ * Role: Describes one spawned vehicle death spark effect.
+ * Upstream: edeathsparks.cpp, edeathsparks.h
+ */
+export type DeathSparksEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  x: number;
+  y: number;
+};
+
+/**
  * Port of upstream `EDeathSparks::Init`.
  * Role: Initializes death-spark frame asset paths.
  * Upstream: edeathsparks.cpp:53-65

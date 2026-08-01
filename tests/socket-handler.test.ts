@@ -6,7 +6,9 @@ import {
   SOCKET_MAX_DATA_STORED_BYTES,
   SOCKET_SEND_MAX_WAIT_SECONDS,
   disconnectSocket,
+  pauseSocketForSend,
   resetSocketFastProcess,
+  socketSendMessageAscii,
   socketRecvGood,
   socketConnected,
 } from "../src/network/SocketHandler";
@@ -41,6 +43,76 @@ describe("socket handler", () => {
       tvSec: 0,
       tvUsec: 0,
     });
+  });
+
+  it("ports SocketHandler pause_for_send as immediate send readiness", () => {
+    let checks = 0;
+    const result = pauseSocketForSend(
+      () => {
+        checks += 1;
+        return { goodToSend: true, killMe: false };
+      },
+      () => {
+        throw new Error("currentTime should not be called");
+      },
+      () => {
+        throw new Error("pause should not be called");
+      },
+    );
+
+    expect(result).toBe(1);
+    expect(checks).toBe(1);
+  });
+
+  it("ports SocketHandler pause_for_send as readiness after one pause", () => {
+    const checks = [
+      { goodToSend: false, killMe: false },
+      { goodToSend: true, killMe: false },
+    ];
+    const pauses: number[] = [];
+    let logs = 0;
+
+    const result = pauseSocketForSend(
+      () => checks.shift() ?? { goodToSend: false, killMe: false },
+      () => 12,
+      (milliseconds) => pauses.push(milliseconds),
+      () => {
+        logs += 1;
+      },
+    );
+
+    expect(result).toBe(1);
+    expect(pauses).toEqual([10]);
+    expect(logs).toBe(1);
+  });
+
+  it("ports SocketHandler pause_for_send as kill signal during wait", () => {
+    const checks = [
+      { goodToSend: false, killMe: false },
+      { goodToSend: false, killMe: true },
+    ];
+
+    const result = pauseSocketForSend(
+      () => checks.shift() ?? { goodToSend: false, killMe: false },
+      () => 20,
+      () => undefined,
+    );
+
+    expect(result).toBe(0);
+  });
+
+  it("ports SocketHandler pause_for_send as timeout after max wait", () => {
+    const times = [30, 30.2, 30.51];
+    const pauses: number[] = [];
+
+    const result = pauseSocketForSend(
+      () => ({ goodToSend: false, killMe: false }),
+      () => times.shift() ?? 30.51,
+      (milliseconds) => pauses.push(milliseconds),
+    );
+
+    expect(result).toBe(0);
+    expect(pauses).toEqual([10, 10]);
   });
 
   it("ports the IPv4 socket endpoint shape", () => {
@@ -109,9 +181,13 @@ describe("socket handler", () => {
       ipAddress: "192.0.2.10",
     };
 
-    const result = socketRecvGood(state, 0, {
-      closeSocket: (closedSocket) => closed.push(closedSocket),
-    });
+    const result = socketRecvGood<typeof socket, SocketDisconnectState<typeof socket>>(
+      state,
+      0,
+      {
+        closeSocket: (closedSocket) => closed.push(closedSocket),
+      },
+    );
 
     expect(result).toBe(0);
     expect(closed).toEqual([socket]);
@@ -198,5 +274,39 @@ describe("socket handler", () => {
 
     expect(state.bufferSize).toBe(0);
     expect(state.fastProcessPointer).toBe(0);
+  });
+
+  it("ports SocketHandler SendMessageAscii as NUL-terminated send delegation", () => {
+    const calls: Array<{ packId: number; data: number[]; size: number }> = [];
+    const result = socketSendMessageAscii(
+      {
+        sendMessage: (packId, data, size) => {
+          calls.push({ packId, data: Array.from(data), size });
+          return 17;
+        },
+      },
+      9,
+      "hi",
+    );
+
+    expect(result).toBe(17);
+    expect(calls).toEqual([{ packId: 9, data: [104, 105, 0], size: 3 }]);
+  });
+
+  it("ports SocketHandler SendMessageAscii strlen behavior for embedded NUL", () => {
+    const calls: Array<{ data: number[]; size: number }> = [];
+
+    socketSendMessageAscii(
+      {
+        sendMessage: (_packId, data, size) => {
+          calls.push({ data: Array.from(data), size });
+          return 1;
+        },
+      },
+      4,
+      "ok\0ignored",
+    );
+
+    expect(calls).toEqual([{ data: [111, 107, 0], size: 3 }]);
   });
 });

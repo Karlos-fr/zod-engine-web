@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   GameMap,
+  type FullMapRenderSurfaceState,
   type PermanentStampBlitCommand,
   type PermanentRenderableStampBlitCommand,
   type MapSurfaceRenderCommand,
@@ -286,7 +287,7 @@ describe("GameMap", () => {
   });
 
   it("replaces ZMap::DoRender as a full-map viewport blit command", () => {
-    const surface = { unload: vi.fn() };
+    const surface: FullMapRenderSurfaceState = { unload: vi.fn() };
     const map = new GameMap({
       width: 10,
       height: 8,
@@ -298,7 +299,8 @@ describe("GameMap", () => {
       fullRenderSurface: surface,
     });
 
-    const command: MapViewportRenderCommand<typeof surface> = map.doRender(5, 7)!;
+    const command: MapViewportRenderCommand<FullMapRenderSurfaceState> =
+      map.doRender(5, 7)!;
 
     expect(command).toEqual({
       surface,
@@ -1581,6 +1583,56 @@ describe("GameMap", () => {
       viewWidth: 640,
       viewHeight: 480,
     });
+  });
+
+  it("ports ZMap::SetViewShift as direct shifted viewport assignment", () => {
+    const map = new GameMap({
+      width: 20,
+      height: 15,
+      tiles: Array.from({ length: 20 * 15 }, () => ({ terrain: "plain" })),
+      viewWidth: 160,
+      viewHeight: 96,
+    });
+
+    map.setViewShift(48, 64);
+
+    expect(map.shiftX).toBe(48);
+    expect(map.shiftY).toBe(64);
+  });
+
+  it("ports ZMap::SetViewShift as map-bound clamp", () => {
+    const map = new GameMap({
+      width: 20,
+      height: 15,
+      tiles: Array.from({ length: 20 * 15 }, () => ({ terrain: "plain" })),
+      viewWidth: 160,
+      viewHeight: 96,
+    });
+
+    map.setViewShift(999, 999);
+
+    expect(map.shiftX).toBe(160);
+    expect(map.shiftY).toBe(144);
+
+    map.setViewShift(-5, -7);
+
+    expect(map.shiftX).toBe(0);
+    expect(map.shiftY).toBe(0);
+  });
+
+  it("ports ZMap::SetViewShift as zero clamp when viewport exceeds map", () => {
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      viewWidth: 160,
+      viewHeight: 96,
+    });
+
+    map.setViewShift(999, 999);
+
+    expect(map.shiftX).toBe(0);
+    expect(map.shiftY).toBe(0);
   });
 
   it("ports ZMap::WithinView as shifted rectangle intersection check", () => {

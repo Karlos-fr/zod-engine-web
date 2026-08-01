@@ -1,29 +1,47 @@
 import { describe, expect, it } from "vitest";
+import { GAME_VERSION } from "../src/simulation/SimulationConstants";
+import { MAX_VERSION_PACKET_CHARS, TcpEvent } from "../src/simulation/EventHandler";
 import {
+  CRANE_ANIM_PACKET_SIZE_BYTES,
   DRIVER_HIT_PACKET_SIZE_BYTES,
   processPlayerDisconnect,
   playerAddPlayerEvent,
+  playerConnectEvent,
   playerDeletePlayerEvent,
+  playerDoCraneAnimEvent,
+  playerDisconnectEvent,
+  playerDisplayLoginEvent,
   playerDriverHitEffectEvent,
+  playerEndGameEvent,
   playerFireObjectMissileEvent,
+  playerResetGameEvent,
+  playerRequestVersionEvent,
   playerSetBuildQueueListEvent,
   playerSetBuildingCannonListEvent,
   playerSetBuildingStateEvent,
+  playerSetGrenadeAmountEvent,
   playerSetPlayerIdEvent,
   playerSetPlayerIgnoredEvent,
+  playerSetLidOpenEvent,
   playerSetPlayerLogInfoEvent,
   playerSetPlayerModeEvent,
   playerSetPlayerNameEvent,
   playerSetObjectHealthEvent,
+  playerSetObjectGroupInfoEvent,
+  playerSetObjectLocationEvent,
   playerSetObjectWaypointsEvent,
   playerSetObjectRallypointsEvent,
+  playerSetPlayerVoteInfoEvent,
   playerSetSelectableMapListEvent,
   playerSetSettingsEvent,
   playerSetPlayerTeamEvent,
   playerSetTeamEvent,
+  playerSetVoteInfoEvent,
   playerSetZoneInfoEvent,
   playerUpdateGamePausedEvent,
   playerUpdateGameSpeedEvent,
+  playerWheelDownEvent,
+  playerWheelUpEvent,
   PLAYER_DISCONNECTED_NEWS_MESSAGE,
   PLAYER_NEWS_ENTRY_DURATION_SECONDS,
 } from "../src/simulation/PlayerEvents";
@@ -41,6 +59,311 @@ describe("player events", () => {
     });
 
     expect(messages).toEqual([PLAYER_DISCONNECTED_NEWS_MESSAGE]);
+  });
+
+  it("ports ZPlayer connect_event as connect processing then login send", () => {
+    const calls: string[] = [];
+
+    playerConnectEvent(
+      {
+        processConnect: () => calls.push("process-connect"),
+        sendLogin: () => calls.push("send-login"),
+      },
+      "ignored",
+      7,
+      99,
+    );
+
+    expect(calls).toEqual(["process-connect", "send-login"]);
+  });
+
+  it("ports ZPlayer disconnect_event as disconnect processing", () => {
+    const calls: string[] = [];
+
+    playerDisconnectEvent(
+      {
+        processDisconnect: () => calls.push("process-disconnect"),
+      },
+      "ignored",
+      7,
+      99,
+    );
+
+    expect(calls).toEqual(["process-disconnect"]);
+  });
+
+  it("ports ZPlayer end_game_event as end-game processing", () => {
+    const calls: string[] = [];
+
+    playerEndGameEvent(
+      {
+        processEndGame: () => calls.push("process-end-game"),
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["process-end-game"]);
+  });
+
+  it("ports ZPlayer reset_game_event as reset-game processing", () => {
+    const calls: string[] = [];
+
+    playerResetGameEvent(
+      {
+        processResetGame: () => calls.push("process-reset-game"),
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["process-reset-game"]);
+  });
+
+  it("ports ZPlayer request_version_event as fixed version packet send", () => {
+    const calls: Array<{ packId: TcpEvent; data: Uint8Array; size: number }> = [];
+
+    playerRequestVersionEvent(
+      {
+        clientSocket: {
+          sendMessage(packId: TcpEvent, data: Uint8Array, size: number) {
+            calls.push({ packId, data: new Uint8Array(data), size });
+            return 1;
+          },
+        },
+      },
+      "ignored",
+      7,
+      99,
+    );
+
+    const expected = new Uint8Array(MAX_VERSION_PACKET_CHARS);
+    for (let i = 0; i < GAME_VERSION.length; i += 1) {
+      expected[i] = GAME_VERSION.charCodeAt(i);
+    }
+
+    expect(calls).toEqual([
+      {
+        packId: TcpEvent.GiveVersion,
+        data: expected,
+        size: MAX_VERSION_PACKET_CHARS,
+      },
+    ]);
+  });
+
+  it("ports ZPlayer request_version_event oversized version guard", () => {
+    const calls: unknown[] = [];
+
+    playerRequestVersionEvent(
+      {
+        clientSocket: {
+          sendMessage(packId: TcpEvent, data: Uint8Array, size: number) {
+            calls.push(packId, data, size);
+            return 1;
+          },
+        },
+      },
+      null,
+      0,
+      99,
+      "x".repeat(MAX_VERSION_PACKET_CHARS - 1),
+    );
+
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZPlayer display_login_event as no-op for invalid packet size", () => {
+    const loginMenu = { id: "login" };
+    const state = {
+      activeMenu: null as typeof loginMenu | null,
+      loginMenu,
+      createUserMenu: { id: "create" },
+    };
+
+    playerDisplayLoginEvent(state, new Uint8Array([1]), 0, 99);
+    playerDisplayLoginEvent(state, new Uint8Array([1, 0]), 2, 99);
+
+    expect(state.activeMenu).toBeNull();
+  });
+
+  it("ports ZPlayer display_login_event as login menu display", () => {
+    const loginMenu = { id: "login" };
+    const createUserMenu = { id: "create" };
+    const state = {
+      activeMenu: null as typeof loginMenu | typeof createUserMenu | null,
+      loginMenu,
+      createUserMenu,
+    };
+
+    playerDisplayLoginEvent(state, new Uint8Array([1]), 1, 99);
+
+    expect(state.activeMenu).toBe(loginMenu);
+  });
+
+  it("ports ZPlayer display_login_event as preserving already active auth menu", () => {
+    const loginMenu = { id: "login" };
+    const createUserMenu = { id: "create" };
+    const state = {
+      activeMenu: createUserMenu as typeof loginMenu | typeof createUserMenu | null,
+      loginMenu,
+      createUserMenu,
+    };
+
+    playerDisplayLoginEvent(state, "\x01", 1, 99);
+
+    expect(state.activeMenu).toBe(createUserMenu);
+  });
+
+  it("ports ZPlayer display_login_event as hiding active auth menus", () => {
+    const loginMenu = { id: "login" };
+    const createUserMenu = { id: "create" };
+    const otherMenu = { id: "other" };
+    const state = {
+      activeMenu: loginMenu as
+        | typeof loginMenu
+        | typeof createUserMenu
+        | typeof otherMenu
+        | null,
+      loginMenu,
+      createUserMenu,
+    };
+
+    playerDisplayLoginEvent(state, new Uint8Array([0]), 1, 99);
+    expect(state.activeMenu).toBeNull();
+
+    state.activeMenu = createUserMenu;
+    playerDisplayLoginEvent(state, new Uint8Array([0]), 1, 99);
+    expect(state.activeMenu).toBeNull();
+
+    state.activeMenu = otherMenu;
+    playerDisplayLoginEvent(state, new Uint8Array([0]), 1, 99);
+    expect(state.activeMenu).toBe(otherMenu);
+  });
+
+  it("ports ZPlayer wheelup_event as wheel-up routing to GUI surfaces", () => {
+    const calls: string[] = [];
+
+    playerWheelUpEvent(
+      {
+        mainMenuWheelUp() {
+          calls.push("main-menu");
+          return true;
+        },
+        activeMenu: {
+          wheelUpButton() {
+            calls.push("active-menu");
+            return false;
+          },
+        },
+        guiWindow: {
+          wheelUpButton() {
+            calls.push("gui-window");
+            return true;
+          },
+        },
+        guiFactoryList: {
+          wheelUpButton() {
+            calls.push("factory-list");
+            return false;
+          },
+        },
+      },
+      "ignored",
+      7,
+      99,
+    );
+
+    expect(calls).toEqual([
+      "main-menu",
+      "active-menu",
+      "gui-window",
+      "factory-list",
+    ]);
+  });
+
+  it("ports ZPlayer wheelup_event with optional GUI surfaces absent", () => {
+    const calls: string[] = [];
+
+    playerWheelUpEvent(
+      {
+        mainMenuWheelUp() {
+          calls.push("main-menu");
+          return false;
+        },
+        activeMenu: null,
+        guiWindow: null,
+        guiFactoryList: null,
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["main-menu"]);
+  });
+
+  it("ports ZPlayer wheeldown_event as wheel-down routing to GUI surfaces", () => {
+    const calls: string[] = [];
+
+    playerWheelDownEvent(
+      {
+        mainMenuWheelDown() {
+          calls.push("main-menu");
+          return true;
+        },
+        activeMenu: {
+          wheelDownButton() {
+            calls.push("active-menu");
+            return false;
+          },
+        },
+        guiWindow: {
+          wheelDownButton() {
+            calls.push("gui-window");
+            return true;
+          },
+        },
+        guiFactoryList: {
+          wheelDownButton() {
+            calls.push("factory-list");
+            return false;
+          },
+        },
+      },
+      "ignored",
+      7,
+      99,
+    );
+
+    expect(calls).toEqual([
+      "main-menu",
+      "active-menu",
+      "gui-window",
+      "factory-list",
+    ]);
+  });
+
+  it("ports ZPlayer wheeldown_event with optional GUI surfaces absent", () => {
+    const calls: string[] = [];
+
+    playerWheelDownEvent(
+      {
+        mainMenuWheelDown() {
+          calls.push("main-menu");
+          return false;
+        },
+        activeMenu: null,
+        guiWindow: null,
+        guiFactoryList: null,
+      },
+      null,
+      0,
+      99,
+    );
+
+    expect(calls).toEqual(["main-menu"]);
   });
 
   it("ports ZPlayer add_player_event as add-player payload delegation", () => {
@@ -188,6 +511,146 @@ describe("player events", () => {
     expect(calls).toEqual(["player-log", 10]);
   });
 
+  it("ports ZPlayer set_player_voteinfo_event as payload delegation without inactive vote refresh", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processSetLocalPlayerVoteInfo: (
+        data: Uint8Array | string | null,
+        size: number,
+      ) => calls.push("process", data, size),
+      vote: {
+        voteInProgress: () => false,
+        setupImages: () => calls.push("setup-images"),
+      },
+      getOurRealVotingPower: () => 2,
+      getVotesNeeded: () => 3,
+      getVotesFor: () => 4,
+      getVotesAgainst: () => 5,
+      getVoteAppendDescription: () => "description",
+    };
+
+    playerSetPlayerVoteInfoEvent(player, "player-vote", 11, 99);
+
+    expect(calls).toEqual(["process", "player-vote", 11]);
+  });
+
+  it("ports ZPlayer set_player_voteinfo_event as active vote image refresh", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processSetLocalPlayerVoteInfo: (
+        data: Uint8Array | string | null,
+        size: number,
+      ) => calls.push("process", data, size),
+      vote: {
+        voteInProgress: () => true,
+        setupImages(
+          realVotingPower: number,
+          votesNeeded: number,
+          votesFor: number,
+          votesAgainst: number,
+          appendDescription: string,
+        ) {
+          calls.push(
+            "setup-images",
+            realVotingPower,
+            votesNeeded,
+            votesFor,
+            votesAgainst,
+            appendDescription,
+          );
+        },
+      },
+      getOurRealVotingPower: () => 7,
+      getVotesNeeded: () => 8,
+      getVotesFor: () => 9,
+      getVotesAgainst: () => 10,
+      getVoteAppendDescription: () => "map change",
+    };
+    const data = new Uint8Array([1, 2]);
+
+    playerSetPlayerVoteInfoEvent(player, data, 2, 99);
+
+    expect(calls).toEqual([
+      "process",
+      data,
+      2,
+      "setup-images",
+      7,
+      8,
+      9,
+      10,
+      "map change",
+    ]);
+  });
+
+  it("ports ZPlayer set_vote_info_event as payload delegation without inactive vote refresh", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processVoteInfo: (data: Uint8Array | string | null, size: number) =>
+        calls.push("process", data, size),
+      vote: {
+        voteInProgress: () => false,
+        setupImages: () => calls.push("setup-images"),
+      },
+      getOurRealVotingPower: () => 2,
+      getVotesNeeded: () => 3,
+      getVotesFor: () => 4,
+      getVotesAgainst: () => 5,
+      getVoteAppendDescription: () => "description",
+    };
+
+    playerSetVoteInfoEvent(player, "vote", 4, 99);
+
+    expect(calls).toEqual(["process", "vote", 4]);
+  });
+
+  it("ports ZPlayer set_vote_info_event as active vote image refresh", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processVoteInfo: (data: Uint8Array | string | null, size: number) =>
+        calls.push("process", data, size),
+      vote: {
+        voteInProgress: () => true,
+        setupImages(
+          realVotingPower: number,
+          votesNeeded: number,
+          votesFor: number,
+          votesAgainst: number,
+          appendDescription: string,
+        ) {
+          calls.push(
+            "setup-images",
+            realVotingPower,
+            votesNeeded,
+            votesFor,
+            votesAgainst,
+            appendDescription,
+          );
+        },
+      },
+      getOurRealVotingPower: () => 11,
+      getVotesNeeded: () => 12,
+      getVotesFor: () => 13,
+      getVotesAgainst: () => 14,
+      getVoteAppendDescription: () => "speed vote",
+    };
+    const data = new Uint8Array([9]);
+
+    playerSetVoteInfoEvent(player, data, 1, 99);
+
+    expect(calls).toEqual([
+      "process",
+      data,
+      1,
+      "setup-images",
+      11,
+      12,
+      13,
+      14,
+      "speed vote",
+    ]);
+  });
+
   it("ports ZPlayer update_game_paused_event as pause payload delegation", () => {
     const calls: unknown[] = [];
     const player = {
@@ -235,6 +698,24 @@ describe("player events", () => {
     expect(calls).toEqual([data, 3]);
   });
 
+  it("ports ZPlayer set_lid_open_event as object lid-state payload delegation", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processObjectLidState: (
+        data: Uint8Array | string | null,
+        size: number,
+      ) => {
+        calls.push(data, size);
+        return { id: "ignored" };
+      },
+    };
+    const data = new Uint8Array([42, 1]);
+
+    playerSetLidOpenEvent(player, data, 2, 99);
+
+    expect(calls).toEqual([data, 2]);
+  });
+
   it("ports ZPlayer set_zone_info_event as zone payload delegation", () => {
     const calls: unknown[] = [];
     const player = {
@@ -260,6 +741,127 @@ describe("player events", () => {
     playerSetTeamEvent(player, "team", 4, 99);
 
     expect(calls).toEqual(["team", 4]);
+  });
+
+  it("ports ZPlayer set_object_loc_event as object-location payload delegation", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processObjectLoc: (data: Uint8Array | string | null, size: number) => {
+        calls.push(data, size);
+        return { id: "object" };
+      },
+    };
+    const data = new Uint8Array([7, 3]);
+
+    playerSetObjectLocationEvent(player, data, 2, 99);
+
+    expect(calls).toEqual([data, 2]);
+  });
+
+  it("ports ZPlayer set_object_group_info_event as object-group-info payload delegation", () => {
+    const calls: unknown[] = [];
+    const player = {
+      processObjectGroupInfo: (
+        data: Uint8Array | string | null,
+        size: number,
+      ) => {
+        calls.push(data, size);
+        return { id: "object" };
+      },
+    };
+
+    playerSetObjectGroupInfoEvent(player, "group", 5, 99);
+
+    expect(calls).toEqual(["group", 5]);
+  });
+
+  it("ports ZPlayer set_grenade_amount_event as HUD and cursor refresh for affected selection", () => {
+    const object = { id: "unit" };
+    const calls: unknown[] = [];
+    const data = new Uint8Array([3, 1]);
+    const player = {
+      processSetGrenadeState: (
+        payload: Uint8Array | string | null,
+        size: number,
+      ) => {
+        calls.push("process", payload, size);
+        return object;
+      },
+      hud: {
+        getSelectedObject: () => object,
+        reRenderAll: () => calls.push("rerender"),
+      },
+      selection: {
+        updateGroupMember: (updatedObject: typeof object) => {
+          calls.push("update", updatedObject);
+          return true;
+        },
+      },
+      determineCursor: () => calls.push("cursor"),
+    };
+
+    playerSetGrenadeAmountEvent(player, data, 2, 99);
+
+    expect(calls).toEqual([
+      "process",
+      data,
+      2,
+      "rerender",
+      "update",
+      object,
+      "cursor",
+    ]);
+  });
+
+  it("ports ZPlayer set_grenade_amount_event as no-op when payload does not resolve an object", () => {
+    const calls: string[] = [];
+    const player = {
+      processSetGrenadeState: () => {
+        calls.push("process");
+        return null;
+      },
+      hud: {
+        getSelectedObject: () => {
+          calls.push("selected");
+          return null;
+        },
+        reRenderAll: () => calls.push("rerender"),
+      },
+      selection: {
+        updateGroupMember: () => {
+          calls.push("update");
+          return true;
+        },
+      },
+      determineCursor: () => calls.push("cursor"),
+    };
+
+    playerSetGrenadeAmountEvent(player, null, 0, 99);
+
+    expect(calls).toEqual(["process"]);
+  });
+
+  it("ports ZPlayer set_grenade_amount_event without selected HUD match or group change", () => {
+    const object = { id: "unit" };
+    const calls: unknown[] = [];
+    const player = {
+      processSetGrenadeState: () => object,
+      hud: {
+        getSelectedObject: () => ({ id: "other" }),
+        reRenderAll: () => calls.push("rerender"),
+      },
+      selection: {
+        updateGroupMember: (updatedObject: typeof object) => {
+          calls.push("update", updatedObject);
+          return false;
+        },
+      },
+      determineCursor: () => calls.push("cursor"),
+    };
+
+    playerSetGrenadeAmountEvent(player, "grenade", 7, 99);
+
+    expect(calls).toEqual(["update", object]);
   });
 
   it("ports ZPlayer set_building_cannon_list_event as building-cannon-list payload delegation", () => {
@@ -469,5 +1071,88 @@ describe("player events", () => {
     );
 
     expect(calls).toEqual([]);
+  });
+
+  it("ports ZPlayer do_crane_anim_event as referenced crane animation routing", () => {
+    const calls: unknown[] = [];
+    const repairObject = {
+      getRefId: () => 77,
+      doCraneAnim: () => calls.push("repair-object"),
+    };
+    const targetObject = {
+      getRefId: () => 42,
+      doCraneAnim(on: boolean, repairTarget: unknown) {
+        calls.push(on, repairTarget);
+      },
+    };
+    const player = {
+      objectList: [
+        {
+          getRefId: () => 7,
+          doCraneAnim: () => calls.push("wrong-object"),
+        },
+        targetObject,
+        repairObject,
+      ],
+    };
+
+    playerDoCraneAnimEvent(
+      player,
+      { refId: 42, repairRefId: 77, on: true },
+      CRANE_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([true, repairObject]);
+  });
+
+  it("ports ZPlayer do_crane_anim_event guard exits", () => {
+    const calls: unknown[] = [];
+    const targetObject = {
+      getRefId: () => 42,
+      doCraneAnim(on: boolean, repairTarget: unknown) {
+        calls.push(on, repairTarget);
+      },
+    };
+    const player = {
+      objectList: [targetObject],
+    };
+
+    playerDoCraneAnimEvent(
+      player,
+      { refId: 42, repairRefId: 0, on: true },
+      0,
+      99,
+    );
+    playerDoCraneAnimEvent(
+      player,
+      { refId: 99, repairRefId: 0, on: true },
+      CRANE_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZPlayer do_crane_anim_event as nullable repair target lookup", () => {
+    const calls: unknown[] = [];
+    const targetObject = {
+      getRefId: () => 42,
+      doCraneAnim(on: boolean, repairTarget: unknown) {
+        calls.push(on, repairTarget);
+      },
+    };
+    const player = {
+      objectList: [targetObject],
+    };
+
+    playerDoCraneAnimEvent(
+      player,
+      { refId: 42, repairRefId: 99, on: false },
+      CRANE_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([false, null]);
   });
 });

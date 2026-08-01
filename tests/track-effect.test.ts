@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   doPreRenderTrackEffect,
   ETRACK_HEADER_GUARD_PORTED,
+  initTrackEffect,
   processTrackEffect,
   TRACK_EFFECT_FRAME_1_SECONDS,
   TRACK_EFFECT_FRAME_2_SECONDS,
   TRACK_EFFECT_KILL_SECONDS,
+  type TrackEffectInitState,
   TrackEffectType,
   type TrackEffectPreRenderState,
   type TrackEffectProcessState,
 } from "../src/simulation/TrackEffect";
+import { PlanetType } from "../src/simulation/SimulationConstants";
 import type { MapSurfaceRenderCommand } from "../src/world/GameMap";
 
 describe("track effect", () => {
@@ -27,6 +30,45 @@ describe("track effect", () => {
     expect(TrackEffectType.Tank).toBe(0);
     expect(TrackEffectType.Jeep).toBe(1);
     expect(TrackEffectType.MaxTrackTypes).toBe(2);
+  });
+
+  it("ports ETrack Init as track image loading and rotation mirroring", () => {
+    const loaded: string[] = [];
+    const state: TrackEffectInitState<{ filename: string }> = {
+      trackImages: [],
+      finishedInit: false,
+    };
+
+    initTrackEffect(state, (filename) => {
+      loaded.push(filename);
+      return { filename };
+    });
+
+    expect(loaded).toHaveLength(60);
+    expect(loaded.slice(0, 3)).toEqual([
+      "assets/units/vehicles/track_effects/tank_track_desert_r000_n00.png",
+      "assets/units/vehicles/track_effects/tank_track_desert_r000_n01.png",
+      "assets/units/vehicles/track_effects/tank_track_desert_r000_n02.png",
+    ]);
+    expect(loaded).toContain(
+      "assets/units/vehicles/track_effects/tank_track_jungle_r135_n02.png",
+    );
+    expect(loaded).not.toContain(
+      "assets/units/vehicles/track_effects/tank_track_city_r000_n00.png",
+    );
+    expect(loaded).toContain(
+      "assets/units/vehicles/track_effects/jeep_track_desert_r135_n02.png",
+    );
+    expect(loaded).not.toContain(
+      "assets/units/vehicles/track_effects/jeep_track_volcanic_r000_n00.png",
+    );
+    expect(state.trackImages[TrackEffectType.Tank][PlanetType.Desert][4]).toBe(
+      state.trackImages[TrackEffectType.Tank][PlanetType.Desert][0],
+    );
+    expect(state.trackImages[TrackEffectType.Tank][PlanetType.Desert][7]).toBe(
+      state.trackImages[TrackEffectType.Tank][PlanetType.Desert][3],
+    );
+    expect(state.finishedInit).toBe(true);
   });
 
   it("keeps killed track effects unchanged while processing", () => {

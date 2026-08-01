@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ItemType, TeamType } from "../src/simulation/SimulationConstants";
+import type { MapObjectTurrentEffectSpawn } from "../src/world/MapObjectTurretEffect";
 import { MAP_ITEM_TYPE_COUNT } from "../src/world/WorldConstants";
 import {
+  fireObjectMapObjectTurrentMissile,
   ObjectMapObject,
   OMAP_OBJECT_HEADER_GUARD_PORTED,
 } from "../src/world/OMapObject";
@@ -109,5 +111,86 @@ describe("object map object", () => {
     object.setOwner(TeamType.Red);
 
     expect(object.owner).toBe(TeamType.Null);
+  });
+
+  it("ports OMapObject FireTurrentMissile as no effect without a base image", () => {
+    const effects: MapObjectTurrentEffectSpawn<{ tick: number }>[] = [];
+    const state = {
+      ztime: { tick: 1 },
+      x: 32,
+      y: 48,
+      objectIndex: 1,
+      renderImages: [
+        undefined,
+        {
+          getBaseSurface: () => null,
+        },
+      ],
+    };
+
+    fireObjectMapObjectTurrentMissile(state, effects, 100, 120, 0.75);
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports OMapObject FireTurrentMissile as no effect without an effect list", () => {
+    const state = {
+      ztime: { tick: 1 },
+      x: 32,
+      y: 48,
+      objectIndex: 1,
+      renderImages: [
+        undefined,
+        {
+          getBaseSurface: () => ({ width: 16, height: 16 }),
+        },
+      ],
+    };
+
+    expect(() =>
+      fireObjectMapObjectTurrentMissile(state, null, 100, 120, 0.75),
+    ).not.toThrow();
+  });
+
+  it("ports OMapObject FireTurrentMissile as an appended map-object turret spawn", () => {
+    const ztime = { tick: 1 };
+    const existing = {
+      ztime: null,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      objectIndex: 0,
+    };
+    const effects = [existing];
+    const state = {
+      ztime,
+      x: 32,
+      y: 48,
+      objectIndex: 2,
+      renderImages: [
+        undefined,
+        undefined,
+        {
+          getBaseSurface: () => ({ width: 16, height: 16 }),
+        },
+      ],
+    };
+
+    fireObjectMapObjectTurrentMissile(state, effects, 100, 120, 0.75);
+
+    expect(effects).toEqual([
+      existing,
+      {
+        ztime,
+        startX: 32,
+        startY: 48,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 0.75,
+        objectIndex: 2,
+      },
+    ]);
   });
 });

@@ -3,10 +3,12 @@
  */
 
 import type { SoundSetting } from "../audio/AudioService";
+import { HudButton } from "../ui/HudLayout";
 import { MainMenuType } from "../ui/MainMenuBase";
 import { AMBIENT_BIRD_SQUARE_TILES_PER_BIRD } from "../world/BirdMap";
 import { MapObjectType } from "../world/MapFormat";
 import { currentTime } from "./Common";
+import { TcpEvent } from "./EventHandler";
 import { BuildingType, TeamType, VehicleType } from "./SimulationConstants";
 import type { GameEntity } from "./entities/GameEntity";
 import type { SimulationTime } from "./SimulationTime";
@@ -102,12 +104,215 @@ export type PlayerMainMenuMover = {
 };
 
 /**
+ * Port of upstream `ZGuiMainMenuBase::Motion` call target.
+ * Role: Moves a main-menu entry from player mouse motion and reports whether it consumed input.
+ * Upstream: zplayer.cpp:3141-3148
+ */
+export type PlayerMainMenuMotionTarget = {
+  getCoords(): { x: number; y: number };
+  motion(mouseX: number, mouseY: number): boolean;
+  getDimensions(): { width: number; height: number };
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::WheelUpButton` call target.
+ * Role: Attempts to consume wheel-up input on a player main-menu entry.
+ * Upstream: zplayer.cpp:3163
+ */
+export type PlayerMainMenuWheelUpTarget = {
+  wheelUpButton(): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::WheelDownButton` call target.
+ * Role: Attempts to consume wheel-down input on a player main-menu entry.
+ * Upstream: zplayer.cpp:3172
+ */
+export type PlayerMainMenuWheelDownTarget = {
+  wheelDownButton(): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::KeyPress` call target.
+ * Role: Attempts to consume keyboard input on a player main-menu entry.
+ * Upstream: zplayer.cpp:3181
+ */
+export type PlayerMainMenuKeyPressTarget = {
+  keyPress(c: number): boolean;
+};
+
+/**
  * Port of upstream `gui_menu_list` movement field.
  * Role: Holds active main menus that move with player viewport scaling.
  * Upstream: zplayer.cpp:3131
  */
 export type PlayerMainMenuMoveState = {
   guiMenuList: PlayerMainMenuMover[];
+};
+
+/**
+ * Port of upstream `gui_menu_list` motion field.
+ * Role: Holds active main menus that receive player mouse motion.
+ * Upstream: zplayer.cpp:3137
+ */
+export type PlayerMainMenuMotionState = PlayerInitialDimensionState & {
+  mouseX: number;
+  mouseY: number;
+  guiMenuList: PlayerMainMenuMotionTarget[];
+  hud: {
+    reRenderAll(): void;
+  };
+};
+
+/**
+ * Port of upstream `gui_menu_list` wheel-up field.
+ * Role: Holds active main menus that receive player wheel-up input.
+ * Upstream: zplayer.cpp:3162
+ */
+export type PlayerMainMenuWheelUpState = {
+  guiMenuList: PlayerMainMenuWheelUpTarget[];
+};
+
+/**
+ * Port of upstream `gui_menu_list` wheel-down field.
+ * Role: Holds active main menus that receive player wheel-down input.
+ * Upstream: zplayer.cpp:3171
+ */
+export type PlayerMainMenuWheelDownState = {
+  guiMenuList: PlayerMainMenuWheelDownTarget[];
+};
+
+/**
+ * Port of upstream `gui_menu_list` key-press field.
+ * Role: Holds active main menus that receive player keyboard input.
+ * Upstream: zplayer.cpp:3180
+ */
+export type PlayerMainMenuKeyPressState = {
+  guiMenuList: PlayerMainMenuKeyPressTarget[];
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::DoKillMe` close target.
+ * Role: Closes the first visible player main-menu overlay.
+ * Upstream: zplayer.cpp:3591
+ */
+export type PlayerMainMenuCloseTarget = {
+  doKillMe(): void;
+};
+
+/**
+ * Port of upstream factory-list visibility and toggle targets.
+ * Role: Reports and toggles the factory-list GUI used by player close handling.
+ * Upstream: zplayer.cpp:3596-3598
+ */
+export type PlayerFactoryListCloseTarget = {
+  isVisible(): boolean;
+  toggleShow(): void;
+};
+
+/**
+ * Port of upstream GUI window close target.
+ * Role: Closes the selected production/building GUI window.
+ * Upstream: zplayer.cpp:3603
+ */
+export type PlayerGuiWindowCloseTarget = {
+  doKillMe(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::CloseCurrentMainMenuEtc` fields.
+ * Role: Holds player GUI surfaces closed in visibility priority order.
+ * Upstream: zplayer.cpp:3584-3604
+ */
+export type PlayerCloseCurrentMainMenuEtcState = {
+  guiMenuList: PlayerMainMenuCloseTarget[];
+  guiFactoryList: PlayerFactoryListCloseTarget | null;
+  guiWindow: PlayerGuiWindowCloseTarget | null;
+};
+
+/**
+ * Port of upstream `ZPlayer::InitMenus` mutable fields.
+ * Role: Holds the active login/create-user menu state owned by the player.
+ * Upstream: zplayer.cpp:3816-3819
+ */
+export type PlayerMenuInitState<TTime, TLoginMenu, TCreateUserMenu> = {
+  ztime: TTime;
+  activeMenu: TLoginMenu | TCreateUserMenu | null;
+  loginMenu: TLoginMenu | null;
+  createUserMenu: TCreateUserMenu | null;
+};
+
+/**
+ * Replacement for upstream `GWLogin` and `GWCreateUser` constructors.
+ * Role: Creates one player-owned GUI menu with the player simulation clock.
+ * Upstream: zplayer.cpp:3818-3819
+ */
+export type PlayerMenuFactory<TTime, TMenu> = (ztime: TTime) => TMenu;
+
+/**
+ * Port of upstream `ZPlayer` client socket send surface.
+ * Role: Sends one TCP event payload through the player client socket.
+ * Upstream: zplayer.cpp:3777
+ */
+export type PlayerClientMessageSender = {
+  sendMessage(packId: TcpEvent, data: Uint8Array | null, size: number): number;
+};
+
+/**
+ * Port of upstream `ZPlayer` ASCII client socket send surface.
+ * Role: Sends one TCP event with a NUL-terminated ASCII payload.
+ * Upstream: zplayer.cpp:3802
+ */
+export type PlayerClientAsciiMessageSender = {
+  sendMessageAscii(packId: TcpEvent, data: string): number;
+};
+
+/**
+ * Port of upstream `ZHud::SetUnitAmount` call target.
+ * Role: Updates the player HUD with available unit count for the local team.
+ * Upstream: zplayer.cpp:3078
+ */
+export type PlayerUnitAmountHud = {
+  setUnitAmount(unitAmount: number): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::ProcessChangeObjectAmount` state and call targets.
+ * Role: Provides button refresh, unit-limit checks, and team unit counts for HUD updates.
+ * Upstream: zplayer.cpp:3074-3078
+ */
+export type PlayerChangeObjectAmountState = {
+  ourTeam: number;
+  teamUnitsAvailable: number[];
+  hud: PlayerUnitAmountHud;
+  reSetupButtons(): void;
+  checkUnitLimitReached(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::OrderlySelectUnitType` call target.
+ * Role: Selects the next buildable unit category for player button shortcuts.
+ * Upstream: zplayer.cpp:1618, zplayer.cpp:1629, zplayer.cpp:1640
+ */
+export type PlayerUnitTypeSelector = {
+  orderlySelectUnitType(objectType: MapObjectType): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::HandleButton` call targets.
+ * Role: Provides player HUD button actions for dispatch.
+ * Upstream: zplayer.cpp:1588-1596
+ */
+export type PlayerHudButtonHandler = {
+  aButton(): void;
+  bButton(): void;
+  dButton(): void;
+  gButton(): void;
+  menuButton(): void;
+  rButton(): void;
+  tButton(): void;
+  vButton(): void;
+  zButton(): void;
 };
 
 /**
@@ -151,6 +356,18 @@ export type PlayerMouseScrollState = {
 };
 
 /**
+ * Port of upstream `ZPlayer::StartMouseScrolling` fields.
+ * Role: Holds mouse edge-scroll carry and timestamps reset when entering screen-edge scroll zones.
+ * Upstream: zplayer.cpp:1862-1887
+ */
+export type PlayerStartMouseScrollingState = PlayerMouseScrollState & {
+  horzScrollOver: number;
+  vertScrollOver: number;
+  lastHorzScrollTime: number;
+  lastVertScrollTime: number;
+};
+
+/**
  * Port of upstream `mouse_x`, `mouse_y`, `init_w`, and `init_h` field usage in `ZPlayer`.
  * Role: Holds player viewport fields used for mouse-to-map conversion.
  * Upstream: zplayer.cpp:2715-2716
@@ -191,6 +408,35 @@ export type PlayerMapCoordsProvider = {
  */
 export type PlayerViewShiftProvider = {
   getViewShift(): { x: number; y: number };
+};
+
+/**
+ * Port of upstream `ZMap::GetViewShiftFull` call target.
+ * Role: Provides the current map view shift and viewport dimensions for camera focusing.
+ * Upstream: zplayer.cpp:1780
+ */
+export type PlayerViewShiftFullProvider = {
+  getViewShiftFull(): {
+    x: number;
+    y: number;
+    viewWidth: number;
+    viewHeight: number;
+  };
+};
+
+/**
+ * Port of upstream `ZPlayer::FocusCameraTo` fields.
+ * Role: Holds the active smooth camera-focus destination and timing.
+ * Upstream: zplayer.cpp:1775-1800
+ */
+export type PlayerFocusCameraState = {
+  zmap: PlayerViewShiftFullProvider;
+  focusToX: number;
+  focusToY: number;
+  focusToOriginalDistance: number;
+  lastFocusToTime: number;
+  finalFocusToTime: number;
+  doFocusTo: boolean;
 };
 
 /**
@@ -283,6 +529,17 @@ export type PlayerPlacementCursorState = {
   pcursorX: number;
   pcursorY: number;
 };
+
+/**
+ * Replacement for upstream `ZCursor::Render` in player placement feedback.
+ * Role: Renders a placement cursor at map coordinates.
+ * Upstream: zplayer.cpp:2018
+ */
+export type PlayerPlacementCursorRenderer<TCommand> = (
+  x: number,
+  y: number,
+  restrictToMap: boolean,
+) => TCommand | null;
 
 /**
  * Replacement for upstream process/audio shutdown calls.
@@ -407,6 +664,26 @@ export type PlayerSelectionLoadGroupState = Omit<
 > & {
   selectedList: PlayerSelectionGroupDetailsQuickGroupObject[];
   quickGroups: PlayerSelectionGroupDetailsQuickGroupObject[][];
+};
+
+export type PlayerLoadControlGroupObject =
+  PlayerSelectionGroupDetailsQuickGroupObject &
+    PlayerSelectionCenteredObject &
+    PlayerSelectedWaypointDevListSource;
+
+/**
+ * Port of upstream `ZPlayer::LoadControlGroup` fields.
+ * Role: Holds quick-group selection state and player refresh hooks used when loading a control group.
+ * Upstream: zplayer.cpp:2719-2738
+ */
+export type PlayerLoadControlGroupState<
+  TObject extends PlayerLoadControlGroupObject = PlayerLoadControlGroupObject,
+> = Omit<PlayerSelectionLoadGroupState, "selectedList" | "quickGroups"> & {
+  selectedList: TObject[];
+  quickGroups: TObject[][];
+  hud: PlayerHudSelectionTarget<TObject>;
+  focusCameraTo(mapX: number, mapY: number): void;
+  determineCursor(): void;
 };
 
 /**
@@ -593,6 +870,42 @@ export function clearPlayerInfoListEvent(
 }
 
 /**
+ * Port of upstream `ZPlayer::StartMouseScrolling`.
+ * Role: Resets edge-scroll carry and timestamps when grabbed input enters a screen-edge scroll zone.
+ * Upstream: zplayer.cpp:1862-1887
+ */
+export function startPlayerMouseScrolling(
+  state: PlayerStartMouseScrollingState,
+  newMouseX: number,
+  newMouseY: number,
+  now = currentTime(),
+): void {
+  if (!state.inputGrabbed) return;
+
+  if (!(state.mouseX < 10) && newMouseX < 10) {
+    state.horzScrollOver = 0;
+    state.lastHorzScrollTime = now;
+  } else if (
+    !(state.mouseX > state.screenWidth - 10) &&
+    newMouseX > state.screenWidth - 10
+  ) {
+    state.horzScrollOver = 0;
+    state.lastHorzScrollTime = now;
+  }
+
+  if (!(state.mouseY < 10) && newMouseY < 10) {
+    state.vertScrollOver = 0;
+    state.lastVertScrollTime = now;
+  } else if (
+    !(state.mouseY > state.screenHeight - 10) &&
+    newMouseY > state.screenHeight - 10
+  ) {
+    state.vertScrollOver = 0;
+    state.lastVertScrollTime = now;
+  }
+}
+
+/**
  * Port of upstream `ZPlayer::DoMouseScrollRight`.
  * Role: Reports whether grabbed mouse input is at the right screen edge.
  * Upstream: zplayer.cpp:1889-1892
@@ -692,6 +1005,34 @@ export function mapCoordsOfPlayerMouseWithHud(
 }
 
 /**
+ * Port of upstream `ZPlayer::FocusCameraTo`.
+ * Role: Starts a smooth camera focus toward a map coordinate centered in the current viewport.
+ * Upstream: zplayer.cpp:1775-1800
+ */
+export function focusPlayerCameraTo(
+  state: PlayerFocusCameraState,
+  mapX: number,
+  mapY: number,
+  now = currentTime(),
+): void {
+  const viewShift = state.zmap.getViewShiftFull();
+
+  state.focusToX = mapX - (viewShift.viewWidth >> 1);
+  state.focusToY = mapY - (viewShift.viewHeight >> 1);
+
+  if (viewShift.x === state.focusToX && viewShift.y === state.focusToY) {
+    return;
+  }
+
+  const dx = state.focusToX - viewShift.x;
+  const dy = state.focusToY - viewShift.y;
+  state.focusToOriginalDistance = Math.sqrt(dx * dx + dy * dy);
+  state.lastFocusToTime = now;
+  state.finalFocusToTime = now + 0.7;
+  state.doFocusTo = true;
+}
+
+/**
  * Port of upstream `ZPlayer::SetPlaceCannonCords`.
  * Role: Updates cannon placement tile coordinates from mouse position and map view shift.
  * Upstream: zplayer.cpp:3532-3548
@@ -724,6 +1065,21 @@ export function showPlayerPlacementCursor(
   state.pcursorDeathTime = now + 3.0;
   state.pcursorX = mouseX;
   state.pcursorY = mouseY;
+}
+
+/**
+ * Replacement for upstream `ZPlayer::RenderPreviousCursor`.
+ * Role: Renders the temporary placement cursor while its lifetime is active.
+ * Upstream: zplayer.cpp:2005-2020
+ */
+export function renderPlayerPreviousCursor<TCommand>(
+  state: PlayerPlacementCursorState,
+  now: number,
+  renderCursor: PlayerPlacementCursorRenderer<TCommand>,
+): TCommand | null {
+  if (now >= state.pcursorDeathTime) return null;
+
+  return renderCursor(state.pcursorX, state.pcursorY, true);
 }
 
 /**
@@ -808,6 +1164,77 @@ export function setPlayerLoginPassword(
   loginPassword: string,
 ): void {
   state.loginPassword = loginPassword;
+}
+
+/**
+ * Port of upstream `ZPlayer::SendVotePass`.
+ * Role: Sends a pass-vote TCP event without a payload.
+ * Upstream: zplayer.cpp:3775-3778
+ */
+export function sendPlayerVotePass(clientSocket: PlayerClientMessageSender): number {
+  return clientSocket.sendMessage(TcpEvent.VotePass, null, 0);
+}
+
+/**
+ * Port of upstream `ZPlayer::SendVoteNo`.
+ * Role: Sends a no-vote TCP event without a payload.
+ * Upstream: zplayer.cpp:3770-3773
+ */
+export function sendPlayerVoteNo(clientSocket: PlayerClientMessageSender): number {
+  return clientSocket.sendMessage(TcpEvent.VoteNo, null, 0);
+}
+
+/**
+ * Port of upstream `ZPlayer::SendVoteYes`.
+ * Role: Sends a yes-vote TCP event without a payload.
+ * Upstream: zplayer.cpp:3765-3768
+ */
+export function sendPlayerVoteYes(clientSocket: PlayerClientMessageSender): number {
+  return clientSocket.sendMessage(TcpEvent.VoteYes, null, 0);
+}
+
+/**
+ * Port of upstream `ZPlayer::SendSetPaused`.
+ * Role: Sends the requested pause state as the packed game-paused TCP payload.
+ * Upstream: zplayer.cpp:3805-3812
+ */
+export function sendPlayerSetPaused(
+  clientSocket: PlayerClientMessageSender,
+  paused: boolean,
+): number {
+  const packet = new Uint8Array([paused ? 1 : 0]);
+  return clientSocket.sendMessage(TcpEvent.SetGamePaused, packet, packet.length);
+}
+
+/**
+ * Port of upstream `ZPlayer::SendCreateUser`.
+ * Role: Sends create-user fields as the comma-separated ASCII payload expected by the server.
+ * Upstream: zplayer.cpp:3796-3803
+ */
+export function sendPlayerCreateUser(
+  clientSocket: PlayerClientAsciiMessageSender,
+  username: string,
+  loginName: string,
+  loginPassword: string,
+  email: string,
+): number {
+  return clientSocket.sendMessageAscii(
+    TcpEvent.CreateUser,
+    `${username},${loginName},${loginPassword},${email}`,
+  );
+}
+
+/**
+ * Port of upstream `ZPlayer::ProcessChangeObjectAmount`.
+ * Role: Refreshes unit cycling buttons, checks unit limits, and updates the HUD unit amount.
+ * Upstream: zplayer.cpp:3071-3079
+ */
+export function processPlayerChangeObjectAmount(
+  state: PlayerChangeObjectAmountState,
+): void {
+  state.reSetupButtons();
+  state.checkUnitLimitReached();
+  state.hud.setUnitAmount(state.teamUnitsAvailable[state.ourTeam] ?? 0);
 }
 
 /**
@@ -936,6 +1363,63 @@ export function initPlayerAnimals<TAnimal>(
 export function playerAButton(): void {}
 
 /**
+ * Port of upstream `ZPlayer::InitMenus`.
+ * Role: Clears the active GUI menu and creates login and create-user menus.
+ * Upstream: zplayer.cpp:3814-3820
+ */
+export function initPlayerMenus<TTime, TLoginMenu, TCreateUserMenu>(
+  state: PlayerMenuInitState<TTime, TLoginMenu, TCreateUserMenu>,
+  createLoginMenu: PlayerMenuFactory<TTime, TLoginMenu>,
+  createCreateUserMenu: PlayerMenuFactory<TTime, TCreateUserMenu>,
+): void {
+  state.activeMenu = null;
+  state.loginMenu = createLoginMenu(state.ztime);
+  state.createUserMenu = createCreateUserMenu(state.ztime);
+}
+
+/**
+ * Port of upstream `ZPlayer::HandleButton`.
+ * Role: Dispatches a HUD button to its matching player button action.
+ * Upstream: zplayer.cpp:1584-1598
+ */
+export function handlePlayerButton(
+  player: PlayerHudButtonHandler,
+  button: HudButton | number,
+): void {
+  switch (button) {
+    case HudButton.A:
+      player.aButton();
+      break;
+    case HudButton.B:
+      player.bButton();
+      break;
+    case HudButton.D:
+      player.dButton();
+      break;
+    case HudButton.G:
+      player.gButton();
+      break;
+    case HudButton.Menu:
+      player.menuButton();
+      break;
+    case HudButton.R:
+      player.rButton();
+      break;
+    case HudButton.T:
+      player.tButton();
+      break;
+    case HudButton.V:
+      player.vButton();
+      break;
+    case HudButton.Z:
+      player.zButton();
+      break;
+    default:
+      break;
+  }
+}
+
+/**
  * Port of upstream `ZPlayer::B_Button`.
  * Role: Toggles the factory-list GUI when it is available.
  * Upstream: zplayer.cpp:1605-1608
@@ -952,12 +1436,30 @@ export function playerBButton(state: PlayerFactoryListGuiState): void {
 export function playerDButton(): void {}
 
 /**
+ * Port of upstream `ZPlayer::G_Button`.
+ * Role: Selects the next cannon unit type for the player shortcut.
+ * Upstream: zplayer.cpp:1615-1619
+ */
+export function playerGButton(player: PlayerUnitTypeSelector): void {
+  player.orderlySelectUnitType(MapObjectType.Cannon);
+}
+
+/**
  * Port of upstream `ZPlayer::Menu_Button`.
  * Role: Opens the main menu screen from the player button hook.
  * Upstream: zplayer.cpp:1621-1624
  */
 export function playerMenuButton(player: PlayerMainMenuLoader): void {
   player.loadMainMenu(MainMenuType.MainMain);
+}
+
+/**
+ * Port of upstream `ZPlayer::R_Button`.
+ * Role: Selects the next robot unit type for the player shortcut.
+ * Upstream: zplayer.cpp:1626-1630
+ */
+export function playerRButton(player: PlayerUnitTypeSelector): void {
+  player.orderlySelectUnitType(MapObjectType.Robot);
 }
 
 /**
@@ -976,11 +1478,135 @@ export function movePlayerMainMenus(
 }
 
 /**
+ * Port of upstream `ZPlayer::MainMenuMotion`.
+ * Role: Routes mouse motion through active main menus and refreshes HUD overlap regions.
+ * Upstream: zplayer.cpp:3135-3158
+ */
+export function motionPlayerMainMenus(
+  state: PlayerMainMenuMotionState,
+): boolean {
+  for (const menu of state.guiMenuList) {
+    const previousCoords = menu.getCoords();
+
+    if (menu.motion(state.mouseX, state.mouseY)) {
+      const coords = menu.getCoords();
+      const dimensions = menu.getDimensions();
+
+      if (
+        isPlayerOverHud(
+          state,
+          coords.x,
+          coords.y,
+          dimensions.width,
+          dimensions.height,
+        ) ||
+        isPlayerOverHud(
+          state,
+          previousCoords.x,
+          previousCoords.y,
+          dimensions.width,
+          dimensions.height,
+        )
+      ) {
+        state.hud.reRenderAll();
+      }
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Port of upstream `ZPlayer::MainMenuWheelUp`.
+ * Role: Routes wheel-up input through active main menus until one consumes it.
+ * Upstream: zplayer.cpp:3160-3167
+ */
+export function wheelUpPlayerMainMenus(
+  state: PlayerMainMenuWheelUpState,
+): boolean {
+  for (const menu of state.guiMenuList) {
+    if (menu.wheelUpButton()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Port of upstream `ZPlayer::MainMenuWheelDown`.
+ * Role: Routes wheel-down input through active main menus until one consumes it.
+ * Upstream: zplayer.cpp:3169-3176
+ */
+export function wheelDownPlayerMainMenus(
+  state: PlayerMainMenuWheelDownState,
+): boolean {
+  for (const menu of state.guiMenuList) {
+    if (menu.wheelDownButton()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Port of upstream `ZPlayer::MainMenuKeyPress`.
+ * Role: Routes keyboard input through active main menus until one consumes it.
+ * Upstream: zplayer.cpp:3178-3185
+ */
+export function keyPressPlayerMainMenus(
+  state: PlayerMainMenuKeyPressState,
+  c: number,
+): boolean {
+  for (const menu of state.guiMenuList) {
+    if (menu.keyPress(c)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Port of upstream `ZPlayer::CloseCurrentMainMenuEtc`.
+ * Role: Closes the top-priority player GUI surface: main menu, visible factory list, then active GUI window.
+ * Upstream: zplayer.cpp:3584-3604
+ */
+export function closePlayerCurrentMainMenuEtc(
+  state: PlayerCloseCurrentMainMenuEtcState,
+): void {
+  const activeMenu = state.guiMenuList[0];
+  if (activeMenu) {
+    activeMenu.doKillMe();
+    return;
+  }
+
+  if (state.guiFactoryList?.isVisible()) {
+    state.guiFactoryList.toggleShow();
+    return;
+  }
+
+  state.guiWindow?.doKillMe();
+}
+
+/**
  * Port of upstream `ZPlayer::T_Button`.
  * Role: Button hook with no upstream behavior.
  * Upstream: zplayer.cpp:1632-1635
  */
 export function playerTButton(): void {}
+
+/**
+ * Port of upstream `ZPlayer::V_Button`.
+ * Role: Selects the next vehicle unit type for the player shortcut.
+ * Upstream: zplayer.cpp:1637-1641
+ */
+export function playerVButton(player: PlayerUnitTypeSelector): void {
+  player.orderlySelectUnitType(MapObjectType.Vehicle);
+}
 
 /**
  * Port of upstream `ZPlayer::Z_Button`.
@@ -1322,6 +1948,32 @@ export function isPlayerSelectionGroupSelected<TObject>(
   }
 
   return true;
+}
+
+/**
+ * Port of upstream `ZPlayer::LoadControlGroup`.
+ * Role: Jumps to an already selected quick group or restores it and refreshes player selection UI.
+ * Upstream: zplayer.cpp:2719-2738
+ */
+export function loadPlayerControlGroup(
+  state: PlayerLoadControlGroupState,
+  group: number,
+): void {
+  if (group < 0) return;
+  if (group >= 10) return;
+
+  if (isPlayerSelectionGroupSelected(state, group)) {
+    const average = averageCoordsOfPlayerSelection(state);
+    if (average) {
+      state.focusCameraTo(average.x, average.y);
+    }
+    return;
+  }
+
+  loadPlayerSelectionGroup(state, group);
+  state.determineCursor();
+  clearPlayerSelectedDevWaypoints(state);
+  givePlayerHudSelected(state);
 }
 
 /**

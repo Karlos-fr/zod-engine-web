@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ZSettings } from "../src/data/ZSettingsData";
+import {
+  type CannonDeathEffectSpawn,
+  CannonDeathObject,
+} from "../src/simulation/CannonDeathEffect";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
   canCannonSetWaypoints,
@@ -8,25 +12,37 @@ import {
   CGUN_HEADER_GUARD_PORTED,
   CHOWITZER_HEADER_GUARD_PORTED,
   CMISSILECANNON_HEADER_GUARD_PORTED,
+  doGatlingCannonDeathEffect,
+  doGunCannonDeathEffect,
+  doHowitzerCannonDeathEffect,
+  doMissileCannonDeathEffect,
+  fireGatlingCannonTurrentMissile,
+  fireGunCannonMissile,
   GATLING_CANNON_UNIT_X_PIXELS,
   GATLING_CANNON_UNIT_Y_PIXELS,
+  fireHowitzerCannonTurrentMissile,
   GatlingCannonEntity,
+  fireGunCannonTurrentMissile,
   GUN_CANNON_UNIT_X_PIXELS,
   GUN_CANNON_UNIT_Y_PIXELS,
   HowitzerCannonEntity,
   HOWITZER_CANNON_UNIT_X_PIXELS,
   HOWITZER_CANNON_UNIT_Y_PIXELS,
   initCannonPlacementImages,
+  fireMissileCannonTurrentMissile,
   MissileCannonEntity,
   MISSILE_CANNON_UNIT_X_PIXELS,
   MISSILE_CANNON_UNIT_Y_PIXELS,
   ZCANNON_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/CannonTypes";
+import type { VehicleRestrictedSoundCommand } from "../src/simulation/entities/VehicleEntity";
 import {
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
 } from "../src/simulation/SimulationConstants";
+import type { LightRocketEffectSpawn } from "../src/simulation/LightRocketEffect";
+import { SoundEngineSound } from "../src/audio/AudioService";
 
 describe("cannon types", () => {
   it("adapts the cgatling header guard to module boundaries", async () => {
@@ -345,6 +361,388 @@ describe("cannon types", () => {
     expect(cannon.attackObject).toBeNull();
     expect(cannon.direction).toBe(6);
     expect(cannon.renderFire).toBe(false);
+  });
+
+  it("ports CGatling FireTurrentMissile as no effect without an effect list", () => {
+    const ztime = { tick: 55 };
+    const state = {
+      ztime,
+      position: { x: 18, y: 26 },
+    };
+
+    expect(() =>
+      fireGatlingCannonTurrentMissile(state, null, 100, 120, 3.25),
+    ).not.toThrow();
+  });
+
+  it("ports CGatling FireTurrentMissile as a front-inserted cannon death spawn", () => {
+    const ztime = { tick: 55 };
+    const existing = {
+      ztime: null,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      object: CannonDeathObject.Howitzer,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+    const state = {
+      ztime,
+      position: { x: 18, y: 26 },
+    };
+
+    fireGatlingCannonTurrentMissile(state, effects, 100, 120, 3.25);
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 18,
+        startY: 26,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 3.25,
+        object: CannonDeathObject.Gatling,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports CHowitzer FireTurrentMissile as no effect without an effect list", () => {
+    const ztime = { tick: 56 };
+    const state = {
+      ztime,
+      position: { x: 20, y: 28 },
+    };
+
+    expect(() =>
+      fireHowitzerCannonTurrentMissile(state, null, 110, 130, 4.25),
+    ).not.toThrow();
+  });
+
+  it("ports CHowitzer FireTurrentMissile as a front-inserted cannon death spawn", () => {
+    const ztime = { tick: 56 };
+    const existing = {
+      ztime: null,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      object: CannonDeathObject.Gun,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+    const state = {
+      ztime,
+      position: { x: 20, y: 28 },
+    };
+
+    fireHowitzerCannonTurrentMissile(state, effects, 110, 130, 4.25);
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 20,
+        startY: 28,
+        targetX: 110,
+        targetY: 130,
+        offsetTime: 4.25,
+        object: CannonDeathObject.Howitzer,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports CMissileCannon FireTurrentMissile as no effect without an effect list", () => {
+    const ztime = { tick: 57 };
+    const state = {
+      ztime,
+      position: { x: 22, y: 30 },
+    };
+
+    expect(() =>
+      fireMissileCannonTurrentMissile(state, null, 120, 140, 5.25),
+    ).not.toThrow();
+  });
+
+  it("ports CMissileCannon FireTurrentMissile as a front-inserted cannon death spawn", () => {
+    const ztime = { tick: 57 };
+    const existing = {
+      ztime: null,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      object: CannonDeathObject.Gatling,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+    const state = {
+      ztime,
+      position: { x: 22, y: 30 },
+    };
+
+    fireMissileCannonTurrentMissile(state, effects, 120, 140, 5.25);
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 22,
+        startY: 30,
+        targetX: 120,
+        targetY: 140,
+        offsetTime: 5.25,
+        object: CannonDeathObject.Missile,
+      },
+      existing,
+    ]);
+  });
+
+  it("ports CGatling DoDeathEffect as no effect for null owner", () => {
+    const effects: CannonDeathEffectSpawn<{ tick: number }>[] = [];
+
+    doGatlingCannonDeathEffect(
+      { owner: TeamType.Null },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports CGatling DoDeathEffect as upstream commented-out no-op", () => {
+    const ztime = { tick: 58 };
+    const existing = {
+      ztime,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      object: CannonDeathObject.Gun,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doGatlingCannonDeathEffect(
+      { owner: TeamType.Blue },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([existing]);
+  });
+
+  it("ports CGun DoDeathEffect as no effect for null owner", () => {
+    const effects: CannonDeathEffectSpawn<{ tick: number }>[] = [];
+
+    doGunCannonDeathEffect({ owner: TeamType.Null }, effects, true, true);
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports CGun DoDeathEffect as upstream commented-out no-op", () => {
+    const ztime = { tick: 59 };
+    const existing = {
+      ztime,
+      startX: 6,
+      startY: 7,
+      targetX: 8,
+      targetY: 9,
+      offsetTime: 10,
+      object: CannonDeathObject.Gatling,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doGunCannonDeathEffect({ owner: TeamType.Red }, effects, false, false);
+
+    expect(effects).toEqual([existing]);
+  });
+
+  it("ports CHowitzer DoDeathEffect as no effect for null owner", () => {
+    const effects: CannonDeathEffectSpawn<{ tick: number }>[] = [];
+
+    doHowitzerCannonDeathEffect(
+      { owner: TeamType.Null },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports CHowitzer DoDeathEffect as upstream commented-out no-op", () => {
+    const ztime = { tick: 60 };
+    const existing = {
+      ztime,
+      startX: 11,
+      startY: 12,
+      targetX: 13,
+      targetY: 14,
+      offsetTime: 15,
+      object: CannonDeathObject.Missile,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doHowitzerCannonDeathEffect({ owner: TeamType.Green }, effects, false, false);
+
+    expect(effects).toEqual([existing]);
+  });
+
+  it("ports CMissileCannon DoDeathEffect as no effect for null owner", () => {
+    const effects: CannonDeathEffectSpawn<{ tick: number }>[] = [];
+
+    doMissileCannonDeathEffect(
+      { owner: TeamType.Null },
+      effects,
+      true,
+      true,
+    );
+
+    expect(effects).toEqual([]);
+  });
+
+  it("ports CMissileCannon DoDeathEffect as upstream commented-out no-op", () => {
+    const ztime = { tick: 61 };
+    const existing = {
+      ztime,
+      startX: 16,
+      startY: 17,
+      targetX: 18,
+      targetY: 19,
+      offsetTime: 20,
+      object: CannonDeathObject.Howitzer,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+
+    doMissileCannonDeathEffect(
+      { owner: TeamType.Yellow },
+      effects,
+      false,
+      false,
+    );
+
+    expect(effects).toEqual([existing]);
+  });
+
+  it("ports CGun FireMissile as restricted sound without effect list", () => {
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireGunCannonMissile(
+      {
+        ztime: { tick: 55 },
+        position: { x: 16, y: 24 },
+        direction: 0,
+        missileSpeed: 80,
+        pixelWidth: 32,
+        pixelHeight: 48,
+      },
+      null,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.GunFireSnd,
+        x: 16,
+        y: 24,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports CGun FireMissile as light rocket spawning with gun flags", () => {
+    const ztime = { tick: 55 };
+    const effects: LightRocketEffectSpawn<typeof ztime>[] = [];
+    const sounds: VehicleRestrictedSoundCommand[] = [];
+
+    fireGunCannonMissile(
+      {
+        ztime,
+        position: { x: 16, y: 24 },
+        direction: 1,
+        missileSpeed: 80,
+        pixelWidth: 32,
+        pixelHeight: 48,
+      },
+      effects,
+      100,
+      120,
+      sounds,
+    );
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 45,
+        startY: 26,
+        targetX: 100,
+        targetY: 120,
+        speed: 80,
+        extraSmall: 0,
+        extraLarge: 1,
+        extraExtraLarge: 0,
+      },
+    ]);
+    expect(sounds).toEqual([
+      {
+        sound: SoundEngineSound.GunFireSnd,
+        x: 16,
+        y: 24,
+        width: 32,
+        height: 48,
+      },
+    ]);
+  });
+
+  it("ports CGun FireTurrentMissile as no effect without an effect list", () => {
+    const ztime = { tick: 55 };
+    const state = {
+      ztime,
+      position: { x: 16, y: 24 },
+    };
+
+    expect(() =>
+      fireGunCannonTurrentMissile(state, null, 100, 120, 3.25),
+    ).not.toThrow();
+  });
+
+  it("ports CGun FireTurrentMissile as a front-inserted cannon death spawn", () => {
+    const ztime = { tick: 55 };
+    const existing = {
+      ztime: null,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      object: CannonDeathObject.Howitzer,
+    };
+    const effects: CannonDeathEffectSpawn<typeof ztime>[] = [existing];
+    const state = {
+      ztime,
+      position: { x: 16, y: 24 },
+    };
+
+    fireGunCannonTurrentMissile(state, effects, 100, 120, 3.25);
+
+    expect(effects).toEqual([
+      {
+        ztime,
+        startX: 16,
+        startY: 24,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 3.25,
+        object: CannonDeathObject.Gun,
+      },
+      existing,
+    ]);
   });
 
   it("ports the gatling cannon unit x offset", () => {

@@ -1,6 +1,7 @@
 /**
  * Upstream: ecannondeath.h
  */
+import type { DeathSparksEffectSpawn } from "./DeathSparksEffect";
 
 /**
  * Port of upstream `_ECANNONDEATH_H_`.
@@ -43,6 +44,21 @@ export type CannonDeathInitState = CannonDeathImageState & {
 };
 
 /**
+ * Port of upstream `ECannonDeath` construction arguments.
+ * Role: Describes a cannon death effect spawned by cannon fire.
+ * Upstream: ecannondeath.h:13-38
+ */
+export type CannonDeathEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  offsetTime: number;
+  object: CannonDeathObject;
+};
+
+/**
  * Port of upstream `ECannonDeath::Init`.
  * Role: Initializes cannon destroyed-body image paths.
  * Upstream: ecannondeath.cpp:74-82
@@ -54,4 +70,34 @@ export function initCannonDeathEffect(state: CannonDeathInitState): void {
   state.missileWasted = "assets/units/cannons/missile_cannon/wasted.png";
 
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `ECannonDeath::DoSparks`.
+ * Role: Spawns cannon death spark effects around the destroyed cannon center.
+ * Upstream: ecannondeath.cpp:135-150
+ */
+export function spawnCannonDeathEffectSparks<TTime>(
+  state: {
+    ztime: TTime | null;
+    x: number;
+    y: number;
+  },
+  effectList: DeathSparksEffectSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  const sparksAmount = 20 + (Math.trunc(randomInt(15)) % 15);
+  const sparkX = state.x + 16;
+  const sparkY = state.y + 16;
+
+  if (!effectList) return;
+
+  for (let i = 0; i < sparksAmount; i += 1) {
+    effectList.push({
+      ztime: state.ztime,
+      x: sparkX,
+      y: sparkY,
+    });
+  }
 }

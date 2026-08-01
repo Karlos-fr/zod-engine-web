@@ -8,6 +8,8 @@ import {
 } from "../src/simulation/SimulationConstants";
 import { SimulationTime } from "../src/simulation/SimulationTime";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
+import { TcpEvent } from "../src/simulation/EventHandler";
+import { HudButton } from "../src/ui/HudLayout";
 import { MainMenuType } from "../src/ui/MainMenuBase";
 import { MapObjectType } from "../src/world/MapFormat";
 import {
@@ -19,6 +21,7 @@ import {
   clearPlayerInfoListEvent,
   clearPlayerSelectionInfo,
   clearPlayerSelectedDevWaypoints,
+  closePlayerCurrentMainMenuEtc,
   createMouseButtonInfo,
   deletePlayerObjectFromSelection,
   disablePlayerCursor,
@@ -31,7 +34,10 @@ import {
   doPlayerMouseScrollRight,
   doPlayerMouseScrollUp,
   exitPlayerProgram,
+  focusPlayerCameraTo,
   givePlayerHudSelected,
+  handlePlayerButton,
+  initPlayerMenus,
   initPlayerAnimals,
   isPastSpaceBarEventLifetime,
   isPlayerAsciiDown,
@@ -41,8 +47,11 @@ import {
   isPlayerOverHud,
   isPlayerSelectionGroupSelected,
   isPlayerShiftDown,
+  keyPressPlayerMainMenus,
+  loadPlayerControlGroup,
   loadPlayerSelectionGroup,
   mapCoordsOfPlayerMouseWithHud,
+  motionPlayerMainMenus,
   movePlayerMainMenus,
   PLAYER_ASCII_DOWN_MAX,
   PLAYER_GRAPHICS_LOAD_ITEM_COUNT,
@@ -55,22 +64,32 @@ import {
   PLAYER_SELECTION_SHIFT_TICK_SECONDS,
   PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS,
   PLAYER_SPLASH_FADE_PER_SECOND,
+  processPlayerChangeObjectAmount,
   playerMiddleClickEvent,
   playerMiddleUnclickEvent,
   refindPlayerFortRefId,
   playerRightClickEvent,
   playerTestEvent,
+  renderPlayerPreviousCursor,
   playerAButton,
   playerBButton,
   playerDButton,
+  playerGButton,
   playerMenuButton,
+  playerRButton,
   playerTButton,
+  playerVButton,
   playerZButton,
   removePlayerObjectFromSelection,
   setPlayerDimensions,
   setPlayerAsciiState,
   setPlayerLoginName,
   setPlayerLoginPassword,
+  sendPlayerCreateUser,
+  sendPlayerSetPaused,
+  sendPlayerVoteNo,
+  sendPlayerVotePass,
+  sendPlayerVoteYes,
   setPlayerMusicOff,
   setNextPlayerSoundSetting,
   setPlayerPlaceCannonCoords,
@@ -81,8 +100,11 @@ import {
   setupPlayerSelectionGroupDetails,
   showPlayerPlacementCursor,
   SpaceBarEvent,
+  startPlayerMouseScrolling,
   unitNearPlayerHostiles,
   updatePlayerSelectionGroupMember,
+  wheelDownPlayerMainMenus,
+  wheelUpPlayerMainMenus,
   ZPLAYER_HEADER_GUARD_PORTED,
 } from "../src/simulation/PlayerPresentation";
 import type {
@@ -236,6 +258,69 @@ describe("player presentation constants", () => {
     expect(doPlayerMouseScrollDown(state)).toBe(false);
   });
 
+  it("ports ZPlayer StartMouseScrolling as edge-entry timer reset", () => {
+    const state = {
+      mouseX: 20,
+      mouseY: 20,
+      screenWidth: 800,
+      screenHeight: 600,
+      inputGrabbed: true,
+      horzScrollOver: 4.5,
+      vertScrollOver: 3.5,
+      lastHorzScrollTime: 1,
+      lastVertScrollTime: 2,
+    };
+
+    startPlayerMouseScrolling(state, 5, 595, 12.5);
+
+    expect(state.horzScrollOver).toBe(0);
+    expect(state.vertScrollOver).toBe(0);
+    expect(state.lastHorzScrollTime).toBe(12.5);
+    expect(state.lastVertScrollTime).toBe(12.5);
+  });
+
+  it("ports ZPlayer StartMouseScrolling as no-op when input is not grabbed", () => {
+    const state = {
+      mouseX: 20,
+      mouseY: 20,
+      screenWidth: 800,
+      screenHeight: 600,
+      inputGrabbed: false,
+      horzScrollOver: 4.5,
+      vertScrollOver: 3.5,
+      lastHorzScrollTime: 1,
+      lastVertScrollTime: 2,
+    };
+
+    startPlayerMouseScrolling(state, 5, 595, 12.5);
+
+    expect(state.horzScrollOver).toBe(4.5);
+    expect(state.vertScrollOver).toBe(3.5);
+    expect(state.lastHorzScrollTime).toBe(1);
+    expect(state.lastVertScrollTime).toBe(2);
+  });
+
+  it("ports ZPlayer StartMouseScrolling as no reset while already in edge zones", () => {
+    const state = {
+      mouseX: 5,
+      mouseY: 595,
+      screenWidth: 800,
+      screenHeight: 600,
+      inputGrabbed: true,
+      horzScrollOver: 4.5,
+      vertScrollOver: 3.5,
+      lastHorzScrollTime: 1,
+      lastVertScrollTime: 2,
+    };
+
+    startPlayerMouseScrolling(state, 4, 596, 12.5);
+
+    expect(state.horzScrollOver).toBe(4.5);
+    expect(state.vertScrollOver).toBe(3.5);
+    expect(state.lastHorzScrollTime).toBe(1);
+    expect(state.lastVertScrollTime).toBe(2);
+  });
+
   it("ports ZPlayer SetDimensions as positive viewport dimension updates", () => {
     const state = {
       prevW: 10,
@@ -352,6 +437,41 @@ describe("player presentation constants", () => {
     });
   });
 
+  it("replaces ZPlayer RenderPreviousCursor as no command after cursor expiry", () => {
+    const state = {
+      pcursorDeathTime: 15.5,
+      pcursorX: 32,
+      pcursorY: 48,
+    };
+
+    expect(
+      renderPlayerPreviousCursor(state, 15.5, () => {
+        throw new Error("cursor renderer should not be called");
+      }),
+    ).toBeNull();
+  });
+
+  it("replaces ZPlayer RenderPreviousCursor by rendering the active placement cursor", () => {
+    const calls: unknown[] = [];
+    const state = {
+      pcursorDeathTime: 15.5,
+      pcursorX: 32,
+      pcursorY: 48,
+    };
+
+    const command = renderPlayerPreviousCursor(state, 15.49, (
+      x,
+      y,
+      restrictToMap,
+    ) => {
+      calls.push([x, y, restrictToMap]);
+      return { x, y, restrictToMap };
+    });
+
+    expect(calls).toEqual([[32, 48, true]]);
+    expect(command).toEqual({ x: 32, y: 48, restrictToMap: true });
+  });
+
   it("ports ZPlayer key scroll checks with opposite-direction cancellation", () => {
     const state = {
       leftDown: false,
@@ -405,6 +525,134 @@ describe("player presentation constants", () => {
     setPlayerLoginPassword(state, "secret");
 
     expect(state).toEqual({ loginName: "player", loginPassword: "secret" });
+  });
+
+  it("ports ZPlayer SendVotePass as a pass-vote message send", () => {
+    const calls: Array<{
+      packId: TcpEvent;
+      data: Uint8Array | null;
+      size: number;
+    }> = [];
+    const result = sendPlayerVotePass({
+      sendMessage: (packId, data, size) => {
+        calls.push({ packId, data, size });
+        return 23;
+      },
+    });
+
+    expect(result).toBe(23);
+    expect(calls).toEqual([{ packId: TcpEvent.VotePass, data: null, size: 0 }]);
+  });
+
+  it("ports ZPlayer SendVoteNo as a no-vote message send", () => {
+    const calls: Array<{
+      packId: TcpEvent;
+      data: Uint8Array | null;
+      size: number;
+    }> = [];
+    const result = sendPlayerVoteNo({
+      sendMessage: (packId, data, size) => {
+        calls.push({ packId, data, size });
+        return 24;
+      },
+    });
+
+    expect(result).toBe(24);
+    expect(calls).toEqual([{ packId: TcpEvent.VoteNo, data: null, size: 0 }]);
+  });
+
+  it("ports ZPlayer SendVoteYes as a yes-vote message send", () => {
+    const calls: Array<{
+      packId: TcpEvent;
+      data: Uint8Array | null;
+      size: number;
+    }> = [];
+    const result = sendPlayerVoteYes({
+      sendMessage: (packId, data, size) => {
+        calls.push({ packId, data, size });
+        return 25;
+      },
+    });
+
+    expect(result).toBe(25);
+    expect(calls).toEqual([{ packId: TcpEvent.VoteYes, data: null, size: 0 }]);
+  });
+
+  it("ports ZPlayer SendSetPaused as a packed pause-state message send", () => {
+    const calls: Array<{
+      packId: TcpEvent;
+      data: Uint8Array | null;
+      size: number;
+    }> = [];
+    const clientSocket = {
+      sendMessage(packId: TcpEvent, data: Uint8Array | null, size: number) {
+        calls.push({ packId, data: data ? new Uint8Array(data) : null, size });
+        return 26 + calls.length;
+      },
+    };
+
+    expect(sendPlayerSetPaused(clientSocket, true)).toBe(27);
+    expect(sendPlayerSetPaused(clientSocket, false)).toBe(28);
+
+    expect(calls).toEqual([
+      {
+        packId: TcpEvent.SetGamePaused,
+        data: new Uint8Array([1]),
+        size: 1,
+      },
+      {
+        packId: TcpEvent.SetGamePaused,
+        data: new Uint8Array([0]),
+        size: 1,
+      },
+    ]);
+  });
+
+  it("ports ZPlayer SendCreateUser as a create-user ASCII message send", () => {
+    const calls: Array<{ packId: TcpEvent; data: string }> = [];
+    const result = sendPlayerCreateUser(
+      {
+        sendMessageAscii: (packId, data) => {
+          calls.push({ packId, data });
+          return 31;
+        },
+      },
+      "user",
+      "login",
+      "pass",
+      "email@example.test",
+    );
+
+    expect(result).toBe(31);
+    expect(calls).toEqual([
+      {
+        packId: TcpEvent.CreateUser,
+        data: "user,login,pass,email@example.test",
+      },
+    ]);
+  });
+
+  it("ports ZPlayer ProcessChangeObjectAmount as button refresh and HUD unit amount update", () => {
+    const calls: Array<string | number> = [];
+
+    processPlayerChangeObjectAmount({
+      ourTeam: TeamType.Blue,
+      teamUnitsAvailable: [3, 7, 11],
+      hud: {
+        setUnitAmount: (unitAmount) => {
+          calls.push("set-unit-amount", unitAmount);
+        },
+      },
+      reSetupButtons: () => calls.push("re-setup-buttons"),
+      checkUnitLimitReached: () => calls.push("check-unit-limit-reached"),
+    });
+
+    expect(calls).toEqual([
+      "re-setup-buttons",
+      "check-unit-limit-reached",
+      "set-unit-amount",
+      11,
+    ]);
   });
 
   it("replaces ZPlayer SetUseOpenGL as player Canvas rendering path assignment", () => {
@@ -573,11 +821,129 @@ describe("player presentation constants", () => {
     expect(state.birdList).toEqual([]);
   });
 
+  it("ports ZPlayer InitMenus as login and create-user menu construction", () => {
+    const ztime = { now: 12 };
+    const calls: Array<{ kind: string; ztime: typeof ztime }> = [];
+    const state = {
+      ztime,
+      activeMenu: { kind: "login", ztime } as
+        | { kind: "login"; ztime: typeof ztime }
+        | { kind: "create-user"; ztime: typeof ztime }
+        | null,
+      loginMenu: null as { kind: "login"; ztime: typeof ztime } | null,
+      createUserMenu: null as { kind: "create-user"; ztime: typeof ztime } | null,
+    };
+
+    initPlayerMenus(
+      state,
+      (menuZTime) => {
+        calls.push({ kind: "login", ztime: menuZTime });
+        return { kind: "login", ztime: menuZTime };
+      },
+      (menuZTime) => {
+        calls.push({ kind: "create-user", ztime: menuZTime });
+        return { kind: "create-user", ztime: menuZTime };
+      },
+    );
+
+    expect(state.activeMenu).toBeNull();
+    expect(state.loginMenu).toEqual({ kind: "login", ztime });
+    expect(state.createUserMenu).toEqual({ kind: "create-user", ztime });
+    expect(calls).toEqual([
+      { kind: "login", ztime },
+      { kind: "create-user", ztime },
+    ]);
+  });
+
+  it("ports ZPlayer FocusCameraTo as centered camera focus timing", () => {
+    const state = {
+      zmap: {
+        getViewShiftFull: () => ({
+          x: 20,
+          y: 30,
+          viewWidth: 320,
+          viewHeight: 240,
+        }),
+      },
+      focusToX: 0,
+      focusToY: 0,
+      focusToOriginalDistance: 0,
+      lastFocusToTime: 0,
+      finalFocusToTime: 0,
+      doFocusTo: false,
+    };
+
+    focusPlayerCameraTo(state, 300, 210, 12.5);
+
+    expect(state.focusToX).toBe(140);
+    expect(state.focusToY).toBe(90);
+    expect(state.focusToOriginalDistance).toBeCloseTo(Math.sqrt(120 ** 2 + 60 ** 2));
+    expect(state.lastFocusToTime).toBe(12.5);
+    expect(state.finalFocusToTime).toBe(13.2);
+    expect(state.doFocusTo).toBe(true);
+  });
+
+  it("ports ZPlayer FocusCameraTo already-centered early return", () => {
+    const state = {
+      zmap: {
+        getViewShiftFull: () => ({
+          x: 140,
+          y: 90,
+          viewWidth: 320,
+          viewHeight: 240,
+        }),
+      },
+      focusToX: 0,
+      focusToY: 0,
+      focusToOriginalDistance: 99,
+      lastFocusToTime: 7,
+      finalFocusToTime: 8,
+      doFocusTo: false,
+    };
+
+    focusPlayerCameraTo(state, 300, 210, 12.5);
+
+    expect(state.focusToX).toBe(140);
+    expect(state.focusToY).toBe(90);
+    expect(state.focusToOriginalDistance).toBe(99);
+    expect(state.lastFocusToTime).toBe(7);
+    expect(state.finalFocusToTime).toBe(8);
+    expect(state.doFocusTo).toBe(false);
+  });
+
   it("ports empty player button hooks as no-op functions", () => {
     expect(playerAButton()).toBeUndefined();
     expect(playerDButton()).toBeUndefined();
     expect(playerTButton()).toBeUndefined();
     expect(playerZButton()).toBeUndefined();
+  });
+
+  it("ports ZPlayer HandleButton as HUD button dispatch", () => {
+    const calls: string[] = [];
+    const player = {
+      aButton: () => calls.push("A"),
+      bButton: () => calls.push("B"),
+      dButton: () => calls.push("D"),
+      gButton: () => calls.push("G"),
+      menuButton: () => calls.push("Menu"),
+      rButton: () => calls.push("R"),
+      tButton: () => calls.push("T"),
+      vButton: () => calls.push("V"),
+      zButton: () => calls.push("Z"),
+    };
+
+    handlePlayerButton(player, HudButton.A);
+    handlePlayerButton(player, HudButton.B);
+    handlePlayerButton(player, HudButton.D);
+    handlePlayerButton(player, HudButton.G);
+    handlePlayerButton(player, HudButton.Menu);
+    handlePlayerButton(player, HudButton.R);
+    handlePlayerButton(player, HudButton.T);
+    handlePlayerButton(player, HudButton.V);
+    handlePlayerButton(player, HudButton.Z);
+    handlePlayerButton(player, HudButton.MaxHudButtons);
+
+    expect(calls).toEqual(["A", "B", "D", "G", "Menu", "R", "T", "V", "Z"]);
   });
 
   it("ports ZPlayer B_Button as factory-list GUI toggle", () => {
@@ -595,6 +961,36 @@ describe("player presentation constants", () => {
 
     playerBButton({ guiFactoryList: null });
     expect(toggles).toBe(1);
+  });
+
+  it("ports ZPlayer G_Button as orderly cannon type selection", () => {
+    const calls: MapObjectType[] = [];
+
+    playerGButton({
+      orderlySelectUnitType: (objectType) => calls.push(objectType),
+    });
+
+    expect(calls).toEqual([MapObjectType.Cannon]);
+  });
+
+  it("ports ZPlayer R_Button as orderly robot type selection", () => {
+    const calls: MapObjectType[] = [];
+
+    playerRButton({
+      orderlySelectUnitType: (objectType) => calls.push(objectType),
+    });
+
+    expect(calls).toEqual([MapObjectType.Robot]);
+  });
+
+  it("ports ZPlayer V_Button as orderly vehicle type selection", () => {
+    const calls: MapObjectType[] = [];
+
+    playerVButton({
+      orderlySelectUnitType: (objectType) => calls.push(objectType),
+    });
+
+    expect(calls).toEqual([MapObjectType.Vehicle]);
   });
 
   it("ports ZPlayer Menu_Button as main-menu opening", () => {
@@ -630,6 +1026,364 @@ describe("player presentation constants", () => {
       ["first", 2, 0.5],
       ["second", 2, 0.5],
     ]);
+  });
+
+  it("ports ZPlayer MainMenuMotion as first-consuming main-menu routing", () => {
+    const calls: unknown[] = [];
+    const state = {
+      initW: 800,
+      initH: 600,
+      mouseX: 11,
+      mouseY: 22,
+      hud: {
+        reRenderAll: () => calls.push("hud"),
+      },
+      guiMenuList: [
+        {
+          getCoords: () => ({ x: 10, y: 10 }),
+          motion(mouseX: number, mouseY: number) {
+            calls.push(["first", mouseX, mouseY]);
+            return false;
+          },
+          getDimensions: () => ({ width: 20, height: 20 }),
+        },
+        {
+          getCoords: () => ({ x: 720, y: 10 }),
+          motion(mouseX: number, mouseY: number) {
+            calls.push(["second", mouseX, mouseY]);
+            return true;
+          },
+          getDimensions: () => ({ width: 20, height: 20 }),
+        },
+        {
+          getCoords: () => ({ x: 30, y: 30 }),
+          motion() {
+            calls.push("third");
+            return true;
+          },
+          getDimensions: () => ({ width: 20, height: 20 }),
+        },
+      ],
+    };
+
+    expect(motionPlayerMainMenus(state)).toBe(true);
+    expect(calls).toEqual([
+      ["first", 11, 22],
+      ["second", 11, 22],
+      "hud",
+    ]);
+  });
+
+  it("ports ZPlayer MainMenuMotion HUD refresh from previous menu position", () => {
+    const calls: string[] = [];
+    let moved = false;
+    const state = {
+      initW: 800,
+      initH: 600,
+      mouseX: 11,
+      mouseY: 22,
+      hud: {
+        reRenderAll: () => calls.push("hud"),
+      },
+      guiMenuList: [
+        {
+          getCoords: () => (moved ? { x: 20, y: 20 } : { x: 720, y: 20 }),
+          motion() {
+            moved = true;
+            return true;
+          },
+          getDimensions: () => ({ width: 20, height: 20 }),
+        },
+      ],
+    };
+
+    expect(motionPlayerMainMenus(state)).toBe(true);
+    expect(calls).toEqual(["hud"]);
+  });
+
+  it("ports ZPlayer MainMenuMotion unhandled and non-HUD paths", () => {
+    const calls: unknown[] = [];
+    const unhandled = {
+      initW: 800,
+      initH: 600,
+      mouseX: 11,
+      mouseY: 22,
+      hud: {
+        reRenderAll: () => calls.push("hud-unhandled"),
+      },
+      guiMenuList: [
+        {
+          getCoords: () => ({ x: 20, y: 20 }),
+          motion: () => false,
+          getDimensions: () => ({ width: 20, height: 20 }),
+        },
+      ],
+    };
+    const awayFromHud = {
+      initW: 800,
+      initH: 600,
+      mouseX: 11,
+      mouseY: 22,
+      hud: {
+        reRenderAll: () => calls.push("hud-away"),
+      },
+      guiMenuList: [
+        {
+          getCoords: () => ({ x: 20, y: 20 }),
+          motion: () => true,
+          getDimensions: () => ({ width: 20, height: 20 }),
+        },
+      ],
+    };
+
+    expect(motionPlayerMainMenus(unhandled)).toBe(false);
+    expect(motionPlayerMainMenus(awayFromHud)).toBe(true);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZPlayer MainMenuWheelUp as first-consuming main-menu routing", () => {
+    const calls: string[] = [];
+    const handled = wheelUpPlayerMainMenus({
+      guiMenuList: [
+        {
+          wheelUpButton() {
+            calls.push("first");
+            return false;
+          },
+        },
+        {
+          wheelUpButton() {
+            calls.push("second");
+            return true;
+          },
+        },
+        {
+          wheelUpButton() {
+            calls.push("third");
+            return true;
+          },
+        },
+      ],
+    });
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["first", "second"]);
+  });
+
+  it("ports ZPlayer MainMenuWheelUp unhandled path", () => {
+    const calls: string[] = [];
+    const handled = wheelUpPlayerMainMenus({
+      guiMenuList: [
+        {
+          wheelUpButton() {
+            calls.push("first");
+            return false;
+          },
+        },
+        {
+          wheelUpButton() {
+            calls.push("second");
+            return false;
+          },
+        },
+      ],
+    });
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual(["first", "second"]);
+  });
+
+  it("ports ZPlayer MainMenuWheelDown as first-consuming main-menu routing", () => {
+    const calls: string[] = [];
+    const handled = wheelDownPlayerMainMenus({
+      guiMenuList: [
+        {
+          wheelDownButton() {
+            calls.push("first");
+            return false;
+          },
+        },
+        {
+          wheelDownButton() {
+            calls.push("second");
+            return true;
+          },
+        },
+        {
+          wheelDownButton() {
+            calls.push("third");
+            return true;
+          },
+        },
+      ],
+    });
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["first", "second"]);
+  });
+
+  it("ports ZPlayer MainMenuWheelDown unhandled path", () => {
+    const calls: string[] = [];
+    const handled = wheelDownPlayerMainMenus({
+      guiMenuList: [
+        {
+          wheelDownButton() {
+            calls.push("first");
+            return false;
+          },
+        },
+        {
+          wheelDownButton() {
+            calls.push("second");
+            return false;
+          },
+        },
+      ],
+    });
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual(["first", "second"]);
+  });
+
+  it("ports ZPlayer MainMenuKeyPress as first-consuming main-menu routing", () => {
+    const calls: Array<[string, number]> = [];
+    const handled = keyPressPlayerMainMenus(
+      {
+        guiMenuList: [
+          {
+            keyPress(c: number) {
+              calls.push(["first", c]);
+              return false;
+            },
+          },
+          {
+            keyPress(c: number) {
+              calls.push(["second", c]);
+              return true;
+            },
+          },
+          {
+            keyPress(c: number) {
+              calls.push(["third", c]);
+              return true;
+            },
+          },
+        ],
+      },
+      65,
+    );
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual([
+      ["first", 65],
+      ["second", 65],
+    ]);
+  });
+
+  it("ports ZPlayer MainMenuKeyPress unhandled path", () => {
+    const calls: Array<[string, number]> = [];
+    const handled = keyPressPlayerMainMenus(
+      {
+        guiMenuList: [
+          {
+            keyPress(c: number) {
+              calls.push(["first", c]);
+              return false;
+            },
+          },
+          {
+            keyPress(c: number) {
+              calls.push(["second", c]);
+              return false;
+            },
+          },
+        ],
+      },
+      13,
+    );
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual([
+      ["first", 13],
+      ["second", 13],
+    ]);
+  });
+
+  it("ports ZPlayer CloseCurrentMainMenuEtc as first main-menu close priority", () => {
+    const calls: string[] = [];
+
+    closePlayerCurrentMainMenuEtc({
+      guiMenuList: [
+        {
+          doKillMe() {
+            calls.push("menu");
+          },
+        },
+      ],
+      guiFactoryList: {
+        isVisible: () => true,
+        toggleShow() {
+          calls.push("factory");
+        },
+      },
+      guiWindow: {
+        doKillMe() {
+          calls.push("window");
+        },
+      },
+    });
+
+    expect(calls).toEqual(["menu"]);
+  });
+
+  it("ports ZPlayer CloseCurrentMainMenuEtc as visible factory-list toggle priority", () => {
+    const calls: string[] = [];
+
+    closePlayerCurrentMainMenuEtc({
+      guiMenuList: [],
+      guiFactoryList: {
+        isVisible: () => true,
+        toggleShow() {
+          calls.push("factory");
+        },
+      },
+      guiWindow: {
+        doKillMe() {
+          calls.push("window");
+        },
+      },
+    });
+
+    expect(calls).toEqual(["factory"]);
+  });
+
+  it("ports ZPlayer CloseCurrentMainMenuEtc as active GUI window fallback", () => {
+    const calls: string[] = [];
+
+    closePlayerCurrentMainMenuEtc({
+      guiMenuList: [],
+      guiFactoryList: {
+        isVisible: () => false,
+        toggleShow() {
+          calls.push("factory");
+        },
+      },
+      guiWindow: {
+        doKillMe() {
+          calls.push("window");
+        },
+      },
+    });
+
+    expect(calls).toEqual(["window"]);
+  });
+
+  it("ports ZPlayer CloseCurrentMainMenuEtc empty surfaces as a no-op", () => {
+    closePlayerCurrentMainMenuEtc({
+      guiMenuList: [],
+      guiFactoryList: null,
+      guiWindow: null,
+    });
   });
 
   it("ports ZPlayer DisableCursor as cursor-disabled state assignment", () => {
@@ -1264,6 +2018,129 @@ describe("player presentation constants", () => {
     expect(
       isPlayerSelectionGroupSelected({ selectedList: [], quickGroups: [[]] }, 0),
     ).toBe(false);
+  });
+
+  it("ports ZPlayer LoadControlGroup as focus jump for already selected group", () => {
+    const calls: Array<string | [number, number]> = [];
+    const firstWaypoints = [{ x: 1 }];
+    const first = {
+      getObjectId: () => ({
+        objectType: MapObjectType.Robot,
+        objectId: RobotType.Grunt,
+      }),
+      hasExplosives: () => false,
+      canAttack: () => true,
+      canBeRepaired: () => false,
+      canPickupGrenades: () => false,
+      showWaypoints: () => calls.push("first-waypoints"),
+      setGroup: (group: number) => calls.push(`first:${group}`),
+      getCenterCoords: () => ({ x: 10, y: 20 }),
+      getWayPointDevList: () => firstWaypoints,
+    };
+    const second = {
+      ...first,
+      showWaypoints: () => calls.push("second-waypoints"),
+      setGroup: (group: number) => calls.push(`second:${group}`),
+      getCenterCoords: () => ({ x: 30, y: 60 }),
+      getWayPointDevList: () => [{ x: 2 }],
+    };
+    const state = {
+      haveExplosives: false,
+      canPickupGrenades: false,
+      canMove: false,
+      canEquip: false,
+      canAttack: false,
+      canRepair: false,
+      canBeRepaired: false,
+      selectedList: [first, second],
+      quickGroups: [[first, second]],
+      hud: {
+        setSelectedObject: () => calls.push("hud"),
+      },
+      focusCameraTo: (mapX: number, mapY: number) => calls.push([mapX, mapY]),
+      determineCursor: () => calls.push("cursor"),
+    };
+
+    loadPlayerControlGroup(state, 0);
+
+    expect(calls).toEqual([[20, 40]]);
+    expect(firstWaypoints).toEqual([{ x: 1 }]);
+  });
+
+  it("ports ZPlayer LoadControlGroup as group restore and selection UI refresh", () => {
+    const calls: Array<string | unknown> = [];
+    const firstWaypoints = [{ x: 1 }];
+    const first = {
+      getObjectId: () => ({
+        objectType: MapObjectType.Robot,
+        objectId: RobotType.Grunt,
+      }),
+      hasExplosives: () => true,
+      canAttack: () => false,
+      canBeRepaired: () => false,
+      canPickupGrenades: () => true,
+      showWaypoints: () => calls.push("first-waypoints"),
+      setGroup: (group: number) => calls.push(`first:${group}`),
+      getCenterCoords: () => ({ x: 10, y: 20 }),
+      getWayPointDevList: () => firstWaypoints,
+    };
+    const state = {
+      haveExplosives: false,
+      canPickupGrenades: false,
+      canMove: false,
+      canEquip: false,
+      canAttack: true,
+      canRepair: false,
+      canBeRepaired: false,
+      selectedList: [],
+      quickGroups: [[], [first]],
+      hud: {
+        setSelectedObject: (selectedObject: unknown | null) => {
+          calls.push("hud", selectedObject);
+        },
+      },
+      focusCameraTo: (mapX: number, mapY: number) => calls.push([mapX, mapY]),
+      determineCursor: () => calls.push("cursor"),
+    };
+
+    loadPlayerControlGroup(state, 1);
+
+    expect(state.selectedList).toEqual([first]);
+    expect(firstWaypoints).toEqual([]);
+    expect(state.haveExplosives).toBe(true);
+    expect(state.canPickupGrenades).toBe(true);
+    expect(state.canEquip).toBe(true);
+    expect(state.canAttack).toBe(false);
+    expect(calls).toEqual([
+      "first:1",
+      "first-waypoints",
+      "cursor",
+      "hud",
+      first,
+    ]);
+  });
+
+  it("ports ZPlayer LoadControlGroup invalid group bounds as no-ops", () => {
+    const calls: string[] = [];
+    const state = {
+      haveExplosives: false,
+      canPickupGrenades: false,
+      canMove: false,
+      canEquip: false,
+      canAttack: false,
+      canRepair: false,
+      canBeRepaired: false,
+      selectedList: [],
+      quickGroups: [],
+      hud: { setSelectedObject: () => calls.push("hud") },
+      focusCameraTo: () => calls.push("focus"),
+      determineCursor: () => calls.push("cursor"),
+    };
+
+    loadPlayerControlGroup(state, -1);
+    loadPlayerControlGroup(state, 10);
+
+    expect(calls).toEqual([]);
   });
 
   it("ports ZPlayer ClearDevWayPointsOfSelected as selected waypoint clearing", () => {

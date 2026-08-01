@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  endRockTurrentExplosion,
   EROCK_TURRET_HEADER_GUARD_PORTED,
   initRockTurretEffect,
 } from "../src/simulation/RockTurretEffect";
+import {
+  RockParticleType,
+  type RockParticleEffectSpawn,
+} from "../src/simulation/RockParticleEffect";
 import { PlanetType } from "../src/simulation/SimulationConstants";
 
 describe("rock turret effect", () => {
@@ -50,5 +55,48 @@ describe("rock turret effect", () => {
       "assets/planets/rock_effects/debri_large1_city_n00.png",
     );
     expect(state.finishedInit).toBe(true);
+  });
+
+  it("ports ERockTurrent EndExplosion null effect list guard", () => {
+    expect(() =>
+      endRockTurrentExplosion(
+        {
+          ztime: { now: 10 },
+          x: 20,
+          y: 30,
+          palette: PlanetType.Volcanic,
+        },
+        null,
+        () => 5,
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports ERockTurrent EndExplosion as small rock particle spawning", () => {
+    const ztime = { now: 10 };
+    const effects: RockParticleEffectSpawn<typeof ztime>[] = [];
+
+    endRockTurrentExplosion(
+      {
+        ztime,
+        x: 20,
+        y: 30,
+        palette: PlanetType.Jungle,
+      },
+      effects,
+      () => 5,
+    );
+
+    expect(effects).toHaveLength(17);
+    expect(effects[0]).toEqual({
+      ztime,
+      x: 20,
+      y: 30,
+      palette: PlanetType.Jungle,
+      particleType: RockParticleType.Small,
+      maxX: 80,
+      maxY: 60,
+    });
+    expect(effects[16]).toEqual(effects[0]);
   });
 });

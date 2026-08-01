@@ -2,6 +2,10 @@
  * Upstream: ebridgeturrent.h
  */
 import { PlanetType } from "./SimulationConstants";
+import {
+  RockParticleType,
+  type RockParticleEffectSpawn,
+} from "./RockParticleEffect";
 
 /**
  * Marker exported from the bridge turret effect module.
@@ -61,4 +65,40 @@ export function initBridgeTurrentEffect(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `EBridgeTurrent::EndExplosion`.
+ * Role: Spawns small rock debris particles when a bridge turret explosion finishes.
+ * Upstream: ebridgeturrent.cpp:158-169
+ */
+export function endBridgeTurrentExplosion<TTime>(
+  state: {
+    isReversed: boolean;
+    ztime: TTime | null;
+    x: number;
+    y: number;
+    palette: PlanetType | number;
+  },
+  effectList: RockParticleEffectSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (state.isReversed) return;
+
+  const smallParticles = 12 + (Math.trunc(randomInt(6)) % 6);
+
+  for (let i = 0; i < smallParticles; i += 1) {
+    if (effectList) {
+      effectList.push({
+        ztime: state.ztime,
+        x: state.x,
+        y: state.y,
+        palette: state.palette,
+        particleType: RockParticleType.Small,
+        maxX: 80,
+        maxY: 60,
+      });
+    }
+  }
 }

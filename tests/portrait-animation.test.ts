@@ -14,6 +14,7 @@ import {
   PortraitAnimationType,
   PortraitFrame,
   PortraitLookDirection,
+  PortraitUnitGraphics,
   type PortraitObjectReference,
   setPortraitCoordinates,
   setPortraitDoRandomAnims,
@@ -24,6 +25,7 @@ import {
   setPortraitTeam,
   setPortraitTerrainType,
   startPortraitAnimation,
+  startPortraitRandomAnimation,
   ZPORTRAIT_HEADER_GUARD_PORTED,
 } from "../src/simulation/PortraitAnimation";
 import type {
@@ -36,6 +38,7 @@ import type {
   PortraitRefState,
   PortraitRobotIdState,
   PortraitStartAnimationState,
+  PortraitStartRandomAnimationState,
   PortraitTeamState,
   PortraitTerrainState,
 } from "../src/simulation/PortraitAnimation";
@@ -181,6 +184,19 @@ describe("portrait animation", () => {
     expect(target.frameList[0]).toMatchObject({ duration: 1.25 });
     expect(target.totalDuration).toBe(1.25);
     expect(target.copyFrom(target)).toBe(target);
+  });
+
+  it("ports ZPortrait_Unit_Graphics as initialized portrait surface storage", () => {
+    const graphics = new PortraitUnitGraphics<string>();
+
+    expect(graphics.head).toEqual([null, null, null]);
+    expect(graphics.eyes).toHaveLength(PORTRAIT_MAX_EYES);
+    expect(graphics.hand).toHaveLength(PORTRAIT_MAX_HANDS);
+    expect(graphics.mouth).toHaveLength(PORTRAIT_MAX_MOUTHS);
+    expect(graphics.eyes.every((surface) => surface === null)).toBe(true);
+    expect(graphics.hand.every((surface) => surface === null)).toBe(true);
+    expect(graphics.mouth.every((surface) => surface === null)).toBe(true);
+    expect(graphics.shoulders).toBeNull();
   });
 
   it("ports SetRefID as active portrait reference assignment", () => {
@@ -342,6 +358,87 @@ describe("portrait animation", () => {
     expect(state.renderFrame).toBe(firstFrame);
     expect(state.animationStartTime).toBe(42.25);
     expect(soundCount).toBe(1);
+  });
+
+  it("ports ZPortrait StartRandomAnim as disabled ambient animation guard", () => {
+    const renderFrame = new PortraitFrame();
+    const state: PortraitStartRandomAnimationState = {
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: -1,
+      renderFrame,
+      animationStartTime: 0,
+      doRandomAnims: false,
+    };
+    let soundCount = 0;
+
+    startPortraitRandomAnimation(
+      state,
+      () => 9,
+      () => {
+        soundCount += 1;
+      },
+      () => 0,
+    );
+
+    expect(state.currentAnimation).toBe(-1);
+    expect(state.renderFrame).toBe(renderFrame);
+    expect(state.animationStartTime).toBe(0);
+    expect(soundCount).toBe(0);
+  });
+
+  it("ports ZPortrait StartRandomAnim as upstream random animation mapping", () => {
+    const renderFrame = new PortraitFrame();
+    const blinkFrame = new PortraitFrame();
+    const angerFrame = new PortraitFrame();
+    const lookRightFrame = new PortraitFrame();
+    const state: PortraitStartRandomAnimationState = {
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: -1,
+      renderFrame,
+      animationStartTime: 0,
+      doRandomAnims: true,
+    };
+    const startedSounds: number[] = [];
+    state.animInfo[PortraitAnimationType.Blink].frameList.push(blinkFrame);
+    state.animInfo[PortraitAnimationType.Anger].frameList.push(angerFrame);
+    state.animInfo[PortraitAnimationType.LookRight].frameList.push(lookRightFrame);
+
+    startPortraitRandomAnimation(
+      state,
+      () => 10,
+      () => startedSounds.push(1),
+      () => 0,
+    );
+    expect(state.currentAnimation).toBe(PortraitAnimationType.Blink);
+    expect(state.renderFrame).toBe(blinkFrame);
+    expect(state.animationStartTime).toBe(10);
+
+    startPortraitRandomAnimation(
+      state,
+      () => 20,
+      () => startedSounds.push(1),
+      () => 3,
+    );
+    expect(state.currentAnimation).toBe(PortraitAnimationType.Anger);
+    expect(state.renderFrame).toBe(angerFrame);
+    expect(state.animationStartTime).toBe(20);
+
+    startPortraitRandomAnimation(
+      state,
+      () => 30,
+      () => startedSounds.push(1),
+      () => 12,
+    );
+    expect(state.currentAnimation).toBe(PortraitAnimationType.LookRight);
+    expect(state.renderFrame).toBe(lookRightFrame);
+    expect(state.animationStartTime).toBe(30);
+    expect(startedSounds).toHaveLength(3);
   });
 
   it("ports ZPortrait ClearRobotID as robot portrait binding reset", () => {

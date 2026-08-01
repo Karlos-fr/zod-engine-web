@@ -308,6 +308,41 @@ function hasEngageBarrierMap(
 }
 
 /**
+ * Port of upstream `ZObject::SetHealth` call target for health-percent updates.
+ * Role: Applies a concrete health value to an entity after percentage conversion.
+ * Upstream: zobject.cpp:309
+ */
+export type EntityHealthSetter<TMap> = {
+  setHealth(health: number, map: TMap): void;
+};
+
+/**
+ * Port of upstream `ZObject::SetHealthPercent` mutable fields.
+ * Role: Holds initial health percentage and maximum health for percent-based health updates.
+ * Upstream: zobject.cpp:303-309
+ */
+export type EntityHealthPercentState<TMap> = EntityHealthSetter<TMap> & {
+  initialHealthPercent: number;
+  maxHealth: number;
+};
+
+/**
+ * Port of upstream `ZObject::SetHealthPercent`.
+ * Role: Clamps the initial health percentage and applies proportional health.
+ * Upstream: zobject.cpp:301-310
+ */
+export function setEntityHealthPercent<TMap>(
+  entity: EntityHealthPercentState<TMap>,
+  healthPercent: number,
+  map: TMap,
+): void {
+  const clampedHealthPercent = Math.max(0, Math.min(100, healthPercent));
+
+  entity.initialHealthPercent = clampedHealthPercent;
+  entity.setHealth((clampedHealthPercent * entity.maxHealth) / 100, map);
+}
+
+/**
  * Browser simulation entity containing the subset of `ZObject` behavior already ported.
  * Role: Owns mutable runtime state for an object in the simulation world.
  * Upstream: zobject.h
@@ -999,6 +1034,30 @@ export class GameEntity {
     this.position = { x, y };
     this.centerX = x + (this.pixelWidth >> 1);
     this.centerY = y + (this.pixelHeight >> 1);
+  }
+
+  /**
+   * Port of upstream `ZObject::SetLoc`.
+   * Role: Applies an object location update and refreshes movement and center caches.
+   * Upstream: zobject.cpp:3784-3805
+   */
+  setLocation(location: ObjectLocation, theTime: number): void {
+    const deltaChanged =
+      location.deltaX !== this.locationDeltaX ||
+      location.deltaY !== this.locationDeltaY;
+
+    this.position = { x: location.x, y: location.y };
+    this.locationDeltaX = location.deltaX;
+    this.locationDeltaY = location.deltaY;
+
+    if (deltaChanged) {
+      this.recalcDirection();
+    }
+
+    this.lastLocation = { ...this.position };
+    this.lastLocationSetTime = theTime;
+    this.centerX = this.position.x + (this.pixelWidth >> 1);
+    this.centerY = this.position.y + (this.pixelHeight >> 1);
   }
 
   /**
@@ -2720,6 +2779,27 @@ export class GameEntity {
   clearDrivers(): void {
     this.driverInfo.splice(0);
     this.resetDamageInfo();
+  }
+
+  /**
+   * Port of upstream `ZObject::DamageDriverHealth`.
+   * Role: Damages the first driver and neutralizes the entity when that driver dies.
+   * Upstream: zobject.cpp:337-362
+   */
+  damageDriverHealth(damageAmount: number): number {
+    const driver = this.driverInfo[0];
+
+    if (!driver) return 0;
+    if (driver.health <= 0) return 0;
+
+    driver.health -= damageAmount;
+
+    if (driver.health <= 0) {
+      this.clearDrivers();
+      this.setOwner(TeamType.Null);
+    }
+
+    return 1;
   }
 
   /**

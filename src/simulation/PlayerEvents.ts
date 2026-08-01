@@ -1,7 +1,13 @@
 /**
  * Upstream: zplayer_events.cpp
  */
-import type { DriverHitPacket } from "./EventHandler";
+import {
+  MAX_VERSION_PACKET_CHARS,
+  TcpEvent,
+  type CraneAnimPacket,
+  type DriverHitPacket,
+} from "./EventHandler";
+import { GAME_VERSION } from "./SimulationConstants";
 
 /**
  * Port of upstream `ZPlayer::ProcessPlayerID` call target.
@@ -22,6 +28,24 @@ export type PlayerSelectableMapListProcessor = {
     data: Uint8Array | string | null,
     size: number,
   ): void;
+};
+
+/**
+ * Port of upstream player client socket version send surface.
+ * Role: Sends the fixed version packet back to the server after a version request.
+ * Upstream: zplayer_events.cpp:1462
+ */
+export type PlayerVersionClientSocket = {
+  sendMessage(packId: TcpEvent, data: Uint8Array, size: number): number;
+};
+
+/**
+ * Port of upstream `ZPlayer::request_version_event` state.
+ * Role: Holds the client socket used to return this player's game version.
+ * Upstream: zplayer_events.cpp:1449-1463
+ */
+export type PlayerRequestVersionEventState = {
+  clientSocket: PlayerVersionClientSocket;
 };
 
 /**
@@ -76,6 +100,65 @@ export type PlayerLogInfoProcessor = {
 };
 
 /**
+ * Port of upstream `ZPlayer::ProcessSetLPlayerVoteInfo` call target.
+ * Role: Describes player processing for local player vote-info events.
+ * Upstream: zplayer_events.cpp:1199
+ */
+export type PlayerVoteInfoProcessor = {
+  processSetLocalPlayerVoteInfo(
+    data: Uint8Array | string | null,
+    size: number,
+  ): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::ProcessVoteInfo` call target.
+ * Role: Describes player processing for global vote-info events.
+ * Upstream: zplayer_events.cpp:1219
+ */
+export type PlayerGlobalVoteInfoProcessor = {
+  processVoteInfo(data: Uint8Array | string | null, size: number): void;
+};
+
+/**
+ * Port of upstream `ZVote` refresh surface used by player vote-info events.
+ * Role: Reports active vote state and rebuilds rendered vote counters.
+ * Upstream: zplayer_events.cpp:1202-1203
+ */
+export type PlayerVoteInfoPanel = {
+  voteInProgress(): boolean;
+  setupImages(
+    realVotingPower: number,
+    votesNeeded: number,
+    votesFor: number,
+    votesAgainst: number,
+    appendDescription: string,
+  ): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::set_player_voteinfo_event` state.
+ * Role: Provides vote payload processing and vote counter values for image refresh.
+ * Upstream: zplayer_events.cpp:1197-1205
+ */
+export type PlayerVoteInfoEventState = PlayerVoteInfoProcessor & {
+  vote: PlayerVoteInfoPanel;
+  getOurRealVotingPower(): number;
+  getVotesNeeded(): number;
+  getVotesFor(): number;
+  getVotesAgainst(): number;
+  getVoteAppendDescription(): string;
+};
+
+/**
+ * Port of upstream `ZPlayer::set_vote_info_event` state.
+ * Role: Provides global vote payload processing and vote counter values for image refresh.
+ * Upstream: zplayer_events.cpp:1217-1225
+ */
+export type PlayerGlobalVoteInfoEventState = PlayerGlobalVoteInfoProcessor &
+  Omit<PlayerVoteInfoEventState, keyof PlayerVoteInfoProcessor>;
+
+/**
  * Port of upstream `ZPlayer::ProcessUpdateGamePaused` call target.
  * Role: Describes player processing for pause-state events.
  * Upstream: zplayer_events.cpp:1209
@@ -103,6 +186,18 @@ export type PlayerSettingsProcessor = {
 };
 
 /**
+ * Port of upstream `ZPlayer::ProcessObjectLidState` call target.
+ * Role: Describes player processing for object lid-state events.
+ * Upstream: zplayer_events.cpp:1109
+ */
+export type PlayerObjectLidStateProcessor = {
+  processObjectLidState(
+    data: Uint8Array | string | null,
+    size: number,
+  ): unknown;
+};
+
+/**
  * Port of upstream `ZPlayer::ProcessZoneInfo` call target.
  * Role: Describes player processing for zone-info events.
  * Upstream: zplayer_events.cpp:678
@@ -119,6 +214,70 @@ export type PlayerZoneInfoProcessor = {
 export type PlayerTeamAssignmentProcessor = {
   processSetTeam(data: Uint8Array | string | null, size: number): void;
 };
+
+/**
+ * Port of upstream `ZPlayer::ProcessObjectLoc` call target.
+ * Role: Describes player processing for object-location events.
+ * Upstream: zplayer_events.cpp:766
+ */
+export type PlayerObjectLocationProcessor = {
+  processObjectLoc(data: Uint8Array | string | null, size: number): unknown;
+};
+
+/**
+ * Port of upstream `ZPlayer::ProcessObjectGroupInfo` call target.
+ * Role: Describes player processing for object group-info events.
+ * Upstream: zplayer_events.cpp:1033
+ */
+export type PlayerObjectGroupInfoProcessor = {
+  processObjectGroupInfo(
+    data: Uint8Array | string | null,
+    size: number,
+  ): unknown;
+};
+
+/**
+ * Port of upstream `ZPlayer::ProcessSetGrenadeState` call target.
+ * Role: Applies a grenade-state payload and returns the affected object.
+ * Upstream: zplayer_events.cpp:1265
+ */
+export type PlayerGrenadeStateProcessor<TObject = unknown> = {
+  processSetGrenadeState(
+    data: Uint8Array | string | null,
+    size: number,
+  ): TObject | null;
+};
+
+/**
+ * Port of upstream `ZHud` selected-object refresh surface.
+ * Role: Reports and rerenders the selected HUD object after grenade-state updates.
+ * Upstream: zplayer_events.cpp:1269-1270
+ */
+export type PlayerGrenadeHud<TObject = unknown> = {
+  getSelectedObject(): TObject | null;
+  reRenderAll(): void;
+};
+
+/**
+ * Port of upstream `selection_info::UpdateGroupMember` call target.
+ * Role: Refreshes selection-group details for the affected grenade object.
+ * Upstream: zplayer_events.cpp:1272
+ */
+export type PlayerGrenadeSelection<TObject = unknown> = {
+  updateGroupMember(object: TObject): boolean;
+};
+
+/**
+ * Port of upstream `ZPlayer::set_grenade_amount_event` state.
+ * Role: Holds grenade processing, HUD refresh, and selection cursor update targets.
+ * Upstream: zplayer_events.cpp:1261-1274
+ */
+export type PlayerGrenadeAmountEventState<TObject = unknown> =
+  PlayerGrenadeStateProcessor<TObject> & {
+    hud: PlayerGrenadeHud<TObject>;
+    selection: PlayerGrenadeSelection<TObject>;
+    determineCursor(): void;
+  };
 
 /**
  * Port of upstream `ZPlayer::ProcessFireMissile` call target.
@@ -207,6 +366,27 @@ export type PlayerDriverHitEffectState<
 };
 
 /**
+ * Port of upstream `ZObject::DoCraneAnim` dependency surface.
+ * Role: Provides crane animation activation for player crane-animation events.
+ * Upstream: zplayer_events.cpp:1064
+ */
+export type PlayerCraneAnimObject = {
+  getRefId(): number;
+  doCraneAnim(on: boolean, repairObject: PlayerCraneAnimObject | null): void;
+};
+
+/**
+ * Port of upstream `ZPlayer` object list fields used by crane-animation events.
+ * Role: Holds objects looked up by primary and repair reference ids.
+ * Upstream: zplayer_events.cpp:1058-1064
+ */
+export type PlayerCraneAnimState<
+  TObject extends PlayerCraneAnimObject = PlayerCraneAnimObject,
+> = {
+  objectList: TObject[];
+};
+
+/**
  * Port of upstream `ZPlayer::ProcessBuildingCannonList` call target.
  * Role: Describes player processing for building-cannon-list events.
  * Upstream: zplayer_events.cpp:986
@@ -252,6 +432,96 @@ export type PlayerNewsEntrySink = {
 };
 
 /**
+ * Port of upstream `ZPlayer::connect_event` call targets.
+ * Role: Provides connection processing followed by login sending.
+ * Upstream: zplayer_events.cpp:617-619
+ */
+export type PlayerConnectEventProcessor = {
+  processConnect(): void;
+  sendLogin(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::disconnect_event` call target.
+ * Role: Provides disconnect processing for player disconnect events.
+ * Upstream: zplayer_events.cpp:624
+ */
+export type PlayerDisconnectEventProcessor = {
+  processDisconnect(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::end_game_event` call target.
+ * Role: Provides end-game processing for player event dispatch.
+ * Upstream: zplayer_events.cpp:858
+ */
+export type PlayerEndGameEventProcessor = {
+  processEndGame(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::reset_game_event` call target.
+ * Role: Provides reset-game processing for player event dispatch.
+ * Upstream: zplayer_events.cpp:863
+ */
+export type PlayerResetGameEventProcessor = {
+  processResetGame(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::display_login_event` mutable menu fields.
+ * Role: Carries the active, login, and create-user menus controlled by loginoff events.
+ * Upstream: zplayer_events.cpp:1244-1257
+ */
+export type PlayerDisplayLoginEventState<TMenu = unknown> = {
+  activeMenu: TMenu | null;
+  loginMenu: TMenu | null;
+  createUserMenu: TMenu | null;
+};
+
+/**
+ * Port of upstream wheel-up GUI call target.
+ * Role: Receives wheel-up input from the player input event.
+ * Upstream: zplayer_events.cpp:443-446
+ */
+export type PlayerWheelUpTarget = {
+  wheelUpButton(): boolean;
+};
+
+/**
+ * Port of upstream `ZPlayer::wheelup_event` call targets.
+ * Role: Carries player menu/window surfaces that receive wheel-up input.
+ * Upstream: zplayer_events.cpp:443-446
+ */
+export type PlayerWheelUpEventProcessor = {
+  mainMenuWheelUp(): boolean;
+  activeMenu: PlayerWheelUpTarget | null;
+  guiWindow: PlayerWheelUpTarget | null;
+  guiFactoryList: PlayerWheelUpTarget | null;
+};
+
+/**
+ * Port of upstream wheel-down GUI call target.
+ * Role: Receives wheel-down input from the player input event.
+ * Upstream: zplayer_events.cpp:451-454
+ */
+export type PlayerWheelDownTarget = {
+  wheelDownButton(): boolean;
+};
+
+/**
+ * Port of upstream `ZPlayer::wheeldown_event` call targets.
+ * Role: Carries player menu/window surfaces that receive wheel-down input.
+ * Upstream: zplayer_events.cpp:451-454
+ */
+export type PlayerWheelDownEventProcessor = {
+  mainMenuWheelDown(): boolean;
+  activeMenu: PlayerWheelDownTarget | null;
+  guiWindow: PlayerWheelDownTarget | null;
+  guiFactoryList: PlayerWheelDownTarget | null;
+};
+
+/**
  * Port of upstream `ZPlayer::ProcessAddLPlayer` call target.
  * Role: Describes player processing for add-player events.
  * Upstream: zplayer_events.cpp:1164
@@ -286,12 +556,163 @@ export const PLAYER_DISCONNECTED_NEWS_MESSAGE =
 export const DRIVER_HIT_PACKET_SIZE_BYTES = 4;
 
 /**
+ * Port of upstream `sizeof(crane_anim_packet)`.
+ * Role: Defines the fixed packet size accepted by player crane-animation events.
+ * Upstream: zplayer_events.cpp:1056
+ */
+export const CRANE_ANIM_PACKET_SIZE_BYTES = 9;
+
+/**
  * Port of upstream `ZPlayer::ProcessDisconnect`.
  * Role: Reports a fixed disconnect news message to the player UI.
  * Upstream: zplayer.cpp:593-596
  */
 export function processPlayerDisconnect(player: PlayerNewsEntrySink): void {
   player.addNewsEntry(PLAYER_DISCONNECTED_NEWS_MESSAGE);
+}
+
+/**
+ * Port of upstream `ZPlayer::connect_event`.
+ * Role: Processes a connection event and then sends the login packet.
+ * Upstream: zplayer_events.cpp:615-620
+ */
+export function playerConnectEvent(
+  player: PlayerConnectEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  player.processConnect();
+  player.sendLogin();
+}
+
+/**
+ * Port of upstream `ZPlayer::disconnect_event`.
+ * Role: Processes a player disconnect event.
+ * Upstream: zplayer_events.cpp:622-625
+ */
+export function playerDisconnectEvent(
+  player: PlayerDisconnectEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  player.processDisconnect();
+}
+
+/**
+ * Port of upstream `ZPlayer::end_game_event`.
+ * Role: Processes a player end-game event.
+ * Upstream: zplayer_events.cpp:856-859
+ */
+export function playerEndGameEvent(
+  player: PlayerEndGameEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  player.processEndGame();
+}
+
+/**
+ * Port of upstream `ZPlayer::reset_game_event`.
+ * Role: Processes a player reset-game event.
+ * Upstream: zplayer_events.cpp:861-864
+ */
+export function playerResetGameEvent(
+  player: PlayerResetGameEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  player.processResetGame();
+}
+
+function readSingleByte(data: Uint8Array | string | null): number | null {
+  if (data === null) return null;
+  if (typeof data === "string") return data.length ? data.charCodeAt(0) & 0xff : null;
+  return data.length ? data[0] : null;
+}
+
+/**
+ * Port of upstream `ZPlayer::display_login_event`.
+ * Role: Shows or hides the login/create-user menu pair from a packed loginoff payload.
+ * Upstream: zplayer_events.cpp:1237-1259
+ */
+export function playerDisplayLoginEvent<TMenu>(
+  player: PlayerDisplayLoginEventState<TMenu>,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  if (size !== 1) return;
+
+  const showLoginByte = readSingleByte(data);
+  if (showLoginByte === null) return;
+
+  if (showLoginByte !== 0) {
+    if (player.activeMenu === player.loginMenu) return;
+    if (player.activeMenu === player.createUserMenu) return;
+
+    player.activeMenu = player.loginMenu;
+    return;
+  }
+
+  if (player.activeMenu === player.loginMenu) player.activeMenu = null;
+  if (player.activeMenu === player.createUserMenu) player.activeMenu = null;
+}
+
+/**
+ * Port of upstream `ZPlayer::wheelup_event`.
+ * Role: Routes wheel-up input through player main menus and optional GUI surfaces.
+ * Upstream: zplayer_events.cpp:441-447
+ */
+export function playerWheelUpEvent(
+  player: PlayerWheelUpEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  player.mainMenuWheelUp();
+  player.activeMenu?.wheelUpButton();
+  player.guiWindow?.wheelUpButton();
+  player.guiFactoryList?.wheelUpButton();
+}
+
+/**
+ * Port of upstream `ZPlayer::wheeldown_event`.
+ * Role: Routes wheel-down input through player main menus and optional GUI surfaces.
+ * Upstream: zplayer_events.cpp:449-455
+ */
+export function playerWheelDownEvent(
+  player: PlayerWheelDownEventProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void data;
+  void size;
+  void dummy;
+  player.mainMenuWheelDown();
+  player.activeMenu?.wheelDownButton();
+  player.guiWindow?.wheelDownButton();
+  player.guiFactoryList?.wheelDownButton();
 }
 
 /**
@@ -352,6 +773,32 @@ export function playerSetSelectableMapListEvent(
 ): void {
   void dummy;
   player.processSelectableMapList(data, size);
+}
+
+/**
+ * Port of upstream `ZPlayer::request_version_event`.
+ * Role: Sends this player's fixed-size game-version packet when the version string fits.
+ * Upstream: zplayer_events.cpp:1449-1463
+ */
+export function playerRequestVersionEvent(
+  player: PlayerRequestVersionEventState,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+  gameVersion = GAME_VERSION,
+): void {
+  void data;
+  void size;
+  void dummy;
+
+  if (gameVersion.length + 1 >= MAX_VERSION_PACKET_CHARS) return;
+
+  const packet = new Uint8Array(MAX_VERSION_PACKET_CHARS);
+  for (let i = 0; i < gameVersion.length; i += 1) {
+    packet[i] = gameVersion.charCodeAt(i) & 0xff;
+  }
+
+  player.clientSocket.sendMessage(TcpEvent.GiveVersion, packet, packet.length);
 }
 
 /**
@@ -429,6 +876,52 @@ export function playerSetPlayerLogInfoEvent(
   player.processSetLocalPlayerLogInfo(data, size);
 }
 
+function refreshPlayerVoteImages(
+  player: Omit<PlayerVoteInfoEventState, keyof PlayerVoteInfoProcessor>,
+): void {
+  if (!player.vote.voteInProgress()) return;
+
+  player.vote.setupImages(
+    player.getOurRealVotingPower(),
+    player.getVotesNeeded(),
+    player.getVotesFor(),
+    player.getVotesAgainst(),
+    player.getVoteAppendDescription(),
+  );
+}
+
+/**
+ * Port of upstream `ZPlayer::set_player_voteinfo_event`.
+ * Role: Applies local player vote-info data and refreshes vote images during active votes.
+ * Upstream: zplayer_events.cpp:1197-1205
+ */
+export function playerSetPlayerVoteInfoEvent(
+  player: PlayerVoteInfoEventState,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  player.processSetLocalPlayerVoteInfo(data, size);
+  refreshPlayerVoteImages(player);
+}
+
+/**
+ * Port of upstream `ZPlayer::set_vote_info_event`.
+ * Role: Applies global vote-info data and refreshes vote images during active votes.
+ * Upstream: zplayer_events.cpp:1217-1225
+ */
+export function playerSetVoteInfoEvent(
+  player: PlayerGlobalVoteInfoEventState,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  player.processVoteInfo(data, size);
+  refreshPlayerVoteImages(player);
+}
+
 /**
  * Port of upstream `ZPlayer::update_game_paused_event`.
  * Role: Delegates a pause-state update payload to the player processor.
@@ -475,6 +968,21 @@ export function playerSetSettingsEvent(
 }
 
 /**
+ * Port of upstream `ZPlayer::set_lid_open_event`.
+ * Role: Delegates an object lid-state payload to the player processor.
+ * Upstream: zplayer_events.cpp:1105-1121
+ */
+export function playerSetLidOpenEvent(
+  player: PlayerObjectLidStateProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  void player.processObjectLidState(data, size);
+}
+
+/**
  * Port of upstream `ZPlayer::set_zone_info_event`.
  * Role: Delegates a zone-info payload to the player processor.
  * Upstream: zplayer_events.cpp:676-679
@@ -502,6 +1010,60 @@ export function playerSetTeamEvent(
 ): void {
   void dummy;
   player.processSetTeam(data, size);
+}
+
+/**
+ * Port of upstream `ZPlayer::set_object_loc_event`.
+ * Role: Delegates an object-location payload to the player processor.
+ * Upstream: zplayer_events.cpp:762-780
+ */
+export function playerSetObjectLocationEvent(
+  player: PlayerObjectLocationProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  void player.processObjectLoc(data, size);
+}
+
+/**
+ * Port of upstream `ZPlayer::set_object_group_info_event`.
+ * Role: Delegates an object group-info payload to the player processor.
+ * Upstream: zplayer_events.cpp:1029-1047
+ */
+export function playerSetObjectGroupInfoEvent(
+  player: PlayerObjectGroupInfoProcessor,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  void player.processObjectGroupInfo(data, size);
+}
+
+/**
+ * Port of upstream `ZPlayer::set_grenade_amount_event`.
+ * Role: Applies grenade-state payloads, rerenders selected HUD objects, and refreshes cursor state when selection details changed.
+ * Upstream: zplayer_events.cpp:1261-1274
+ */
+export function playerSetGrenadeAmountEvent<TObject>(
+  player: PlayerGrenadeAmountEventState<TObject>,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  const object = player.processSetGrenadeState(data, size);
+  if (!object) return;
+
+  if (player.hud.getSelectedObject() === object) {
+    player.hud.reRenderAll();
+  }
+
+  if (player.selection.updateGroupMember(object)) {
+    player.determineCursor();
+  }
 }
 
 /**
@@ -640,4 +1202,32 @@ export function playerDriverHitEffectEvent<TObject extends PlayerDriverHitEffect
   if (!object) return;
 
   object.doDriverHitEffect();
+}
+
+/**
+ * Port of upstream `ZPlayer::do_crane_anim_event`.
+ * Role: Applies crane animation state to the referenced object with an optional repair target.
+ * Upstream: zplayer_events.cpp:1049-1065
+ */
+export function playerDoCraneAnimEvent<TObject extends PlayerCraneAnimObject>(
+  player: PlayerCraneAnimState<TObject>,
+  packet: CraneAnimPacket,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  if (size !== CRANE_ANIM_PACKET_SIZE_BYTES) return;
+
+  const object =
+    player.objectList.find((candidate) => candidate.getRefId() === packet.refId) ??
+    null;
+
+  if (!object) return;
+
+  const repairObject =
+    player.objectList.find(
+      (candidate) => candidate.getRefId() === packet.repairRefId,
+    ) ?? null;
+
+  object.doCraneAnim(packet.on, repairObject);
 }

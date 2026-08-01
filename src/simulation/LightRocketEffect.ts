@@ -20,6 +20,23 @@ export type LightRocketInitState = {
 };
 
 /**
+ * Port of upstream `ELightRocket` construction arguments.
+ * Role: Describes one spawned light-rocket projectile effect.
+ * Upstream: elightrocket.h:8
+ */
+export type LightRocketEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  speed: number;
+  extraSmall: number;
+  extraLarge: number;
+  extraExtraLarge: number;
+};
+
+/**
  * Port of upstream `ELightRocket::Init`.
  * Role: Initializes the light-vehicle bullet image path.
  * Upstream: elightrocket.cpp:59-67

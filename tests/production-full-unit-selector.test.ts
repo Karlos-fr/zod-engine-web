@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   initProductionFullUnitSelector,
+  processProductionFullUnitSelector,
   PRODUCTION_FULL_UNIT_SELECTOR_MARGIN_PIXELS,
   PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_HEIGHT_PIXELS,
   PRODUCTION_FULL_UNIT_SELECTOR_OBJECT_WIDTH_PIXELS,
@@ -56,5 +57,47 @@ describe("production full unit selector", () => {
       right: { filename: "assets/other/production_gui/fus_right.png" },
       objectBack: { filename: "assets/other/production_gui/object_back.png" },
     });
+  });
+
+  it("ports GWPFullUnitSelector Process as cached list processing", () => {
+    const calls: unknown[] = [];
+    const robotList = [{ id: "robot" }];
+    const vehicleList = [{ id: "vehicle" }];
+    const cannonList = [{ id: "cannon" }];
+
+    processProductionFullUnitSelector(
+      {
+        robotList,
+        vehicleList,
+        cannonList,
+        isActive: false,
+        loadLists: () => calls.push("load-lists"),
+      },
+      (units) => calls.push(units),
+    );
+
+    expect(calls).toEqual([robotList, vehicleList, cannonList]);
+  });
+
+  it("ports GWPFullUnitSelector Process as active list refresh after processing", () => {
+    const calls: string[] = [];
+
+    processProductionFullUnitSelector(
+      {
+        robotList: ["robot"],
+        vehicleList: ["vehicle"],
+        cannonList: ["cannon"],
+        isActive: true,
+        loadLists: () => calls.push("load-lists"),
+      },
+      (units) => calls.push(`process:${units[0]}`),
+    );
+
+    expect(calls).toEqual([
+      "process:robot",
+      "process:vehicle",
+      "process:cannon",
+      "load-lists",
+    ]);
   });
 });

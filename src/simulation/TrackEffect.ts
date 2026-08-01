@@ -3,6 +3,10 @@
  */
 
 import type { MapSurfaceRenderCommand } from "../world/GameMap";
+import {
+  MAX_ANGLE_TYPES,
+  PlanetType,
+} from "./SimulationConstants";
 
 /**
  * Port of upstream `_ETRACK_H_`.
@@ -53,6 +57,75 @@ export type TrackEffectPreRenderState<TSurface> = {
   x: readonly number[];
   y: readonly number[];
 };
+
+/**
+ * Port of upstream `ETrack::Init` mutable fields.
+ * Role: Holds loaded vehicle track effect images and the initialization flag.
+ * Upstream: etrack.cpp:45-71
+ */
+export type TrackEffectInitState<TImage = unknown> = {
+  trackImages: TImage[][][][];
+  finishedInit: boolean;
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::LoadBaseImage`.
+ * Role: Loads one vehicle track effect image asset.
+ * Upstream: etrack.cpp:65
+ */
+export type TrackEffectImageLoader<TImage> = (filename: string) => TImage;
+
+const TRACK_EFFECT_TYPE_NAMES = ["tank", "jeep"] as const;
+const TRACK_EFFECT_PLANET_NAMES = [
+  "desert",
+  "volcanic",
+  "arctic",
+  "jungle",
+  "city",
+] as const;
+const TRACK_EFFECT_ROTATIONS = [0, 45, 90, 135] as const;
+
+/**
+ * Port of upstream `ETrack::Init`.
+ * Role: Loads vehicle track effect images and mirrors the first four rotations to the opposite buckets.
+ * Upstream: etrack.cpp:45-71
+ */
+export function initTrackEffect<TImage>(
+  state: TrackEffectInitState<TImage>,
+  loadImage: TrackEffectImageLoader<TImage>,
+): void {
+  for (let type = 0; type < TrackEffectType.MaxTrackTypes; type += 1) {
+    state.trackImages[type] ??= [];
+
+    for (let planet = 0; planet < PlanetType.Max; planet += 1) {
+      if (planet === PlanetType.City) continue;
+      if (type === TrackEffectType.Jeep && planet !== PlanetType.Desert) {
+        continue;
+      }
+
+      state.trackImages[type][planet] ??= [];
+
+      for (let rotation = 0; rotation < TRACK_EFFECT_ROTATIONS.length; rotation += 1) {
+        state.trackImages[type][planet][rotation] ??= [];
+
+        for (let frame = 0; frame < 3; frame += 1) {
+          state.trackImages[type][planet][rotation][frame] = loadImage(
+            `assets/units/vehicles/track_effects/${TRACK_EFFECT_TYPE_NAMES[type]}_track_${TRACK_EFFECT_PLANET_NAMES[planet]}_r${TRACK_EFFECT_ROTATIONS[
+              rotation
+            ]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          );
+        }
+
+        state.trackImages[type][planet][rotation + (MAX_ANGLE_TYPES >> 1)] =
+          state.trackImages[type][planet][rotation];
+      }
+    }
+  }
+
+  state.finishedInit = true;
+}
 
 /**
  * Port of upstream `ETrack::Process`.

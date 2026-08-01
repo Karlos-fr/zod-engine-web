@@ -34,6 +34,17 @@ export type PyroFireInitState = {
 };
 
 /**
+ * Port of upstream `EPyroFire` construction arguments.
+ * Role: Describes a pyro fire effect spawned when a flame projectile expires.
+ * Upstream: eflame.cpp:81
+ */
+export type PyroFireEffectSpawn<TTime = unknown> = {
+  ztime: TTime;
+  x: number;
+  y: number;
+};
+
+/**
  * Port of upstream `EPyroFire::Process` mutable fields.
  * Role: Captures lifetime, animation variant, frame index, and next tick time.
  * Upstream: epyrofire.cpp:47-62

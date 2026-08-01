@@ -40,6 +40,22 @@ describe("fort entity", () => {
     expect(entity.canEnterFort(TeamType.Blue)).toBe(false);
   });
 
+  it("ports BFort UnderCursorCanAttack as fort body hit areas", () => {
+    const entity = new FortEntity({
+      id: "fort-attack",
+      kind: "fort",
+      position: { x: 100, y: 200 },
+    });
+
+    expect(entity.underCursorCanAttack(116, 216)).toBe(true);
+    expect(entity.underCursorCanAttack(100, 248)).toBe(true);
+    expect(entity.underCursorCanAttack(116, 200)).toBe(true);
+    expect(entity.underCursorCanAttack(212, 200)).toBe(true);
+    expect(entity.underCursorCanAttack(132, 328)).toBe(true);
+    expect(entity.underCursorCanAttack(212, 328)).toBe(true);
+    expect(entity.underCursorCanAttack(100, 200)).toBe(false);
+  });
+
   it("ports BFort UnderCursorFortCanEnter as front fort entry rectangle", () => {
     const entity = new FortEntity({
       id: "fort-front-entry",

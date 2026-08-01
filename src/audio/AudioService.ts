@@ -263,6 +263,25 @@ export function setMusicEngineDangerLevel(
 export type MusicHandle = object;
 
 /**
+ * Browser-side replacement for upstream `MUS_Load_Error`.
+ * Role: Loads a music asset path and returns its opaque backend handle.
+ * Upstream: zmusic_engine.cpp:24, zmusic_engine.cpp:29
+ */
+export type MusicLoader<TMusic extends MusicHandle = MusicHandle> = (
+  filename: string,
+) => TMusic | null;
+
+/**
+ * Port of upstream `ZMusicEngine::Init` mutable fields.
+ * Role: Holds loaded splash and planet music handles.
+ * Upstream: zmusic_engine.cpp:20-40
+ */
+export type MusicEngineInitState<TMusic extends MusicHandle = MusicHandle> = {
+  splashMusic: TMusic | null;
+  planetMusic: Array<TMusic | null>;
+};
+
+/**
  * Browser-side replacement for the `Mix_PlayMusic` callback.
  * Role: Starts playback for a music handle and returns the backend status code.
  * Upstream: zsdl.cpp:411-417
@@ -313,6 +332,13 @@ export type ChannelPlayer = (
 export type ChannelHalter = (channel: number) => void;
 
 /**
+ * Browser-side replacement for upstream `Mix_Playing`.
+ * Role: Reports whether one mixer channel is currently active.
+ * Upstream: zsound_engine.cpp:88
+ */
+export type ChannelPlayingChecker = (channel: number) => boolean;
+
+/**
  * Port of upstream `ZMap::WithinView` dependency surface.
  * Role: Reports whether a sound source rectangle intersects the current view.
  * Upstream: zsound_engine.cpp:290
@@ -336,6 +362,16 @@ export type WavPlayer = (sound: SoundEngineSound | number) => void;
 export type RepeatSoundState = {
   repeatChannel: number;
 };
+
+/**
+ * Port of upstream `ZSound::RepeatSound` mutable fields.
+ * Role: Holds the loaded sound chunk and repeat channel marker.
+ * Upstream: zsound_engine.cpp:81-97
+ */
+export type RepeatLoadedSoundState<TChunk extends SoundChunkWithVolume> =
+  RepeatSoundState & {
+    soundChunk: TChunk | null;
+  };
 
 /**
  * Port of upstream `ZSound::RepeatSound` call target.
@@ -426,6 +462,15 @@ export type PlaySoundState<TChunk extends SoundChunkWithVolume> =
   };
 
 /**
+ * Port of upstream `ZSound`.
+ * Role: Holds one loaded sound slot, playback timing, volume jitter, and repeat channel.
+ * Upstream: zsound_engine.h:43-59
+ */
+export type SoundState<TChunk extends SoundChunkWithVolume = SoundChunkWithVolume> =
+  PlaySoundState<TChunk> &
+    RepeatLoadedSoundState<TChunk>;
+
+/**
  * Browser-side replacement for upstream `current_time`.
  * Role: Supplies the current audio clock time for sound playback throttling.
  * Upstream: zsound_engine.cpp:65
@@ -438,6 +483,14 @@ export type AudioClock = () => number;
  * Upstream: zsound_engine.cpp:69, zsound_engine.cpp:72
  */
 export type BoundedRandomInt = (maxExclusive: number) => number;
+
+const MUSIC_ENGINE_PLANET_TYPE_NAMES = [
+  "desert",
+  "volcanic",
+  "arctic",
+  "jungle",
+  "city",
+] as const;
 
 /**
  * Port of upstream `ZSound::StopRepeatSound`.
@@ -452,6 +505,87 @@ export function stopRepeatSound(
 
   haltChannel(state.repeatChannel);
   state.repeatChannel = -1;
+}
+
+/**
+ * Port of upstream `ZSound::RepeatSound`.
+ * Role: Starts looped playback on the first available mixer channel.
+ * Upstream: zsound_engine.cpp:77-99
+ */
+export function repeatSound<TChunk extends SoundChunkWithVolume>(
+  state: RepeatLoadedSoundState<TChunk>,
+  isChannelPlaying: ChannelPlayingChecker,
+  playChannel: ChannelPlayer,
+): void {
+  if (!state.soundChunk) return;
+  if (state.repeatChannel !== -1) return;
+
+  let channel = 0;
+  while (channel < SOUND_ENGINE_MIX_CHANNELS && isChannelPlaying(channel)) {
+    channel += 1;
+  }
+
+  if (channel === SOUND_ENGINE_MIX_CHANNELS) return;
+
+  state.repeatChannel = channel;
+  playChannel(state.repeatChannel, state.soundChunk, -1);
+}
+
+/**
+ * Port of upstream `ZSound` construction.
+ * Role: Creates an unloaded sound slot with no repeat channel.
+ * Upstream: zsound_engine.cpp:42-46
+ */
+export function createSoundState<
+  TChunk extends SoundChunkWithVolume = SoundChunkWithVolume,
+>(): SoundState<TChunk> {
+  return {
+    soundChunk: null,
+    nextPlayTime: 0,
+    playTimeShift: 0,
+    baseVolume: 0,
+    volumeShift: 0,
+    repeatChannel: -1,
+  };
+}
+
+/**
+ * Port of upstream `ZMusicEngine::Init`.
+ * Role: Loads splash and planet music, applies paired fallbacks, and initializes danger-level starts.
+ * Upstream: zmusic_engine.cpp:20-40
+ */
+export function initMusicEngine<TMusic extends MusicHandle>(
+  state: MusicEngineInitState<TMusic>,
+  loadMusic: MusicLoader<TMusic>,
+  initDangerLevelStarts: () => void,
+): void {
+  state.splashMusic = loadMusic("assets/sounds/ABATTLE.mp3");
+
+  for (let planet = 0; planet < PlanetType.Max; planet += 1) {
+    state.planetMusic[planet] = loadMusic(
+      `assets/sounds/music_${MUSIC_ENGINE_PLANET_TYPE_NAMES[planet]}.ogg`,
+    );
+  }
+
+  if (!state.planetMusic[PlanetType.Desert]) {
+    state.planetMusic[PlanetType.Desert] =
+      state.planetMusic[PlanetType.Arctic] ?? null;
+  }
+  if (!state.planetMusic[PlanetType.Arctic]) {
+    state.planetMusic[PlanetType.Arctic] =
+      state.planetMusic[PlanetType.Desert] ?? null;
+  }
+
+  if (!state.planetMusic[PlanetType.Volcanic]) {
+    state.planetMusic[PlanetType.Volcanic] =
+      state.planetMusic[PlanetType.City] ?? null;
+  }
+  if (!state.planetMusic[PlanetType.City]) {
+    state.planetMusic[PlanetType.City] =
+      state.planetMusic[PlanetType.Volcanic] ?? null;
+  }
+
+  initDangerLevelStarts();
 }
 
 /**

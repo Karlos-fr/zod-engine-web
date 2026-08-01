@@ -3,10 +3,13 @@ import {
   displayMainHelp,
   displayMainVersion,
   getopt,
+  type InputOptionsState,
   MAIN_OPTIONS_HEADER_GUARD_PORTED,
+  setInputOptionsDefaults,
   XGETOPT_HEADER_GUARD_PORTED,
 } from "../src/app/MainOptions";
 import type { GetoptState } from "../src/app/MainOptions";
+import { TeamType } from "../src/simulation/SimulationConstants";
 
 describe("main options", () => {
   it("adapts the main.h include guard to an ES module marker", async () => {
@@ -85,6 +88,42 @@ describe("main options", () => {
         "",
       ].join("\n"),
     );
+  });
+
+  it("ports input_options setdefaults as startup option defaults", () => {
+    const state: InputOptionsState = {
+      readConnectAddress: false,
+      connectAddress: "",
+      readPlayerName: false,
+      playerName: "",
+      readPlayerTeam: false,
+      playerTeamString: "",
+      team: TeamType.Null,
+      resolution: "",
+      resolutionWidth: 0,
+      resolutionHeight: 0,
+      readResolution: false,
+      readIsWindowed: false,
+      readOpenglOff: false,
+    };
+
+    setInputOptionsDefaults(state);
+
+    expect(state).toEqual({
+      readConnectAddress: true,
+      connectAddress: "hestia.nighsoft.net",
+      readPlayerName: true,
+      playerName: "zlover",
+      readPlayerTeam: true,
+      playerTeamString: "red",
+      team: TeamType.Red,
+      resolution: "800x600",
+      resolutionWidth: 800,
+      resolutionHeight: 600,
+      readResolution: true,
+      readIsWindowed: true,
+      readOpenglOff: true,
+    });
   });
 
   it("ports getopt scanning for grouped short options", () => {

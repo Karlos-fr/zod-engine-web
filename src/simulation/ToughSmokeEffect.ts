@@ -34,6 +34,17 @@ export type ToughSmokeInitState = {
 };
 
 /**
+ * Port of upstream `EToughSmoke` construction arguments.
+ * Role: Describes a tough-smoke effect spawned along a tough rocket trail.
+ * Upstream: etoughrocket.cpp:130
+ */
+export type ToughSmokeEffectSpawn<TTime = unknown> = {
+  ztime: TTime;
+  x: number;
+  y: number;
+};
+
+/**
  * Port of upstream `EToughSmoke::Process` mutable fields.
  * Role: Captures tough-smoke lifetime, frame index, and next animation tick.
  * Upstream: etoughsmoke.cpp:46-61

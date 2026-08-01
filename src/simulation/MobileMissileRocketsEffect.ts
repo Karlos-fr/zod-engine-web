@@ -20,6 +20,19 @@ export type MobileMissileRocketsInitState = {
 };
 
 /**
+ * Port of upstream `EMoMissileRockets` construction arguments.
+ * Role: Describes one spawned mobile-missile rocket effect.
+ * Upstream: emomissilerockets.h:13-30
+ */
+export type MobileMissileRocketsEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+};
+
+/**
  * Port of upstream `EMoMissileRockets::Init`.
  * Role: Initializes the mobile-missile bullet image path.
  * Upstream: emomissilerockets.cpp:61-69

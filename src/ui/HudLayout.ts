@@ -3,6 +3,7 @@
  */
 
 import type { PlanetType, TeamType } from "../simulation/SimulationConstants";
+import { FontType } from "../rendering/FontEngine";
 import type { TexturedSurfaceRenderCommand } from "../rendering/SurfacePixels";
 import {
   PORTRAIT_BASE_HEIGHT_PIXELS,
@@ -493,6 +494,7 @@ export type HudRerenderState = {
 
 export type HudChatMessageImage = {
   unload(): void;
+  loadBaseImage(image: unknown): void;
 };
 
 /**
@@ -506,6 +508,16 @@ export type HudChatMessageState = {
   chatMessageImage: HudChatMessageImage;
   rerenderChat: boolean;
 };
+
+/**
+ * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
+ * Role: Renders HUD chat text with a browser font implementation.
+ * Upstream: zhud.cpp:1270
+ */
+export type HudChatMessageRenderer<TImage> = (
+  font: FontType,
+  text: string,
+) => TImage;
 
 /**
  * Port of upstream `ZHud::ztime`.
@@ -597,6 +609,22 @@ export function showHudChatMessage(
   }
 
   state.chatMessage = "";
+}
+
+/**
+ * Port of upstream `ZHud::SetChatMessage`.
+ * Role: Stores the chat prompt text and loads its rendered HUD image.
+ * Upstream: zhud.cpp:1264-1272
+ */
+export function setHudChatMessage<TImage>(
+  state: HudChatMessageState,
+  message: string,
+  renderText: HudChatMessageRenderer<TImage>,
+): void {
+  state.chatMessage = `Say:: ${message}`;
+  state.chatMessageImage.loadBaseImage(
+    renderText(FontType.SmallWhite, state.chatMessage),
+  );
 }
 
 /**

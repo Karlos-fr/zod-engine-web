@@ -14,7 +14,10 @@ import {
   deleteProductionUnitSelectorDrawObject,
   doProductionCancelButton,
   doProductionCancelQueueItem,
+  doProductionMinusButton,
+  doProductionOkButton,
   doProductionPlaceButton,
+  doProductionPlusButton,
   doProductionQueueButton,
   doProductionUnitSelectorDownButton,
   doProductionUnitSelectorUpButton,
@@ -26,11 +29,17 @@ import {
   getProductionUnitSelectorSelectedId,
   initProductionUnitSelector,
   isProductionActive,
+  loadProductionFullSelector,
   loadProductionFullUnitSelectorButtonList,
+  processProductionSetExpanded,
   type ProductionBuildingReference,
   type ProductionObjectReference,
   type ProductionPlaceButtonState,
   type ProductionUnitSelectorInitState,
+  PRODUCTION_COLLAPSED_HEIGHT_PIXELS,
+  PRODUCTION_COLLAPSED_WIDTH_PIXELS,
+  PRODUCTION_EXPANDED_HEIGHT_PIXELS,
+  PRODUCTION_EXPANDED_WIDTH_PIXELS,
   PRODUCTION_UNIT_SELECTOR_PERCENTAGE_BAR_IMAGE_PATH,
   PRODUCTION_UNIT_SELECTOR_YELLOW_PERCENTAGE_BAR_IMAGE_PATH,
   ProductionBuildingState,
@@ -39,23 +48,34 @@ import {
   PRODUCTION_SELECTOR_CENTER_Y_OFFSET_PIXELS,
   PRODUCTION_QUEUE_BUTTON_HEIGHT_PIXELS,
   PRODUCTION_QUEUE_BUTTON_MARGIN_PIXELS,
+  recalcProductionShowTime,
+  resetProductionShowTime,
   setProductionActive,
   setProductionBuildList,
   setProductionBuildingObject,
   setProductionBuildingType,
   setProductionCenterCoords,
   setProductionCoords,
+  setProductionIsExpanded,
   setProductionIsOnlySelector,
   setProductionRefId,
+  setProductionWindowCords,
   setProductionZTime,
+  setProductionType,
   setProductionUnitSelectorActive,
   setProductionUnitSelectorCoords,
   setProductionUnitSelectorRefId,
+  setProductionUnitSelectorSelection,
   setProductionUnitSelectorZTime,
   shouldLoadProductionFullSelector,
+  toggleProductionExpanded,
+  unclickProductionFullUnitSelector,
+  unclickProductionUnitSelector,
   withinProductionUnitSelectorPortrait,
   wheelDownProduction,
+  wheelDownProductionUnitSelector,
   wheelUpProduction,
+  wheelUpProductionUnitSelector,
   ZGW_PRODUCTION_HEADER_GUARD_PORTED,
 } from "../src/ui/ProductionWindow";
 
@@ -171,6 +191,210 @@ describe("production window", () => {
     expect(state.isActive).toBe(false);
   });
 
+  it("ports GWProduction ProcessSetExpanded as expanded queue controls", () => {
+    const calls: Array<[string, boolean]> = [];
+    const state = {
+      isExpanded: true,
+      width: 0,
+      height: 0,
+      smallPlusButton: {
+        setActive: (active: boolean) => calls.push(["plus", active]),
+      },
+      smallMinusButton: {
+        setActive: (active: boolean) => calls.push(["minus", active]),
+      },
+      queueButton: {
+        setActive: (active: boolean) => calls.push(["queue", active]),
+      },
+      queueSelector: {
+        setActive: (active: boolean) => calls.push(["selector", active]),
+      },
+    };
+
+    processProductionSetExpanded(state);
+
+    expect(state.width).toBe(PRODUCTION_EXPANDED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_EXPANDED_HEIGHT_PIXELS);
+    expect(calls).toEqual([
+      ["plus", false],
+      ["minus", true],
+      ["queue", true],
+      ["selector", true],
+    ]);
+  });
+
+  it("ports GWProduction ProcessSetExpanded as collapsed queue controls", () => {
+    const calls: Array<[string, boolean]> = [];
+    const state = {
+      isExpanded: false,
+      width: 0,
+      height: 0,
+      smallPlusButton: {
+        setActive: (active: boolean) => calls.push(["plus", active]),
+      },
+      smallMinusButton: {
+        setActive: (active: boolean) => calls.push(["minus", active]),
+      },
+      queueButton: {
+        setActive: (active: boolean) => calls.push(["queue", active]),
+      },
+      queueSelector: {
+        setActive: (active: boolean) => calls.push(["selector", active]),
+      },
+    };
+
+    processProductionSetExpanded(state);
+
+    expect(state.width).toBe(PRODUCTION_COLLAPSED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_COLLAPSED_HEIGHT_PIXELS);
+    expect(calls).toEqual([
+      ["plus", true],
+      ["minus", false],
+      ["queue", false],
+      ["selector", false],
+    ]);
+  });
+
+  it("ports SetIsExpanded as state assignment followed by layout refresh", () => {
+    const calls: Array<[string, boolean]> = [];
+    const state = {
+      isExpanded: false,
+      width: 0,
+      height: 0,
+      smallPlusButton: {
+        setActive: (active: boolean) => calls.push(["plus", active]),
+      },
+      smallMinusButton: {
+        setActive: (active: boolean) => calls.push(["minus", active]),
+      },
+      queueButton: {
+        setActive: (active: boolean) => calls.push(["queue", active]),
+      },
+      queueSelector: {
+        setActive: (active: boolean) => calls.push(["selector", active]),
+      },
+    };
+
+    setProductionIsExpanded(state, true);
+
+    expect(state.isExpanded).toBe(true);
+    expect(state.width).toBe(PRODUCTION_EXPANDED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_EXPANDED_HEIGHT_PIXELS);
+    expect(calls).toEqual([
+      ["plus", false],
+      ["minus", true],
+      ["queue", true],
+      ["selector", true],
+    ]);
+  });
+
+  it("ports DoMinusButton as collapsed production layout action", () => {
+    const calls: Array<[string, boolean]> = [];
+    const state = {
+      isExpanded: true,
+      width: PRODUCTION_EXPANDED_WIDTH_PIXELS,
+      height: PRODUCTION_EXPANDED_HEIGHT_PIXELS,
+      smallPlusButton: {
+        setActive: (active: boolean) => calls.push(["plus", active]),
+      },
+      smallMinusButton: {
+        setActive: (active: boolean) => calls.push(["minus", active]),
+      },
+      queueButton: {
+        setActive: (active: boolean) => calls.push(["queue", active]),
+      },
+      queueSelector: {
+        setActive: (active: boolean) => calls.push(["selector", active]),
+      },
+    };
+
+    doProductionMinusButton(state);
+
+    expect(state.isExpanded).toBe(false);
+    expect(state.width).toBe(PRODUCTION_COLLAPSED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_COLLAPSED_HEIGHT_PIXELS);
+    expect(calls).toEqual([
+      ["plus", true],
+      ["minus", false],
+      ["queue", false],
+      ["selector", false],
+    ]);
+  });
+
+  it("ports DoPlusButton as expanded production layout action", () => {
+    const calls: Array<[string, boolean]> = [];
+    const state = {
+      isExpanded: false,
+      width: PRODUCTION_COLLAPSED_WIDTH_PIXELS,
+      height: PRODUCTION_COLLAPSED_HEIGHT_PIXELS,
+      smallPlusButton: {
+        setActive: (active: boolean) => calls.push(["plus", active]),
+      },
+      smallMinusButton: {
+        setActive: (active: boolean) => calls.push(["minus", active]),
+      },
+      queueButton: {
+        setActive: (active: boolean) => calls.push(["queue", active]),
+      },
+      queueSelector: {
+        setActive: (active: boolean) => calls.push(["selector", active]),
+      },
+    };
+
+    doProductionPlusButton(state);
+
+    expect(state.isExpanded).toBe(true);
+    expect(state.width).toBe(PRODUCTION_EXPANDED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_EXPANDED_HEIGHT_PIXELS);
+    expect(calls).toEqual([
+      ["plus", false],
+      ["minus", true],
+      ["queue", true],
+      ["selector", true],
+    ]);
+  });
+
+  it("ports ToggleExpanded as expansion inversion and layout refresh", () => {
+    const calls: Array<[string, boolean]> = [];
+    const state = {
+      isExpanded: false,
+      width: 0,
+      height: 0,
+      smallPlusButton: {
+        setActive: (active: boolean) => calls.push(["plus", active]),
+      },
+      smallMinusButton: {
+        setActive: (active: boolean) => calls.push(["minus", active]),
+      },
+      queueButton: {
+        setActive: (active: boolean) => calls.push(["queue", active]),
+      },
+      queueSelector: {
+        setActive: (active: boolean) => calls.push(["selector", active]),
+      },
+    };
+
+    toggleProductionExpanded(state);
+    expect(state.isExpanded).toBe(true);
+    expect(state.width).toBe(PRODUCTION_EXPANDED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_EXPANDED_HEIGHT_PIXELS);
+
+    toggleProductionExpanded(state);
+    expect(state.isExpanded).toBe(false);
+    expect(state.width).toBe(PRODUCTION_COLLAPSED_WIDTH_PIXELS);
+    expect(state.height).toBe(PRODUCTION_COLLAPSED_HEIGHT_PIXELS);
+    expect(calls).toEqual([
+      ["plus", false],
+      ["minus", true],
+      ["queue", true],
+      ["selector", true],
+      ["plus", true],
+      ["minus", false],
+      ["queue", false],
+      ["selector", false],
+    ]);
+  });
+
   it("ports GWProduction SetCoords as production window coordinate assignment", () => {
     const state = { x: 0, y: 0 };
 
@@ -187,6 +411,68 @@ describe("production window", () => {
     expect(state).toEqual({ centerX: 24, centerY: 21 });
   });
 
+  it("ports GWProduction SetCords as unexpanded initial placement", () => {
+    const centers: Array<[number, number]> = [];
+    const state = {
+      x: 0,
+      y: 0,
+      zmap: null,
+      fullSelector: {
+        setCenterCoords: (centerX: number, centerY: number) => {
+          centers.push([centerX, centerY]);
+        },
+      },
+    };
+
+    setProductionWindowCords(state, 200, 140);
+
+    expect(state.x).toBe(144);
+    expect(state.y).toBe(100);
+    expect(centers).toEqual([[200, 140]]);
+  });
+
+  it("ports GWProduction SetCords lower map-edge padding clamp", () => {
+    const centers: Array<[number, number]> = [];
+    const state = {
+      x: 0,
+      y: 0,
+      zmap: null,
+      fullSelector: {
+        setCenterCoords: (centerX: number, centerY: number) => {
+          centers.push([centerX, centerY]);
+        },
+      },
+    };
+
+    setProductionWindowCords(state, 20, 20);
+
+    expect(state.x).toBe(16);
+    expect(state.y).toBe(16);
+    expect(centers).toEqual([[20, 20]]);
+  });
+
+  it("ports GWProduction SetCords expanded map-boundary clamp", () => {
+    const centers: Array<[number, number]> = [];
+    const state = {
+      x: 0,
+      y: 0,
+      zmap: {
+        getMapBasics: () => ({ width: 20, height: 15 }),
+      },
+      fullSelector: {
+        setCenterCoords: (centerX: number, centerY: number) => {
+          centers.push([centerX, centerY]);
+        },
+      },
+    };
+
+    setProductionWindowCords(state, 300, 230);
+
+    expect(state.x).toBe(76);
+    expect(state.y).toBe(128);
+    expect(centers).toEqual([[300, 230]]);
+  });
+
   it("ports GWPFullUnitSelector SetZTime as simulation clock reference assignment", () => {
     const ztime = new SimulationTime();
     const state = { ztime: null };
@@ -194,6 +480,133 @@ describe("production window", () => {
     setProductionZTime(state, ztime);
 
     expect(state.ztime).toBe(ztime);
+  });
+
+  it("ports GWProduction ResetShowTime as countdown text refresh", () => {
+    const state = { showTime: 0, showTimeText: "" };
+
+    resetProductionShowTime(state, 125);
+
+    expect(state).toEqual({ showTime: 125, showTimeText: "2:05" });
+  });
+
+  it("ports GWProduction ResetShowTime minute wrapping", () => {
+    const state = { showTime: 0, showTimeText: "" };
+
+    resetProductionShowTime(state, 3_661);
+
+    expect(state).toEqual({ showTime: 3_661, showTimeText: "1:01" });
+  });
+
+  it("ports GWProduction RecalcShowTime select state as selected unit build time", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Select,
+      showTime: 0,
+      showTimeText: "",
+      ztime: { ztime: 12.5 },
+      unitSelector: {
+        getSelectedId: () => ({ selected: true, objectType: 3, objectId: 7 }),
+      },
+      buildingObject: {
+        buildTimeModified(buildTime: number) {
+          calls.push(["modified", buildTime]);
+          return buildTime * 2 + 0.9;
+        },
+        productionTimeLeft(currentTime: number) {
+          calls.push(["left", currentTime]);
+          return 99;
+        },
+      },
+      buildList: {
+        unitBuildTime(objectType: number, objectId: number) {
+          calls.push(["unit", objectType, objectId]);
+          return 14;
+        },
+      },
+    };
+
+    recalcProductionShowTime(state);
+
+    expect(state.showTime).toBe(28);
+    expect(state.showTimeText).toBe("0:28");
+    expect(calls).toEqual([
+      ["unit", 3, 7],
+      ["modified", 14],
+    ]);
+  });
+
+  it("ports GWProduction RecalcShowTime select guards and unchanged value", () => {
+    const noBuilding = {
+      state: ProductionBuildingState.Select,
+      showTime: 9,
+      showTimeText: "0:09",
+      ztime: { ztime: 12.5 },
+      unitSelector: {
+        getSelectedId: () => ({ selected: true, objectType: 3, objectId: 7 }),
+      },
+      buildingObject: null,
+      buildList: { unitBuildTime: () => 14 },
+    };
+    const noBuildList = {
+      ...noBuilding,
+      buildingObject: {
+        buildTimeModified: (buildTime: number) => buildTime,
+        productionTimeLeft: () => 0,
+      },
+      buildList: null,
+    };
+    const unchanged = {
+      ...noBuilding,
+      showTime: -1,
+      showTimeText: "old",
+      buildingObject: {
+        buildTimeModified: (buildTime: number) => buildTime,
+        productionTimeLeft: () => 0,
+      },
+      buildList: { unitBuildTime: () => 14 },
+      unitSelector: {
+        getSelectedId: () => ({ selected: false, objectType: 3, objectId: 7 }),
+      },
+    };
+
+    recalcProductionShowTime(noBuilding);
+    recalcProductionShowTime(noBuildList);
+    recalcProductionShowTime(unchanged);
+
+    expect(noBuilding.showTimeText).toBe("0:09");
+    expect(noBuildList.showTimeText).toBe("0:09");
+    expect(unchanged.showTimeText).toBe("old");
+  });
+
+  it("ports GWProduction RecalcShowTime active production as remaining time", () => {
+    const calls: unknown[] = [];
+    const state = {
+      state: ProductionBuildingState.Building,
+      showTime: 7,
+      showTimeText: "0:07",
+      ztime: { ztime: 12.5 },
+      unitSelector: {
+        getSelectedId: () => ({ selected: false, objectType: 0, objectId: 0 }),
+      },
+      buildingObject: {
+        buildTimeModified(buildTime: number) {
+          calls.push(["modified", buildTime]);
+          return buildTime;
+        },
+        productionTimeLeft(currentTime: number) {
+          calls.push(["left", currentTime]);
+          return 65.8;
+        },
+      },
+      buildList: null,
+    };
+
+    recalcProductionShowTime(state);
+
+    expect(state.showTime).toBe(65);
+    expect(state.showTimeText).toBe("1:05");
+    expect(calls).toEqual([["left", 12.5]]);
   });
 
   it("ports GWPUnitSelector SetCoords as unit selector coordinate assignment", () => {
@@ -535,6 +948,89 @@ describe("production window", () => {
     ]);
   });
 
+  it("ports GWPFullUnitSelector UnClick inactive selector as no-op", () => {
+    const calls: unknown[] = [];
+    const state = {
+      isActive: false,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      buttonList: [
+        {
+          objectType: 1,
+          objectId: 2,
+          objectButton: { unclick: () => calls.push("button") === undefined },
+        },
+      ],
+      objectSelected: false,
+      selectedObjectType: 0,
+      selectedObjectId: 0,
+    };
+
+    expect(unclickProductionFullUnitSelector(state, 35, 45)).toBe(false);
+    expect(calls).toEqual([]);
+    expect(state.objectSelected).toBe(false);
+  });
+
+  it("ports GWPFullUnitSelector UnClick as selection caching and bounds hit testing", () => {
+    const calls: unknown[] = [];
+    const state = {
+      isActive: true,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      buttonList: [
+        {
+          objectType: 1,
+          objectId: 2,
+          objectButton: {
+            unclick: (x: number, y: number) => {
+              calls.push(["first", x, y]);
+              return false;
+            },
+          },
+        },
+        {
+          objectType: 3,
+          objectId: 4,
+          objectButton: {
+            unclick: (x: number, y: number) => {
+              calls.push(["second", x, y]);
+              return x === 5 && y === 5;
+            },
+          },
+        },
+      ],
+      objectSelected: false,
+      selectedObjectType: 0,
+      selectedObjectId: 0,
+    };
+
+    expect(unclickProductionFullUnitSelector(state, 35, 45)).toBe(true);
+    expect(state.objectSelected).toBe(true);
+    expect(state.selectedObjectType).toBe(3);
+    expect(state.selectedObjectId).toBe(4);
+
+    expect(unclickProductionFullUnitSelector(state, 29, 45)).toBe(false);
+    expect(unclickProductionFullUnitSelector(state, 35, 39)).toBe(false);
+    expect(unclickProductionFullUnitSelector(state, 80, 45)).toBe(false);
+    expect(unclickProductionFullUnitSelector(state, 35, 100)).toBe(false);
+    expect(calls).toEqual([
+      ["first", 5, 5],
+      ["second", 5, 5],
+      ["first", -1, 5],
+      ["second", -1, 5],
+      ["first", 5, -1],
+      ["second", 5, -1],
+      ["first", 50, 5],
+      ["second", 50, 5],
+      ["first", 5, 60],
+      ["second", 5, 60],
+    ]);
+  });
+
   it("ports GWPUnitSelector Click inactive selector as no-op", () => {
     const calls: unknown[] = [];
     const state = {
@@ -584,6 +1080,93 @@ describe("production window", () => {
     ]);
   });
 
+  it("ports GWPUnitSelector UnClick inactive selector as load reset only", () => {
+    const calls: unknown[] = [];
+    const state = {
+      isActive: false,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      upButton: { unclick: () => false },
+      downButton: { unclick: () => false },
+      isOnlySelector: true,
+      buildState: ProductionBuildingState.Select,
+      loadFullSelector: true,
+      doUpButton: () => calls.push("up"),
+      doDownButton: () => calls.push("down"),
+    };
+
+    expect(unclickProductionUnitSelector(state, 35, 45)).toBe(false);
+    expect(state.loadFullSelector).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWPUnitSelector UnClick as button release routing and bounds hit testing", () => {
+    const calls: unknown[] = [];
+    const state = {
+      isActive: true,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      upButton: {
+        unclick: (x: number, y: number) => {
+          calls.push(["up-button", x, y]);
+          return true;
+        },
+      },
+      downButton: {
+        unclick: (x: number, y: number) => {
+          calls.push(["down-button", x, y]);
+          return false;
+        },
+      },
+      isOnlySelector: false,
+      buildState: ProductionBuildingState.Building,
+      loadFullSelector: true,
+      doUpButton: () => calls.push("up-action"),
+      doDownButton: () => calls.push("down-action"),
+    };
+
+    expect(unclickProductionUnitSelector(state, 35, 45)).toBe(true);
+    expect(state.loadFullSelector).toBe(false);
+    expect(calls).toEqual([
+      ["up-button", 5, 5],
+      "up-action",
+      ["down-button", 5, 5],
+    ]);
+    expect(unclickProductionUnitSelector(state, 29, 45)).toBe(false);
+    expect(unclickProductionUnitSelector(state, 35, 39)).toBe(false);
+    expect(unclickProductionUnitSelector(state, 80, 45)).toBe(false);
+    expect(unclickProductionUnitSelector(state, 35, 100)).toBe(false);
+  });
+
+  it("ports GWPUnitSelector UnClick as portrait-triggered full selector load", () => {
+    const state = {
+      isActive: true,
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 60,
+      upButton: { unclick: () => false },
+      downButton: { unclick: () => false },
+      isOnlySelector: true,
+      buildState: ProductionBuildingState.Building,
+      loadFullSelector: false,
+      doUpButton: () => undefined,
+      doDownButton: () => undefined,
+    };
+
+    expect(unclickProductionUnitSelector(state, 32, 42)).toBe(true);
+    expect(state.loadFullSelector).toBe(true);
+
+    state.isOnlySelector = false;
+    state.buildState = ProductionBuildingState.Select;
+    expect(unclickProductionUnitSelector(state, 77, 92)).toBe(true);
+    expect(state.loadFullSelector).toBe(false);
+  });
+
   it("ports GWPUnitSelector GetSelectedID as draw object id read", () => {
     const emptyState = { drawObject: null };
     expect(getProductionUnitSelectorSelectedId(emptyState)).toEqual({
@@ -614,6 +1197,54 @@ describe("production window", () => {
     expect(withinProductionUnitSelectorPortrait(2, 1)).toBe(false);
     expect(withinProductionUnitSelectorPortrait(47, 52)).toBe(false);
     expect(withinProductionUnitSelectorPortrait(46, 53)).toBe(false);
+  });
+
+  it("ports GWPUnitSelector WheelUpButton inactive up button as no-op", () => {
+    const calls: string[] = [];
+
+    const handled = wheelUpProductionUnitSelector({
+      upButton: { isActive: () => false },
+      doUpButton: () => calls.push("up"),
+    });
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWPUnitSelector WheelUpButton active up button as up action", () => {
+    const calls: string[] = [];
+
+    const handled = wheelUpProductionUnitSelector({
+      upButton: { isActive: () => true },
+      doUpButton: () => calls.push("up"),
+    });
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["up"]);
+  });
+
+  it("ports GWPUnitSelector WheelDownButton inactive down button as no-op", () => {
+    const calls: string[] = [];
+
+    const handled = wheelDownProductionUnitSelector({
+      downButton: { isActive: () => false },
+      doDownButton: () => calls.push("down"),
+    });
+
+    expect(handled).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWPUnitSelector WheelDownButton active down button as down action", () => {
+    const calls: string[] = [];
+
+    const handled = wheelDownProductionUnitSelector({
+      downButton: { isActive: () => true },
+      doDownButton: () => calls.push("down"),
+    });
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["down"]);
   });
 
   it("ports GWPUnitSelector DoUpButton as selected index advance with wrap", () => {
@@ -672,6 +1303,89 @@ describe("production window", () => {
     expect(noBuilding.selectedIndex).toBe(0);
     expect(noBuildList.selectedIndex).toBe(0);
     expect(emptyBuildList.selectedIndex).toBe(0);
+  });
+
+  it("ports GWPUnitSelector SetSelection as object type/id index selection", () => {
+    const calls: Array<[number, number]> = [];
+    let drawCalls = 0;
+    const state = {
+      buildingObject: { getLevel: () => 2 },
+      buildList: {
+        getBuildList(buildingType: number, buildingLevel: number) {
+          calls.push([buildingType, buildingLevel]);
+          return [
+            { ot: 1, oid: 7 },
+            { ot: 3, oid: 4 },
+            { ot: 3, oid: 9 },
+          ];
+        },
+      },
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 0,
+      setDrawObject() {
+        drawCalls += 1;
+      },
+    };
+
+    setProductionUnitSelectorSelection(state, 3, 9);
+
+    expect(state.selectedIndex).toBe(2);
+    expect(calls).toEqual([[BuildingType.RobotFactory, 2]]);
+    expect(drawCalls).toBe(1);
+  });
+
+  it("ports GWPUnitSelector SetSelection guard exits before draw refresh", () => {
+    let drawCalls = 0;
+    const noBuildList = {
+      buildingObject: { getLevel: () => 2 },
+      buildList: null,
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 1,
+      setDrawObject() {
+        drawCalls += 1;
+      },
+    };
+    const noBuilding = {
+      buildingObject: null,
+      buildList: {
+        getBuildList: () => [{ ot: 1, oid: 2 }],
+      },
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 1,
+      setDrawObject() {
+        drawCalls += 1;
+      },
+    };
+
+    setProductionUnitSelectorSelection(noBuildList, 1, 2);
+    setProductionUnitSelectorSelection(noBuilding, 1, 2);
+
+    expect(noBuildList.selectedIndex).toBe(1);
+    expect(noBuilding.selectedIndex).toBe(1);
+    expect(drawCalls).toBe(0);
+  });
+
+  it("ports GWPUnitSelector SetSelection as draw refresh when no object matches", () => {
+    let drawCalls = 0;
+    const state = {
+      buildingObject: { getLevel: () => 2 },
+      buildList: {
+        getBuildList: () => [
+          { ot: 1, oid: 7 },
+          { ot: 3, oid: 4 },
+        ],
+      },
+      buildingType: BuildingType.RobotFactory,
+      selectedIndex: 1,
+      setDrawObject() {
+        drawCalls += 1;
+      },
+    };
+
+    setProductionUnitSelectorSelection(state, 9, 9);
+
+    expect(state.selectedIndex).toBe(1);
+    expect(drawCalls).toBe(1);
   });
 
   it("ports GWPUnitSelector DoDownButton as selected index decrement with wrap", () => {
@@ -791,6 +1505,60 @@ describe("production window", () => {
     expect(shouldLoadProductionFullSelector({ loadFullSelector: false })).toBe(
       false,
     );
+  });
+
+  it("ports GWProduction LoadFullSelector from the unit selector origin", () => {
+    const calls: string[] = [];
+    const centers: Array<[number, number]> = [];
+    const state = {
+      x: 100,
+      y: 40,
+      width: 120,
+      height: 80,
+      fullSelector: {
+        setActive: (isActive: boolean) => calls.push(`active:${isActive}`),
+        setUnitSelectorRefId: (refId: number) => calls.push(`ref:${refId}`),
+        clearSelected: () => calls.push("clear"),
+        setCenterCoords: (centerX: number, centerY: number) => {
+          centers.push([centerX, centerY]);
+        },
+      },
+      unitSelector: { refId: 7, x: 10, y: 20 },
+      queueSelector: { refId: 9, x: 30, y: 40 },
+    };
+
+    loadProductionFullSelector(state, 7);
+
+    expect(calls).toEqual(["active:true", "ref:7", "clear"]);
+    expect(centers).toEqual([[134, 81]]);
+  });
+
+  it("ports GWProduction LoadFullSelector queue and center fallbacks", () => {
+    const centers: Array<[number, number]> = [];
+    const state = {
+      x: 100,
+      y: 40,
+      width: 121,
+      height: 81,
+      fullSelector: {
+        setActive: () => undefined,
+        setUnitSelectorRefId: () => undefined,
+        clearSelected: () => undefined,
+        setCenterCoords: (centerX: number, centerY: number) => {
+          centers.push([centerX, centerY]);
+        },
+      },
+      unitSelector: { refId: 7, x: 10, y: 20 },
+      queueSelector: { refId: 9, x: 30, y: 40 },
+    };
+
+    loadProductionFullSelector(state, 9);
+    loadProductionFullSelector(state, 12);
+
+    expect(centers).toEqual([
+      [154, 101],
+      [184, 101],
+    ]);
   });
 
   it("ports GWProduction WheelUpButton as unit selector first, queue fallback", () => {
@@ -924,6 +1692,86 @@ describe("production window", () => {
     ]);
   });
 
+  it("ports GWProduction SetType as production type to building type mapping", () => {
+    const calls: Array<[string, BuildingType]> = [];
+    const state = {
+      type: ProductionType.Robot,
+      buildingType: BuildingType.RobotFactory,
+      unitSelector: {
+        setBuildingType(buildingType: BuildingType) {
+          calls.push(["unit", buildingType]);
+        },
+      },
+      queueSelector: {
+        setBuildingType(buildingType: BuildingType) {
+          calls.push(["queue", buildingType]);
+        },
+      },
+      fullSelector: {
+        setBuildingType(buildingType: BuildingType) {
+          calls.push(["full", buildingType]);
+        },
+      },
+    };
+
+    setProductionType(state, ProductionType.Fort);
+    expect(state.type).toBe(ProductionType.Fort);
+    expect(state.buildingType).toBe(BuildingType.FortFront);
+
+    setProductionType(state, ProductionType.Vehicle);
+    expect(state.type).toBe(ProductionType.Vehicle);
+    expect(state.buildingType).toBe(BuildingType.VehicleFactory);
+
+    setProductionType(state, ProductionType.Robot);
+    expect(state.type).toBe(ProductionType.Robot);
+    expect(state.buildingType).toBe(BuildingType.RobotFactory);
+
+    expect(calls).toEqual([
+      ["unit", BuildingType.FortFront],
+      ["queue", BuildingType.FortFront],
+      ["full", BuildingType.FortFront],
+      ["unit", BuildingType.VehicleFactory],
+      ["queue", BuildingType.VehicleFactory],
+      ["full", BuildingType.VehicleFactory],
+      ["unit", BuildingType.RobotFactory],
+      ["queue", BuildingType.RobotFactory],
+      ["full", BuildingType.RobotFactory],
+    ]);
+  });
+
+  it("ports GWProduction SetType default path as current building type propagation", () => {
+    const calls: Array<[string, BuildingType]> = [];
+    const state = {
+      type: ProductionType.Robot,
+      buildingType: BuildingType.FortFront,
+      unitSelector: {
+        setBuildingType(buildingType: BuildingType) {
+          calls.push(["unit", buildingType]);
+        },
+      },
+      queueSelector: {
+        setBuildingType(buildingType: BuildingType) {
+          calls.push(["queue", buildingType]);
+        },
+      },
+      fullSelector: {
+        setBuildingType(buildingType: BuildingType) {
+          calls.push(["full", buildingType]);
+        },
+      },
+    };
+
+    setProductionType(state, ProductionType.TypesMax);
+
+    expect(state.type).toBe(ProductionType.TypesMax);
+    expect(state.buildingType).toBe(BuildingType.FortFront);
+    expect(calls).toEqual([
+      ["unit", BuildingType.FortFront],
+      ["queue", BuildingType.FortFront],
+      ["full", BuildingType.FortFront],
+    ]);
+  });
+
   it("ports GWProduction SetBuildingObj as shared selector building assignment", () => {
     const buildingObject = { refId: 42 };
     const calls: Array<[string, typeof buildingObject | null]> = [];
@@ -1021,6 +1869,115 @@ describe("production window", () => {
       qoid: -1,
       qrefId: 0,
     });
+  });
+
+  it("ports GWProduction DoOkButton select state as new production flag emission", () => {
+    const flags = {
+      sendNewProduction: false,
+      pot: -1,
+      poid: -1,
+      prefId: 0,
+    };
+    const state = {
+      state: ProductionBuildingState.Select,
+      unitSelector: {
+        getSelectedId: () => ({
+          selected: true,
+          objectType: 3,
+          objectId: 7,
+        }),
+      },
+      buildingObject: { getRefId: () => 42 },
+      killme: false,
+      flags,
+    };
+
+    doProductionOkButton(state);
+
+    expect(state.killme).toBe(false);
+    expect(flags).toEqual({
+      sendNewProduction: true,
+      pot: 3,
+      poid: 7,
+      prefId: 42,
+    });
+  });
+
+  it("ports GWProduction DoOkButton select state without selection as a no-op", () => {
+    const flags = {
+      sendNewProduction: false,
+      pot: -1,
+      poid: -1,
+      prefId: 0,
+    };
+    const state = {
+      state: ProductionBuildingState.Select,
+      unitSelector: {
+        getSelectedId: () => ({
+          selected: false,
+          objectType: 3,
+          objectId: 7,
+        }),
+      },
+      buildingObject: { getRefId: () => 42 },
+      killme: false,
+      flags,
+    };
+
+    doProductionOkButton(state);
+
+    expect(state.killme).toBe(false);
+    expect(flags).toEqual({
+      sendNewProduction: false,
+      pot: -1,
+      poid: -1,
+      prefId: 0,
+    });
+  });
+
+  it("ports GWProduction DoOkButton state branches", () => {
+    const flags = {
+      sendNewProduction: false,
+      pot: -1,
+      poid: -1,
+      prefId: 0,
+    };
+    const baseState = {
+      unitSelector: {
+        getSelectedId: () => ({
+          selected: true,
+          objectType: 3,
+          objectId: 7,
+        }),
+      },
+      buildingObject: { getRefId: () => 42 },
+      killme: false,
+      flags,
+    };
+
+    const placeState = {
+      ...baseState,
+      state: ProductionBuildingState.Place,
+    };
+    doProductionOkButton(placeState);
+    expect(placeState.killme).toBe(false);
+    expect(flags.sendNewProduction).toBe(false);
+
+    const pausedState = {
+      ...baseState,
+      state: ProductionBuildingState.Paused,
+      killme: false,
+    };
+    doProductionOkButton(pausedState);
+    expect(pausedState.killme).toBe(true);
+
+    const buildingState = {
+      ...baseState,
+      state: ProductionBuildingState.Building,
+      killme: false,
+    };
+    doProductionOkButton(buildingState);
+    expect(buildingState.killme).toBe(true);
   });
 
   it("ports GWProduction DoCancelQueueItem as queue cancellation flag emission", () => {

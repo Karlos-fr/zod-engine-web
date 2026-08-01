@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
+  FACTORY_LIST_ENTRY_BAR_GREEN_IMAGE_PATH,
+  FACTORY_LIST_ENTRY_BAR_GREY_IMAGE_PATH,
+  FACTORY_LIST_ENTRY_BAR_RED_IMAGE_PATH,
+  FACTORY_LIST_ENTRY_BAR_WHITE_INVERTED_IMAGE_PATH,
+  FACTORY_LIST_MAIN_ENTRY_IMAGE_PATH,
+  FACTORY_LIST_MAIN_RIGHT_IMAGE_PATH,
+  FACTORY_LIST_MAIN_TOP_IMAGE_PATH,
   FactoryListWindow,
   FactoryListRenderEntry,
   ZGW_FACTORY_LIST_HEADER_GUARD_PORTED,
@@ -66,6 +73,64 @@ describe("factory list window", () => {
     expect(window.team).toBe(2);
   });
 
+  it("ports GWFactoryList Init as factory GUI image loading", () => {
+    const loadedFilenames: string[] = [];
+    const window = new FactoryListWindow();
+
+    window.init((filename) => {
+      loadedFilenames.push(filename);
+      return `surface:${filename}`;
+    });
+
+    expect(loadedFilenames).toEqual([
+      FACTORY_LIST_MAIN_TOP_IMAGE_PATH,
+      FACTORY_LIST_MAIN_RIGHT_IMAGE_PATH,
+      FACTORY_LIST_MAIN_ENTRY_IMAGE_PATH,
+      FACTORY_LIST_ENTRY_BAR_GREEN_IMAGE_PATH,
+      FACTORY_LIST_ENTRY_BAR_RED_IMAGE_PATH,
+      FACTORY_LIST_ENTRY_BAR_GREY_IMAGE_PATH,
+      FACTORY_LIST_ENTRY_BAR_WHITE_INVERTED_IMAGE_PATH,
+    ]);
+    expect(window.mainTopImage).toEqual({
+      imageFilename: FACTORY_LIST_MAIN_TOP_IMAGE_PATH,
+      baseSurface: `surface:${FACTORY_LIST_MAIN_TOP_IMAGE_PATH}`,
+    });
+    expect(window.mainRightImage.baseSurface).toBe(
+      `surface:${FACTORY_LIST_MAIN_RIGHT_IMAGE_PATH}`,
+    );
+    expect(window.mainEntryImage.baseSurface).toBe(
+      `surface:${FACTORY_LIST_MAIN_ENTRY_IMAGE_PATH}`,
+    );
+    expect(window.entryBarGreenImage.baseSurface).toBe(
+      `surface:${FACTORY_LIST_ENTRY_BAR_GREEN_IMAGE_PATH}`,
+    );
+    expect(window.entryBarRedImage.baseSurface).toBe(
+      `surface:${FACTORY_LIST_ENTRY_BAR_RED_IMAGE_PATH}`,
+    );
+    expect(window.entryBarGreyImage.baseSurface).toBe(
+      `surface:${FACTORY_LIST_ENTRY_BAR_GREY_IMAGE_PATH}`,
+    );
+    expect(window.entryBarWhiteInvertedImage.baseSurface).toBe(
+      `surface:${FACTORY_LIST_ENTRY_BAR_WHITE_INVERTED_IMAGE_PATH}`,
+    );
+    expect(window.finishedInit).toBe(true);
+  });
+
+  it("ports GWFactoryList Init as incomplete when an image lacks a base surface", () => {
+    const window = new FactoryListWindow();
+
+    window.init((filename) => {
+      if (filename === FACTORY_LIST_ENTRY_BAR_RED_IMAGE_PATH) return null;
+      return `surface:${filename}`;
+    });
+
+    expect(window.entryBarRedImage).toEqual({
+      imageFilename: FACTORY_LIST_ENTRY_BAR_RED_IMAGE_PATH,
+      baseSurface: null,
+    });
+    expect(window.finishedInit).toBe(false);
+  });
+
   it("ports GWFactoryList Process guard exits before collecting entries", () => {
     class TestFactoryListWindow extends FactoryListWindow {
       collectCount = 0;
@@ -105,6 +170,48 @@ describe("factory list window", () => {
     window.process();
 
     expect(window.collectCount).toBe(1);
+  });
+
+  it("ports GWFactoryList DetermineHeight as empty entry reset", () => {
+    const window = new FactoryListWindow();
+    window.height = 99;
+    window.showStartEntry = 3;
+    window.showAbleEntries = 2;
+    window.mainTopImage.baseSurface = { height: 12 };
+    window.mainEntryImage.baseSurface = { height: 20 };
+
+    window.determineHeight(100);
+
+    expect(window.height).toBe(12);
+    expect(window.showStartEntry).toBe(0);
+    expect(window.showAbleEntries).toBe(0);
+  });
+
+  it("ports GWFactoryList DetermineHeight as minimum one-row layout", () => {
+    const window = new FactoryListWindow();
+    window.mainTopImage.baseSurface = { height: 12 };
+    window.mainEntryImage.baseSurface = { height: 20 };
+    window.entryList = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    window.determineHeight(20);
+
+    expect(window.showAbleEntries).toBe(1);
+    expect(window.showStartEntry).toBe(0);
+    expect(window.height).toBe(32);
+  });
+
+  it("ports GWFactoryList DetermineHeight as visible row and start-entry clamp", () => {
+    const window = new FactoryListWindow();
+    window.mainTopImage.baseSurface = { height: 12 };
+    window.mainEntryImage.baseSurface = { height: 20 };
+    window.entryList = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
+    window.showStartEntry = 3;
+
+    window.determineHeight(100);
+
+    expect(window.showAbleEntries).toBe(4);
+    expect(window.showStartEntry).toBe(0);
+    expect(window.height).toBe(92);
   });
 
   it("ports GWFactoryList DoUpButton as first visible entry decrement clamped to zero", () => {
@@ -164,5 +271,92 @@ describe("factory list window", () => {
 
     expect(window.wheelDownButton()).toBe(true);
     expect(window.showStartEntry).toBe(3);
+  });
+
+  it("ports GWFactoryList UnClick as hidden no-op", () => {
+    const calls: string[] = [];
+    const window = new FactoryListWindow();
+    window.show = false;
+    window.gflags = { clear: () => calls.push("clear") };
+    window.upButton = { unClick: () => calls.push("up") > 0 };
+    window.downButton = { unClick: () => calls.push("down") > 0 };
+
+    expect(window.unClick(10, 20)).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports GWFactoryList UnClick as local scroll button routing", () => {
+    const calls: unknown[] = [];
+    const window = new FactoryListWindow();
+    window.show = true;
+    window.x = 30;
+    window.y = 40;
+    window.width = 50;
+    window.height = 60;
+    window.showStartEntry = 1;
+    window.gflags = { clear: () => calls.push("clear") };
+    window.upButton = {
+      unClick(x: number, y: number) {
+        calls.push(["up", x, y]);
+        return true;
+      },
+    };
+    window.downButton = {
+      unClick(x: number, y: number) {
+        calls.push(["down", x, y]);
+        return true;
+      },
+    };
+
+    expect(window.unClick(35, 45)).toBe(true);
+    expect(window.showStartEntry).toBe(1);
+    expect(calls).toEqual([
+      "clear",
+      ["up", 5, 5],
+      ["down", 5, 5],
+    ]);
+  });
+
+  it("ports GWFactoryList UnClick bounds after button routing", () => {
+    const calls: unknown[] = [];
+    const window = new FactoryListWindow();
+    window.show = true;
+    window.x = 30;
+    window.y = 40;
+    window.width = 50;
+    window.height = 60;
+    window.gflags = { clear: () => calls.push("clear") };
+    window.upButton = {
+      unClick(x: number, y: number) {
+        calls.push(["up", x, y]);
+        return false;
+      },
+    };
+    window.downButton = {
+      unClick(x: number, y: number) {
+        calls.push(["down", x, y]);
+        return false;
+      },
+    };
+
+    expect(window.unClick(29, 45)).toBe(false);
+    expect(window.unClick(35, 39)).toBe(false);
+    expect(window.unClick(80, 45)).toBe(false);
+    expect(window.unClick(35, 100)).toBe(false);
+
+    expect(calls).toEqual([
+      "clear",
+      ["up", -1, 5],
+      ["down", -1, 5],
+      "clear",
+      ["up", 5, -1],
+      ["down", 5, -1],
+      "clear",
+      ["up", 50, 5],
+      ["down", 50, 5],
+      "clear",
+      ["up", 5, 60],
+      ["down", 5, 60],
+    ]);
   });
 });

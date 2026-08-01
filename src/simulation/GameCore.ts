@@ -3,14 +3,16 @@
  */
 
 import { GameEntity } from "./entities/GameEntity";
-import { WaypointMode } from "./entities/EntityTypes";
+import { WaypointMode, type Waypoint } from "./entities/EntityTypes";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
+  BuildingType,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   PlayerConnectionMode,
   TeamType,
 } from "./SimulationConstants";
+import { MapObjectType } from "../world/MapFormat";
 
 /**
  * Port of upstream `_ZCORE_H_`.
@@ -160,6 +162,30 @@ export type CoreUnitLimitState = {
 };
 
 /**
+ * Port of upstream `ZCore::AreaIsFortTurret` object dependency surface.
+ * Role: Provides object identity, selection overlap, and cannon-placement checks.
+ * Upstream: zcore.cpp:699-707
+ */
+export type CoreFortTurretAreaObject = {
+  getObjectId(): {
+    objectType: number;
+    objectId: number;
+  };
+  withinSelection(selection: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  }): boolean;
+  cannonNotPlacable(selection: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  }): boolean;
+};
+
+/**
  * Port of upstream `ZCore::CreateRandomBotBypassData` output.
  * Role: Carries generated bot pathing bypass data and its byte size.
  * Upstream: zcore.cpp:44-52
@@ -168,6 +194,13 @@ export type CoreRandomBotBypassData = {
   data: Uint8Array;
   size: number;
 };
+
+/**
+ * Port of upstream packed `waypoint` byte size.
+ * Role: Defines the per-waypoint payload size used by `ZCore::CreateWaypointSendData`.
+ * Upstream: zobject.h:155-164, zcore.cpp:482-493
+ */
+export const CORE_PACKED_WAYPOINT_BYTES = 15;
 
 /**
  * Port of upstream `AllowRun`.
@@ -216,6 +249,40 @@ export function createCoreRandomBotBypassData(
   }
 
   return { data, size };
+}
+
+/**
+ * Port of upstream `ZCore::CreateWaypointSendData`.
+ * Role: Serializes an object ref id and packed waypoint list into the waypoint-send payload.
+ * Upstream: zcore.cpp:475-496
+ */
+export function createCoreWaypointSendData(
+  refId: number,
+  waypointList: readonly Pick<
+    Waypoint,
+    "mode" | "refId" | "x" | "y" | "attackTo" | "playerGiven"
+  >[],
+): Uint8Array {
+  const data = new Uint8Array(
+    8 + waypointList.length * CORE_PACKED_WAYPOINT_BYTES,
+  );
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+  view.setInt32(0, refId, true);
+  view.setInt32(4, waypointList.length, true);
+
+  let offset = 8;
+  for (const waypoint of waypointList) {
+    view.setInt8(offset, waypoint.mode);
+    view.setInt32(offset + 1, waypoint.refId, true);
+    view.setInt32(offset + 5, waypoint.x, true);
+    view.setInt32(offset + 9, waypoint.y, true);
+    view.setUint8(offset + 13, waypoint.attackTo ? 1 : 0);
+    view.setUint8(offset + 14, waypoint.playerGiven ? 1 : 0);
+    offset += CORE_PACKED_WAYPOINT_BYTES;
+  }
+
+  return data;
 }
 
 /**
@@ -380,6 +447,44 @@ export function checkCoreRallypoint(
  */
 export function deleteCoreObjectCleanUp(obj: GameEntity | null): void {
   void obj;
+}
+
+/**
+ * Port of upstream `ZCore::AreaIsFortTurret`.
+ * Role: Reports whether a 2x2 tile area overlaps a fort body but remains cannon-placeable.
+ * Upstream: zcore.cpp:690-711
+ */
+export function areaIsCoreFortTurret(
+  objectList: readonly CoreFortTurretAreaObject[],
+  tileX: number,
+  tileY: number,
+): boolean {
+  const left = tileX * 16;
+  const top = tileY * 16;
+  const right = left + 32;
+  const bottom = top + 32;
+  const selection = { left, right, top, bottom };
+
+  for (const object of objectList) {
+    const objectId = object.getObjectId();
+
+    if (
+      objectId.objectType !== MapObjectType.Building ||
+      (objectId.objectId !== BuildingType.FortFront &&
+        objectId.objectId !== BuildingType.FortBack)
+    ) {
+      continue;
+    }
+
+    if (
+      object.withinSelection(selection) &&
+      !object.cannonNotPlacable(selection)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

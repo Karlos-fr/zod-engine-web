@@ -221,6 +221,29 @@ export class PortraitAnimation implements PortraitAnimationState {
 }
 
 /**
+ * Port of upstream `ZPortrait_Unit_Graphics`.
+ * Role: Stores portrait sprite surfaces for one robot and team palette.
+ * Upstream: zportrait.h:131-141
+ */
+export class PortraitUnitGraphics<TSurface = unknown> {
+  head: Array<TSurface | null>;
+  eyes: Array<TSurface | null>;
+  hand: Array<TSurface | null>;
+  mouth: Array<TSurface | null>;
+  shoulders: TSurface | null = null;
+
+  constructor() {
+    this.head = Array.from(
+      { length: PortraitLookDirection.MaxLookDirections },
+      () => null,
+    );
+    this.eyes = Array.from({ length: PORTRAIT_MAX_EYES }, () => null);
+    this.hand = Array.from({ length: PORTRAIT_MAX_HANDS }, () => null);
+    this.mouth = Array.from({ length: PORTRAIT_MAX_MOUTHS }, () => null);
+  }
+}
+
+/**
  * Port of upstream `ZPortrait` reference id field.
  * Role: Holds the object reference associated with the active portrait.
  * Upstream: zportrait.h:156, zportrait.h:194
@@ -334,6 +357,14 @@ export type PortraitStartAnimationState = {
   renderFrame: PortraitFrame;
   animationStartTime: number;
 };
+
+/**
+ * Port of upstream `ZPortrait::StartRandomAnim` state.
+ * Role: Stores whether random portrait animations may start and the active animation state.
+ * Upstream: zportrait.h:159, zportrait.h:176-179
+ */
+export type PortraitStartRandomAnimationState =
+  PortraitRandomAnimationState & PortraitStartAnimationState;
 
 /**
  * Port of upstream `ZPortrait` robot binding fields reset by `ClearRobotID`.
@@ -469,6 +500,47 @@ export function startPortraitAnimation(
   state.renderFrame = firstFrame;
   state.animationStartTime = currentTime();
   playAnimSound();
+}
+
+const PORTRAIT_RANDOM_ANIMATIONS = [
+  PortraitAnimationType.Blink,
+  PortraitAnimationType.Wink,
+  PortraitAnimationType.Surprise,
+  PortraitAnimationType.Anger,
+  PortraitAnimationType.Grin,
+  PortraitAnimationType.Scared,
+  PortraitAnimationType.EyesLeft,
+  PortraitAnimationType.EyesRight,
+  PortraitAnimationType.EyesUp,
+  PortraitAnimationType.EyesDown,
+  PortraitAnimationType.Whistle,
+  PortraitAnimationType.LookLeft,
+  PortraitAnimationType.LookRight,
+] as const;
+
+/**
+ * Port of upstream `ZPortrait::StartRandomAnim`.
+ * Role: Starts one of the portrait's ambient facial animations when enabled.
+ * Upstream: zportrait.cpp:203-223
+ */
+export function startPortraitRandomAnimation(
+  state: PortraitStartRandomAnimationState,
+  currentTime: () => number,
+  playAnimSound: () => void,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (!state.doRandomAnims) return;
+
+  const index =
+    Math.trunc(randomInt(PORTRAIT_RANDOM_ANIMATIONS.length)) %
+    PORTRAIT_RANDOM_ANIMATIONS.length;
+  startPortraitAnimation(
+    state,
+    PORTRAIT_RANDOM_ANIMATIONS[index],
+    currentTime,
+    playAnimSound,
+  );
 }
 
 /**

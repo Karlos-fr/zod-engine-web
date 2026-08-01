@@ -45,12 +45,17 @@ import {
   initMainMenuTextBox,
   isMainMenuListEntryBefore,
   isMainMenuWidgetActive,
+  keyPressMainMenuTextBox,
+  makeMainMenuButtonTextImage,
   keyPressMainMenuWidget,
+  makeMainMenuLabelTextImage,
   makeMainMenuTextBoxImage,
   moveDownMainMenuList,
   motionMainMenuWidget,
   moveUpMainMenuList,
+  processMainMenuTextBox,
   processMainMenuWidget,
+  renderMainMenuTeamColor,
   renderMainMenuWidget,
   setMainMenuButtonGreen,
   setMainMenuButtonText,
@@ -79,6 +84,7 @@ import {
   wheelDownMainMenuList,
   wheelDownMainMenuWidget,
   withinMainMenuListDownButton,
+  withinMainMenuListEntry,
   withinMainMenuListUpButton,
   wheelUpMainMenuList,
   wheelUpMainMenuWidget,
@@ -398,6 +404,45 @@ describe("main menu widgets", () => {
     expect(state.downButtonState).toBe(MainMenuListState.Normal);
   });
 
+  it("ports GMMWList::WithinEntry as list-local entry hit testing", () => {
+    const state = {
+      width: 100,
+      visibleEntries: 3,
+      viewIndex: 2,
+      entries: ["A", "B", "C", "D", "E", "F"],
+      topImage: { width: 100, height: 3 },
+      leftImage: { width: 4, height: 44 },
+      rightImage: { width: 5, height: 44 },
+    };
+
+    expect(withinMainMenuListEntry(state, 4, 3)).toBe(2);
+    expect(withinMainMenuListEntry(state, 91, 16)).toBe(3);
+    expect(withinMainMenuListEntry(state, 50, 41)).toBe(4);
+
+    expect(withinMainMenuListEntry(state, 3, 3)).toBe(-1);
+    expect(withinMainMenuListEntry(state, 92, 3)).toBe(-1);
+    expect(withinMainMenuListEntry(state, 4, 2)).toBe(-1);
+    expect(withinMainMenuListEntry(state, 4, 42)).toBe(-1);
+  });
+
+  it("ports GMMWList::WithinEntry guard exits", () => {
+    const state = {
+      width: 100,
+      visibleEntries: 3,
+      viewIndex: 4,
+      entries: ["A", "B", "C", "D", "E"],
+      topImage: { width: 100, height: 3 },
+      leftImage: { width: 4, height: 44 },
+      rightImage: { width: 5, height: 44 },
+    };
+
+    expect(withinMainMenuListEntry({ ...state, topImage: null }, 4, 3)).toBe(-1);
+    expect(withinMainMenuListEntry({ ...state, leftImage: null }, 4, 3)).toBe(
+      -1,
+    );
+    expect(withinMainMenuListEntry(state, 4, 29)).toBe(-1);
+  });
+
   it("ports mmbutton_type identifiers", () => {
     expect(MainMenuButtonType.Generic).toBe(0);
     expect(MainMenuButtonType.Close).toBe(1);
@@ -553,6 +598,66 @@ describe("main menu widgets", () => {
     expect(state).toEqual({ text: "Launch", rerenderText: true });
   });
 
+  it("ports GMMWButton::MakeTextImage as skipped when text is current", () => {
+    const state = {
+      text: "Launch",
+      textImage: { textureId: "old" },
+      rerenderText: false,
+    };
+    const renderCalls: Array<{ font: FontType; text: string }> = [];
+
+    makeMainMenuButtonTextImage(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([]);
+    expect(state).toEqual({
+      text: "Launch",
+      textImage: { textureId: "old" },
+      rerenderText: false,
+    });
+  });
+
+  it("ports GMMWButton::MakeTextImage as yellow menu text rendering", () => {
+    const state = {
+      text: "Launch",
+      textImage: null as { textureId: string } | null,
+      rerenderText: true,
+    };
+    const renderCalls: Array<{ font: FontType; text: string }> = [];
+
+    makeMainMenuButtonTextImage(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([{ font: FontType.YellowMenu, text: "Launch" }]);
+    expect(state).toEqual({
+      text: "Launch",
+      textImage: { textureId: "Launch" },
+      rerenderText: false,
+    });
+  });
+
+  it("ports GMMWButton::MakeTextImage as unload for empty text", () => {
+    const state = {
+      text: "",
+      textImage: { textureId: "old" } as { textureId: string } | null,
+      rerenderText: true,
+    };
+
+    makeMainMenuButtonTextImage(state, () => {
+      throw new Error("empty button text should not render");
+    });
+
+    expect(state).toEqual({
+      text: "",
+      textImage: null,
+      rerenderText: false,
+    });
+  });
+
   it("ports GMMWButton::DetermineDimensions as close-button sizing", () => {
     const closeButton = {
       type: MainMenuButtonType.Close,
@@ -681,6 +786,88 @@ describe("main menu widgets", () => {
     expect(state).toEqual({ passworded: true, doRerender: true });
   });
 
+  it("ports GMMWTextBox::KeyPress as unhandled when not selected", () => {
+    const state = {
+      selected: false,
+      text: "ready",
+      maxText: -1,
+      goodCharsOnly: false,
+      doRerender: false,
+    };
+
+    expect(keyPressMainMenuTextBox(state, "A".charCodeAt(0))).toBe(false);
+    expect(state).toEqual({
+      selected: false,
+      text: "ready",
+      maxText: -1,
+      goodCharsOnly: false,
+      doRerender: false,
+    });
+  });
+
+  it("ports GMMWTextBox::KeyPress as backspace with rerender", () => {
+    const state = {
+      selected: true,
+      text: "ready",
+      maxText: -1,
+      goodCharsOnly: false,
+      doRerender: false,
+    };
+
+    expect(keyPressMainMenuTextBox(state, 8)).toBe(true);
+
+    expect(state.text).toBe("read");
+    expect(state.doRerender).toBe(true);
+  });
+
+  it("ports GMMWTextBox::KeyPress as selected character append", () => {
+    const state = {
+      selected: true,
+      text: "A",
+      maxText: -1,
+      goodCharsOnly: false,
+      doRerender: false,
+    };
+
+    expect(keyPressMainMenuTextBox(state, "b".charCodeAt(0))).toBe(true);
+
+    expect(state.text).toBe("Ab");
+    expect(state.doRerender).toBe(true);
+  });
+
+  it("ports GMMWTextBox::KeyPress max length as handled without rerender", () => {
+    const state = {
+      selected: true,
+      text: "AB",
+      maxText: 2,
+      goodCharsOnly: false,
+      doRerender: false,
+    };
+
+    expect(keyPressMainMenuTextBox(state, "C".charCodeAt(0))).toBe(true);
+
+    expect(state.text).toBe("AB");
+    expect(state.doRerender).toBe(false);
+  });
+
+  it("ports GMMWTextBox::KeyPress good-character filter as handled without rerender", () => {
+    const state = {
+      selected: true,
+      text: "AB",
+      maxText: -1,
+      goodCharsOnly: true,
+      doRerender: false,
+    };
+
+    expect(keyPressMainMenuTextBox(state, "!".charCodeAt(0))).toBe(true);
+    expect(state.text).toBe("AB");
+    expect(state.doRerender).toBe(false);
+
+    expect(keyPressMainMenuTextBox(state, "_".charCodeAt(0))).toBe(true);
+    expect(state.text).toBe("AB_");
+    expect(state.doRerender).toBe(true);
+  });
+
   it("ports GMMWTextBox::SetGoodCharsOnly as text-box filter state", () => {
     const state = { goodCharsOnly: false, doRerender: false };
 
@@ -739,6 +926,56 @@ describe("main menu widgets", () => {
     });
   });
 
+  it("ports GMMWTextBox::Process as a skipped refresh when text is current", () => {
+    const state = {
+      selected: false,
+      text: "ready",
+      passworded: false,
+      textImage: { textureId: "ready" },
+      doRerender: false,
+    };
+    const renderCalls: Array<{ font: FontType; text: string }> = [];
+
+    processMainMenuTextBox(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([]);
+    expect(state).toEqual({
+      selected: false,
+      text: "ready",
+      passworded: false,
+      textImage: { textureId: "ready" },
+      doRerender: false,
+    });
+  });
+
+  it("ports GMMWTextBox::Process as a conditional text image rebuild", () => {
+    const state = {
+      selected: true,
+      text: "ready",
+      passworded: false,
+      textImage: null as { textureId: string } | null,
+      doRerender: true,
+    };
+    const renderCalls: Array<{ font: FontType; text: string }> = [];
+
+    processMainMenuTextBox(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([{ font: FontType.SmallWhite, text: "ready{" }]);
+    expect(state).toEqual({
+      selected: true,
+      text: "ready",
+      passworded: false,
+      textImage: { textureId: "ready{" },
+      doRerender: false,
+    });
+  });
+
   it("ports GMMWLabel::SetJustification as label alignment state", () => {
     const state = { justification: MainMenuLabelJustifyType.Normal };
 
@@ -775,6 +1012,80 @@ describe("main menu widgets", () => {
     expect(state).toEqual({
       text: "draft",
       renderedText: "same",
+      rerenderText: false,
+    });
+  });
+
+  it("ports GMMWLabel::MakeTextImage as skipped when text is current", () => {
+    const state = {
+      text: "Ready",
+      renderedText: "Ready",
+      font: FontType.YellowMenu,
+      textImage: { textureId: "old" },
+      rerenderText: false,
+    };
+    const renderCalls: Array<{ font: FontType | number; text: string }> = [];
+
+    makeMainMenuLabelTextImage(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([]);
+    expect(state).toEqual({
+      text: "Ready",
+      renderedText: "Ready",
+      font: FontType.YellowMenu,
+      textImage: { textureId: "old" },
+      rerenderText: false,
+    });
+  });
+
+  it("ports GMMWLabel::MakeTextImage as configured font text rendering", () => {
+    const state = {
+      text: "Ready",
+      renderedText: "old",
+      font: FontType.GreenBuilding,
+      textImage: null as { textureId: string } | null,
+      rerenderText: true,
+    };
+    const renderCalls: Array<{ font: FontType | number; text: string }> = [];
+
+    makeMainMenuLabelTextImage(state, (font, text) => {
+      renderCalls.push({ font, text });
+      return { textureId: text };
+    });
+
+    expect(renderCalls).toEqual([
+      { font: FontType.GreenBuilding, text: "Ready" },
+    ]);
+    expect(state).toEqual({
+      text: "Ready",
+      renderedText: "Ready",
+      font: FontType.GreenBuilding,
+      textImage: { textureId: "Ready" },
+      rerenderText: false,
+    });
+  });
+
+  it("ports GMMWLabel::MakeTextImage as unload for empty text", () => {
+    const state = {
+      text: "",
+      renderedText: "old",
+      font: FontType.YellowMenu,
+      textImage: { textureId: "old" } as { textureId: string } | null,
+      rerenderText: true,
+    };
+
+    makeMainMenuLabelTextImage(state, () => {
+      throw new Error("empty label text should not render");
+    });
+
+    expect(state).toEqual({
+      text: "",
+      renderedText: "",
+      font: FontType.YellowMenu,
+      textImage: null,
       rerenderText: false,
     });
   });
@@ -833,6 +1144,59 @@ describe("main menu widgets", () => {
       [8, baseSurface],
     ]);
     expect(state.finishedInit).toBe(true);
+  });
+
+  it("replaces GMMWTeamColor::DoRender with a team swatch texture command", () => {
+    const state = {
+      finishedInit: true,
+      active: true,
+      team: 2,
+      x: 7,
+      y: 11,
+      teamColorImages: [
+        null,
+        null,
+        { texture: "blue-team", width: 19, height: 12 },
+      ],
+    };
+
+    expect(renderMainMenuTeamColor(state, 100, 200)).toEqual({
+      texture: "blue-team",
+      destinationX: 107,
+      destinationY: 211,
+      width: 19,
+      height: 12,
+      sourceX: 0,
+      sourceY: 0,
+      sourceWidth: 19,
+      sourceHeight: 12,
+      textureLeft: 0,
+      textureTop: 0,
+      textureRight: 1,
+      textureBottom: 1,
+      scale: 1,
+      angle: 0,
+      alpha: 1,
+    });
+  });
+
+  it("replaces GMMWTeamColor::DoRender guards with null commands", () => {
+    const state = {
+      finishedInit: true,
+      active: true,
+      team: 1,
+      x: 0,
+      y: 0,
+      teamColorImages: [{ texture: 0, width: 19, height: 12 }],
+    };
+
+    expect(
+      renderMainMenuTeamColor({ ...state, finishedInit: false }, 0, 0),
+    ).toBeNull();
+    expect(renderMainMenuTeamColor({ ...state, active: false }, 0, 0)).toBeNull();
+    expect(renderMainMenuTeamColor({ ...state, team: -1 }, 0, 0)).toBeNull();
+    expect(renderMainMenuTeamColor({ ...state, team: 9 }, 0, 0)).toBeNull();
+    expect(renderMainMenuTeamColor(state, 0, 0)).toBeNull();
   });
 
   it("ports GMMWRadio::Init as radio image initialization", () => {

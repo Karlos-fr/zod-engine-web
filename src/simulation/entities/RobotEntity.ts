@@ -364,6 +364,30 @@ export class RobotEntity extends GameEntity {
   }
 
   /**
+   * Port of upstream `ZRobot::RecalcDirection`.
+   * Role: Updates robot walking or standing mode from current movement direction.
+   * Upstream: zrobot.cpp:328-348
+   */
+  override recalcDirection(): void {
+    const newDirection = this.directionFromLocation(
+      this.locationDeltaX,
+      this.locationDeltaY,
+    );
+
+    if (newDirection !== -1) {
+      if (this.mode !== RobotObjectMode.Walking) {
+        this.actionIndex = 0;
+      }
+
+      this.mode = RobotObjectMode.Walking;
+      this.direction = newDirection;
+      return;
+    }
+
+    this.mode = RobotObjectMode.Standing;
+  }
+
+  /**
    * Port of upstream `ZRobot::SetAttackObject`.
    * Role: Updates the robot attack target and attack animation timing state.
    * Upstream: zrobot.cpp:350-367

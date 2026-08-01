@@ -1,4 +1,6 @@
 import { FontType } from "../rendering/FontEngine";
+import { goodUserChar } from "../simulation/Common";
+import type { TexturedSurfaceRenderCommand } from "../rendering/SurfacePixels";
 import { ACTIVE_TEAM_TYPE_COUNT } from "../simulation/SimulationConstants";
 import {
   loadTeamZSurface,
@@ -150,6 +152,27 @@ export type MainMenuButtonDimensionState = {
 };
 
 /**
+ * Port of upstream `GMMWButton::MakeTextImage` mutable fields.
+ * Role: Holds button text, its rendered image, and the pending text refresh flag.
+ * Upstream: zgui_main_menu_widgets.h:129-141, gmmw_button.cpp:204-214
+ */
+export type MainMenuButtonTextImageState<TTextImage> = {
+  text: string;
+  textImage: TTextImage | null;
+  rerenderText: boolean;
+};
+
+/**
+ * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
+ * Role: Allows the browser renderer to provide a button text image or texture.
+ * Upstream: gmmw_button.cpp:209
+ */
+export type MainMenuButtonTextRenderer<TTextImage> = (
+  font: FontType,
+  text: string,
+) => TTextImage;
+
+/**
  * Port of upstream `GMMWTextBox` text image fields.
  * Role: Holds the text-box state needed to rebuild its rendered text image.
  * Upstream: zgui_main_menu_widgets.h:359-369
@@ -285,6 +308,28 @@ export type MainMenuListUnclickState = MainMenuListViewState & {
 };
 
 /**
+ * Minimal surface dimensions consumed by ported `GMMWList::WithinEntry`.
+ * Role: Replaces upstream `GetBaseSurface()` checks and width/height reads.
+ * Upstream: gmmw_list.cpp:211-219
+ */
+export type MainMenuListSurfaceDimensions = {
+  width: number;
+  height: number;
+} | null;
+
+/**
+ * Minimal state consumed by ported `GMMWList::WithinEntry`.
+ * Role: Holds list frame dimensions, visible entries, scroll offset, and entries.
+ * Upstream: zgui_main_menu_widgets.h:211-216, gmmw_list.cpp:211-227
+ */
+export type MainMenuListWithinEntryState = MainMenuListViewState & {
+  width: number;
+  topImage: MainMenuListSurfaceDimensions;
+  leftImage: MainMenuListSurfaceDimensions;
+  rightImage: MainMenuListSurfaceDimensions;
+};
+
+/**
  * Port of upstream `GMMWList::CheckViewI`.
  * Role: Clamps the first visible list index to the available scroll range.
  * Upstream: gmmw_list.cpp:136-144
@@ -414,6 +459,48 @@ export function unclickMainMenuList(
   }
 
   return false;
+}
+
+/**
+ * Port of upstream `GMMWList::WithinEntry`.
+ * Role: Converts a list-local point into the hovered entry index, or -1 when outside.
+ * Upstream: gmmw_list.cpp:207-230
+ */
+export function withinMainMenuListEntry(
+  state: MainMenuListWithinEntryState,
+  pointX: number,
+  pointY: number,
+): number {
+  const topImage = state.topImage;
+  const leftImage = state.leftImage;
+  if (!topImage) return -1;
+  if (!leftImage) return -1;
+
+  const rightImageWidth = state.rightImage?.width ?? 0;
+
+  if (pointX < leftImage.width) return -1;
+  if (pointX > state.width - (leftImage.width + rightImageWidth)) return -1;
+  if (pointY < topImage.height) return -1;
+  if (
+    pointY >
+    topImage.height + state.visibleEntries * MAIN_MENU_LIST_ENTRY_HEIGHT_PIXELS
+  ) {
+    return -1;
+  }
+
+  let entryFound = Math.trunc(
+    (pointY - topImage.height) / MAIN_MENU_LIST_ENTRY_HEIGHT_PIXELS,
+  );
+
+  if (entryFound < 0) return -1;
+  if (entryFound >= state.visibleEntries) return -1;
+
+  entryFound += state.viewIndex;
+
+  if (entryFound < 0) return -1;
+  if (entryFound >= state.entries.length) return -1;
+
+  return entryFound;
 }
 
 /**
@@ -772,6 +859,23 @@ export function setMainMenuButtonGreen(
 }
 
 /**
+ * Port of upstream `GMMWButton::MakeTextImage`.
+ * Role: Refreshes or clears the rendered button text image when scheduled.
+ * Upstream: gmmw_button.cpp:204-214
+ */
+export function makeMainMenuButtonTextImage<TTextImage>(
+  state: MainMenuButtonTextImageState<TTextImage>,
+  renderText: MainMenuButtonTextRenderer<TTextImage>,
+): void {
+  if (!state.rerenderText) return;
+
+  state.textImage = state.text.length
+    ? renderText(FontType.YellowMenu, state.text)
+    : null;
+  state.rerenderText = false;
+}
+
+/**
  * Port of upstream `SetGoodCharsOnly`.
  * Role: Stores the text-box character filter flag and schedules a text rerender.
  * Upstream: zgui_main_menu_widgets.h:354
@@ -795,6 +899,19 @@ export type MainMenuTextBoxInitState = {
   rightImage: string | null;
   bottomImage: string | null;
   finishedInit: boolean;
+};
+
+/**
+ * Port of upstream `GMMWTextBox::KeyPress` mutable fields.
+ * Role: Stores text-box selection, text, filter, limit, and rerender state for key input.
+ * Upstream: gmmw_textbox.cpp:38-59
+ */
+export type MainMenuTextBoxKeyPressState = {
+  selected: boolean;
+  text: string;
+  maxText: number;
+  goodCharsOnly: boolean;
+  doRerender: boolean;
 };
 
 /**
@@ -879,6 +996,39 @@ export function setMainMenuTextBoxPassworded(
 }
 
 /**
+ * Port of upstream `GMMWTextBox::KeyPress`.
+ * Role: Applies selected text-box backspace and character input with max-length and valid-character filters.
+ * Upstream: gmmw_textbox.cpp:38-59
+ */
+export function keyPressMainMenuTextBox(
+  state: MainMenuTextBoxKeyPressState,
+  charCode: number,
+): boolean {
+  if (!state.selected) return false;
+
+  if (charCode === 8) {
+    if (state.text.length) {
+      state.text = state.text.slice(0, -1);
+    }
+  } else {
+    if (state.maxText !== -1 && state.text.length >= state.maxText) {
+      return true;
+    }
+
+    const character = String.fromCharCode(charCode);
+    if (state.goodCharsOnly && !goodUserChar(character)) {
+      return true;
+    }
+
+    state.text += character;
+  }
+
+  state.doRerender = true;
+
+  return true;
+}
+
+/**
  * Port of upstream `GMMWTextBox::MakeTextImage`.
  * Role: Rebuilds the browser text image payload from text-box state.
  * Upstream: gmmw_textbox.cpp:61-75
@@ -897,6 +1047,57 @@ export function makeMainMenuTextBoxImage<TTextImage>(
 
   state.textImage = renderText(FontType.SmallWhite, renderTextValue);
   state.doRerender = false;
+}
+
+/**
+ * Port of upstream `GMMWTextBox::Process`.
+ * Role: Rebuilds text-box rendered text only when a rerender is scheduled.
+ * Upstream: gmmw_textbox.cpp:78-81
+ */
+export function processMainMenuTextBox<TTextImage>(
+  state: MainMenuTextBoxImageState<TTextImage>,
+  renderText: MainMenuTextBoxTextRenderer<TTextImage>,
+): void {
+  if (state.doRerender) makeMainMenuTextBoxImage(state, renderText);
+}
+
+/**
+ * Port of upstream `GMMWLabel::MakeTextImage` mutable fields.
+ * Role: Holds label text, rendered text cache, font, image, and refresh flag.
+ * Upstream: zgui_main_menu_widgets.h:148-170, gmmw_label.cpp:45-56
+ */
+export type MainMenuLabelTextImageState<TTextImage> = {
+  text: string;
+  renderedText: string;
+  font: FontType | number;
+  textImage: TTextImage | null;
+  rerenderText: boolean;
+};
+
+/**
+ * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
+ * Role: Allows the browser renderer to provide a label text image or texture.
+ * Upstream: gmmw_label.cpp:50
+ */
+export type MainMenuLabelTextRenderer<TTextImage> = (
+  font: FontType | number,
+  text: string,
+) => TTextImage;
+
+/**
+ * Port of upstream `GMMWLabel::MakeTextImage`.
+ * Role: Refreshes or clears the rendered label text image when scheduled.
+ * Upstream: gmmw_label.cpp:45-56
+ */
+export function makeMainMenuLabelTextImage<TTextImage>(
+  state: MainMenuLabelTextImageState<TTextImage>,
+  renderText: MainMenuLabelTextRenderer<TTextImage>,
+): void {
+  if (!state.rerenderText) return;
+
+  state.textImage = state.text.length ? renderText(state.font, state.text) : null;
+  state.renderedText = state.text;
+  state.rerenderText = false;
 }
 
 /**
@@ -965,6 +1166,35 @@ export type MainMenuTeamColorInitState<TSurface> = {
   finishedInit: boolean;
 };
 
+/**
+ * Replacement for upstream `GMMWTeamColor::DoRender` image dependency.
+ * Role: Supplies texture and dimensions for a team-color swatch image.
+ * Upstream: gmmw_team_color.cpp:50
+ */
+export type MainMenuTeamColorRenderImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
+
+/**
+ * Replacement for upstream `GMMWTeamColor::DoRender` state.
+ * Role: Holds the team-color widget fields needed to render the active swatch.
+ * Upstream: zgui_main_menu_widgets.h:317-333, gmmw_team_color.cpp:39-51
+ */
+export type MainMenuTeamColorRenderState<TTexture> = {
+  finishedInit: boolean;
+  active: boolean;
+  team: number;
+  x: number;
+  y: number;
+  teamColorImages: readonly (
+    | MainMenuTeamColorRenderImage<TTexture>
+    | null
+    | undefined
+  )[];
+};
+
 const MAIN_MENU_TEAM_COLOR_TEAM_NAMES = [
   "null",
   "red",
@@ -1003,6 +1233,44 @@ export function initMainMenuTeamColor<TSurface>(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Replacement for upstream `GMMWTeamColor::DoRender`.
+ * Role: Builds the texture command used to draw the selected main-menu team color.
+ * Upstream: gmmw_team_color.cpp:39-51
+ */
+export function renderMainMenuTeamColor<TTexture>(
+  state: MainMenuTeamColorRenderState<TTexture>,
+  offsetX: number,
+  offsetY: number,
+): TexturedSurfaceRenderCommand<TTexture> | null {
+  if (!state.finishedInit) return null;
+  if (!state.active) return null;
+  if (state.team < 0) return null;
+  if (state.team >= ACTIVE_TEAM_TYPE_COUNT) return null;
+
+  const image = state.teamColorImages[state.team];
+  if (!image) return null;
+
+  return {
+    texture: image.texture,
+    destinationX: offsetX + state.x,
+    destinationY: offsetY + state.y,
+    width: image.width,
+    height: image.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
 }
 
 /**

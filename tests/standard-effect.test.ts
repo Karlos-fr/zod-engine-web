@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   ESTANDARD_HEADER_GUARD_PORTED,
+  initStandardEffect,
   isStandardEffectBefore,
   processStandardEffect,
+  STANDARD_EFFECT_FRAME_COUNT,
   STANDARD_EFFECT_PROCESS_INTERVAL_SECONDS,
   StandardEffectObject,
+  type StandardEffectInitState,
   type StandardEffectProcessState,
 } from "../src/simulation/StandardEffect";
 
@@ -24,6 +27,48 @@ describe("standard effect", () => {
     expect(StandardEffectObject.LittleFire).toBe(1);
     expect(StandardEffectObject.SmallFireSmoke).toBe(2);
     expect(StandardEffectObject.Fire).toBe(3);
+  });
+
+  it("ports EStandard Init as standard smoke and fire frame paths", () => {
+    const state: StandardEffectInitState = {
+      bigSmokeFrames: [],
+      littleFireFrames: [],
+      smallFireSmokeFrames: [],
+      fireFrames: [],
+      finishedInit: false,
+    };
+
+    initStandardEffect(state);
+
+    expect(state.finishedInit).toBe(true);
+    expect(state.bigSmokeFrames).toHaveLength(STANDARD_EFFECT_FRAME_COUNT);
+    expect(state.littleFireFrames).toHaveLength(STANDARD_EFFECT_FRAME_COUNT);
+    expect(state.smallFireSmokeFrames).toHaveLength(STANDARD_EFFECT_FRAME_COUNT);
+    expect(state.fireFrames).toHaveLength(STANDARD_EFFECT_FRAME_COUNT);
+    expect(state.bigSmokeFrames).toEqual([
+      "assets/units/vehicles/death_effects/big_smoke_n00.png",
+      "assets/units/vehicles/death_effects/big_smoke_n01.png",
+      "assets/units/vehicles/death_effects/big_smoke_n02.png",
+      "assets/units/vehicles/death_effects/big_smoke_n03.png",
+    ]);
+    expect(state.littleFireFrames[0]).toBe(
+      "assets/units/vehicles/death_effects/little_fire_n00.png",
+    );
+    expect(state.littleFireFrames[3]).toBe(
+      "assets/units/vehicles/death_effects/little_fire_n03.png",
+    );
+    expect(state.smallFireSmokeFrames[0]).toBe(
+      "assets/units/vehicles/death_effects/small_fire_smoke_n00.png",
+    );
+    expect(state.smallFireSmokeFrames[3]).toBe(
+      "assets/units/vehicles/death_effects/small_fire_smoke_n03.png",
+    );
+    expect(state.fireFrames[0]).toBe(
+      "assets/units/vehicles/death_effects/fire_n00.png",
+    );
+    expect(state.fireFrames[3]).toBe(
+      "assets/units/vehicles/death_effects/fire_n03.png",
+    );
   });
 
   it("ports sort_estandards_func as bottom-y ordering", () => {

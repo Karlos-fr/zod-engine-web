@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
+  initTeamRendering,
   loadTeamZSurface,
   saveAllTeamPalettes,
   saveTeamPalette,
@@ -30,6 +31,39 @@ describe("team rendering", () => {
 
   it("adapts the team palette replacement slot count", () => {
     expect(TEAM_RENDERING_PALETTE_MAX).toBe(16);
+  });
+
+  it("ports ZTeam Init as palette loading followed by team color setup", () => {
+    const calls: Array<string | number> = [];
+
+    initTeamRendering(
+      (team) => {
+        calls.push("load-palette", team);
+      },
+      () => calls.push("setup-team-color"),
+    );
+
+    expect(calls).toEqual([
+      "load-palette",
+      TeamType.Null,
+      "load-palette",
+      TeamType.Red,
+      "load-palette",
+      TeamType.Blue,
+      "load-palette",
+      TeamType.Green,
+      "load-palette",
+      TeamType.Yellow,
+      "load-palette",
+      TeamType.Purple,
+      "load-palette",
+      TeamType.Teal,
+      "load-palette",
+      TeamType.White,
+      "load-palette",
+      TeamType.Black,
+      "setup-team-color",
+    ]);
   });
 
   it("ports base team render colors", () => {

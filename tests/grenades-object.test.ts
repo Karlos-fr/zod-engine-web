@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  TurretMissileEffectType,
+  type TurretMissileEffectSpawn,
+} from "../src/simulation/TurretMissileEffect";
+import {
+  fireGrenadesObjectTurrentMissile,
   GRENADES_OBJECT_IMAGE_PATH,
   GRENADES_MISSILE_MAX_HORIZONTAL_SPREAD_PIXELS,
   GRENADES_MISSILE_MAX_VERTICAL_SPREAD_PIXELS,
@@ -56,6 +61,50 @@ describe("grenades object", () => {
 
   it("ports OGrenades Process as a no-op result", () => {
     expect(processGrenadesObject()).toBe(0);
+  });
+
+  it("ports OGrenades FireTurrentMissile as no effect without an effect list", () => {
+    const state = {
+      ztime: { tick: 12 },
+      position: { x: 40, y: 60 },
+    };
+
+    expect(() =>
+      fireGrenadesObjectTurrentMissile(state, null, 100, 120, 0.75),
+    ).not.toThrow();
+  });
+
+  it("ports OGrenades FireTurrentMissile as an appended grenade missile spawn", () => {
+    const ztime = { tick: 12 };
+    const existing = {
+      ztime: null,
+      startX: 1,
+      startY: 2,
+      targetX: 3,
+      targetY: 4,
+      offsetTime: 5,
+      type: TurretMissileEffectType.Heavy,
+    };
+    const effects: TurretMissileEffectSpawn<typeof ztime>[] = [existing];
+    const state = {
+      ztime,
+      position: { x: 40, y: 60 },
+    };
+
+    fireGrenadesObjectTurrentMissile(state, effects, 100, 120, 0.75);
+
+    expect(effects).toEqual([
+      existing,
+      {
+        ztime,
+        startX: 42,
+        startY: 62,
+        targetX: 100,
+        targetY: 120,
+        offsetTime: 0.75,
+        type: TurretMissileEffectType.Grenade,
+      },
+    ]);
   });
 
   it("ports OGrenades SetOwner as an ownership no-op", () => {

@@ -83,6 +83,46 @@ export type SocketRecvGoodOptions<TSocket = unknown> = {
 };
 
 /**
+ * Port of upstream `SocketHandler::SendMessage` call target.
+ * Role: Sends a packet id with an explicit byte payload and size.
+ * Upstream: socket_handler.cpp:341
+ */
+export type SocketMessageSender = {
+  sendMessage(packId: number, data: Uint8Array, size: number): number;
+};
+
+/**
+ * Port of upstream `SocketHandler::socket_good_to_send` result.
+ * Role: Reports send readiness and whether the socket should be killed while waiting.
+ * Upstream: socket_handler.cpp:398, socket_handler.cpp:408-409
+ */
+export type SocketSendReadinessResult = {
+  goodToSend: boolean;
+  killMe: boolean;
+};
+
+/**
+ * Port of upstream `SocketHandler::socket_good_to_send` call target.
+ * Role: Checks whether the socket can send without blocking.
+ * Upstream: socket_handler.cpp:398, socket_handler.cpp:408
+ */
+export type SocketSendReadinessChecker = () => SocketSendReadinessResult;
+
+/**
+ * Browser-side replacement for upstream `current_time`.
+ * Role: Supplies elapsed seconds for send wait timeout checks.
+ * Upstream: socket_handler.cpp:400, socket_handler.cpp:410
+ */
+export type SocketClock = () => number;
+
+/**
+ * Browser-side replacement for upstream `uni_pause`.
+ * Role: Pauses between send readiness polls.
+ * Upstream: socket_handler.cpp:404
+ */
+export type SocketPause = (milliseconds: number) => void;
+
+/**
  * Port of upstream `SocketHandler` fast-process buffer fields.
  * Role: Tracks buffered packet bytes and the consumed prefix for fast processing.
  * Upstream: socket_handler.h:35-37, socket_handler.cpp:285-300
@@ -177,8 +217,57 @@ export function resetSocketFastProcess<TState extends SocketFastProcessState>(
 }
 
 /**
+ * Port of upstream `SocketHandler::SendMessageAscii`.
+ * Role: Sends an ASCII C-string payload including its terminating NUL byte.
+ * Upstream: socket_handler.cpp:339-342
+ */
+export function socketSendMessageAscii(
+  socket: SocketMessageSender,
+  packId: number,
+  data: string,
+): number {
+  const stringLength = data.indexOf("\0");
+  const payloadSize = (stringLength === -1 ? data.length : stringLength) + 1;
+  const payload = new Uint8Array(payloadSize);
+
+  for (let i = 0; i < payloadSize - 1; i += 1) {
+    payload[i] = data.charCodeAt(i) & 0xff;
+  }
+
+  return socket.sendMessage(packId, payload, payloadSize);
+}
+
+/**
  * Port of upstream `max_wait`.
  * Role: Limits how long `pause_for_send` waits for a socket to become writable.
  * Upstream: socket_handler.cpp:394
  */
 export const SOCKET_SEND_MAX_WAIT_SECONDS = 0.5;
+
+/**
+ * Port of upstream `SocketHandler::pause_for_send`.
+ * Role: Waits briefly for socket send readiness, aborting on timeout or kill signal.
+ * Upstream: socket_handler.cpp:392-413
+ */
+export function pauseSocketForSend(
+  socketGoodToSend: SocketSendReadinessChecker,
+  currentTime: SocketClock,
+  pause: SocketPause,
+  logPause: () => void = () => {},
+): number {
+  let sendReadiness = socketGoodToSend();
+  if (sendReadiness.goodToSend) return 1;
+
+  const startTime = currentTime();
+
+  do {
+    pause(10);
+    logPause();
+
+    sendReadiness = socketGoodToSend();
+    if (sendReadiness.goodToSend) return 1;
+    if (sendReadiness.killMe) return 0;
+  } while (currentTime() - startTime < SOCKET_SEND_MAX_WAIT_SECONDS);
+
+  return 0;
+}

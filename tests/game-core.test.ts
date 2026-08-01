@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
+  BuildingType,
   MAX_BOT_BYPASS_RANDOM_SIZE_OFFSET,
   MAX_BOT_BYPASS_SIZE,
   PlayerConnectionMode,
@@ -8,13 +9,17 @@ import {
 } from "../src/simulation/SimulationConstants";
 import { WaypointMode } from "../src/simulation/entities/EntityTypes";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
+import { MapObjectType } from "../src/world/MapFormat";
 import {
   allowCoreRun,
+  areaIsCoreFortTurret,
   checkCoreRallypoint,
   createCoreObjectOk,
   createCoreRandomBotBypassData,
+  createCoreWaypointSendData,
   deleteCoreObjectCleanUp,
   GAMES_PER_VOTING_POWER_POINT,
+  CORE_PACKED_WAYPOINT_BYTES,
   getCoreObjectFromId,
   getCoreObjectIndex,
   getCoreVotesAgainst,
@@ -244,6 +249,56 @@ describe("game core", () => {
     ]);
   });
 
+  it("ports ZCore CreateWaypointSendData as header-only empty waypoint payload", () => {
+    const data = createCoreWaypointSendData(42, []);
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+    expect(data).toHaveLength(8);
+    expect(view.getInt32(0, true)).toBe(42);
+    expect(view.getInt32(4, true)).toBe(0);
+  });
+
+  it("ports ZCore CreateWaypointSendData as packed waypoint payload", () => {
+    const data = createCoreWaypointSendData(99, [
+      {
+        mode: WaypointMode.Move,
+        refId: 1001,
+        x: 20,
+        y: -30,
+        attackTo: true,
+        playerGiven: false,
+      },
+      {
+        mode: WaypointMode.Attack,
+        refId: -1,
+        x: 1024,
+        y: 2048,
+        attackTo: false,
+        playerGiven: true,
+      },
+    ]);
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+    expect(data).toHaveLength(8 + 2 * CORE_PACKED_WAYPOINT_BYTES);
+    expect(view.getInt32(0, true)).toBe(99);
+    expect(view.getInt32(4, true)).toBe(2);
+
+    expect(view.getInt8(8)).toBe(WaypointMode.Move);
+    expect(view.getInt32(9, true)).toBe(1001);
+    expect(view.getInt32(13, true)).toBe(20);
+    expect(view.getInt32(17, true)).toBe(-30);
+    expect(view.getUint8(21)).toBe(1);
+    expect(view.getUint8(22)).toBe(0);
+
+    const secondOffset = 8 + CORE_PACKED_WAYPOINT_BYTES;
+    expect(view.getInt8(secondOffset)).toBe(WaypointMode.Attack);
+    expect(view.getInt32(secondOffset + 1, true)).toBe(-1);
+    expect(view.getInt32(secondOffset + 5, true)).toBe(1024);
+    expect(view.getInt32(secondOffset + 9, true)).toBe(2048);
+    expect(view.getUint8(secondOffset + 13)).toBe(0);
+    expect(view.getUint8(secondOffset + 14)).toBe(1);
+  });
+
   it("ports ZCore SetupRandomizer as Unix-time seed initialization", () => {
     const state: CoreRandomizerState = { randomizerSeed: 0 };
 
@@ -370,6 +425,86 @@ describe("game core", () => {
 
     expect(deleteCoreObjectCleanUp(entity)).toBeUndefined();
     expect(entity.refId).toBe(10);
+  });
+
+  it("ports ZCore AreaIsFortTurret as fort mount area detection", () => {
+    const selections: unknown[] = [];
+    const fortObject = {
+      getObjectId: () => ({
+        objectType: MapObjectType.Building,
+        objectId: BuildingType.FortFront,
+      }),
+      withinSelection(selection: unknown) {
+        selections.push(["within", selection]);
+        return true;
+      },
+      cannonNotPlacable(selection: unknown) {
+        selections.push(["blocked", selection]);
+        return false;
+      },
+    };
+
+    expect(areaIsCoreFortTurret([fortObject], 7, 11)).toBe(true);
+    expect(selections).toEqual([
+      ["within", { left: 112, right: 144, top: 176, bottom: 208 }],
+      ["blocked", { left: 112, right: 144, top: 176, bottom: 208 }],
+    ]);
+  });
+
+  it("ports ZCore AreaIsFortTurret as ignoring non-fort objects", () => {
+    const checked: string[] = [];
+    const objects = [
+      {
+        getObjectId: () => ({
+          objectType: MapObjectType.Robot,
+          objectId: 0,
+        }),
+        withinSelection: () => {
+          checked.push("robot");
+          return true;
+        },
+        cannonNotPlacable: () => false,
+      },
+      {
+        getObjectId: () => ({
+          objectType: MapObjectType.Building,
+          objectId: BuildingType.Radar,
+        }),
+        withinSelection: () => {
+          checked.push("radar");
+          return true;
+        },
+        cannonNotPlacable: () => false,
+      },
+    ];
+
+    expect(areaIsCoreFortTurret(objects, 1, 2)).toBe(false);
+    expect(checked).toEqual([]);
+  });
+
+  it("ports ZCore AreaIsFortTurret as false for blocked or non-overlapping forts", () => {
+    const blockedBackFort = {
+      getObjectId: () => ({
+        objectType: MapObjectType.Building,
+        objectId: BuildingType.FortBack,
+      }),
+      withinSelection: () => true,
+      cannonNotPlacable: () => true,
+    };
+    const nonOverlappingFrontFort = {
+      getObjectId: () => ({
+        objectType: MapObjectType.Building,
+        objectId: BuildingType.FortFront,
+      }),
+      withinSelection: () => false,
+      cannonNotPlacable: () => {
+        throw new Error("cannonNotPlacable should not be called");
+      },
+    };
+
+    expect(
+      areaIsCoreFortTurret([blockedBackFort, nonOverlappingFrontFort], 1, 2),
+    ).toBe(false);
   });
 
   it("ports ZCore ResetUnitLimitReached as per-team unit-limit reset", () => {

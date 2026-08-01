@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   FONT_MAX_CHARACTERS,
+  type FontEngineState,
   FontType,
   type FontState,
   initFont,
+  initFontEngine,
   setFontType,
   ZFONT_ENGINE_HEADER_GUARD_PORTED,
   ZFONT_HEADER_GUARD_PORTED,
@@ -71,6 +73,33 @@ describe("font engine", () => {
     expect(ZFONT_ENGINE_HEADER_GUARD_PORTED).toBe(true);
     expect(secondImport.ZFONT_ENGINE_HEADER_GUARD_PORTED).toBe(
       firstImport.ZFONT_ENGINE_HEADER_GUARD_PORTED,
+    );
+  });
+
+  it("ports ZFontEngine Init as all atlas font initialization", () => {
+    const state: FontEngineState = { fonts: [] };
+    const loadedFilenames: string[] = [];
+
+    initFontEngine(state, (filename) => {
+      loadedFilenames.push(filename);
+      return filename;
+    });
+
+    expect(state.fonts).toHaveLength(FontType.MaxFontTypes);
+    for (let i = 0; i < FontType.MaxFontTypes; i += 1) {
+      expect(state.fonts[i].type).toBe(i);
+      expect(state.fonts[i].finishedInit).toBe(true);
+      expect(state.fonts[i].charImages).toHaveLength(FONT_MAX_CHARACTERS);
+    }
+    expect(loadedFilenames).toHaveLength(
+      FontType.MaxFontTypes * FONT_MAX_CHARACTERS,
+    );
+    expect(loadedFilenames[0]).toBe("assets/fonts/big_white/char_000.png");
+    expect(loadedFilenames[FONT_MAX_CHARACTERS]).toBe(
+      "assets/fonts/small_white/char_000.png",
+    );
+    expect(loadedFilenames[loadedFilenames.length - 1]).toBe(
+      "assets/fonts/yellow_menu/char_254.png",
     );
   });
 });

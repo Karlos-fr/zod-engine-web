@@ -4,6 +4,9 @@ import {
   HUT_ANIMAL_STATE_COUNT,
   HUT_ANIMAL_TYPE_COUNT,
   chooseRandomHutAnimal,
+  createHutAnimalGraphics,
+  loadHutAnimalGraphics,
+  type HutAnimalGraphics,
   type HutAnimalGoHomeState,
   type HutAnimalHomeCoordsState,
   type HutAnimalHomeState,
@@ -13,6 +16,7 @@ import {
   HutAnimalType,
   isHutAnimalGoingHome,
   isHutAnimalTileTooFar,
+  isPreferredHutAnimalDirection,
   sendHutAnimalHome,
   setHutAnimalHomeCoords,
   setHutAnimalStateNothing,
@@ -66,6 +70,88 @@ describe("hut animal types", () => {
     expect(HUT_ANIMAL_STATE_COUNT).toBe(3);
   });
 
+  it("ports hut_animal_graphics construction as empty animation graphics", () => {
+    expect(createHutAnimalGraphics()).toEqual({
+      walk: [],
+      look: [],
+      deadUp: null,
+      deadDown: null,
+      walkFrameCount: 0,
+      lookFrameCount: 0,
+      walkToZero: false,
+    });
+  });
+
+  it("ports hut_animal_graphics LoadGraphics as green snake walking frames", () => {
+    const loaded: string[] = [];
+    const graphics: HutAnimalGraphics<string> = {
+      walk: [],
+      look: [],
+      deadUp: null,
+      deadDown: null,
+      walkFrameCount: 0,
+      lookFrameCount: 0,
+      walkToZero: true,
+    };
+
+    loadHutAnimalGraphics(graphics, HutAnimalType.GreenSnake, (filename) => {
+      loaded.push(filename);
+      return filename;
+    });
+
+    expect(graphics.walkFrameCount).toBe(8);
+    expect(graphics.lookFrameCount).toBe(0);
+    expect(graphics.walkToZero).toBe(false);
+    expect(graphics.deadDown).toBe(
+      "assets/other/hut_animals/green_snake_dead_down.png",
+    );
+    expect(graphics.deadUp).toBe(
+      "assets/other/hut_animals/green_snake_dead_up.png",
+    );
+    expect(graphics.walk[7][7]).toBe(
+      "assets/other/hut_animals/green_snake_walk_r315_n07.png",
+    );
+    expect(graphics.look).toEqual([[], [], [], [], [], [], [], []]);
+    expect(loaded).toHaveLength(2 + 8 * 8);
+  });
+
+  it("ports hut_animal_graphics LoadGraphics look frames and walk-to-zero species", () => {
+    const loaded: string[] = [];
+    const graphics: HutAnimalGraphics<string> = {
+      walk: [],
+      look: [],
+      deadUp: null,
+      deadDown: null,
+      walkFrameCount: 0,
+      lookFrameCount: 0,
+      walkToZero: false,
+    };
+
+    loadHutAnimalGraphics(graphics, HutAnimalType.DesertRabbit, (filename) => {
+      loaded.push(filename);
+      return filename;
+    });
+
+    expect(graphics.walkFrameCount).toBe(4);
+    expect(graphics.lookFrameCount).toBe(4);
+    expect(graphics.walkToZero).toBe(true);
+    expect(graphics.deadDown).toBe(
+      "assets/other/hut_animals/desert_rabit_dead_down.png",
+    );
+    expect(graphics.walk[1][3]).toBe(
+      "assets/other/hut_animals/desert_rabit_walk_r045_n03.png",
+    );
+    expect(graphics.look[0][0]).toBe(
+      "assets/other/hut_animals/desert_rabit_look_r000_n00.png",
+    );
+    expect(graphics.look[1][0]).toBe(graphics.look[0][0]);
+    expect(graphics.look[6][3]).toBe(
+      "assets/other/hut_animals/desert_rabit_look_r270_n03.png",
+    );
+    expect(graphics.look[7][3]).toBe(graphics.look[6][3]);
+    expect(loaded).toHaveLength(2 + 8 * 4 + 4 * 4);
+  });
+
   it("ports IsGoingHome as a hut animal home-state accessor", () => {
     const goingHome: HutAnimalHomeState = { goingHome: true };
     const wandering: HutAnimalHomeState = { goingHome: false };
@@ -111,6 +197,21 @@ describe("hut animal types", () => {
     expect(state.hutAnimalState).toBe(HutAnimalState.Nothing);
     expect(state.nextNothingTime).toBe(30.1);
     expect(state.walkIndex).toBe(6);
+  });
+
+  it("ports AHutAnimal IsPrefferedDirection bad direction offsets", () => {
+    expect(isPreferredHutAnimalDirection(-1, 0)).toBe(false);
+    expect(isPreferredHutAnimalDirection(0, -1)).toBe(false);
+
+    expect(isPreferredHutAnimalDirection(0, 3)).toBe(false);
+    expect(isPreferredHutAnimalDirection(0, 4)).toBe(false);
+    expect(isPreferredHutAnimalDirection(2, 7)).toBe(false);
+
+    expect(isPreferredHutAnimalDirection(1, 1)).toBe(true);
+    expect(isPreferredHutAnimalDirection(1, 2)).toBe(true);
+    expect(isPreferredHutAnimalDirection(1, 3)).toBe(true);
+    expect(isPreferredHutAnimalDirection(0, 6)).toBe(true);
+    expect(isPreferredHutAnimalDirection(0, 7)).toBe(true);
   });
 
   it("ports AHutAnimal ChooseRandomAnimal guard exits", () => {

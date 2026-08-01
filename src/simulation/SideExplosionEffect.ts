@@ -36,6 +36,24 @@ export type SideExplosionInitState = {
 };
 
 /**
+ * Port of upstream `ESideExplosion::Process` mutable fields.
+ * Role: Tracks frame timing and linear movement for a side explosion effect.
+ * Upstream: esideexplosion.cpp:71-94
+ */
+export type SideExplosionProcessState = {
+  killme: boolean;
+  renderIndex: number;
+  nextRenderTime: number;
+  initTime: number;
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  deltaX: number;
+  deltaY: number;
+};
+
+/**
  * Port of upstream `ESideExplosion::Init`.
  * Role: Initializes side-explosion frame asset paths.
  * Upstream: esideexplosion.cpp:57-69
@@ -47,4 +65,29 @@ export function initSideExplosionEffect(state: SideExplosionInitState): void {
       `assets/other/explosions/side_explosion_n${index.toString().padStart(2, "0")}.png`,
   );
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `ESideExplosion::Process`.
+ * Role: Advances side explosion animation timing and linear movement.
+ * Upstream: esideexplosion.cpp:71-94
+ */
+export function processSideExplosionEffect(
+  state: SideExplosionProcessState,
+  currentTime: number,
+): void {
+  if (state.killme) return;
+
+  if (currentTime >= state.nextRenderTime) {
+    state.renderIndex += 1;
+    if (state.renderIndex >= SIDE_EXPLOSION_NORMAL_FRAME_COUNT) {
+      state.killme = true;
+      return;
+    }
+
+    state.nextRenderTime = currentTime + 0.13;
+  }
+
+  state.x = state.startX + state.deltaX * (currentTime - state.initTime);
+  state.y = state.startY + state.deltaY * (currentTime - state.initTime);
 }

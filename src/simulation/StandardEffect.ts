@@ -22,6 +22,13 @@ export enum StandardEffectObject {
 }
 
 /**
+ * Port of upstream `EStandard::Init` frame loop count.
+ * Role: Defines how many frames are loaded for each standard effect sprite set.
+ * Upstream: estandard.cpp:71-84
+ */
+export const STANDARD_EFFECT_FRAME_COUNT = 4;
+
+/**
  * Port of upstream `EStandard` vertical sort field.
  * Role: Provides the bottom-y value used to order standard effects for rendering.
  * Upstream: estandard.h:31
@@ -50,6 +57,19 @@ export type StandardEffectProcessState = {
 };
 
 /**
+ * Port of upstream `EStandard` image fields.
+ * Role: Stores standard smoke/fire frame asset paths initialized by `EStandard::Init`.
+ * Upstream: estandard.cpp:73-83
+ */
+export type StandardEffectInitState = {
+  bigSmokeFrames: string[];
+  littleFireFrames: string[];
+  smallFireSmokeFrames: string[];
+  fireFrames: string[];
+  finishedInit: boolean;
+};
+
+/**
  * Port of upstream `sort_estandards_func`.
  * Role: Orders standard effects by their bottom-y render coordinate.
  * Upstream: estandard.cpp:115-118
@@ -59,6 +79,35 @@ export function isStandardEffectBefore(
   b: StandardEffectSortState,
 ): boolean {
   return a.by < b.by;
+}
+
+/**
+ * Port of upstream `EStandard::Init`.
+ * Role: Initializes standard smoke/fire frame asset paths and marks initialization complete.
+ * Upstream: estandard.cpp:66-87
+ */
+export function initStandardEffect(state: StandardEffectInitState): void {
+  const frameIndexes = Array.from(
+    { length: STANDARD_EFFECT_FRAME_COUNT },
+    (_value, index) => index.toString().padStart(2, "0"),
+  );
+
+  state.bigSmokeFrames = frameIndexes.map(
+    (index) =>
+      `assets/units/vehicles/death_effects/big_smoke_n${index}.png`,
+  );
+  state.littleFireFrames = frameIndexes.map(
+    (index) =>
+      `assets/units/vehicles/death_effects/little_fire_n${index}.png`,
+  );
+  state.smallFireSmokeFrames = frameIndexes.map(
+    (index) =>
+      `assets/units/vehicles/death_effects/small_fire_smoke_n${index}.png`,
+  );
+  state.fireFrames = frameIndexes.map(
+    (index) => `assets/units/vehicles/death_effects/fire_n${index}.png`,
+  );
+  state.finishedInit = true;
 }
 
 /**

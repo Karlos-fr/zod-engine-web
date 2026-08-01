@@ -2,6 +2,7 @@
  * Upstream: zgui_main_menu_base.h
  */
 
+import { FontType } from "../rendering/FontEngine";
 import type { PlayerInfo } from "../simulation/GameCore";
 import type { SimulationTime } from "../simulation/SimulationTime";
 
@@ -170,6 +171,53 @@ export type MainMenuWidgetProcessor = {
 };
 
 /**
+ * Port of upstream `gmm_flags` clear dependency.
+ * Role: Resets pending main-menu actions before wheel-widget routing.
+ * Upstream: zgui_main_menu_base.cpp:149
+ */
+export type MainMenuFlagClearTarget = {
+  clear(): void;
+};
+
+/**
+ * Port of upstream `ZGMMWidget::WheelUpButton` call target.
+ * Role: Attempts to consume wheel-up input on a main-menu widget.
+ * Upstream: zgui_main_menu_base.cpp:152
+ */
+export type MainMenuWheelUpWidgetTarget = MainMenuWidgetEventTarget & {
+  wheelUpButton(): boolean;
+};
+
+/**
+ * Port of upstream `ZGMMWidget::WheelDownButton` call target.
+ * Role: Attempts to consume wheel-down input on a main-menu widget.
+ * Upstream: zgui_main_menu_base.cpp:168
+ */
+export type MainMenuWheelDownWidgetTarget = MainMenuWidgetEventTarget & {
+  wheelDownButton(): boolean;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` wheel-up fields.
+ * Role: Holds the main-menu action flags and widgets used by wheel-up routing.
+ * Upstream: zgui_main_menu_base.cpp:149-154
+ */
+export type MainMenuWheelUpState = {
+  gmmFlags: MainMenuFlagClearTarget;
+  widgetList: MainMenuWheelUpWidgetTarget[];
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase` wheel-down fields.
+ * Role: Holds the main-menu action flags and widgets used by wheel-down routing.
+ * Upstream: zgui_main_menu_base.cpp:165-170
+ */
+export type MainMenuWheelDownState = {
+  gmmFlags: MainMenuFlagClearTarget;
+  widgetList: MainMenuWheelDownWidgetTarget[];
+};
+
+/**
  * Port of upstream `sound_setting` reference.
  * Role: Holds a mutable audio setting referenced by the main menu base.
  * Upstream: zgui_main_menu_base.h:145, zgui_main_menu_base.h:181
@@ -270,6 +318,24 @@ export type MainMenuDimensionState = {
 };
 
 /**
+ * Port of upstream `ZGuiButtonBase::SetCoords` call target.
+ * Role: Repositions the main-menu close button when menu dimensions change.
+ * Upstream: zgui_main_menu_base.cpp:45
+ */
+export type MainMenuCloseButton = {
+  setCoords(x: number, y: number): void;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::UpdateDimensions` state.
+ * Role: Holds menu width and the close button that is aligned to the top-right chrome.
+ * Upstream: zgui_main_menu_base.cpp:43-46
+ */
+export type MainMenuUpdateDimensionsState = Pick<MainMenuDimensionState, "width"> & {
+  closeButton: MainMenuCloseButton;
+};
+
+/**
  * Port of upstream `ZGuiMainMenuBase` bounds fields.
  * Role: Holds the main-menu base origin and dimensions used for hit testing.
  * Upstream: zgui_main_menu_base.h:139-140, zgui_main_menu_base.cpp:68-76
@@ -313,6 +379,36 @@ export type MainMenuBaseImageState = {
 
 export type MainMenuBaseImageLoader = (filename: string) => unknown | null;
 
+/**
+ * Port of upstream `ZGuiMainMenuBase::title_img` dependency surface.
+ * Role: Stores the rendered main-menu title image.
+ * Upstream: zgui_main_menu_base.h:151, zgui_main_menu_base.cpp:346-348
+ */
+export type MainMenuTitleImage<TImage> = {
+  getBaseSurface(): TImage | null;
+  loadBaseImage(image: TImage): void;
+};
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::MakeTitle` consumed fields.
+ * Role: Holds title text and the lazily rendered title image.
+ * Upstream: zgui_main_menu_base.h:150-151, zgui_main_menu_base.cpp:343-349
+ */
+export type MainMenuTitleState<TImage> = {
+  title: string;
+  titleImage: MainMenuTitleImage<TImage>;
+};
+
+/**
+ * Replacement for upstream `ZFontEngine::GetFont(...).Render`.
+ * Role: Renders a main-menu title string with a browser font implementation.
+ * Upstream: zgui_main_menu_base.cpp:348
+ */
+export type MainMenuTitleRenderer<TImage> = (
+  font: FontType,
+  text: string,
+) => TImage;
+
 const MAIN_MENU_BASE_IMAGE_FILES: ReadonlyArray<{
   name: MainMenuBaseImageName;
   filename: string;
@@ -349,6 +445,21 @@ export function initMainMenuBase(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::MakeTitle`.
+ * Role: Lazily renders the main-menu title image when title text exists.
+ * Upstream: zgui_main_menu_base.cpp:343-349
+ */
+export function makeMainMenuTitle<TImage>(
+  state: MainMenuTitleState<TImage>,
+  renderTitle: MainMenuTitleRenderer<TImage>,
+): void {
+  if (!state.title.length) return;
+  if (state.titleImage.getBaseSurface()) return;
+
+  state.titleImage.loadBaseImage(renderTitle(FontType.YellowMenu, state.title));
 }
 
 /**
@@ -446,6 +557,17 @@ export function getMainMenuDimensions(
     width: state.width,
     height: state.height,
   };
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::UpdateDimensions`.
+ * Role: Aligns the close button to the menu's top-right corner.
+ * Upstream: zgui_main_menu_base.cpp:43-46
+ */
+export function updateMainMenuDimensions(
+  state: MainMenuUpdateDimensionsState,
+): void {
+  state.closeButton.setCoords(state.width - 16, 4);
 }
 
 /**
@@ -599,4 +721,56 @@ export function handleMainMenuBaseWidgetEvent(
       MAIN_MENU_EVENT_TYPE_NAMES[eventType] ?? ""
     } widget_type:${eventWidget.widgetType} ref_id:${eventWidget.refId}`,
   );
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::WheelUpButton`.
+ * Role: Clears menu flags, routes wheel-up input to widgets, and reports consuming widgets.
+ * Upstream: zgui_main_menu_base.cpp:145-159
+ */
+export function wheelUpMainMenuBase(
+  state: MainMenuWheelUpState,
+  handleWidgetEvent: (
+    eventType: MainMenuEventType,
+    widget: MainMenuWidgetEventTarget,
+  ) => void = handleMainMenuBaseWidgetEvent,
+): boolean {
+  let actionTaken = false;
+
+  state.gmmFlags.clear();
+
+  for (const widget of state.widgetList) {
+    if (widget.wheelUpButton()) {
+      handleWidgetEvent(MainMenuEventType.WheelUp, widget);
+      actionTaken = true;
+    }
+  }
+
+  return actionTaken;
+}
+
+/**
+ * Port of upstream `ZGuiMainMenuBase::WheelDownButton`.
+ * Role: Clears menu flags, routes wheel-down input to widgets, and reports consuming widgets.
+ * Upstream: zgui_main_menu_base.cpp:161-175
+ */
+export function wheelDownMainMenuBase(
+  state: MainMenuWheelDownState,
+  handleWidgetEvent: (
+    eventType: MainMenuEventType,
+    widget: MainMenuWidgetEventTarget,
+  ) => void = handleMainMenuBaseWidgetEvent,
+): boolean {
+  let actionTaken = false;
+
+  state.gmmFlags.clear();
+
+  for (const widget of state.widgetList) {
+    if (widget.wheelDownButton()) {
+      handleWidgetEvent(MainMenuEventType.WheelDown, widget);
+      actionTaken = true;
+    }
+  }
+
+  return actionTaken;
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { FontType } from "../src/rendering/FontEngine";
 import { PlanetType, TeamType } from "../src/simulation/SimulationConstants";
 import {
   HUD_HEALTH_BAR_MAX_FILL_PIXELS,
@@ -26,6 +27,7 @@ import {
   rerenderAllHud,
   resetHudGame,
   setHudARefId,
+  setHudChatMessage,
   setHudMaxUnits,
   setHudTerrainType,
   setHudTeam,
@@ -499,7 +501,10 @@ describe("HUD layout", () => {
     const state = {
       showChat: false,
       chatMessage: "old",
-      chatMessageImage: { unload: () => calls.push("unload") },
+      chatMessageImage: {
+        unload: () => calls.push("unload"),
+        loadBaseImage: () => calls.push("load"),
+      },
       rerenderChat: false,
     };
 
@@ -519,7 +524,10 @@ describe("HUD layout", () => {
     const state = {
       showChat: true,
       chatMessage: "hello",
-      chatMessageImage: { unload: () => calls.push("unload") },
+      chatMessageImage: {
+        unload: () => calls.push("unload"),
+        loadBaseImage: () => calls.push("load"),
+      },
       rerenderChat: false,
     };
 
@@ -532,6 +540,30 @@ describe("HUD layout", () => {
       rerenderChat: true,
     });
     expect(calls).toEqual(["unload"]);
+  });
+
+  it("ports ZHud::SetChatMessage as prompt text rendering", () => {
+    const image = { id: "chat-image" };
+    const loaded: unknown[] = [];
+    const rendered: Array<{ font: FontType; text: string }> = [];
+    const state = {
+      showChat: true,
+      chatMessage: "",
+      chatMessageImage: {
+        unload: () => undefined,
+        loadBaseImage: (loadedImage: unknown) => loaded.push(loadedImage),
+      },
+      rerenderChat: false,
+    };
+
+    setHudChatMessage(state, "hello", (font, text) => {
+      rendered.push({ font, text });
+      return image;
+    });
+
+    expect(state.chatMessage).toBe("Say:: hello");
+    expect(rendered).toEqual([{ font: FontType.SmallWhite, text: "Say:: hello" }]);
+    expect(loaded).toEqual([image]);
   });
 
   it("ports ZHud::SetTerrainType as HUD and portrait terrain assignment", () => {

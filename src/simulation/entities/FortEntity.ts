@@ -43,6 +43,34 @@ export class FortEntity extends GameEntity {
   }
 
   /**
+   * Port of upstream `BFort::UnderCursorCanAttack`.
+   * Role: Checks whether the cursor is over an attackable fort body section.
+   * Upstream: bfort.cpp:491-515
+   */
+  override underCursorCanAttack(mapX: number, mapY: number): boolean {
+    const localX = mapX - this.position.x;
+    const localY = mapY - this.position.y;
+
+    if (pointsWithinArea(localX, localY, 16, 16, 16 * 8, 16 * 7)) {
+      return true;
+    }
+    if (pointsWithinArea(localX, localY, 0, 16 * 3, 16 * 10, 16 * 4)) {
+      return true;
+    }
+    if (pointsWithinArea(localX, localY, 16, 0, 16 * 2, 16)) {
+      return true;
+    }
+    if (pointsWithinArea(localX, localY, 16 * 7, 0, 16 * 2, 16)) {
+      return true;
+    }
+    if (pointsWithinArea(localX, localY, 16 * 2, 16 * 8, 16, 16)) {
+      return true;
+    }
+
+    return pointsWithinArea(localX, localY, 16 * 7, 16 * 8, 16, 16);
+  }
+
+  /**
    * Port of upstream `BFort::UnderCursorFortCanEnter`.
    * Role: Checks whether the cursor is over a fort entry area.
    * Upstream: bfort.cpp:517-532

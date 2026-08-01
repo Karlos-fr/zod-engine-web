@@ -15,9 +15,33 @@ export type MapObjectTurrentImage = {
   loadBaseImage(filename: string): void;
 };
 
+/**
+ * Port of upstream `ZSDL_Surface::GetBaseSurface` use in `EMapObjectTurrent`.
+ * Role: Reports whether a map-object turret effect image has a loaded base surface.
+ * Upstream: emapobjectturrent.cpp:35
+ */
+export type MapObjectTurrentBaseImage = {
+  getBaseSurface(): unknown | null;
+};
+
 export type MapObjectTurrentInitState = {
   objectImages: readonly MapObjectTurrentImage[];
   finishedInit: boolean;
+};
+
+/**
+ * Port of upstream `EMapObjectTurrent` construction arguments.
+ * Role: Describes a map-object turret effect spawned by an object map item.
+ * Upstream: emapobjectturrent.h:9
+ */
+export type MapObjectTurrentEffectSpawn<TTime = unknown> = {
+  ztime: TTime | null;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  offsetTime: number;
+  objectIndex: number;
 };
 
 /**

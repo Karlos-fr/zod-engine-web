@@ -49,6 +49,15 @@ export type FontState = {
   finishedInit?: boolean;
 };
 
+/**
+ * Minimal state consumed by ported `ZFontEngine::Init`.
+ * Role: Stores the per-atlas font instances initialized by the font engine.
+ * Upstream: zfont_engine.h:12, zfont_engine.cpp:14-17
+ */
+export type FontEngineState = {
+  fonts: FontState[];
+};
+
 export type FontImageLoader = (filename: string) => unknown | null;
 
 /**
@@ -83,3 +92,20 @@ export function initFont(state: FontState, loadImage: FontImageLoader): void {
  * Upstream: zfont_engine.h:2
  */
 export const ZFONT_ENGINE_HEADER_GUARD_PORTED = true;
+
+/**
+ * Port of upstream `ZFontEngine::Init`.
+ * Role: Assigns each engine font slot its atlas type and initializes its images.
+ * Upstream: zfont_engine.cpp:10-19
+ */
+export function initFontEngine(
+  state: FontEngineState,
+  loadImage: FontImageLoader,
+): void {
+  for (let i = 0; i < FontType.MaxFontTypes; i += 1) {
+    const font = state.fonts[i] ?? { type: i };
+    state.fonts[i] = font;
+    setFontType(font, i);
+    initFont(font, loadImage);
+  }
+}

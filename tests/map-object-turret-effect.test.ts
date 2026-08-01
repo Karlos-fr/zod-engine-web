@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMAP_OBJECT_TURRENT_HEADER_GUARD_PORTED,
   initMapObjectTurrentEffect,
+  type MapObjectTurrentEffectSpawn,
 } from "../src/world/MapObjectTurretEffect";
 import { MAP_ITEM_TYPE_COUNT } from "../src/world/WorldConstants";
 
@@ -33,5 +34,28 @@ describe("map object turret effect", () => {
     expect(loadedFilenames).toHaveLength(MAP_ITEM_TYPE_COUNT);
     expect(loadedFilenames[0]).toBe("assets/other/map_items/no_shadow0.png");
     expect(loadedFilenames[21]).toBe("assets/other/map_items/no_shadow21.png");
+  });
+
+  it("ports EMapObjectTurrent construction arguments as a spawn descriptor", () => {
+    const ztime = { now: 45 };
+    const spawn: MapObjectTurrentEffectSpawn<typeof ztime> = {
+      ztime,
+      startX: 12,
+      startY: 24,
+      targetX: 90,
+      targetY: 120,
+      offsetTime: 0.5,
+      objectIndex: 3,
+    };
+
+    expect(spawn).toEqual({
+      ztime,
+      startX: 12,
+      startY: 24,
+      targetX: 90,
+      targetY: 120,
+      offsetTime: 0.5,
+      objectIndex: 3,
+    });
   });
 });

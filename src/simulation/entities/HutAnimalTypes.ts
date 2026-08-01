@@ -3,7 +3,7 @@
  */
 
 import { pointsWithinDistance } from "../Common";
-import { PlanetType } from "../SimulationConstants";
+import { MAX_ANGLE_TYPES, PlanetType } from "../SimulationConstants";
 
 /**
  * Port of upstream `_AHUTANIMAL_H_`.
@@ -121,6 +121,142 @@ export enum HutAnimalState {
  */
 export const HUT_ANIMAL_STATE_COUNT = 3;
 
+const HUT_ANIMAL_TYPE_ASSET_NAMES: Record<HutAnimalType, string> = {
+  [HutAnimalType.GreenSnake]: "green_snake",
+  [HutAnimalType.GreenLizard]: "green_lizard",
+  [HutAnimalType.DesertRabbit]: "desert_rabit",
+  [HutAnimalType.Raptor]: "raptor",
+  [HutAnimalType.MiniRaptor]: "mini_raptor",
+  [HutAnimalType.PigDino]: "pig_dino",
+  [HutAnimalType.YellowWorm]: "yellow_worm",
+  [HutAnimalType.ArcticRabbit]: "arctic_rabit",
+  [HutAnimalType.Penguin]: "penguin",
+  [HutAnimalType.WhiteWolf]: "white_wolf",
+  [HutAnimalType.Ostrich]: "ostrich",
+  [HutAnimalType.Rat]: "rat",
+  [HutAnimalType.Turtle]: "turtle",
+  [HutAnimalType.RedWorm]: "red_worm",
+  [HutAnimalType.GreenEyedFox]: "green_eyed_fox",
+};
+
+const HUT_ANIMAL_ROTATION_DEGREES = [
+  0, 45, 90, 135, 180, 225, 270, 315,
+] as const;
+
+/**
+ * Port of upstream `hut_animal_graphics`.
+ * Role: Holds hut animal animation frames and per-species frame counters.
+ * Upstream: ahutanimal.h:29-41
+ */
+export type HutAnimalGraphics<TImage = unknown> = {
+  walk: TImage[][];
+  look: TImage[][];
+  deadUp: TImage | null;
+  deadDown: TImage | null;
+  walkFrameCount: number;
+  lookFrameCount: number;
+  walkToZero: boolean;
+};
+
+/**
+ * Port of upstream `hut_animal_graphics` construction.
+ * Role: Creates empty hut animal graphics with zero frame counts.
+ * Upstream: ahutanimal.h:31
+ */
+export function createHutAnimalGraphics<TImage = unknown>(): HutAnimalGraphics<TImage> {
+  return {
+    walk: [],
+    look: [],
+    deadUp: null,
+    deadDown: null,
+    walkFrameCount: 0,
+    lookFrameCount: 0,
+    walkToZero: false,
+  };
+}
+
+/**
+ * Replacement for upstream `ZSDL_Surface::LoadBaseImage`.
+ * Role: Loads one hut animal animation frame asset.
+ * Upstream: ahutanimal.cpp:40, ahutanimal.cpp:49, ahutanimal.cpp:57
+ */
+export type HutAnimalImageLoader<TImage> = (filename: string) => TImage;
+
+/**
+ * Port of upstream `hut_animal_graphics::LoadGraphics`.
+ * Role: Loads hut animal dead, walking, and looking images for one species.
+ * Upstream: ahutanimal.cpp:3-62
+ */
+export function loadHutAnimalGraphics<TImage>(
+  graphics: HutAnimalGraphics<TImage>,
+  hutAnimalType: HutAnimalType,
+  loadImage: HutAnimalImageLoader<TImage>,
+): void {
+  graphics.walkFrameCount =
+    hutAnimalType === HutAnimalType.GreenSnake ? 8 : 4;
+
+  switch (hutAnimalType) {
+    case HutAnimalType.GreenSnake:
+    case HutAnimalType.YellowWorm:
+    case HutAnimalType.RedWorm:
+      graphics.lookFrameCount = 0;
+      break;
+    default:
+      graphics.lookFrameCount = 4;
+      break;
+  }
+
+  switch (hutAnimalType) {
+    case HutAnimalType.DesertRabbit:
+    case HutAnimalType.PigDino:
+    case HutAnimalType.ArcticRabbit:
+      graphics.walkToZero = true;
+      break;
+    default:
+      graphics.walkToZero = false;
+      break;
+  }
+
+  const assetName = HUT_ANIMAL_TYPE_ASSET_NAMES[hutAnimalType];
+
+  graphics.deadDown = loadImage(
+    `assets/other/hut_animals/${assetName}_dead_down.png`,
+  );
+  graphics.deadUp = loadImage(
+    `assets/other/hut_animals/${assetName}_dead_up.png`,
+  );
+
+  graphics.walk = Array.from({ length: MAX_ANGLE_TYPES }, (_rotation, r) =>
+    Array.from({ length: graphics.walkFrameCount }, (_frame, i) =>
+      loadImage(
+        `assets/other/hut_animals/${assetName}_walk_r${(
+          HUT_ANIMAL_ROTATION_DEGREES[r] ?? 0
+        )
+          .toString()
+          .padStart(3, "0")}_n${i.toString().padStart(2, "0")}.png`,
+      ),
+    ),
+  );
+
+  graphics.look = Array.from({ length: MAX_ANGLE_TYPES }, () => []);
+  for (let r = 0; r < MAX_ANGLE_TYPES; r += 2) {
+    for (let i = 0; i < graphics.lookFrameCount; i += 1) {
+      const image = loadImage(
+        `assets/other/hut_animals/${assetName}_look_r${(
+          HUT_ANIMAL_ROTATION_DEGREES[r] ?? 0
+        )
+          .toString()
+          .padStart(3, "0")}_n${i.toString().padStart(2, "0")}.png`,
+      );
+      graphics.look[r][i] = image;
+
+      if (r + 1 < MAX_ANGLE_TYPES) {
+        graphics.look[r + 1][i] = image;
+      }
+    }
+  }
+}
+
 /**
  * Port of upstream `IsGoingHome`.
  * Role: Reports whether a hut animal is currently returning to its home tile.
@@ -162,6 +298,23 @@ export function setHutAnimalStateNothing(
   if (state.graphics[state.hutAnimalType]?.walkToZero) {
     state.walkIndex = 0;
   }
+}
+
+/**
+ * Port of upstream `AHutAnimal::IsPrefferedDirection`.
+ * Role: Rejects unset directions and direction changes with upstream's bad turn offsets.
+ * Upstream: ahutanimal.cpp:151-174
+ */
+export function isPreferredHutAnimalDirection(
+  currentDirection: number,
+  newDirection: number,
+): boolean {
+  if (currentDirection === -1) return false;
+  if (newDirection === -1) return false;
+
+  const difference = Math.abs(currentDirection - newDirection);
+
+  return difference < 3 || difference > 5;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MainMenuListEntry } from "../src/ui/MainMenuWidgets";
 import {
+  processMainMenuSelectMap,
   setupMainMenuSelectMapList,
   ZGMM_SELECT_MAP_HEADER_GUARD_PORTED,
   type MainMenuSelectMapState,
@@ -79,5 +80,29 @@ describe("main menu select map", () => {
       new MainMenuListEntry("gamma.map", 2, 2),
     ]);
     expect(state.mapList.viewIndex).toBe(1);
+  });
+
+  it("ports GMMSelectMap Process as setup-list then widget processing", () => {
+    const calls: string[] = [];
+    const entries = [new MainMenuListEntry("old.map", 10, 10)];
+    const state = {
+      selectableMapList: ["alpha.map", "beta.map"],
+      mapList: {
+        entries,
+        visibleEntries: 2,
+        viewIndex: 0,
+      },
+      processWidgets() {
+        calls.push("processWidgets");
+      },
+    };
+
+    processMainMenuSelectMap(state);
+
+    expect(entries).toEqual([
+      new MainMenuListEntry("alpha.map", 0, 0),
+      new MainMenuListEntry("beta.map", 1, 1),
+    ]);
+    expect(calls).toEqual(["processWidgets"]);
   });
 });

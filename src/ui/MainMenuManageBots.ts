@@ -43,3 +43,25 @@ export const MANAGE_BOTS_STOP_BUTTON_WIDTH_PIXELS = 25;
  * Upstream: gmm_manage_bots.cpp:20
  */
 export const MANAGE_BOTS_BUTTON_SPACER_PIXELS = 2;
+
+/**
+ * Port of upstream `GMMManageBots::Process` call targets.
+ * Role: Provides bot-state refresh and widget processing hooks.
+ * Upstream: gmm_manage_bots.cpp:69-71
+ */
+export type MainMenuManageBotsProcessor = {
+  checkBots(): void;
+  processWidgets(): void;
+};
+
+/**
+ * Port of upstream `GMMManageBots::Process`.
+ * Role: Refreshes bot controls and processes manage-bots widgets.
+ * Upstream: gmm_manage_bots.cpp:67-72
+ */
+export function processMainMenuManageBots(
+  state: MainMenuManageBotsProcessor,
+): void {
+  state.checkBots();
+  state.processWidgets();
+}

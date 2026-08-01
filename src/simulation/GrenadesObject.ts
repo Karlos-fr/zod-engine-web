@@ -2,6 +2,11 @@
  * Upstream: ogrenades.h, ogrenades.cpp
  */
 
+import {
+  TurretMissileEffectType,
+  type TurretMissileEffectSpawn,
+} from "./TurretMissileEffect";
+
 /**
  * Port of upstream `_OGRENADES_H_`.
  * Role: Marks an upstream header boundary.
@@ -32,6 +37,14 @@ export const GRENADES_OBJECT_IMAGE_PATH = "assets/other/map_items/grenades.png";
  */
 export type GrenadesObjectRenderState<TImage> = {
   renderImage: TImage | null;
+};
+
+export type GrenadesObjectTurrentMissileState<TTime = unknown> = {
+  ztime: TTime | null;
+  position: {
+    x: number;
+    y: number;
+  };
 };
 
 /**
@@ -76,6 +89,31 @@ export function initGrenadesObjectImage<TImage>(
  */
 export function processGrenadesObject(): number {
   return 0;
+}
+
+/**
+ * Port of upstream `OGrenades::FireTurrentMissile`.
+ * Role: Spawns a grenade turret missile effect from the grenade pickup object.
+ * Upstream: ogrenades.cpp:51-54
+ */
+export function fireGrenadesObjectTurrentMissile<TTime>(
+  state: GrenadesObjectTurrentMissileState<TTime>,
+  effectList: TurretMissileEffectSpawn<TTime>[] | null,
+  targetX: number,
+  targetY: number,
+  offsetTime: number,
+): void {
+  if (!effectList) return;
+
+  effectList.push({
+    ztime: state.ztime,
+    startX: state.position.x + 2,
+    startY: state.position.y + 2,
+    targetX,
+    targetY,
+    offsetTime,
+    type: TurretMissileEffectType.Grenade,
+  });
 }
 
 /**
