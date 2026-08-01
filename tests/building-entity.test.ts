@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FontType } from "../src/rendering/FontEngine";
 import {
   BuildingType,
+  CannonType,
   MAX_STORED_CANNONS,
   PlanetType,
   TeamType,
@@ -16,6 +17,7 @@ import {
   getBuildingProductionTimeLeft,
 } from "../src/simulation/entities/BuildingTypes";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
+import { MapObjectType, type MapZoneInfo } from "../src/world/MapFormat";
 
 describe("building entity", () => {
   it("ports ZBuilding level accessors as building-level state", () => {
@@ -763,6 +765,67 @@ describe("building entity", () => {
     expect(building.haveStoredCannon(2)).toBe(false);
   });
 
+  it("ports ZBuilding CannonsInZone as active and stored cannon count", () => {
+    const zone = createBuildingTestZone(1);
+    const otherZone = createBuildingTestZone(2);
+    const building = new BuildingEntity({
+      id: "building-cannons-zone",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      objectType: MapObjectType.Building,
+      objectId: BuildingType.FortFront,
+    });
+    const sameZoneBuilding = new BuildingEntity({
+      id: "same-zone-building",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      objectType: MapObjectType.Building,
+      objectId: BuildingType.Radar,
+    });
+    const otherZoneBuilding = new BuildingEntity({
+      id: "other-zone-building",
+      kind: "building",
+      position: { x: 0, y: 0 },
+      objectType: MapObjectType.Building,
+      objectId: BuildingType.Radar,
+    });
+    const sameZoneCannon = new GameEntity({
+      id: "same-zone-cannon",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+      objectType: MapObjectType.Cannon,
+      objectId: CannonType.Gatling,
+    });
+    const otherZoneCannon = new GameEntity({
+      id: "other-zone-cannon",
+      kind: "cannon",
+      position: { x: 0, y: 0 },
+      objectType: MapObjectType.Cannon,
+      objectId: CannonType.Gun,
+    });
+
+    building.connectedZone = zone;
+    building.builtCannonList = [1, 2];
+    sameZoneBuilding.connectedZone = zone;
+    sameZoneBuilding.builtCannonList = [3, 4, 5];
+    otherZoneBuilding.connectedZone = otherZone;
+    otherZoneBuilding.builtCannonList = [6, 7];
+    sameZoneCannon.connectedZone = zone;
+    otherZoneCannon.connectedZone = otherZone;
+
+    expect(
+      building.cannonsInZone({
+        objectList: [
+          building,
+          sameZoneBuilding,
+          otherZoneBuilding,
+          sameZoneCannon,
+          otherZoneCannon,
+        ],
+      }),
+    ).toBe(6);
+  });
+
   it("ports ZBuilding StoreBuiltCannon as capped built cannon storage", () => {
     const building = new BuildingEntity({
       id: "building-1",
@@ -1125,3 +1188,15 @@ describe("building entity", () => {
     });
   });
 });
+
+function createBuildingTestZone(id: number): MapZoneInfo {
+  return {
+    owner: TeamType.Null,
+    tiles: [],
+    x: id,
+    y: id + 1,
+    width: 2,
+    height: 3,
+    id,
+  };
+}

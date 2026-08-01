@@ -10,6 +10,46 @@ type ImpassableCall = {
 };
 
 describe("radar building entity", () => {
+  it("ports BRadar Process without advancing animation before the interval", () => {
+    const building = new RadarBuildingEntity({
+      id: "radar-process-0",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.lastProcessTime = 10;
+    const effectTimes: number[] = [];
+
+    expect(building.process(10.24, (currentTime) => effectTimes.push(currentTime))).toBe(1);
+
+    expect(effectTimes).toEqual([10.24]);
+    expect(building.lastProcessTime).toBe(10);
+    expect(building.frontLightIndex).toBe(0);
+    expect(building.sideLightIndex).toBe(0);
+    expect(building.boxSpinnerIndex).toBe(0);
+    expect(building.dishIndex).toBe(0);
+  });
+
+  it("ports BRadar Process animation frame advancement and wrapping", () => {
+    const building = new RadarBuildingEntity({
+      id: "radar-process-1",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.lastProcessTime = 10;
+    building.frontLightIndex = 1;
+    building.sideLightIndex = 1;
+    building.boxSpinnerIndex = 11;
+    building.dishIndex = 7;
+
+    expect(building.process(10.25)).toBe(1);
+
+    expect(building.lastProcessTime).toBe(10.25);
+    expect(building.frontLightIndex).toBe(0);
+    expect(building.sideLightIndex).toBe(0);
+    expect(building.boxSpinnerIndex).toBe(0);
+    expect(building.dishIndex).toBe(0);
+  });
+
   it("ports BRadar SetMapImpassables as a blocked footprint with open entrance", () => {
     const building = new RadarBuildingEntity({
       id: "radar-0",

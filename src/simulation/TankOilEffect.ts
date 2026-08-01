@@ -3,6 +3,7 @@
  */
 
 import type { MapSurfaceRenderCommand } from "../world/GameMap";
+import { Rotation } from "./SimulationConstants";
 
 /**
  * Port of upstream `_ETANKOIL_H_`.
@@ -67,6 +68,17 @@ export type TankOilPreRenderState<TSurface> = {
   frameIndex: number;
   centerX: number;
   centerY: number;
+};
+
+/**
+ * Port of upstream `ETankOil::SetCoords` mutable fields.
+ * Role: Stores tank-oil center coordinates and source movement direction.
+ * Upstream: etankoil.cpp:73-117
+ */
+export type TankOilCoordsState = {
+  centerX: number;
+  centerY: number;
+  direction: number;
 };
 
 /**
@@ -144,4 +156,59 @@ export function doPreRenderTankOilEffect<TSurface>(
     false,
     true,
   );
+}
+
+/**
+ * Port of upstream `ETankOil::SetCoords`.
+ * Role: Positions tank-oil effects behind a moving vehicle with random local jitter.
+ * Upstream: etankoil.cpp:73-117
+ */
+export function setTankOilEffectCoords(
+  state: TankOilCoordsState,
+  centerX: number,
+  centerY: number,
+  direction: number,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  state.centerX = centerX;
+  state.centerY = centerY;
+  state.direction = direction;
+
+  switch (direction) {
+    case Rotation.R0:
+      state.centerX -= 5;
+      break;
+    case Rotation.R180:
+      state.centerX += 5;
+      break;
+    case Rotation.R90:
+      state.centerY += 5;
+      break;
+    case Rotation.R270:
+      state.centerY -= 5;
+      break;
+    case Rotation.R45:
+      state.centerX -= 4;
+      state.centerY += 4;
+      break;
+    case Rotation.R135:
+      state.centerX += 4;
+      state.centerY += 4;
+      break;
+    case Rotation.R225:
+      state.centerX += 4;
+      state.centerY -= 4;
+      break;
+    case Rotation.R315:
+      state.centerX -= 4;
+      state.centerY -= 4;
+      break;
+  }
+
+  state.centerY += 5;
+  state.centerX -= 3;
+  state.centerY -= 3;
+  state.centerX += randomInt(7);
+  state.centerY += randomInt(7);
 }

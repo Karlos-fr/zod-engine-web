@@ -14,8 +14,96 @@ import {
 } from "../TurretMissileEffect";
 import type { MobileMissileRocketsEffectSpawn } from "../MobileMissileRocketsEffect";
 import type { LightRocketEffectSpawn } from "../LightRocketEffect";
-import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
+import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  MAX_ANGLE_TYPES,
+  MAX_UNIT_HEALTH,
+  RobotType,
+  TeamType,
+} from "../SimulationConstants";
 import { SoundEngineSound } from "../../audio/AudioService";
+import {
+  loadTeamZSurface,
+  TEAM_RENDERING_BASE_TEAM,
+  type TeamSurfaceFactory,
+} from "../TeamRendering";
+
+export type VehicleSharedImage<TSurface> = {
+  getBaseSurface(): TSurface | null;
+  loadBaseImage(source: string | TSurface | null): void;
+};
+
+export type VehicleSharedImageInitState<TSurface> = {
+  lidImages: readonly (readonly VehicleSharedImage<TSurface>[])[];
+  tankRobotImages: VehicleSharedImage<TSurface>[][][];
+};
+
+const VEHICLE_TANK_LID_FRAME_COUNT = 3;
+const VEHICLE_TANK_ROBOT_FRAME_COUNT = 2;
+const VEHICLE_ROTATION_DEGREES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+const VEHICLE_TEAM_TYPE_ASSET_NAMES = [
+  "null",
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "teal",
+  "white",
+  "black",
+] as const;
+
+/**
+ * Port of upstream `ZVehicle::Init`.
+ * Role: Initializes shared vehicle lid and tank-driver robot images.
+ * Upstream: zvehicle.cpp:24-49
+ */
+export function initVehicleSharedImages<TSurface>(
+  state: VehicleSharedImageInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < VEHICLE_TANK_LID_FRAME_COUNT; frame += 1) {
+      state.lidImages[rotation]?.[frame]?.loadBaseImage(
+        `assets/units/vehicles/tank_lid_r${VEHICLE_ROTATION_DEGREES[rotation]
+          .toString()
+          .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+      );
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      for (let frame = 0; frame < VEHICLE_TANK_ROBOT_FRAME_COUNT; frame += 1) {
+        const baseImage =
+          state.tankRobotImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const tankRobotImage = state.tankRobotImages[team]?.[rotation]?.[frame];
+        if (!baseImage || !tankRobotImage) continue;
+
+        loadTeamZSurface(
+          team,
+          baseImage,
+          tankRobotImage,
+          `assets/units/robots/tank_fire_${VEHICLE_TEAM_TYPE_ASSET_NAMES[
+            team
+          ]}_r${VEHICLE_ROTATION_DEGREES[rotation]
+            .toString()
+            .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          makeTeamSurface,
+        );
+      }
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < VEHICLE_TANK_ROBOT_FRAME_COUNT; frame += 1) {
+      const redImage = state.tankRobotImages[TeamType.Red]?.[rotation]?.[frame];
+      if (redImage) {
+        state.tankRobotImages[TeamType.Null][rotation][frame] = redImage;
+      }
+    }
+  }
+}
 
 /**
  * Browser simulation entity containing the subset of `ZVehicle` behavior already ported.

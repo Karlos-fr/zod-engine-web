@@ -17,6 +17,7 @@ import {
 } from "./GameEntity";
 import type { BuildList } from "./BuildList";
 import { FontType } from "../../rendering/FontEngine";
+import { MapObjectType } from "../../world/MapFormat";
 
 /**
  * Marker exported from the building type module.
@@ -560,6 +561,34 @@ export class BuildingEntity extends GameEntity {
    */
   override haveStoredCannon(objectId: number): boolean {
     return this.builtCannonList.some((storedObjectId) => storedObjectId === objectId);
+  }
+
+  /**
+   * Port of upstream `ZBuilding::CannonsInZone`.
+   * Role: Counts active and stored cannons connected to this building's map zone.
+   * Upstream: zbuilding.cpp:433-456
+   */
+  override cannonsInZone(ols: { objectList: GameEntity[] }): number {
+    let cannonsFound = this.builtCannonList.length;
+
+    for (const object of ols.objectList) {
+      if (this === object) continue;
+      if (this.connectedZone !== object.connectedZone) continue;
+
+      const objectId = object.getObjectId();
+
+      if (objectId.objectType === MapObjectType.Building) {
+        if (object instanceof BuildingEntity) {
+          cannonsFound += object.builtCannonList.length;
+        }
+      }
+
+      if (objectId.objectType !== MapObjectType.Cannon) continue;
+
+      cannonsFound += 1;
+    }
+
+    return cannonsFound;
   }
 
   /**

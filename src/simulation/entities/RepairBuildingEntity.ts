@@ -3,7 +3,10 @@
  */
 
 import { TeamType } from "../SimulationConstants";
-import { BuildingEntity } from "./BuildingTypes";
+import {
+  BuildingEntity,
+  type BuildingShowTimeTextRenderer,
+} from "./BuildingTypes";
 import {
   type DriverInfo,
   Waypoint,
@@ -23,11 +26,58 @@ export class RepairBuildingEntity extends BuildingEntity {
   repairTime = 0;
   bulbIndex = 0;
   smokeStackIndex = 0;
+  textBoxIndex = 0;
+  sideLightIndex = 0;
+  frontLightIndex = 0;
+  lastProcessTime = 0;
   repairObjectType = 0;
   repairObjectId = 0;
   repairDriverType = 0;
   repairDriverInfo: DriverInfo[] = [];
   repairWaypointList: Waypoint[] = [];
+
+  /**
+   * Port of upstream `BRepair::Process`.
+   * Role: Advances repair-building animation frames and refreshes repair countdown display.
+   * Upstream: brepair.cpp:122-155
+   */
+  override process<TImage = unknown>(
+    currentTime = this.ztime?.ztime ?? 0,
+    processBuildingEffects: ((currentTime: number) => void) | null = null,
+    renderShowTimeText: BuildingShowTimeTextRenderer<TImage> = (_font, text) =>
+      text as TImage,
+  ): number {
+    const minIntervalTime = 0.35;
+
+    processBuildingEffects?.(currentTime);
+
+    if (currentTime - this.lastProcessTime >= minIntervalTime) {
+      this.lastProcessTime = currentTime;
+
+      this.smokeStackIndex += 1;
+      if (this.smokeStackIndex >= 5) this.smokeStackIndex = 0;
+
+      this.textBoxIndex += 1;
+      if (this.textBoxIndex >= 3) this.textBoxIndex = 0;
+
+      this.sideLightIndex += 1;
+      if (this.sideLightIndex >= 2) this.sideLightIndex = 0;
+
+      this.frontLightIndex += 1;
+      if (this.frontLightIndex >= 2) this.frontLightIndex = 0;
+
+      this.bulbIndex += 1;
+      if (this.bulbIndex >= 2) this.bulbIndex = 0;
+    }
+
+    if (this.repairingUnit) {
+      this.resetShowTime(Math.trunc(this.repairTime - currentTime), renderShowTimeText);
+    } else {
+      this.resetShowTime(-1, renderShowTimeText);
+    }
+
+    return 1;
+  }
 
   /**
    * Port of upstream `BRepair::SetMapImpassables`.

@@ -4,14 +4,17 @@ import {
   ETANK_OIL_HEADER_GUARD_PORTED,
   initTankOilEffect,
   processTankOilEffect,
+  setTankOilEffectCoords,
   TANK_OIL_FRAME_COUNT,
   TANK_OIL_LIFETIME_SECONDS,
   TANK_OIL_RANDOM_DELAY_STEP_SECONDS,
   TANK_OIL_VARIANT_COUNT,
+  type TankOilCoordsState,
   type TankOilInitState,
   type TankOilPreRenderState,
   type TankOilProcessState,
 } from "../src/simulation/TankOilEffect";
+import { Rotation } from "../src/simulation/SimulationConstants";
 
 describe("tank oil effect", () => {
   it("adapts the etankoil.h include guard to an ES module marker", async () => {
@@ -130,6 +133,49 @@ describe("tank oil effect", () => {
       frameIndex: 0,
       nextFrameTime: 10 + TANK_OIL_LIFETIME_SECONDS,
     });
+  });
+
+  it("ports ETankOil SetCoords as cardinal direction offsets and jitter", () => {
+    const state: TankOilCoordsState = {
+      centerX: 0,
+      centerY: 0,
+      direction: Rotation.R0,
+    };
+    const randomValues = [2, 6];
+    const randomMaxValues: number[] = [];
+
+    setTankOilEffectCoords(state, 100, 200, Rotation.R0, (maxExclusive) => {
+      randomMaxValues.push(maxExclusive);
+      return randomValues.shift() ?? 0;
+    });
+
+    expect(randomMaxValues).toEqual([7, 7]);
+    expect(state).toEqual({
+      centerX: 94,
+      centerY: 208,
+      direction: Rotation.R0,
+    });
+  });
+
+  it("ports ETankOil SetCoords as diagonal direction offsets", () => {
+    const cases = [
+      [Rotation.R45, 93, 206],
+      [Rotation.R135, 101, 206],
+      [Rotation.R225, 101, 198],
+      [Rotation.R315, 93, 198],
+    ] as const;
+
+    for (const [direction, centerX, centerY] of cases) {
+      const state: TankOilCoordsState = {
+        centerX: 0,
+        centerY: 0,
+        direction: Rotation.R0,
+      };
+
+      setTankOilEffectCoords(state, 100, 200, direction, () => 0);
+
+      expect(state).toEqual({ centerX, centerY, direction });
+    }
   });
 
   it("replaces ETankOil DoPreRender as no command for killed effects", () => {

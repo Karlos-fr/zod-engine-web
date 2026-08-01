@@ -2,15 +2,77 @@
  * Upstream: brobot.h
  */
 
-import { GameEntity } from "./GameEntity";
 import type { GameMap } from "../../world/GameMap";
+import {
+  BuildingEntity,
+  BuildingState,
+  type BuildingShowTimeTextRenderer,
+} from "./BuildingTypes";
 
 /**
  * Browser simulation entity containing the subset of `BRobot` behavior already ported.
  * Role: Represents robot factory behavior over the base game entity.
  * Upstream: brobot.h
  */
-export class RobotFactoryEntity extends GameEntity {
+export class RobotFactoryEntity extends BuildingEntity {
+  spinIndex = 0;
+  greenBoxIndex = 0;
+  robotIndex = 0;
+  exhaustIndex = 0;
+  singleLightOn = [false, false, false];
+  lastProcessTime = 0;
+
+  /**
+   * Port of upstream `BRobot::Process`.
+   * Role: Advances robot-factory animation frames and refreshes production countdown display.
+   * Upstream: brobot.cpp:135-172
+   */
+  override process<TImage = unknown>(
+    currentTime = this.ztime?.ztime ?? 0,
+    processBuildingEffects: ((currentTime: number) => void) | null = null,
+    renderShowTimeText: BuildingShowTimeTextRenderer<TImage> = (_font, text) =>
+      text as TImage,
+    randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+      Math.floor(Math.random() * maxExclusive),
+  ): number {
+    const minIntervalTime = 0.25;
+
+    processBuildingEffects?.(currentTime);
+
+    if (currentTime - this.lastProcessTime >= minIntervalTime) {
+      this.lastProcessTime = currentTime;
+
+      this.spinIndex += 1;
+      if (this.spinIndex >= 8) this.spinIndex = 0;
+
+      this.greenBoxIndex += 1;
+      if (this.greenBoxIndex >= 6) this.greenBoxIndex = 0;
+
+      this.robotIndex += 1;
+      if (this.robotIndex >= 2) this.robotIndex = 0;
+
+      this.exhaustIndex += 1;
+      if (this.exhaustIndex >= 13) this.exhaustIndex = 0;
+
+      if (randomInt(3) === 0) {
+        for (let i = 0; i < 3; i += 1) {
+          this.singleLightOn[i] = randomInt(2) !== 0;
+        }
+      }
+    }
+
+    if (this.buildState !== BuildingState.Select) {
+      this.resetShowTime(
+        Math.trunc(this.productionTimeLeft(currentTime)),
+        renderShowTimeText,
+      );
+    } else {
+      this.resetShowTime(-1, renderShowTimeText);
+    }
+
+    return 1;
+  }
+
   /**
    * Port of upstream `BRobot::SetMapImpassables`.
    * Role: Marks the robot factory footprint as blocked on the pathfinding map.

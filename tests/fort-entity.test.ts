@@ -5,8 +5,78 @@ import {
   PlanetType,
   TeamType,
 } from "../src/simulation/SimulationConstants";
+import { BuildingState } from "../src/simulation/entities/BuildingTypes";
 
 describe("fort entity", () => {
+  it("ports BFort Process as flag animation and production countdown updates", () => {
+    const entity = new FortEntity({
+      id: "fort-process",
+      kind: "fort",
+      position: { x: 0, y: 0 },
+    });
+    entity.nextFlagTime = 10;
+    entity.flagIndex = 3;
+    entity.buildState = BuildingState.Building;
+    entity.finalProductionTime = 18.75;
+    const effectTimes: number[] = [];
+    const showTimes: number[] = [];
+    entity.resetShowTime = (newTime: number): void => {
+      showTimes.push(newTime);
+    };
+
+    expect(entity.process(10.01, (currentTime) => effectTimes.push(currentTime))).toBe(1);
+
+    expect(effectTimes).toEqual([10.01]);
+    expect(entity.flagIndex).toBe(0);
+    expect(entity.nextFlagTime).toBeCloseTo(10.21);
+    expect(showTimes).toEqual([8]);
+  });
+
+  it("ports BFort Process as select-state show-time reset without flag advancement at boundary", () => {
+    const entity = new FortEntity({
+      id: "fort-process-select",
+      kind: "fort",
+      position: { x: 0, y: 0 },
+    });
+    entity.nextFlagTime = 10;
+    entity.flagIndex = 2;
+    entity.buildState = BuildingState.Select;
+    const showTimes: number[] = [];
+    entity.resetShowTime = (newTime: number): void => {
+      showTimes.push(newTime);
+    };
+
+    expect(entity.process(10)).toBe(1);
+
+    expect(entity.flagIndex).toBe(2);
+    expect(entity.nextFlagTime).toBe(10);
+    expect(showTimes).toEqual([-1]);
+  });
+
+  it("ports BFort Process as destroyed fade clamping and direction reversal", () => {
+    const entity = new FortEntity({
+      id: "fort-process-fade",
+      kind: "fort",
+      position: { x: 0, y: 0 },
+    });
+    entity.buildState = BuildingState.Select;
+    entity.destroyedFade = 250;
+    entity.lastFadeTime = 2;
+    entity.fadeDirection = 100;
+
+    entity.process(2.1);
+
+    expect(entity.destroyedFade).toBe(254);
+    expect(entity.lastFadeTime).toBe(2.1);
+    expect(entity.fadeDirection).toBe(-100);
+
+    entity.process(5);
+
+    expect(entity.destroyedFade).toBe(1);
+    expect(entity.lastFadeTime).toBe(5);
+    expect(entity.fadeDirection).toBe(100);
+  });
+
   it("ports BFort SetIsFront as front fort dimensions and production offsets", () => {
     const entity = new FortEntity({
       id: "fort-front",

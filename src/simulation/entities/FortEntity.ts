@@ -2,22 +2,74 @@
  * Upstream: bfort.h
  */
 
-import { GameEntity } from "./GameEntity";
 import { pointsWithinArea } from "../Common";
 import { BuildingType, PlanetType, TeamType } from "../SimulationConstants";
+import {
+  BuildingEntity,
+  BuildingState,
+  type BuildingShowTimeTextRenderer,
+} from "./BuildingTypes";
 
 /**
  * Browser simulation entity containing the subset of `BFort` behavior already ported.
  * Role: Represents fort-specific behavior over the base game entity.
  * Upstream: bfort.h
  */
-export class FortEntity extends GameEntity {
+export class FortEntity extends BuildingEntity {
   isFront = true;
   palette = PlanetType.Desert;
   unitCreateX = 0;
   unitCreateY = 0;
   unitMoveX = 0;
   unitMoveY = 0;
+  flagIndex = 0;
+  nextFlagTime = 0;
+  destroyedFade = 0;
+  lastFadeTime = 0;
+  fadeDirection = 100;
+
+  /**
+   * Port of upstream `BFort::Process`.
+   * Role: Advances fort flag animation, production countdown display, and destroyed-overlay fade.
+   * Upstream: bfort.cpp:177-212
+   */
+  override process<TImage = unknown>(
+    currentTime = this.ztime?.ztime ?? 0,
+    processBuildingEffects: ((currentTime: number) => void) | null = null,
+    renderShowTimeText: BuildingShowTimeTextRenderer<TImage> = (_font, text) =>
+      text as TImage,
+  ): number {
+    processBuildingEffects?.(currentTime);
+
+    if (currentTime > this.nextFlagTime) {
+      this.flagIndex += 1;
+      if (this.flagIndex >= 4) this.flagIndex = 0;
+
+      this.nextFlagTime = currentTime + 0.2;
+    }
+
+    if (this.buildState !== BuildingState.Select) {
+      this.resetShowTime(
+        Math.trunc(this.productionTimeLeft(currentTime)),
+        renderShowTimeText,
+      );
+    } else {
+      this.resetShowTime(-1, renderShowTimeText);
+    }
+
+    this.destroyedFade += (currentTime - this.lastFadeTime) * this.fadeDirection;
+    this.lastFadeTime = currentTime;
+
+    if (this.destroyedFade > 254) {
+      this.destroyedFade = 254;
+      this.fadeDirection *= -1;
+    } else if (this.destroyedFade < 1) {
+      this.destroyedFade = 1;
+      this.fadeDirection *= -1;
+    }
+
+    return 1;
+  }
 
   /**
    * Port of upstream `BFort::SetIsFront`.

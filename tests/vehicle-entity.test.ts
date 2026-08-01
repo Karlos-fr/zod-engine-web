@@ -20,10 +20,13 @@ import {
   fireHeavyVehicleTurrentMissile,
   fireLightVehicleTurrentMissile,
   fireMediumVehicleTurrentMissile,
+  initVehicleSharedImages,
   type VehicleRestrictedSoundCommand,
   VehicleEntity,
 } from "../src/simulation/entities/VehicleEntity";
 import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  MAX_ANGLE_TYPES,
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
@@ -37,6 +40,71 @@ import type { LightRocketEffectSpawn } from "../src/simulation/LightRocketEffect
 import { SoundEngineSound } from "../src/audio/AudioService";
 
 describe("vehicle entity", () => {
+  it("ports ZVehicle Init as shared lid and tank robot image initialization", () => {
+    const loadedLids: Array<[number, number, string | { id: string } | null]> = [];
+    const loadedTankRobots: Array<
+      [number, number, number, string | { id: string } | null]
+    > = [];
+    const made: Array<[number, { id: string } | null]> = [];
+    const baseSurfaces = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 2 }, (_, frame) => ({
+        id: `red-tank-robot-${rotation}-${frame}`,
+      })),
+    );
+    const lidImages = Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+      Array.from({ length: 3 }, (_, frame) => ({
+        getBaseSurface: () => null,
+        loadBaseImage(source: string | { id: string } | null): void {
+          loadedLids.push([rotation, frame, source]);
+        },
+      })),
+    );
+    const tankRobotImages = Array.from(
+      { length: ACTIVE_TEAM_TYPE_COUNT },
+      (_, team) =>
+        Array.from({ length: MAX_ANGLE_TYPES }, (_, rotation) =>
+          Array.from({ length: 2 }, (_, frame) => ({
+            getBaseSurface: () =>
+              team === TeamType.Red
+                ? baseSurfaces[rotation]?.[frame] ?? null
+                : null,
+            loadBaseImage(source: string | { id: string } | null): void {
+              loadedTankRobots.push([team, rotation, frame, source]);
+            },
+          })),
+        ),
+    );
+
+    initVehicleSharedImages({ lidImages, tankRobotImages }, (team, surface) => {
+      made.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadedLids).toHaveLength(MAX_ANGLE_TYPES * 3);
+    expect(loadedLids.slice(0, 3)).toEqual([
+      [0, 0, "assets/units/vehicles/tank_lid_r000_n00.png"],
+      [0, 1, "assets/units/vehicles/tank_lid_r000_n01.png"],
+      [0, 2, "assets/units/vehicles/tank_lid_r000_n02.png"],
+    ]);
+    expect(loadedTankRobots).toHaveLength(
+      (ACTIVE_TEAM_TYPE_COUNT - 1) * MAX_ANGLE_TYPES * 2,
+    );
+    expect(loadedTankRobots.slice(0, 2)).toEqual([
+      [TeamType.Red, 0, 0, "assets/units/robots/tank_fire_red_r000_n00.png"],
+      [TeamType.Red, 0, 1, "assets/units/robots/tank_fire_red_r000_n01.png"],
+    ]);
+    expect(loadedTankRobots).toContainEqual([
+      TeamType.Blue,
+      2,
+      1,
+      { id: "team-2-red-tank-robot-2-1" },
+    ]);
+    expect(made).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * MAX_ANGLE_TYPES * 2);
+    expect(tankRobotImages[TeamType.Null]?.[7]?.[1]).toBe(
+      tankRobotImages[TeamType.Red]?.[7]?.[1],
+    );
+  });
+
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {
     const entity = new VehicleEntity({
       id: "vehicle-1",

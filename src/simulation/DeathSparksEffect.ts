@@ -66,6 +66,27 @@ export type DeathSparksEffectSpawn<TTime = unknown> = {
 };
 
 /**
+ * Port of upstream `EDeathSparks::Process` mutable fields.
+ * Role: Stores animation, lifetime, and projectile-motion state for one death spark.
+ * Upstream: edeathsparks.cpp:67-114
+ */
+export type DeathSparksProcessState = {
+  killMe: boolean;
+  renderIndex: number;
+  nextProcessTime: number;
+  initialTime: number;
+  finalTime: number;
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  deltaX: number;
+  deltaY: number;
+  rise: number;
+  size: number;
+};
+
+/**
  * Port of upstream `EDeathSparks::Init`.
  * Role: Initializes death-spark frame asset paths.
  * Upstream: edeathsparks.cpp:53-65
@@ -77,4 +98,38 @@ export function initDeathSparksEffect(state: DeathSparksInitState): void {
       `assets/units/vehicles/death_effects/spark_n${index.toString().padStart(2, "0")}.png`,
   );
   state.finishedInit = true;
+}
+
+/**
+ * Port of upstream `EDeathSparks::Process`.
+ * Role: Advances death-spark animation, expires it, and updates its arcing position.
+ * Upstream: edeathsparks.cpp:67-114
+ */
+export function processDeathSparksEffect(
+  state: DeathSparksProcessState,
+  currentTime: number,
+): void {
+  if (state.killMe) return;
+
+  if (currentTime >= state.finalTime) {
+    state.killMe = true;
+    return;
+  }
+
+  if (currentTime >= state.nextProcessTime) {
+    state.renderIndex += 1;
+    if (state.renderIndex >= DEATH_SPARKS_FRAME_COUNT) state.renderIndex = 0;
+
+    state.nextProcessTime = currentTime + 0.1;
+  }
+
+  const timeDifference = currentTime - state.initialTime;
+
+  state.x = state.startX + state.deltaX * timeDifference;
+  state.y = state.startY + state.deltaY * timeDifference;
+  state.size =
+    -(state.rise / (state.finalTime - state.initialTime)) *
+      (timeDifference * timeDifference) +
+    state.rise * timeDifference;
+  state.y -= state.size * 30;
 }

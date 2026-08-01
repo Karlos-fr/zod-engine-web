@@ -12,6 +12,61 @@ type ImpassableCall = {
 };
 
 describe("repair building entity", () => {
+  it("ports BRepair Process without advancing animation before the interval", () => {
+    const building = new RepairBuildingEntity({
+      id: "repair-process-before",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.lastProcessTime = 10;
+    const effectTimes: number[] = [];
+    const showTimes: number[] = [];
+    building.resetShowTime = (newTime: number): void => {
+      showTimes.push(newTime);
+    };
+
+    expect(building.process(10.34, (currentTime) => effectTimes.push(currentTime))).toBe(1);
+
+    expect(effectTimes).toEqual([10.34]);
+    expect(showTimes).toEqual([-1]);
+    expect(building.lastProcessTime).toBe(10);
+    expect(building.smokeStackIndex).toBe(0);
+    expect(building.textBoxIndex).toBe(0);
+    expect(building.sideLightIndex).toBe(0);
+    expect(building.frontLightIndex).toBe(0);
+    expect(building.bulbIndex).toBe(0);
+  });
+
+  it("ports BRepair Process animation frame advancement and wrapping", () => {
+    const building = new RepairBuildingEntity({
+      id: "repair-process-wrap",
+      kind: "building",
+      position: { x: 0, y: 0 },
+    });
+    building.lastProcessTime = 10;
+    building.smokeStackIndex = 4;
+    building.textBoxIndex = 2;
+    building.sideLightIndex = 1;
+    building.frontLightIndex = 1;
+    building.bulbIndex = 1;
+    building.repairingUnit = true;
+    building.repairTime = 15.9;
+    const showTimes: number[] = [];
+    building.resetShowTime = (newTime: number): void => {
+      showTimes.push(newTime);
+    };
+
+    expect(building.process(10.35)).toBe(1);
+
+    expect(building.lastProcessTime).toBe(10.35);
+    expect(building.smokeStackIndex).toBe(0);
+    expect(building.textBoxIndex).toBe(0);
+    expect(building.sideLightIndex).toBe(0);
+    expect(building.frontLightIndex).toBe(0);
+    expect(building.bulbIndex).toBe(0);
+    expect(showTimes).toEqual([5]);
+  });
+
   it("ports BRepair SetMapImpassables as full footprint blockage", () => {
     const building = new RepairBuildingEntity({
       id: "repair-0",

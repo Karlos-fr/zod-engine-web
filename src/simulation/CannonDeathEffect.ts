@@ -2,6 +2,10 @@
  * Upstream: ecannondeath.h
  */
 import type { DeathSparksEffectSpawn } from "./DeathSparksEffect";
+import {
+  TurretMissileEffectType,
+  type TurretMissileEffectSpawn,
+} from "./TurretMissileEffect";
 
 /**
  * Port of upstream `_ECANNONDEATH_H_`.
@@ -59,6 +63,24 @@ export type CannonDeathEffectSpawn<TTime = unknown> = {
 };
 
 /**
+ * Port of upstream `ECannonDeath::Process` mutable fields.
+ * Role: Stores cannon death timing, effect outputs, and child effects.
+ * Upstream: ecannondeath.cpp:84-119
+ */
+export type CannonDeathProcessState<TTime = unknown> = {
+  ztime: TTime | null;
+  killMe: boolean;
+  finalTime: number;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  offsetTime: number;
+  object: CannonDeathObject | number;
+  extraEffects: Array<{ process(): void }>;
+};
+
+/**
  * Port of upstream `ECannonDeath::Init`.
  * Role: Initializes cannon destroyed-body image paths.
  * Upstream: ecannondeath.cpp:74-82
@@ -99,5 +121,61 @@ export function spawnCannonDeathEffectSparks<TTime>(
       x: sparkX,
       y: sparkY,
     });
+  }
+}
+
+/**
+ * Port of upstream `ECannonDeath::Process`.
+ * Role: Expires cannon death effects, spawns debris, and processes transient child effects.
+ * Upstream: ecannondeath.cpp:84-119
+ */
+export function processCannonDeathEffect<TTime>(
+  state: CannonDeathProcessState<TTime>,
+  currentTime: number,
+  turretMissileEffects: TurretMissileEffectSpawn<TTime>[] | null,
+  deathSparkEffects: DeathSparksEffectSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (state.killMe) return;
+
+  if (currentTime >= state.finalTime) {
+    state.killMe = true;
+    spawnCannonDeathEffectSparks(state, deathSparkEffects, randomInt);
+
+    const missileType = cannonDeathObjectToTurretMissileType(state.object);
+    if (missileType === null) return;
+
+    turretMissileEffects?.push({
+      ztime: state.ztime,
+      startX: state.x,
+      startY: state.y,
+      targetX: state.targetX,
+      targetY: state.targetY,
+      offsetTime: state.offsetTime,
+      type: missileType,
+    });
+    return;
+  }
+
+  for (const effect of state.extraEffects) {
+    effect.process();
+  }
+}
+
+function cannonDeathObjectToTurretMissileType(
+  object: CannonDeathObject | number,
+): TurretMissileEffectType | null {
+  switch (object) {
+    case CannonDeathObject.Gatling:
+      return TurretMissileEffectType.Gatling;
+    case CannonDeathObject.Gun:
+      return TurretMissileEffectType.Gun;
+    case CannonDeathObject.Howitzer:
+      return TurretMissileEffectType.Howitzer;
+    case CannonDeathObject.Missile:
+      return TurretMissileEffectType.MissileCannon;
+    default:
+      return null;
   }
 }

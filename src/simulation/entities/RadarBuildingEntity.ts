@@ -11,6 +11,44 @@ import type { GameMap } from "../../world/GameMap";
  * Upstream: bradar.h
  */
 export class RadarBuildingEntity extends BuildingEntity {
+  frontLightIndex = 0;
+  sideLightIndex = 0;
+  boxSpinnerIndex = 0;
+  dishIndex = 0;
+  lastProcessTime = 0;
+
+  /**
+   * Port of upstream `BRadar::Process`.
+   * Role: Advances radar animation frames on a fixed simulation interval.
+   * Upstream: bradar.cpp:115-140
+   */
+  override process(
+    currentTime = this.ztime?.ztime ?? 0,
+    processBuildingEffects: ((currentTime: number) => void) | null = null,
+  ): number {
+    const minIntervalTime = 0.25;
+
+    processBuildingEffects?.(currentTime);
+
+    if (currentTime - this.lastProcessTime >= minIntervalTime) {
+      this.lastProcessTime = currentTime;
+
+      this.frontLightIndex += 1;
+      if (this.frontLightIndex >= 2) this.frontLightIndex = 0;
+
+      this.sideLightIndex += 1;
+      if (this.sideLightIndex >= 2) this.sideLightIndex = 0;
+
+      this.boxSpinnerIndex += 1;
+      if (this.boxSpinnerIndex >= 12) this.boxSpinnerIndex = 0;
+
+      this.dishIndex += 1;
+      if (this.dishIndex >= 8) this.dishIndex = 0;
+    }
+
+    return 1;
+  }
+
   /**
    * Port of upstream `BRadar::SetMapImpassables`.
    * Role: Marks the radar building footprint as blocked while leaving its entrance tile open.

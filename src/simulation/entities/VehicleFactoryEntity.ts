@@ -2,15 +2,72 @@
  * Upstream: bvehicle.h
  */
 
-import { GameEntity } from "./GameEntity";
 import type { GameMap } from "../../world/GameMap";
+import {
+  BuildingEntity,
+  BuildingState,
+  type BuildingShowTimeTextRenderer,
+} from "./BuildingTypes";
 
 /**
  * Browser simulation entity containing the subset of `BVehicle` behavior already ported.
  * Role: Represents vehicle factory behavior over the base game entity.
  * Upstream: bvehicle.h
  */
-export class VehicleFactoryEntity extends GameEntity {
+export class VehicleFactoryEntity extends BuildingEntity {
+  spinIndex = 0;
+  ventIndex = 0;
+  exhaustIndex = 0;
+  bulbIndex = 0;
+  tankIndex = 0;
+  lastProcessTime = 0;
+
+  /**
+   * Port of upstream `BVehicle::Process`.
+   * Role: Advances vehicle-factory animation frames and refreshes production countdown display.
+   * Upstream: bvehicle.cpp:136-172
+   */
+  override process<TImage = unknown>(
+    currentTime = this.ztime?.ztime ?? 0,
+    processBuildingEffects: ((currentTime: number) => void) | null = null,
+    renderShowTimeText: BuildingShowTimeTextRenderer<TImage> = (_font, text) =>
+      text as TImage,
+  ): number {
+    const minIntervalTime = 0.25;
+
+    processBuildingEffects?.(currentTime);
+
+    if (currentTime - this.lastProcessTime >= minIntervalTime) {
+      this.lastProcessTime = currentTime;
+
+      this.spinIndex += 1;
+      if (this.spinIndex >= 8) this.spinIndex = 0;
+
+      this.ventIndex += 1;
+      if (this.ventIndex >= 4) this.ventIndex = 0;
+
+      this.exhaustIndex += 1;
+      if (this.exhaustIndex >= 13) this.exhaustIndex = 0;
+
+      this.bulbIndex += 1;
+      if (this.bulbIndex >= 2) this.bulbIndex = 0;
+
+      this.tankIndex += 1;
+      if (this.tankIndex >= 2) this.tankIndex = 0;
+    }
+
+    if (this.buildState !== BuildingState.Select) {
+      this.resetShowTime(
+        Math.trunc(this.productionTimeLeft(currentTime)),
+        renderShowTimeText,
+      );
+    } else {
+      this.resetShowTime(-1, renderShowTimeText);
+    }
+
+    return 1;
+  }
+
   /**
    * Port of upstream `BVehicle::SetMapImpassables`.
    * Role: Marks the vehicle factory footprint as blocked on the pathfinding map.
