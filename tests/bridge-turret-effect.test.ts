@@ -3,7 +3,9 @@ import {
   EBRIDGE_TURRENT_HEADER_GUARD_PORTED,
   endBridgeTurrentExplosion,
   initBridgeTurrentEffect,
+  processBridgeTurrentEffect,
   renderBridgeTurrentEffect,
+  type BridgeTurrentProcessState,
 } from "../src/simulation/BridgeTurretEffect";
 import {
   RockParticleType,
@@ -212,4 +214,94 @@ describe("bridge turret effect", () => {
     });
     expect(effects[16]).toEqual(effects[0]);
   });
+
+  it("ports EBridgeTurrent Process guard exit", () => {
+    const state = createBridgeTurrentProcessState({ killme: true });
+    const effects: RockParticleEffectSpawn[] = [];
+
+    processBridgeTurrentEffect(state, 3, effects, () => {
+      throw new Error("randomInt should not be called for killed bridge debris");
+    });
+
+    expect(state.x).toBe(10);
+    expect(state.y).toBe(20);
+    expect(effects).toEqual([]);
+  });
+
+  it("ports EBridgeTurrent Process as frame cadence, arcing movement, and wrapped angle", () => {
+    const state = createBridgeTurrentProcessState({
+      initTime: 2,
+      finalTime: 6,
+      nextProcessTime: 3,
+      sx: 10,
+      sy: 20,
+      dx: 5,
+      dy: 8,
+      rise: 2,
+      dangle: -250,
+      renderIndex: 11,
+    });
+
+    processBridgeTurrentEffect(state, 3.5, []);
+
+    expect(state.killme).toBe(false);
+    expect(state.renderIndex).toBe(0);
+    expect(state.nextProcessTime).toBeCloseTo(3.57);
+    expect(state.x).toBe(17.5);
+    expect(state.y).toBeCloseTo(-11.875);
+    expect(state.size).toBeCloseTo(3.0625);
+    expect(state.angle).toBe(345);
+  });
+
+  it("ports EBridgeTurrent Process impact as end explosion then killed", () => {
+    const ztime = { now: 44 };
+    const state = createBridgeTurrentProcessState({
+      ztime,
+      finalTime: 6,
+      x: 70,
+      y: 90,
+      palette: PlanetType.Arctic,
+    });
+    const effects: RockParticleEffectSpawn<typeof ztime>[] = [];
+
+    processBridgeTurrentEffect(state, 6, effects, () => 0);
+
+    expect(state.killme).toBe(true);
+    expect(effects).toHaveLength(12);
+    expect(effects[0]).toEqual({
+      ztime,
+      x: 70,
+      y: 90,
+      palette: PlanetType.Arctic,
+      particleType: RockParticleType.Small,
+      maxX: 80,
+      maxY: 60,
+    });
+  });
 });
+
+function createBridgeTurrentProcessState<TTime = unknown>(
+  overrides: Partial<BridgeTurrentProcessState<TTime>> = {},
+): BridgeTurrentProcessState<TTime> {
+  return {
+    killme: false,
+    isReversed: false,
+    ztime: null,
+    initTime: 0,
+    finalTime: 2,
+    nextProcessTime: 0.07,
+    x: 10,
+    y: 20,
+    sx: 10,
+    sy: 20,
+    dx: 30,
+    dy: 40,
+    size: 1,
+    rise: 0.5,
+    angle: 0,
+    dangle: 120,
+    renderIndex: 0,
+    palette: PlanetType.Desert,
+    ...overrides,
+  };
+}

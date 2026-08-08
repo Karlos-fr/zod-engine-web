@@ -4,6 +4,11 @@
 
 import { currentTime } from "../simulation/Common";
 import type { GameEntity } from "../simulation/entities/GameEntity";
+import {
+  BuildingType,
+  MAX_STORED_CANNONS,
+} from "../simulation/SimulationConstants";
+import { MapObjectType } from "../world/MapFormat";
 import type { MapSurfaceRenderCommand } from "../world/GameMap";
 import { FontType } from "./FontEngine";
 
@@ -82,6 +87,58 @@ export type ComponentMessageResumeImage<TSurface> = {
 export type ComponentMessageResumeRenderState<TSurface> = {
   ztime: ComponentMessagePauseClock | null;
   clickToResumeImage: ComponentMessageResumeImage<TSurface>;
+};
+
+export type ComponentMessageGunImage<TSurface> = {
+  surface: TSurface;
+  baseSurface: { width: number; height: number } | null;
+};
+
+export type ComponentMessageStoredGunObject = {
+  getOwner(): number;
+  isDestroyed(): boolean;
+  getObjectId(): { objectType: number; objectId: number };
+  getBuiltCannonList(): readonly unknown[];
+  getRefId(): number;
+};
+
+/**
+ * Replacement for upstream `ZCompMessageEngine::RenderGuns` state.
+ * Role: Holds object filtering state and stored-gun images for rendering.
+ * Upstream: zcomp_message_engine.cpp:284-343
+ */
+export type ComponentMessageGunsRenderState<TSurface> = {
+  objectList: readonly ComponentMessageStoredGunObject[] | null;
+  ourTeam: number;
+  gunImage: ComponentMessageGunImage<TSurface>;
+  xImages: readonly ComponentMessageGunImage<TSurface>[];
+};
+
+export type ComponentMessageGunsRenderResult<TSurface> = {
+  commands: Array<MapSurfaceRenderCommand<TSurface>>;
+  renderedGunRefIds: number[];
+};
+
+export type ComponentMessageMainImage<TSurface> = {
+  surface: TSurface;
+  baseSurface: { width: number; height: number } | null;
+};
+
+/**
+ * Replacement for upstream `ZCompMessageEngine::DoRender` state.
+ * Role: Aggregates active message, stored-gun, and pause-resume render state.
+ * Upstream: zcomp_message_engine.cpp:235-262
+ */
+export type ComponentMessageDoRenderState<TSurface> =
+  ComponentMessageGunsRenderState<TSurface> &
+    ComponentMessageResumeRenderState<TSurface> & {
+      showMessageImage: ComponentMessageMainImage<TSurface> | null;
+      showTheMessage: boolean;
+    };
+
+export type ComponentMessageDoRenderResult<TSurface> = {
+  commands: Array<MapSurfaceRenderCommand<TSurface>>;
+  renderedGunRefIds: number[];
 };
 
 export type ComponentMessageImageSet<TImage> = {
@@ -299,6 +356,146 @@ export function renderComponentMessageResume<TSurface>(
     false,
     false,
   );
+}
+
+/**
+ * Replacement for upstream `ZCompMessageEngine::RenderGuns`.
+ * Role: Builds stored-gun indicator commands and tracks the rendered building refs.
+ * Upstream: zcomp_message_engine.cpp:284-343
+ */
+export function renderComponentMessageGuns<TSurface>(
+  state: ComponentMessageGunsRenderState<TSurface>,
+  zmap: {
+    getViewShiftFull(): {
+      x: number;
+      y: number;
+      viewWidth: number;
+      viewHeight: number;
+    };
+    renderZSurface(
+      surface: TSurface,
+      x: number,
+      y: number,
+      renderHit: boolean,
+      aboutCenter: boolean,
+    ): MapSurfaceRenderCommand<TSurface>;
+  },
+): ComponentMessageGunsRenderResult<TSurface> {
+  const commands: Array<MapSurfaceRenderCommand<TSurface>> = [];
+  const renderedGunRefIds: number[] = [];
+
+  if (!state.objectList) return { commands, renderedGunRefIds };
+
+  const gunBaseSurface = state.gunImage.baseSurface;
+  if (!gunBaseSurface) return { commands, renderedGunRefIds };
+
+  const view = zmap.getViewShiftFull();
+  const x = 8 + view.x;
+  let y = 8 + view.y;
+
+  for (const object of state.objectList) {
+    if (object.getOwner() !== state.ourTeam) continue;
+    if (object.isDestroyed()) continue;
+
+    const objectId = object.getObjectId();
+    if (!isStoredGunBuildingObject(objectId.objectType, objectId.objectId)) {
+      continue;
+    }
+
+    const cannonAmount = object.getBuiltCannonList().length;
+    if (!cannonAmount) continue;
+
+    commands.push(zmap.renderZSurface(state.gunImage.surface, x, y, false, false));
+
+    if (cannonAmount > 1 && cannonAmount <= MAX_STORED_CANNONS) {
+      const multiplierImage = state.xImages[cannonAmount - 1];
+      if (multiplierImage?.baseSurface) {
+        commands.push(
+          zmap.renderZSurface(
+            multiplierImage.surface,
+            x + gunBaseSurface.width + 4,
+            y + 3,
+            false,
+            false,
+          ),
+        );
+      }
+    }
+
+    renderedGunRefIds.push(object.getRefId());
+    if (renderedGunRefIds.length >= MAX_RENDERABLE_STORED_GUNS) break;
+
+    y += 2 + gunBaseSurface.height;
+  }
+
+  return { commands, renderedGunRefIds };
+}
+
+function isStoredGunBuildingObject(objectType: number, objectId: number): boolean {
+  if (objectType !== MapObjectType.Building) return false;
+
+  return (
+    objectId === BuildingType.FortFront ||
+    objectId === BuildingType.FortBack ||
+    objectId === BuildingType.RobotFactory ||
+    objectId === BuildingType.VehicleFactory
+  );
+}
+
+/**
+ * Replacement for upstream `ZCompMessageEngine::DoRender`.
+ * Role: Builds active component message, stored-gun, and pause-resume commands in upstream order.
+ * Upstream: zcomp_message_engine.cpp:235-262
+ */
+export function renderComponentMessageEngine<TSurface>(
+  state: ComponentMessageDoRenderState<TSurface>,
+  zmap: {
+    getViewShiftFull(): {
+      x: number;
+      y: number;
+      viewWidth: number;
+      viewHeight: number;
+    };
+    renderZSurface(
+      surface: TSurface,
+      x: number,
+      y: number,
+      renderHit: boolean,
+      aboutCenter: boolean,
+    ): MapSurfaceRenderCommand<TSurface>;
+  },
+): ComponentMessageDoRenderResult<TSurface> {
+  const commands: Array<MapSurfaceRenderCommand<TSurface>> = [];
+
+  if (state.showMessageImage && state.showTheMessage) {
+    const baseSurface = state.showMessageImage.baseSurface;
+    if (baseSurface) {
+      const view = zmap.getViewShiftFull();
+      const x = ((view.viewWidth - baseSurface.width) >> 1) + view.x;
+      const y = 20 + view.y;
+
+      commands.push(
+        zmap.renderZSurface(
+          state.showMessageImage.surface,
+          x,
+          y,
+          false,
+          false,
+        ),
+      );
+    }
+  }
+
+  const guns = renderComponentMessageGuns(state, zmap);
+  commands.push(...guns.commands);
+
+  const resume = renderComponentMessageResume(state, zmap);
+  if (resume) commands.push(resume);
+
+  return {
+    commands,
+    renderedGunRefIds: guns.renderedGunRefIds,
+  };
 }
 
 /**

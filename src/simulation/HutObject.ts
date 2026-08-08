@@ -132,6 +132,38 @@ export type HutAnimalsHomeState<TAnimal extends HutAnimalHomeReturn = HutAnimalH
   hutAnimals: TAnimal[];
 };
 
+export type HutCreatedAnimal = {
+  setMap(map: unknown | null): void;
+  setEffectList(effectList: unknown[] | null): void;
+  setHomeCoords(x: number, y: number): void;
+  setCoords(x: number, y: number): void;
+  gotoTile(tileX: number, tileY: number): void;
+};
+
+/**
+ * Port of upstream `OHut::CreateAnimals` state.
+ * Role: Holds hut spawn coordinates, palette context, map/effect dependencies, and owned animal list.
+ * Upstream: ohut.cpp:203-225
+ */
+export type HutCreateAnimalsState<TAnimal extends HutCreatedAnimal> = {
+  x: number;
+  y: number;
+  centerX: number;
+  centerY: number;
+  palette: PlanetType;
+  ztime: unknown | null;
+  zsettings: unknown | null;
+  zmap: HutExitMap | null;
+  effectList: unknown[] | null;
+  hutAnimals: TAnimal[];
+};
+
+export type HutAnimalFactory<TAnimal extends HutCreatedAnimal> = (
+  ztime: unknown | null,
+  zsettings: unknown | null,
+  palette: PlanetType,
+) => TAnimal;
+
 /**
  * Port of upstream `OHut::Init`.
  * Role: Loads one hut render image per planet palette.
@@ -325,6 +357,33 @@ export function sendHutAnimalsHome(
     remainingAmount -= 1;
 
     if (remainingAmount <= 0) return;
+  }
+}
+
+/**
+ * Port of upstream `OHut::CreateAnimals`.
+ * Role: Creates hut animals only when an exit tile exists and initializes their map, home, and first waypoint.
+ * Upstream: ohut.cpp:203-225
+ */
+export function createHutAnimals<TAnimal extends HutCreatedAnimal>(
+  state: HutCreateAnimalsState<TAnimal>,
+  amount: number,
+  createAnimal: HutAnimalFactory<TAnimal>,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  for (let i = 0; i < amount; i += 1) {
+    const exitTile = getHutExitToTile(state, state.zmap, randomInt);
+    if (!exitTile.success) continue;
+
+    const animal = createAnimal(state.ztime, state.zsettings, state.palette);
+    animal.setMap(state.zmap);
+    animal.setEffectList(state.effectList);
+    animal.setHomeCoords(state.centerX, state.centerY);
+    animal.setCoords(state.centerX, state.centerY);
+    animal.gotoTile(exitTile.x, exitTile.y);
+
+    state.hutAnimals.push(animal);
   }
 }
 

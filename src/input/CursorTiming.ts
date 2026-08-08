@@ -3,6 +3,7 @@
  */
 
 import { TeamType } from "../simulation/SimulationConstants";
+import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 
 /**
  * Port of upstream `time_inc`.
@@ -69,6 +70,41 @@ export type CursorProcessState<TSurface = unknown> =
   };
 
 export type CursorSurfaceTable<TSurface> = TSurface[][][];
+
+export type CursorRenderSurface<TBaseSurface> = {
+  getBaseSurface(): TBaseSurface | null;
+};
+
+/**
+ * Replacement for upstream `ZMap::GetBlitInfo` dependency in cursor rendering.
+ * Role: Clips a cursor base surface against the current map viewport.
+ * Upstream: cursor.cpp:190
+ */
+export type CursorRenderMap<TBaseSurface> = {
+  getBlitInfo(
+    surface: TBaseSurface | null,
+    x: number,
+    y: number,
+  ): SurfaceBlitRegion | null;
+};
+
+/**
+ * Replacement for upstream `ZCursor::Render` blit operation.
+ * Role: Describes either a clipped cursor blit or an unrestricted cursor destination.
+ * Upstream: cursor.cpp:190-199
+ */
+export type CursorRenderCommand<TSurface> =
+  | {
+      kind: "restricted";
+      surface: TSurface;
+      region: SurfaceBlitRegion;
+    }
+  | {
+      kind: "unrestricted";
+      surface: TSurface;
+      x: number;
+      y: number;
+    };
 
 /**
  * Port of upstream `ZPlayer::SetPcursor` dependency surface.
@@ -180,4 +216,47 @@ export function setPlayerPreviewCursor<TSurface>(
       setCursor(state.previewCursor, CursorType.Placed, surfaces);
       break;
   }
+}
+
+/**
+ * Replacement for upstream `ZCursor::Render`.
+ * Role: Builds a cursor blit command with upstream cursor-offset and optional map clipping.
+ * Upstream: cursor.cpp:169-202
+ */
+export function renderCursor<TSurface extends CursorRenderSurface<TBaseSurface>, TBaseSurface>(
+  state: CursorSurfaceState<TSurface>,
+  map: CursorRenderMap<TBaseSurface>,
+  x: number,
+  y: number,
+  restrictToMap = false,
+): CursorRenderCommand<TSurface> | null {
+  const surface = state.currentSurface;
+  if (!surface) return null;
+
+  const xShift = state.currentCursor > CursorType.Cursor ? -8 : 0;
+  const yShift = state.currentCursor > CursorType.Cursor ? -8 : 0;
+  const destinationX = x + xShift;
+  const destinationY = y + yShift;
+
+  if (restrictToMap) {
+    const region = map.getBlitInfo(
+      surface.getBaseSurface(),
+      destinationX,
+      destinationY,
+    );
+    if (!region) return null;
+
+    return {
+      kind: "restricted",
+      surface,
+      region,
+    };
+  }
+
+  return {
+    kind: "unrestricted",
+    surface,
+    x: destinationX,
+    y: destinationY,
+  };
 }

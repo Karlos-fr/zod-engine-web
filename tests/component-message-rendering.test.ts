@@ -13,12 +13,18 @@ import {
   COMPONENT_MESSAGE_ROBOT_MANUFACTURED_IMAGE_PATH,
   COMPONENT_MESSAGE_VEHICLE_MANUFACTURED_IMAGE_PATH,
   initComponentMessageEngine,
+  renderComponentMessageEngine,
+  renderComponentMessageGuns,
   renderComponentMessageResume,
+  type ComponentMessageDoRenderState,
+  type ComponentMessageGunsRenderState,
   type ComponentMessageObjectReference,
   type ComponentMessageResumeRenderState,
   MAX_RENDERABLE_STORED_GUNS,
   ZCOMP_MESSAGE_ENGINE_HEADER_GUARD_PORTED,
 } from "../src/rendering/ComponentMessageRendering";
+import { BuildingType, TeamType } from "../src/simulation/SimulationConstants";
+import { MapObjectType } from "../src/world/MapFormat";
 
 describe("component message rendering constants", () => {
   it("adapts the zcomp_message_engine.h include guard to module boundaries", async () => {
@@ -344,6 +350,178 @@ describe("component message rendering constants", () => {
     });
   });
 
+  it("replaces ZCompMessageEngine RenderGuns as no commands without objects or gun image", () => {
+    const noObjects = createGunsRenderState({ objectList: null });
+    const noGunImage = createGunsRenderState({
+      gunImage: { surface: "gun", baseSurface: null },
+    });
+    const zmap = createComponentMessageRenderMap();
+
+    expect(renderComponentMessageGuns(noObjects, zmap)).toEqual({
+      commands: [],
+      renderedGunRefIds: [],
+    });
+    expect(renderComponentMessageGuns(noGunImage, zmap)).toEqual({
+      commands: [],
+      renderedGunRefIds: [],
+    });
+  });
+
+  it("replaces ZCompMessageEngine RenderGuns as stored-gun indicator commands", () => {
+    const calls: unknown[] = [];
+    const state = createGunsRenderState({
+      objectList: [
+        createStoredGunObject({
+          refId: 11,
+          owner: TeamType.Red,
+          objectId: BuildingType.FortFront,
+          builtCannonList: [1],
+        }),
+        createStoredGunObject({
+          refId: 22,
+          owner: TeamType.Red,
+          objectId: BuildingType.VehicleFactory,
+          builtCannonList: [1, 2, 3],
+        }),
+      ],
+    });
+
+    const result = renderComponentMessageGuns(
+      state,
+      createComponentMessageRenderMap(calls),
+    );
+
+    expect(calls).toEqual([
+      ["gun", 18, 28, false, false],
+      ["gun", 18, 46, false, false],
+      ["x3", 38, 49, false, false],
+    ]);
+    expect(result.commands).toEqual([
+      { surface: "gun", x: 18, y: 28, renderHit: false, aboutCenter: false },
+      { surface: "gun", x: 18, y: 46, renderHit: false, aboutCenter: false },
+      { surface: "x3", x: 38, y: 49, renderHit: false, aboutCenter: false },
+    ]);
+    expect(result.renderedGunRefIds).toEqual([11, 22]);
+  });
+
+  it("replaces ZCompMessageEngine RenderGuns filtering and render limit", () => {
+    const accepted = Array.from(
+      { length: MAX_RENDERABLE_STORED_GUNS + 1 },
+      (_value, index) =>
+        createStoredGunObject({
+          refId: 100 + index,
+          owner: TeamType.Red,
+          objectId:
+            index % 2 === 0
+              ? BuildingType.RobotFactory
+              : BuildingType.FortBack,
+          builtCannonList: [index],
+        }),
+    );
+    const state = createGunsRenderState({
+      objectList: [
+        createStoredGunObject({
+          refId: 1,
+          owner: TeamType.Blue,
+          objectId: BuildingType.FortFront,
+          builtCannonList: [1],
+        }),
+        createStoredGunObject({
+          refId: 2,
+          owner: TeamType.Red,
+          objectId: BuildingType.Radar,
+          builtCannonList: [1],
+        }),
+        createStoredGunObject({
+          refId: 3,
+          owner: TeamType.Red,
+          objectId: BuildingType.FortFront,
+          builtCannonList: [1],
+          destroyed: true,
+        }),
+        createStoredGunObject({
+          refId: 4,
+          owner: TeamType.Red,
+          objectType: MapObjectType.Vehicle,
+          objectId: 0,
+          builtCannonList: [1],
+        }),
+        createStoredGunObject({
+          refId: 5,
+          owner: TeamType.Red,
+          objectId: BuildingType.FortFront,
+          builtCannonList: [],
+        }),
+        ...accepted,
+      ],
+    });
+
+    const result = renderComponentMessageGuns(
+      state,
+      createComponentMessageRenderMap(),
+    );
+
+    expect(result.renderedGunRefIds).toEqual([
+      100, 101, 102, 103, 104, 105, 106, 107,
+    ]);
+    expect(result.commands).toHaveLength(MAX_RENDERABLE_STORED_GUNS);
+  });
+
+  it("replaces ZCompMessageEngine DoRender as message, guns, and resume command aggregation", () => {
+    const calls: unknown[] = [];
+    const state = createDoRenderState({
+      showMessageImage: {
+        surface: "message",
+        baseSurface: { width: 101, height: 20 },
+      },
+      showTheMessage: true,
+      objectList: [
+        createStoredGunObject({
+          refId: 44,
+          owner: TeamType.Red,
+          objectId: BuildingType.FortFront,
+          builtCannonList: [1, 2],
+        }),
+      ],
+      ztime: { isPaused: () => true },
+    });
+
+    const result = renderComponentMessageEngine(
+      state,
+      createComponentMessageRenderMap(calls),
+    );
+
+    expect(calls).toEqual([
+      ["message", 279, 40, false, false],
+      ["gun", 18, 28, false, false],
+      ["x2", 38, 31, false, false],
+      ["resume", 300, 250, false, false],
+    ]);
+    expect(result.renderedGunRefIds).toEqual([44]);
+    expect(result.commands).toHaveLength(4);
+  });
+
+  it("replaces ZCompMessageEngine DoRender message guard cases", () => {
+    const hidden = createDoRenderState({
+      showMessageImage: {
+        surface: "message",
+        baseSurface: { width: 100, height: 20 },
+      },
+      showTheMessage: false,
+    });
+    const missingBase = createDoRenderState({
+      showMessageImage: { surface: "message", baseSurface: null },
+      showTheMessage: true,
+    });
+
+    expect(
+      renderComponentMessageEngine(hidden, createComponentMessageRenderMap()),
+    ).toEqual({ commands: [], renderedGunRefIds: [] });
+    expect(
+      renderComponentMessageEngine(missingBase, createComponentMessageRenderMap()),
+    ).toEqual({ commands: [], renderedGunRefIds: [] });
+  });
+
   it("ports comp_msg_flags default construction through Clear", () => {
     expect(new ComponentMessageFlags()).toEqual({
       refId: -1,
@@ -370,3 +548,77 @@ describe("component message rendering constants", () => {
     });
   });
 });
+
+type StoredGunObjectOptions = {
+  refId: number;
+  owner: number;
+  objectType?: number;
+  objectId: number;
+  builtCannonList: readonly unknown[];
+  destroyed?: boolean;
+};
+
+function createGunsRenderState(
+  overrides: Partial<ComponentMessageGunsRenderState<string>> = {},
+): ComponentMessageGunsRenderState<string> {
+  return {
+    objectList: [],
+    ourTeam: TeamType.Red,
+    gunImage: { surface: "gun", baseSurface: { width: 16, height: 16 } },
+    xImages: Array.from({ length: MAX_RENDERABLE_STORED_GUNS }, (_value, index) => ({
+      surface: `x${index + 1}`,
+      baseSurface: { width: 8, height: 8 },
+    })),
+    ...overrides,
+  };
+}
+
+function createStoredGunObject(options: StoredGunObjectOptions) {
+  return {
+    getOwner: () => options.owner,
+    isDestroyed: () => options.destroyed ?? false,
+    getObjectId: () => ({
+      objectType: options.objectType ?? MapObjectType.Building,
+      objectId: options.objectId,
+    }),
+    getBuiltCannonList: () => options.builtCannonList,
+    getRefId: () => options.refId,
+  };
+}
+
+function createDoRenderState(
+  overrides: Partial<ComponentMessageDoRenderState<string>> = {},
+): ComponentMessageDoRenderState<string> {
+  return {
+    ...createGunsRenderState(),
+    ztime: { isPaused: () => false },
+    clickToResumeImage: {
+      surface: "resume",
+      baseSurface: { width: 60, height: 20 },
+    },
+    showMessageImage: null,
+    showTheMessage: false,
+    ...overrides,
+  };
+}
+
+function createComponentMessageRenderMap(calls: unknown[] = []) {
+  return {
+    getViewShiftFull: () => ({
+      x: 10,
+      y: 20,
+      viewWidth: 640,
+      viewHeight: 480,
+    }),
+    renderZSurface(
+      surface: string,
+      x: number,
+      y: number,
+      renderHit: boolean,
+      aboutCenter: boolean,
+    ) {
+      calls.push([surface, x, y, renderHit, aboutCenter]);
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}

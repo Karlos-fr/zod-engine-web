@@ -3,7 +3,9 @@ import {
   endRockTurrentExplosion,
   EROCK_TURRET_HEADER_GUARD_PORTED,
   initRockTurretEffect,
+  processRockTurrentEffect,
   renderRockTurrentEffect,
+  type RockTurrentProcessState,
 } from "../src/simulation/RockTurretEffect";
 import {
   RockParticleType,
@@ -205,4 +207,93 @@ describe("rock turret effect", () => {
     });
     expect(effects[16]).toEqual(effects[0]);
   });
+
+  it("ports ERockTurrent Process guard exit", () => {
+    const state = createRockTurrentProcessState({ killme: true });
+    const effects: RockParticleEffectSpawn[] = [];
+
+    processRockTurrentEffect(state, 3, effects, () => {
+      throw new Error("randomInt should not be called for killed rock debris");
+    });
+
+    expect(state.x).toBe(10);
+    expect(state.y).toBe(20);
+    expect(effects).toEqual([]);
+  });
+
+  it("ports ERockTurrent Process as frame cadence, arcing movement, and wrapped angle", () => {
+    const state = createRockTurrentProcessState({
+      initTime: 2,
+      finalTime: 6,
+      nextProcessTime: 3,
+      sx: 10,
+      sy: 20,
+      dx: 5,
+      dy: 8,
+      rise: 2,
+      dangle: -250,
+      renderIndex: 11,
+    });
+
+    processRockTurrentEffect(state, 3.5, []);
+
+    expect(state.killme).toBe(false);
+    expect(state.renderIndex).toBe(0);
+    expect(state.nextProcessTime).toBeCloseTo(3.57);
+    expect(state.x).toBe(17.5);
+    expect(state.y).toBeCloseTo(-11.875);
+    expect(state.size).toBeCloseTo(3.0625);
+    expect(state.angle).toBe(345);
+  });
+
+  it("ports ERockTurrent Process impact as end explosion then killed", () => {
+    const ztime = { now: 55 };
+    const state = createRockTurrentProcessState({
+      ztime,
+      finalTime: 6,
+      x: 70,
+      y: 90,
+      palette: PlanetType.Volcanic,
+    });
+    const effects: RockParticleEffectSpawn<typeof ztime>[] = [];
+
+    processRockTurrentEffect(state, 6, effects, () => 0);
+
+    expect(state.killme).toBe(true);
+    expect(effects).toHaveLength(12);
+    expect(effects[0]).toEqual({
+      ztime,
+      x: 70,
+      y: 90,
+      palette: PlanetType.Volcanic,
+      particleType: RockParticleType.Small,
+      maxX: 80,
+      maxY: 60,
+    });
+  });
 });
+
+function createRockTurrentProcessState<TTime = unknown>(
+  overrides: Partial<RockTurrentProcessState<TTime>> = {},
+): RockTurrentProcessState<TTime> {
+  return {
+    killme: false,
+    ztime: null,
+    initTime: 0,
+    finalTime: 2,
+    nextProcessTime: 0.07,
+    x: 10,
+    y: 20,
+    sx: 10,
+    sy: 20,
+    dx: 30,
+    dy: 40,
+    size: 1,
+    rise: 0.5,
+    angle: 0,
+    dangle: 120,
+    renderIndex: 0,
+    palette: PlanetType.Desert,
+    ...overrides,
+  };
+}

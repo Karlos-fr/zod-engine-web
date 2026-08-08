@@ -78,6 +78,32 @@ export type BridgeTurrentRenderState<TImage> = {
   debriLargeImages: readonly (readonly TImage[])[];
 };
 
+/**
+ * Port of upstream `EBridgeTurrent::Process` mutable fields.
+ * Role: Tracks bridge debris flight timing, animation frame, position, scale, rotation, and particle context.
+ * Upstream: ebridgeturrent.cpp:100-138
+ */
+export type BridgeTurrentProcessState<TTime = unknown> = {
+  killme: boolean;
+  isReversed: boolean;
+  ztime: TTime | null;
+  initTime: number;
+  finalTime: number;
+  nextProcessTime: number;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+  dx: number;
+  dy: number;
+  size: number;
+  rise: number;
+  angle: number;
+  dangle: number;
+  renderIndex: number;
+  palette: PlanetType | number;
+};
+
 const BRIDGE_TURRENT_DEBRI_LARGE_FRAME_COUNT = 12;
 const BRIDGE_TURRENT_PLANET_TYPE_ASSET_NAMES = [
   "desert",
@@ -165,4 +191,53 @@ export function endBridgeTurrentExplosion<TTime>(
       });
     }
   }
+}
+
+/**
+ * Port of upstream `EBridgeTurrent::Process`.
+ * Role: Advances bridge debris animation and movement, then spawns landing particles at expiry.
+ * Upstream: ebridgeturrent.cpp:100-138
+ */
+export function processBridgeTurrentEffect<TTime>(
+  state: BridgeTurrentProcessState<TTime>,
+  currentTime: number,
+  effectList: RockParticleEffectSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (state.killme) return;
+
+  if (currentTime >= state.finalTime) {
+    endBridgeTurrentExplosion(state, effectList, randomInt);
+    state.killme = true;
+    return;
+  }
+
+  if (currentTime >= state.nextProcessTime) {
+    state.renderIndex += 1;
+    if (state.renderIndex >= BRIDGE_TURRENT_DEBRI_LARGE_FRAME_COUNT) {
+      state.renderIndex = 0;
+    }
+
+    state.nextProcessTime = currentTime + 0.07;
+  }
+
+  const timeDifference = currentTime - state.initTime;
+  state.x = state.sx + state.dx * timeDifference;
+  state.y = state.sy + state.dy * timeDifference;
+
+  state.size =
+    -(state.rise / (state.finalTime - state.initTime)) *
+      (timeDifference * timeDifference) +
+    state.rise * timeDifference;
+  state.size += 1;
+  state.y -= (state.size - 1) * 30;
+
+  state.angle = normalizeBridgeTurrentAngle(state.dangle * timeDifference);
+}
+
+function normalizeBridgeTurrentAngle(angle: number): number {
+  let normalized = angle % 360;
+  if (normalized < 0) normalized += 360;
+  return normalized;
 }

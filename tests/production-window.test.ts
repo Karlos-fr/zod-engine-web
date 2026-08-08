@@ -39,6 +39,7 @@ import {
   makeProductionQueueButtonList,
   processProductionSetExpanded,
   processProductionUnitSelector,
+  renderProductionUnitSelector,
   renderProductionUnitSelectorPercentageBar,
   type ProductionBuildingReference,
   type ProductionBaseImageTarget,
@@ -46,6 +47,7 @@ import {
   type ProductionPlaceButtonState,
   type ProductionWindowClickState,
   type ProductionWindowInitState,
+  type ProductionUnitSelectorRenderState,
   type ProductionUnitSelectorInitState,
   PRODUCTION_BASE_EXPANDED_IMAGE_PATH,
   PRODUCTION_BASE_IMAGE_PATH,
@@ -1278,6 +1280,109 @@ describe("production window", () => {
       },
       yellow: null,
     });
+  });
+
+  it("replaces GWPUnitSelector DoRender guard exits", () => {
+    const state = createUnitSelectorRenderState({ finishedInit: false });
+    const inactive = createUnitSelectorRenderState({ isActive: false });
+
+    expect(renderProductionUnitSelector(state, createUnitSelectorRenderMap(), 0, 0)).toEqual([]);
+    expect(
+      renderProductionUnitSelector(inactive, createUnitSelectorRenderMap(), 0, 0),
+    ).toEqual([]);
+  });
+
+  it("replaces GWPUnitSelector DoRender as ordered selector commands", () => {
+    const calls: unknown[] = [];
+    const drawObjectSetCoords: Array<[number, number]> = [];
+    const state = createUnitSelectorRenderState({
+      x: 10,
+      y: 20,
+      drawObject: {
+        getDimensionsPixel: () => ({ width: 12, height: 10 }),
+        setCoords: (x, y) => drawObjectSetCoords.push([x, y]),
+        render: () => "draw-object",
+        getHoverNameImage: () => ({
+          surface: { id: "hover-name" },
+          baseSurface: { width: 30, height: 8 },
+        }),
+      },
+    });
+
+    const commands = renderProductionUnitSelector(
+      state,
+      createUnitSelectorRenderMap(calls),
+      100,
+      50,
+    );
+
+    expect(drawObjectSetCoords).toEqual([[128, 75]]);
+    expect(calls).toEqual([
+      ["up", 110, 70],
+      ["down", 110, 70],
+      ["bar", "percentage-bar", 160, 72],
+      ["yellow", "yellow-surface", 160, 72],
+      ["hover", "hover-name", 120, 112],
+    ]);
+    expect(commands).toEqual([
+      { kind: "button", command: "up-button" },
+      { kind: "button", command: "down-button" },
+      {
+        kind: "percentageBar",
+        command: {
+          background: "percentage-bar-command",
+          yellow: {
+            yellowPercentageBarImage: state.yellowPercentageBarImage,
+            region: {
+              sourceX: 0,
+              sourceY: 0,
+              width: 8,
+              height: 12,
+              destinationX: 160,
+              destinationY: 72,
+            },
+          },
+        },
+      },
+      { kind: "object", command: "draw-object" },
+      { kind: "hoverName", command: "hover-name-command" },
+    ]);
+  });
+
+  it("replaces GWPUnitSelector DoRender without draw object hover image", () => {
+    const state = createUnitSelectorRenderState({
+      drawObject: {
+        getDimensionsPixel: () => ({ width: 12, height: 10 }),
+        setCoords: () => undefined,
+        render: () => null,
+        getHoverNameImage: () => ({
+          surface: { id: "hover-name" },
+          baseSurface: null,
+        }),
+      },
+    });
+
+    expect(renderProductionUnitSelector(state, createUnitSelectorRenderMap(), 0, 0)).toEqual([
+      { kind: "button", command: "up-button" },
+      { kind: "button", command: "down-button" },
+      {
+        kind: "percentageBar",
+        command: {
+          background: "percentage-bar-command",
+          yellow: {
+            yellowPercentageBarImage: state.yellowPercentageBarImage,
+            region: {
+              sourceX: 0,
+              sourceY: 0,
+              width: 8,
+              height: 12,
+              destinationX: 60,
+              destinationY: 22,
+            },
+          },
+        },
+      },
+    ]);
   });
 
   it("ports GWPUnitSelector DeleteDrawObject as transient draw object cleanup", () => {
@@ -3347,3 +3452,79 @@ describe("production window", () => {
     expect(PRODUCTION_QUEUE_BUTTON_START_Y_PIXELS).toBe(22);
   });
 });
+
+type UnitSelectorRenderImage = { id: string };
+type UnitSelectorRenderState = ProductionUnitSelectorRenderState<
+  UnitSelectorRenderImage,
+  { id: string; getBaseSurface: () => { width: number; height: number } | null },
+  string,
+  string,
+  UnitSelectorRenderImage
+>;
+
+function createUnitSelectorRenderState(
+  overrides: Partial<UnitSelectorRenderState> = {},
+): UnitSelectorRenderState {
+  const yellowPercentageBarImage = {
+    id: "yellow-percentage-bar",
+    getBaseSurface: () => ({ width: 8, height: 20 }),
+  };
+
+  return {
+    finishedInit: true,
+    isActive: true,
+    x: 0,
+    y: 0,
+    buildingObject: { id: "building" },
+    buildState: ProductionBuildingState.Building,
+    isOnlySelector: false,
+    percentageProduced: 0.4,
+    percentageBarImage: { id: "percentage-bar" },
+    yellowPercentageBarImage,
+    upButton: {
+      render: (_map, x, y) => {
+        void _map;
+        return x >= 0 && y >= 0 ? "up-button" : null;
+      },
+    },
+    downButton: {
+      render: (_map, x, y) => {
+        void _map;
+        return x >= 0 && y >= 0 ? "down-button" : null;
+      },
+    },
+    drawObject: null,
+    ...overrides,
+  };
+}
+
+function createUnitSelectorRenderMap(calls: unknown[] = []) {
+  return {
+    renderZSurface(surface: UnitSelectorRenderImage, x: number, y: number) {
+      if (surface.id === "percentage-bar") {
+        calls.push(["bar", surface.id, x, y]);
+        return "percentage-bar-command";
+      }
+
+      calls.push(["hover", surface.id, x, y]);
+      return "hover-name-command";
+    },
+    getBlitInfo(
+      surface: { width: number; height: number } | null,
+      x: number,
+      y: number,
+    ) {
+      calls.push(["yellow", surface ? "yellow-surface" : null, x, y]);
+      if (!surface) return null;
+
+      return {
+        sourceX: 0,
+        sourceY: 0,
+        width: surface.width,
+        height: surface.height,
+        destinationX: x,
+        destinationY: y,
+      };
+    },
+  };
+}

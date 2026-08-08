@@ -8,12 +8,15 @@ import {
   gotoHutAnimalTile,
   initHutAnimalTypes,
   loadHutAnimalGraphics,
+  renderHutAnimal,
   type HutAnimalGotoTileState,
   type HutAnimalGraphics,
   type HutAnimalInitState,
   type HutAnimalGoHomeState,
   type HutAnimalHomeCoordsState,
   type HutAnimalHomeState,
+  type HutAnimalRenderMap,
+  type HutAnimalRenderState,
   type HutAnimalRoamDistanceState,
   type HutAnimalStateNothingState,
   HutAnimalState,
@@ -449,4 +452,100 @@ describe("hut animal types", () => {
 
     expect(isHutAnimalTileTooFar(state, 1, 0)).toBe(true);
   });
+
+  it("ports AHutAnimal DoRender as walking frame selection", () => {
+    const state = createRenderState({
+      hutAnimalState: HutAnimalState.Walking,
+      direction: 3,
+      walkIndex: 2,
+    });
+    const calls: Array<[string, number, number, boolean, boolean]> = [];
+
+    const command = renderHutAnimal(state, createRenderMap(calls));
+
+    expect(command).toEqual({
+      surface: "walk-3-2",
+      x: 24,
+      y: 40,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(calls).toEqual([["walk-3-2", 24, 40, false, true]]);
+  });
+
+  it("ports AHutAnimal DoRender as looking frame selection", () => {
+    const state = createRenderState({
+      hutAnimalState: HutAnimalState.Looking,
+      direction: 4,
+      lookIndex: 1,
+    });
+
+    expect(renderHutAnimal(state, createRenderMap())).toEqual({
+      surface: "look-4-1",
+      x: 24,
+      y: 40,
+      renderHit: false,
+      aboutCenter: true,
+    });
+  });
+
+  it("ports AHutAnimal DoRender guard exits", () => {
+    const killed = createRenderState({ killMe: true });
+    const missingFrame = createRenderState({
+      hutAnimalType: HutAnimalType.GreenSnake,
+      hutAnimalState: HutAnimalState.Looking,
+      lookIndex: 99,
+    });
+    const map = createRenderMap();
+
+    expect(renderHutAnimal(killed, map)).toBeNull();
+    expect(renderHutAnimal(missingFrame, map)).toBeNull();
+  });
 });
+
+type HutAnimalRenderCommand = {
+  surface: string;
+  x: number;
+  y: number;
+  renderHit: boolean;
+  aboutCenter: boolean;
+};
+
+function createRenderState(
+  overrides: Partial<HutAnimalRenderState<string>> = {},
+): HutAnimalRenderState<string> {
+  const graphics = createHutAnimalGraphics<string>();
+  graphics.walk = Array.from({ length: 8 }, (_rotation, direction) =>
+    Array.from({ length: 4 }, (_frame, frame) => `walk-${direction}-${frame}`),
+  );
+  graphics.look = Array.from({ length: 8 }, (_rotation, direction) =>
+    Array.from({ length: 4 }, (_frame, frame) => `look-${direction}-${frame}`),
+  );
+
+  return {
+    killMe: false,
+    x: 24,
+    y: 40,
+    hutAnimalType: HutAnimalType.GreenLizard,
+    hutAnimalState: HutAnimalState.Walking,
+    direction: 0,
+    walkIndex: 0,
+    lookIndex: 0,
+    graphics: [
+      createHutAnimalGraphics<string>(),
+      graphics,
+    ],
+    ...overrides,
+  };
+}
+
+function createRenderMap(
+  calls: Array<[string, number, number, boolean, boolean]> = [],
+): HutAnimalRenderMap<string, HutAnimalRenderCommand> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      calls.push([surface, x, y, renderHit, aboutCenter]);
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}

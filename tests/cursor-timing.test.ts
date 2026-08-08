@@ -5,6 +5,7 @@ import {
   CursorType,
   getCursor,
   processCursor,
+  renderCursor,
   setCursor,
   setCursorTeam,
   setPlayerPreviewCursor,
@@ -221,5 +222,127 @@ describe("cursor timing", () => {
 
     expect(state.previewCursor.currentCursor).toBe(CursorType.Placed);
     expect(state.previewCursor.currentSurface).toBe(placedSurface);
+  });
+
+  it("replaces ZCursor Render as no command without a current surface", () => {
+    expect(
+      renderCursor(
+        {
+          currentCursor: CursorType.Cursor,
+          owner: TeamType.Red,
+          cursorFrameIndex: 0,
+          currentSurface: null,
+        },
+        {
+          getBlitInfo: () => {
+            throw new Error("getBlitInfo should not be called");
+          },
+        },
+        20,
+        30,
+      ),
+    ).toBeNull();
+  });
+
+  it("replaces ZCursor Render as unrestricted cursor blit command", () => {
+    const surface = {
+      id: "cursor",
+      getBaseSurface: () => ({ width: 16, height: 16 }),
+    };
+
+    expect(
+      renderCursor(
+        {
+          currentCursor: CursorType.Cursor,
+          owner: TeamType.Red,
+          cursorFrameIndex: 0,
+          currentSurface: surface,
+        },
+        {
+          getBlitInfo: () => {
+            throw new Error("getBlitInfo should not be called unrestricted");
+          },
+        },
+        20,
+        30,
+      ),
+    ).toEqual({
+      kind: "unrestricted",
+      surface,
+      x: 20,
+      y: 30,
+    });
+  });
+
+  it("replaces ZCursor Render with attack cursor offset and map clipping", () => {
+    const baseSurface = { width: 16, height: 16 };
+    const surface = {
+      id: "attack",
+      getBaseSurface: () => baseSurface,
+    };
+    const calls: unknown[] = [];
+
+    const command = renderCursor(
+      {
+        currentCursor: CursorType.Attack,
+        owner: TeamType.Red,
+        cursorFrameIndex: 0,
+        currentSurface: surface,
+      },
+      {
+        getBlitInfo: (surface_, x, y) => {
+          calls.push([surface_, x, y]);
+          return {
+            sourceX: 1,
+            sourceY: 2,
+            width: 3,
+            height: 4,
+            destinationX: 12,
+            destinationY: 22,
+          };
+        },
+      },
+      20,
+      30,
+      true,
+    );
+
+    expect(calls).toEqual([[baseSurface, 12, 22]]);
+    expect(command).toEqual({
+      kind: "restricted",
+      surface,
+      region: {
+        sourceX: 1,
+        sourceY: 2,
+        width: 3,
+        height: 4,
+        destinationX: 12,
+        destinationY: 22,
+      },
+    });
+  });
+
+  it("replaces ZCursor Render as no restricted command without a visible region", () => {
+    const surface = {
+      id: "attack",
+      getBaseSurface: () => ({ width: 16, height: 16 }),
+    };
+
+    expect(
+      renderCursor(
+        {
+          currentCursor: CursorType.Attack,
+          owner: TeamType.Red,
+          cursorFrameIndex: 0,
+          currentSurface: surface,
+        },
+        {
+          getBlitInfo: () => null,
+        },
+        20,
+        30,
+        true,
+      ),
+    ).toBeNull();
   });
 });

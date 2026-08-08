@@ -2,6 +2,7 @@
  * Upstream: emapobjectturrent.h
  */
 
+import { SoundEngineSound } from "../audio/AudioService";
 import { MAP_ITEM_TYPE_COUNT } from "./WorldConstants";
 
 /**
@@ -85,6 +86,74 @@ export type MapObjectTurrentEffectSpawn<TTime = unknown> = {
 };
 
 /**
+ * Port of upstream `EToughMushroom` creation by `EMapObjectTurrent::EndExplosion`.
+ * Role: Describes the mushroom effect spawned when thrown map-object debris lands.
+ * Upstream: emapobjectturrent.cpp:157
+ */
+export type MapObjectTurrentToughMushroomSpawn<TTime = unknown> = {
+  kind: "toughMushroom";
+  ztime: TTime | null;
+  x: number;
+  y: number;
+  size: number;
+};
+
+/**
+ * Port of upstream `EUnitParticle` creation by `EMapObjectTurrent::EndExplosion`.
+ * Role: Describes one landing particle spawned by thrown map-object debris.
+ * Upstream: emapobjectturrent.cpp:162-163
+ */
+export type MapObjectTurrentUnitParticleSpawn<TTime = unknown> = {
+  kind: "unitParticle";
+  ztime: TTime | null;
+  x: number;
+  y: number;
+  maxX: number;
+  maxY: number;
+};
+
+export type MapObjectTurrentEndExplosionSpawn<TTime = unknown> =
+  | MapObjectTurrentToughMushroomSpawn<TTime>
+  | MapObjectTurrentUnitParticleSpawn<TTime>;
+
+/**
+ * Port of upstream restricted turret explosion sound call.
+ * Role: Describes the positional sound emitted when thrown map-object debris lands.
+ * Upstream: emapobjectturrent.cpp:103
+ */
+export type MapObjectTurrentRestrictedSoundCommand = {
+  sound: SoundEngineSound | number;
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream `EMapObjectTurrent::Process` mutable fields.
+ * Role: Tracks thrown map-object debris flight timing, position, scale, rotation, and impact point.
+ * Upstream: emapobjectturrent.cpp:91-124
+ */
+export type MapObjectTurrentProcessState<TTime = unknown> = {
+  killMe: boolean;
+  ztime: TTime | null;
+  finalTime: number;
+  initTime: number;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+  dx: number;
+  dy: number;
+  size: number;
+  rise: number;
+  angle: number;
+  dangle: number;
+  impactSoundX: number;
+  impactSoundY: number;
+  targetX: number;
+  targetY: number;
+};
+
+/**
  * Port of upstream `EMapObjectTurrent::Init`.
  * Role: Loads no-shadow map item images used by map object turret effects.
  * Upstream: emapobjectturrent.cpp:77-89
@@ -122,4 +191,88 @@ export function renderMapObjectTurrentEffect<
   image.setSize?.(state.size);
 
   return zmap.renderZSurface(image, state.x, state.y, false, true);
+}
+
+/**
+ * Port of upstream `EMapObjectTurrent::EndExplosion`.
+ * Role: Spawns landing mushroom and unit particles for thrown map-object debris.
+ * Upstream: emapobjectturrent.cpp:144-164
+ */
+export function endMapObjectTurrentExplosion<TTime>(
+  state: {
+    ztime: TTime | null;
+    targetX: number;
+    targetY: number;
+  },
+  effectList: MapObjectTurrentEndExplosionSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (!effectList) return;
+
+  effectList.push({
+    kind: "toughMushroom",
+    ztime: state.ztime,
+    x: state.targetX,
+    y: state.targetY,
+    size: 1,
+  });
+
+  const particles = 10 + (Math.trunc(randomInt(8)) % 8);
+  for (let i = 0; i < particles; i += 1) {
+    effectList.push({
+      kind: "unitParticle",
+      ztime: state.ztime,
+      x: state.targetX,
+      y: state.targetY,
+      maxX: 65,
+      maxY: 55,
+    });
+  }
+}
+
+/**
+ * Port of upstream `EMapObjectTurrent::Process`.
+ * Role: Advances thrown map-object debris and resolves landing effects at final time.
+ * Upstream: emapobjectturrent.cpp:91-124
+ */
+export function processMapObjectTurrentEffect<TTime>(
+  state: MapObjectTurrentProcessState<TTime>,
+  currentTime: number,
+  effectList: MapObjectTurrentEndExplosionSpawn<TTime>[] | null,
+  soundCommands: MapObjectTurrentRestrictedSoundCommand[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (state.killMe) return;
+
+  if (currentTime >= state.finalTime) {
+    state.killMe = true;
+    endMapObjectTurrentExplosion(state, effectList, randomInt);
+    soundCommands?.push({
+      sound: SoundEngineSound.TurrentExplosionSnd,
+      x: state.impactSoundX,
+      y: state.impactSoundY,
+    });
+    return;
+  }
+
+  const timeDifference = currentTime - state.initTime;
+  state.x = state.sx + state.dx * timeDifference;
+  state.y = state.sy + state.dy * timeDifference;
+
+  state.size =
+    -(state.rise / (state.finalTime - state.initTime)) *
+      (timeDifference * timeDifference) +
+    state.rise * timeDifference;
+  state.y -= state.size * 30;
+  state.size += 1;
+
+  state.angle = normalizeMapObjectTurrentAngle(state.dangle * timeDifference);
+}
+
+function normalizeMapObjectTurrentAngle(angle: number): number {
+  let normalized = angle % 360;
+  if (normalized < 0) normalized += 360;
+  return normalized;
 }

@@ -65,6 +65,31 @@ export type RockTurrentRenderState<TImage> = {
   debriLargeImages: readonly (readonly (readonly TImage[])[])[];
 };
 
+/**
+ * Port of upstream `ERockTurrent::Process` mutable fields.
+ * Role: Tracks rock debris flight timing, animation frame, position, scale, rotation, and particle context.
+ * Upstream: erockturrent.cpp:90-128
+ */
+export type RockTurrentProcessState<TTime = unknown> = {
+  killme: boolean;
+  ztime: TTime | null;
+  initTime: number;
+  finalTime: number;
+  nextProcessTime: number;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+  dx: number;
+  dy: number;
+  size: number;
+  rise: number;
+  angle: number;
+  dangle: number;
+  renderIndex: number;
+  palette: PlanetType | number;
+};
+
 const ROCK_TURRET_DEBRI_LARGE_VARIANT_COUNT = 2;
 const ROCK_TURRET_DEBRI_LARGE_FRAME_COUNT = 12;
 const ROCK_TURRET_PLANET_TYPE_ASSET_NAMES = [
@@ -156,4 +181,53 @@ export function endRockTurrentExplosion<TTime>(
       });
     }
   }
+}
+
+/**
+ * Port of upstream `ERockTurrent::Process`.
+ * Role: Advances rock debris animation and movement, then spawns landing particles at expiry.
+ * Upstream: erockturrent.cpp:90-128
+ */
+export function processRockTurrentEffect<TTime>(
+  state: RockTurrentProcessState<TTime>,
+  currentTime: number,
+  effectList: RockParticleEffectSpawn<TTime>[] | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (state.killme) return;
+
+  if (currentTime >= state.finalTime) {
+    endRockTurrentExplosion(state, effectList, randomInt);
+    state.killme = true;
+    return;
+  }
+
+  if (currentTime >= state.nextProcessTime) {
+    state.renderIndex += 1;
+    if (state.renderIndex >= ROCK_TURRET_DEBRI_LARGE_FRAME_COUNT) {
+      state.renderIndex = 0;
+    }
+
+    state.nextProcessTime = currentTime + 0.07;
+  }
+
+  const timeDifference = currentTime - state.initTime;
+  state.x = state.sx + state.dx * timeDifference;
+  state.y = state.sy + state.dy * timeDifference;
+
+  state.size =
+    -(state.rise / (state.finalTime - state.initTime)) *
+      (timeDifference * timeDifference) +
+    state.rise * timeDifference;
+  state.size += 1;
+  state.y -= (state.size - 1) * 30;
+
+  state.angle = normalizeRockTurrentAngle(state.dangle * timeDifference);
+}
+
+function normalizeRockTurrentAngle(angle: number): number {
+  let normalized = angle % 360;
+  if (normalized < 0) normalized += 360;
+  return normalized;
 }

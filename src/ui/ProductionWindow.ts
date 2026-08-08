@@ -569,6 +569,66 @@ export type ProductionUnitSelectorPercentageBarCommand<
 };
 
 /**
+ * Replacement for upstream button rendering dependency in `GWPUnitSelector::DoRender`.
+ * Role: Builds render commands for a selector button at the selector origin.
+ * Upstream: gwproduction_us.cpp:239-240
+ */
+export type ProductionUnitSelectorRenderButton<TCommand> = {
+  render(map: unknown, x: number, y: number): TCommand | null;
+};
+
+export type ProductionUnitSelectorRenderDrawObject<TCommand, THoverImage> = {
+  getDimensionsPixel(): { width: number; height: number };
+  setCoords(x: number, y: number): void;
+  render(map: unknown): TCommand | null;
+  getHoverNameImage(): {
+    surface: THoverImage;
+    baseSurface: { width: number; height: number } | null;
+  };
+};
+
+/**
+ * Replacement state for upstream `GWPUnitSelector::DoRender`.
+ * Role: Holds selector visibility, position, child renderers, progress bar state, and optional draw object.
+ * Upstream: gwproduction_us.cpp:227-254
+ */
+export type ProductionUnitSelectorRenderState<
+  TBarImage,
+  TYellowImage,
+  TButtonCommand,
+  TObjectCommand,
+  THoverImage,
+> = ProductionUnitSelectorPercentageBarState<TBarImage, TYellowImage> & {
+  finishedInit: boolean;
+  isActive: boolean;
+  x: number;
+  y: number;
+  upButton: ProductionUnitSelectorRenderButton<TButtonCommand>;
+  downButton: ProductionUnitSelectorRenderButton<TButtonCommand>;
+  drawObject: ProductionUnitSelectorRenderDrawObject<
+    TObjectCommand,
+    THoverImage
+  > | null;
+};
+
+export type ProductionUnitSelectorRenderCommand<
+  TSurfaceCommand,
+  TYellowImage,
+  TButtonCommand,
+  TObjectCommand,
+> =
+  | { kind: "button"; command: TButtonCommand }
+  | {
+      kind: "percentageBar";
+      command: ProductionUnitSelectorPercentageBarCommand<
+        TSurfaceCommand,
+        TYellowImage
+      >;
+    }
+  | { kind: "object"; command: TObjectCommand }
+  | { kind: "hoverName"; command: TSurfaceCommand };
+
+/**
  * Port of upstream `GWPUnitSelector` initialization image fields.
  * Role: Tracks the production unit selector percentage bar images and initialization completion.
  * Upstream: gwproduction_us.cpp:69-71
@@ -1658,6 +1718,103 @@ export function renderProductionUnitSelectorPercentageBar<
   }
 
   return { background, yellow };
+}
+
+/**
+ * Replacement for upstream `GWPUnitSelector::DoRender`.
+ * Role: Builds selector button, progress, draw-object, and hover-name render commands in upstream order.
+ * Upstream: gwproduction_us.cpp:227-254
+ */
+export function renderProductionUnitSelector<
+  TBarImage,
+  TSurface extends { width: number; height: number },
+  TYellowImage extends ProductionUnitSelectorPercentageBarImage<TSurface>,
+  TButtonCommand,
+  TObjectCommand,
+  THoverImage,
+  TSurfaceCommand,
+>(
+  state: ProductionUnitSelectorRenderState<
+    TBarImage,
+    TYellowImage,
+    TButtonCommand,
+    TObjectCommand,
+    THoverImage
+  >,
+  map: ProductionUnitSelectorPercentageBarMap<
+    TBarImage,
+    TSurface,
+    TSurfaceCommand
+  > & {
+    renderZSurface(surface: THoverImage, x: number, y: number): TSurfaceCommand;
+  },
+  shiftX: number,
+  shiftY: number,
+): Array<
+  ProductionUnitSelectorRenderCommand<
+    TSurfaceCommand,
+    TYellowImage,
+    TButtonCommand,
+    TObjectCommand
+  >
+> {
+  if (!state.finishedInit) return [];
+  if (!state.isActive) return [];
+
+  const tx = state.x + shiftX;
+  const ty = state.y + shiftY;
+  const commands: Array<
+    ProductionUnitSelectorRenderCommand<
+      TSurfaceCommand,
+      TYellowImage,
+      TButtonCommand,
+      TObjectCommand
+    >
+  > = [];
+
+  const upCommand = state.upButton.render(map, tx, ty);
+  if (upCommand) commands.push({ kind: "button", command: upCommand });
+
+  const downCommand = state.downButton.render(map, tx, ty);
+  if (downCommand) commands.push({ kind: "button", command: downCommand });
+
+  const percentageBar = renderProductionUnitSelectorPercentageBar(
+    state,
+    map,
+    tx,
+    ty,
+  );
+  if (percentageBar) {
+    commands.push({ kind: "percentageBar", command: percentageBar });
+  }
+
+  if (state.drawObject) {
+    const dimensions = state.drawObject.getDimensionsPixel();
+    state.drawObject.setCoords(
+      tx + (27 - 3) - (dimensions.width >> 1),
+      ty + (40 - 19) - (dimensions.height >> 1),
+    );
+
+    const objectCommand = state.drawObject.render(map);
+    if (objectCommand) {
+      commands.push({ kind: "object", command: objectCommand });
+    }
+
+    const hoverNameImage = state.drawObject.getHoverNameImage();
+    const hoverBaseSurface = hoverNameImage.baseSurface;
+    if (hoverBaseSurface) {
+      commands.push({
+        kind: "hoverName",
+        command: map.renderZSurface(
+          hoverNameImage.surface,
+          tx + (28 - 3) - (hoverBaseSurface.width >> 1),
+          ty + (61 - 19),
+        ),
+      });
+    }
+  }
+
+  return commands;
 }
 
 /**

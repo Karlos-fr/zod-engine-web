@@ -112,6 +112,38 @@ export type HutAnimalInitState<TImage = unknown> = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a centered map-relative render command for a hut animal frame.
+ * Upstream: ahutanimal.cpp:322
+ */
+export type HutAnimalRenderMap<TImage, TCommand> = {
+  renderZSurface(
+    surface: TImage,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `AHutAnimal::DoRender`.
+ * Role: Holds hut animal visibility, position, behavior state, direction, and animation frames.
+ * Upstream: ahutanimal.cpp:301-323
+ */
+export type HutAnimalRenderState<TImage> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  hutAnimalType: HutAnimalType | number;
+  hutAnimalState: HutAnimalState | number;
+  direction: number;
+  walkIndex: number;
+  lookIndex: number;
+  graphics: readonly HutAnimalGraphics<TImage>[];
+};
+
+/**
  * Port of upstream `hut_animal_type`.
  * Role: Identifies the ambient animal species that can be spawned around hut objects.
  * Upstream: ahutanimal.h:6-13
@@ -503,4 +535,26 @@ export function isHutAnimalTileTooFar(
     entityY,
     state.hutAnimalRoamDistance,
   );
+}
+
+/**
+ * Replacement for upstream `AHutAnimal::DoRender`.
+ * Role: Selects the current hut animal animation frame and returns its map render command.
+ * Upstream: ahutanimal.cpp:301-323
+ */
+export function renderHutAnimal<TImage, TCommand>(
+  state: HutAnimalRenderState<TImage>,
+  zmap: HutAnimalRenderMap<TImage, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const graphics = state.graphics[state.hutAnimalType];
+  const image =
+    state.hutAnimalState === HutAnimalState.Looking
+      ? graphics?.look[state.direction]?.[state.lookIndex]
+      : graphics?.walk[state.direction]?.[state.walkIndex];
+
+  if (!image) return null;
+
+  return zmap.renderZSurface(image, state.x, state.y, false, true);
 }

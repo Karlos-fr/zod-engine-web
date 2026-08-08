@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { PlanetType, TeamType } from "../src/simulation/SimulationConstants";
 import {
   changeHutPalette,
+  createHutAnimals,
   getHutExitToTile,
+  type HutCreateAnimalsState,
   type HutMaxAnimalsState,
   hutCausesImpassAtCoord,
   initHutPlanetTemplates,
@@ -370,7 +372,114 @@ describe("hut object", () => {
     expect(calls).toEqual(["first", "second"]);
   });
 
+  it("ports OHut CreateAnimals as initialized animal spawn at exit tile", () => {
+    const ztime = { now: 1 };
+    const zsettings = { roam: 3 };
+    const effectList: unknown[] = [];
+    const calls: unknown[] = [];
+    const state = createHutCreateAnimalsState({
+      ztime,
+      zsettings,
+      effectList,
+      zmap: null,
+    });
+
+    createHutAnimals(state, 1, (ztime_, zsettings_, palette) => {
+      calls.push(["factory", ztime_, zsettings_, palette]);
+      return createHutAnimal(calls);
+    });
+
+    expect(state.hutAnimals).toHaveLength(1);
+    expect(calls).toEqual([
+      ["factory", ztime, zsettings, PlanetType.Jungle],
+      ["setMap", null],
+      ["setEffectList", effectList],
+      ["setHomeCoords", 56, 72],
+      ["setCoords", 56, 72],
+      ["gotoTile", 3, 5],
+    ]);
+  });
+
+  it("ports OHut CreateAnimals as skipping creation without an exit tile", () => {
+    const state = createHutCreateAnimalsState({
+      zmap: {
+        getPathFinder: () => ({
+          tilePassable: () => false,
+        }),
+      },
+    });
+
+    createHutAnimals(state, 2, () => {
+      throw new Error("animal should not be created without an exit");
+    });
+
+    expect(state.hutAnimals).toEqual([]);
+  });
+
+  it("ports OHut CreateAnimals as creating each requested animal", () => {
+    const passable = new Set(["2,3", "4,4"]);
+    const state = createHutCreateAnimalsState({
+      zmap: {
+        getPathFinder: () => ({
+          tilePassable(tileX, tileY) {
+            return passable.has(`${tileX},${tileY}`);
+          },
+        }),
+      },
+    });
+
+    createHutAnimals(state, 2, () => createHutAnimal([]), () => 1);
+
+    expect(state.hutAnimals).toHaveLength(2);
+    expect(state.hutAnimals.map((animal) => animal.gotoTileCalls)).toEqual([
+      [[4, 4]],
+      [[4, 4]],
+    ]);
+  });
+
   it("ports OHut SetOwner as an ownership no-op", () => {
     expect(setHutOwner(TeamType.Red)).toBeUndefined();
   });
 });
+
+type TestHutAnimal = ReturnType<typeof createHutAnimal>;
+
+function createHutCreateAnimalsState(
+  overrides: Partial<HutCreateAnimalsState<TestHutAnimal>> = {},
+): HutCreateAnimalsState<TestHutAnimal> {
+  return {
+    x: 48,
+    y: 64,
+    centerX: 56,
+    centerY: 72,
+    palette: PlanetType.Jungle,
+    ztime: null,
+    zsettings: null,
+    zmap: null,
+    effectList: null,
+    hutAnimals: [],
+    ...overrides,
+  };
+}
+
+function createHutAnimal(calls: unknown[]) {
+  return {
+    gotoTileCalls: [] as Array<[number, number]>,
+    setMap(map: unknown | null) {
+      calls.push(["setMap", map]);
+    },
+    setEffectList(effectList: unknown[] | null) {
+      calls.push(["setEffectList", effectList]);
+    },
+    setHomeCoords(x: number, y: number) {
+      calls.push(["setHomeCoords", x, y]);
+    },
+    setCoords(x: number, y: number) {
+      calls.push(["setCoords", x, y]);
+    },
+    gotoTile(tileX: number, tileY: number) {
+      calls.push(["gotoTile", tileX, tileY]);
+      this.gotoTileCalls.push([tileX, tileY]);
+    },
+  };
+}
