@@ -2,9 +2,13 @@
  * Upstream: oflag.h, oflag.cpp
  */
 
-import { MapObjectType } from "../world/MapFormat";
+import { MapObjectType, type MapZoneInfo } from "../world/MapFormat";
 import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
-import { BuildingType, ACTIVE_TEAM_TYPE_COUNT } from "./SimulationConstants";
+import {
+  BuildingType,
+  ACTIVE_TEAM_TYPE_COUNT,
+  type TeamType,
+} from "./SimulationConstants";
 import {
   loadTeamZSurface,
   TEAM_RENDERING_BASE_TEAM,
@@ -152,6 +156,43 @@ export type FlagConnectedObject = {
 };
 
 /**
+ * Port of upstream `OFlag::SetZone` mutable fields.
+ * Role: Stores the connected zone, flag owner, and zone-connected objects.
+ * Upstream: oflag.h:28-29, oflag.cpp:72-99
+ */
+export type FlagZoneState<TObject> = {
+  owner: TeamType;
+  connectedZone: MapZoneInfo | null;
+  connectedObjectList: TObject[];
+};
+
+/**
+ * Port of upstream `OFlag::SetZone` object dependency surface.
+ * Role: Supplies identity, map coordinates, and owner mutation for connectable objects.
+ * Upstream: oflag.cpp:82-97
+ */
+export type FlagZoneObject = {
+  getObjectId(): {
+    objectType: number;
+    objectId: number;
+  };
+  getCoordinates(): {
+    x: number;
+    y: number;
+  };
+  setOwner(owner: TeamType): void;
+};
+
+/**
+ * Port of upstream `OFlag::SetZone` map dependency surface.
+ * Role: Resolves the map zone at object coordinates.
+ * Upstream: oflag.cpp:93
+ */
+export type FlagZoneMap = {
+  getZone(x: number, y: number): MapZoneInfo | null;
+};
+
+/**
  * Port of upstream `OFlag::Process` mutable fields.
  * Role: Stores flag animation timing and current frame index.
  * Upstream: oflag.cpp:36-50
@@ -177,6 +218,33 @@ export function processFlagObject(
   }
 
   return 1;
+}
+
+/**
+ * Port of upstream `OFlag::SetZone`.
+ * Role: Connects the flag to a zone and claims buildings located in that same zone.
+ * Upstream: oflag.cpp:72-99
+ */
+export function setFlagZone<TObject extends FlagZoneObject>(
+  state: FlagZoneState<TObject>,
+  zone: MapZoneInfo,
+  map: FlagZoneMap,
+  objectList: readonly TObject[],
+): void {
+  state.connectedZone = zone;
+  zone.owner = state.owner;
+  state.connectedObjectList = [];
+
+  for (const object of objectList) {
+    const { objectType } = object.getObjectId();
+    if (objectType !== MapObjectType.Building) continue;
+
+    const { x, y } = object.getCoordinates();
+    if (state.connectedZone !== map.getZone(x, y)) continue;
+
+    state.connectedObjectList.push(object);
+    object.setOwner(state.owner);
+  }
 }
 
 /**

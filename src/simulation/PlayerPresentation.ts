@@ -8,7 +8,7 @@ import { MainMenuType } from "../ui/MainMenuBase";
 import { AMBIENT_BIRD_SQUARE_TILES_PER_BIRD } from "../world/BirdMap";
 import { MapObjectType } from "../world/MapFormat";
 import { currentTime } from "./Common";
-import { TcpEvent } from "./EventHandler";
+import { TcpEvent, type PlaceCannonPacket } from "./EventHandler";
 import { BuildingType, TeamType, VehicleType } from "./SimulationConstants";
 import {
   crossReferenceUnits,
@@ -291,6 +291,26 @@ export type PlayerUnitAmountHud = {
 };
 
 /**
+ * Port of upstream `SetTeam` call targets used by `ZPlayer::SetPlayerTeam`.
+ * Role: Receives the local player team from the player controller.
+ * Upstream: zplayer.cpp:302-305
+ */
+export type PlayerTeamTarget = {
+  setTeam(team: TeamType): void;
+};
+
+/**
+ * Port of upstream `ZHud` call targets used by `ZPlayer::SetPlayerTeam`.
+ * Role: Receives team, selection, rerender, and unit-count updates.
+ * Upstream: zplayer.cpp:303, zplayer.cpp:311-312, zplayer.cpp:3078
+ */
+export type PlayerTeamHud<TObject = unknown> = PlayerUnitAmountHud &
+  PlayerTeamTarget &
+  PlayerHudSelectionTarget<TObject> & {
+    reRenderAll(): void;
+  };
+
+/**
  * Port of upstream `ZPlayer::ProcessChangeObjectAmount` state and call targets.
  * Role: Provides button refresh, unit-limit checks, and team unit counts for HUD updates.
  * Upstream: zplayer.cpp:3074-3078
@@ -302,6 +322,24 @@ export type PlayerChangeObjectAmountState = {
   reSetupButtons(): void;
   checkUnitLimitReached(): void;
 };
+
+/**
+ * Port of upstream `ZPlayer::SetPlayerTeam` state and call targets.
+ * Role: Stores local team state and resets team-scoped UI, selection, and focus state.
+ * Upstream: zplayer.cpp:298-323
+ */
+export type PlayerSetTeamState<TObject = unknown> =
+  PlayerSelectionClearAllState &
+    PlayerSpaceBarEventListState &
+    Omit<PlayerChangeObjectAmountState, "hud" | "ourTeam"> & {
+      ourTeam: TeamType;
+      cursor: PlayerTeamTarget;
+      hud: PlayerTeamHud<TObject>;
+      componentMessage: PlayerTeamTarget;
+      guiFactoryList: PlayerTeamTarget | null;
+      refindOurFortRefId(): void;
+      determineCursor(): void;
+    };
 
 /**
  * Port of upstream `ZPlayer::OrderlySelectUnitType` call target.
@@ -427,6 +465,26 @@ export type PlayerPlaceCannonRenderState<TSurface> = Pick<
 > & {
   placementImage: TSurface | null;
 };
+
+/**
+ * Port of upstream `ZPlayer::DoPlaceCannon` mutable fields.
+ * Role: Stores the pending cannon placement payload fields.
+ * Upstream: zplayer.cpp:3570-3577
+ */
+export type PlayerDoPlaceCannonState = Pick<
+  PlayerPlaceCannonState,
+  "placeCannon" | "placeCannonTileX" | "placeCannonTileY"
+> & {
+  placeCannonRefId: number;
+  placeCannonObjectId: number;
+};
+
+/**
+ * Port of upstream `sizeof(place_cannon_packet)`.
+ * Role: Matches the raw C packet size, including trailing struct padding.
+ * Upstream: event_handler.h:83-88
+ */
+export const PLAYER_PLACE_CANNON_PACKET_SIZE_BYTES = 16;
 
 /**
  * Port of upstream `ZMap::GetMapCoords` call target.
@@ -1281,6 +1339,50 @@ export function renderPlayerPlaceCannon<TSurface, TCommand>(
 }
 
 /**
+ * Port of upstream `place_cannon_packet` byte layout used by `ZPlayer::DoPlaceCannon`.
+ * Role: Encodes the raw cannon-placement payload sent to the server.
+ * Upstream: event_handler.h:83-88, zplayer.cpp:3574-3579
+ */
+export function encodePlayerPlaceCannonPacket(
+  packet: PlaceCannonPacket,
+): Uint8Array {
+  const data = new Uint8Array(PLAYER_PLACE_CANNON_PACKET_SIZE_BYTES);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+  view.setInt32(0, packet.refId, true);
+  view.setInt32(4, packet.tileX, true);
+  view.setInt32(8, packet.tileY, true);
+  data[12] = packet.objectId & 0xff;
+
+  return data;
+}
+
+/**
+ * Port of upstream `ZPlayer::DoPlaceCannon`.
+ * Role: Sends the pending cannon-placement packet once and clears placement mode.
+ * Upstream: zplayer.cpp:3566-3582
+ */
+export function doPlayerPlaceCannon(
+  state: PlayerDoPlaceCannonState,
+  clientSocket: PlayerClientMessageSender,
+): boolean {
+  if (!state.placeCannon) return false;
+
+  state.placeCannon = false;
+
+  const packet = encodePlayerPlaceCannonPacket({
+    refId: state.placeCannonRefId,
+    tileX: state.placeCannonTileX,
+    tileY: state.placeCannonTileY,
+    objectId: state.placeCannonObjectId,
+  });
+
+  clientSocket.sendMessage(TcpEvent.PlaceCannon, packet, packet.length);
+
+  return true;
+}
+
+/**
  * Port of upstream `ZPlayer::ShowPcursor`.
  * Role: Shows the placement cursor at a map point for three seconds.
  * Upstream: zplayer.cpp:2056-2063
@@ -1484,6 +1586,34 @@ export function processPlayerChangeObjectAmount(
   state.reSetupButtons();
   state.checkUnitLimitReached();
   state.hud.setUnitAmount(state.teamUnitsAvailable[state.ourTeam] ?? 0);
+}
+
+/**
+ * Port of upstream `ZPlayer::SetPlayerTeam`.
+ * Role: Applies the local team and resets team-scoped UI, selection, focus, and unit counts.
+ * Upstream: zplayer.cpp:298-323
+ */
+export function setPlayerTeam<TObject>(
+  state: PlayerSetTeamState<TObject>,
+  playerTeam: TeamType,
+): void {
+  state.ourTeam = playerTeam;
+
+  state.cursor.setTeam(state.ourTeam);
+  state.hud.setTeam(state.ourTeam);
+  state.componentMessage.setTeam(state.ourTeam);
+  state.guiFactoryList?.setTeam(state.ourTeam);
+
+  state.refindOurFortRefId();
+
+  clearAllPlayerSelectionInfo(state);
+  state.hud.setSelectedObject(null);
+  state.hud.reRenderAll();
+
+  state.spaceEventList.length = 0;
+
+  state.determineCursor();
+  processPlayerChangeObjectAmount(state);
 }
 
 /**

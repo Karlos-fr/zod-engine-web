@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MapObjectType } from "../src/world/MapFormat";
+import { MapObjectType, type MapZoneInfo } from "../src/world/MapFormat";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   BuildingType,
@@ -13,8 +13,11 @@ import {
   OFLAG_HEADER_GUARD_PORTED,
   processFlagObject,
   renderFlagObject,
+  setFlagZone,
   type FlagConnectedObject,
   type FlagProcessState,
+  type FlagZoneObject,
+  type FlagZoneState,
 } from "../src/simulation/FlagObject";
 
 describe("flag object", () => {
@@ -206,6 +209,61 @@ describe("flag object", () => {
     expect(state.flagIndex).toBe(0);
   });
 
+  it("ports OFlag SetZone as zone owner assignment and building connection", () => {
+    const zone = createFlagTestZone(1, TeamType.Null);
+    const otherZone = createFlagTestZone(2, TeamType.Red);
+    const state: FlagZoneState<TestFlagZoneObject> = {
+      owner: TeamType.Blue,
+      connectedZone: null,
+      connectedObjectList: [createFlagZoneObject("stale", MapObjectType.Building, 0, 0, 0)],
+    };
+    const sameZoneBuilding = createFlagZoneObject(
+      "same-zone-building",
+      MapObjectType.Building,
+      0,
+      24,
+      32,
+    );
+    const otherZoneBuilding = createFlagZoneObject(
+      "other-zone-building",
+      MapObjectType.Building,
+      0,
+      80,
+      32,
+    );
+    const sameZoneCannon = createFlagZoneObject(
+      "same-zone-cannon",
+      MapObjectType.Cannon,
+      CannonType.Gatling,
+      24,
+      32,
+    );
+    const mapCalls: Array<[number, number]> = [];
+
+    setFlagZone(
+      state,
+      zone,
+      {
+        getZone: (x, y) => {
+          mapCalls.push([x, y]);
+          return x === 24 && y === 32 ? zone : otherZone;
+        },
+      },
+      [sameZoneBuilding, otherZoneBuilding, sameZoneCannon],
+    );
+
+    expect(state.connectedZone).toBe(zone);
+    expect(zone.owner).toBe(TeamType.Blue);
+    expect(state.connectedObjectList).toEqual([sameZoneBuilding]);
+    expect(sameZoneBuilding.ownerCalls).toEqual([TeamType.Blue]);
+    expect(otherZoneBuilding.ownerCalls).toEqual([]);
+    expect(sameZoneCannon.ownerCalls).toEqual([]);
+    expect(mapCalls).toEqual([
+      [24, 32],
+      [80, 32],
+    ]);
+  });
+
   it("reports no radar when the flag has no connected objects", () => {
     expect(flagHasRadar([])).toBe(false);
   });
@@ -248,3 +306,40 @@ describe("flag object", () => {
     expect(flagHasRadar(connectedObjects)).toBe(true);
   });
 });
+
+type TestFlagZoneObject = FlagZoneObject & {
+  id: string;
+  ownerCalls: TeamType[];
+};
+
+function createFlagTestZone(id: number, owner: TeamType): MapZoneInfo {
+  return {
+    id,
+    owner,
+    x: 0,
+    y: 0,
+    width: 16,
+    height: 16,
+    tiles: [],
+  };
+}
+
+function createFlagZoneObject(
+  id: string,
+  objectType: number,
+  objectId: number,
+  x: number,
+  y: number,
+): TestFlagZoneObject {
+  const ownerCalls: TeamType[] = [];
+
+  return {
+    id,
+    ownerCalls,
+    getObjectId: () => ({ objectType, objectId }),
+    getCoordinates: () => ({ x, y }),
+    setOwner: (owner) => {
+      ownerCalls.push(owner);
+    },
+  };
+}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SoundEngineSound } from "../src/audio/AudioService";
 import { GAME_VERSION } from "../src/simulation/SimulationConstants";
 import { MAX_VERSION_PACKET_CHARS, TcpEvent } from "../src/simulation/EventHandler";
 import { HudEndUnit } from "../src/ui/HudLayout";
@@ -12,6 +13,7 @@ import {
   processPlayerDisconnect,
   playerAddPlayerEvent,
   playerConnectEvent,
+  playerDeleteObjectEvent,
   playerDeletePlayerEvent,
   playerDoCraneAnimEvent,
   playerDoPortraitAnimEvent,
@@ -34,8 +36,12 @@ import {
   playerSetPlayerLogInfoEvent,
   playerSetPlayerModeEvent,
   playerSetPlayerNameEvent,
+  playerSnipeObjectEvent,
+  playerSetRepairBuildingAnimEvent,
   playerSetObjectHealthEvent,
+  playerSetObjectTeamEvent,
   playerSetObjectGroupInfoEvent,
+  playerSetObjectAttackObjectEvent,
   playerSetObjectLocationEvent,
   playerSetObjectWaypointsEvent,
   playerSetObjectRallypointsEvent,
@@ -54,6 +60,8 @@ import {
   playerWheelUpEvent,
   PLAYER_DISCONNECTED_NEWS_MESSAGE,
   PLAYER_NEWS_ENTRY_DURATION_SECONDS,
+  REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES,
+  SNIPE_OBJECT_PACKET_SIZE_BYTES,
   TEAM_ENDED_PACKET_SIZE_BYTES,
 } from "../src/simulation/PlayerEvents";
 
@@ -583,6 +591,304 @@ describe("player events", () => {
     expect(state.spaceEventList).toEqual([]);
   });
 
+  it("ports ZPlayer snipe_object_event guard exits", () => {
+    const object = createSnipeObject(42, 80, 120, 2);
+    const state = {
+      objectList: [object],
+      ztime: { tick: 7 },
+      effectList: [],
+    };
+
+    playerSnipeObjectEvent(state, { refId: 42 }, 1, 99);
+    playerSnipeObjectEvent({ ...state, objectList: [] }, { refId: 42 }, 4, 99);
+
+    expect(state.effectList).toEqual([]);
+  });
+
+  it("ports ZPlayer snipe_object_event as robot turret effect spawn", () => {
+    const object = createSnipeObject(42, 80, 120, 2);
+    const state = {
+      objectList: [object],
+      ztime: { tick: 7 },
+      effectList: [] as Array<{
+        ztime: { tick: number } | null;
+        x: number;
+        y: number;
+        owner: number;
+      }>,
+    };
+    const packet = new Uint8Array(SNIPE_OBJECT_PACKET_SIZE_BYTES);
+    new DataView(packet.buffer).setInt32(0, 42, true);
+
+    playerSnipeObjectEvent(state, packet, packet.length, 99);
+
+    expect(state.effectList).toEqual([
+      {
+        ztime: state.ztime,
+        x: 80,
+        y: 116,
+        owner: 2,
+      },
+    ]);
+  });
+
+  it("ports ZPlayer set_repair_building_anim_event guard exits", () => {
+    const calls: unknown[] = [];
+    const object = createRepairAnimObject(42, 2, calls);
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      spaceEventList: [] as SpaceBarEvent[],
+      playWav: (sound: SoundEngineSound) => calls.push(["sound", sound]),
+    };
+
+    playerSetRepairBuildingAnimEvent(
+      state,
+      { refId: 42, on: true, remainingTime: 3.5, playSound: true },
+      1,
+      99,
+    );
+    playerSetRepairBuildingAnimEvent(
+      { ...state, objectList: [] },
+      { refId: 42, on: true, remainingTime: 3.5, playSound: true },
+      REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer set_repair_building_anim_event as repair start sound for local owner", () => {
+    const calls: unknown[] = [];
+    const object = createRepairAnimObject(42, 2, calls);
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      spaceEventList: [] as SpaceBarEvent[],
+      playWav: (sound: SoundEngineSound) => calls.push(["sound", sound]),
+    };
+    const packet = new Uint8Array(REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES);
+    const view = new DataView(packet.buffer);
+    view.setInt32(0, 42, true);
+    packet[4] = 1;
+    view.setFloat64(8, 3.5, true);
+    packet[16] = 1;
+
+    playerSetRepairBuildingAnimEvent(state, packet, packet.length, 99);
+
+    expect(calls).toEqual([
+      ["anim", true, 3.5],
+      ["sound", SoundEngineSound.CompStartingRepairSnd],
+    ]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer set_repair_building_anim_event as repair finished focus event", () => {
+    const calls: unknown[] = [];
+    const object = createRepairAnimObject(42, 2, calls);
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      spaceEventList: [] as SpaceBarEvent[],
+      playWav: (sound: SoundEngineSound) => calls.push(["sound", sound]),
+    };
+
+    playerSetRepairBuildingAnimEvent(
+      state,
+      { refId: 42, on: false, remainingTime: 0.25, playSound: true },
+      REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([
+      ["anim", false, 0.25],
+      ["sound", SoundEngineSound.CompVehicleRepairedSnd],
+    ]);
+    expect(state.spaceEventList[0]).toMatchObject({
+      refId: 42,
+      selectObject: false,
+      openGui: false,
+    });
+  });
+
+  it("ports ZPlayer set_repair_building_anim_event as silent non-local animation", () => {
+    const calls: unknown[] = [];
+    const object = createRepairAnimObject(42, 3, calls);
+    const state = {
+      ourTeam: 2,
+      objectList: [object],
+      spaceEventList: [] as SpaceBarEvent[],
+      playWav: (sound: SoundEngineSound) => calls.push(["sound", sound]),
+    };
+
+    playerSetRepairBuildingAnimEvent(
+      state,
+      { refId: 42, on: false, remainingTime: 1.25, playSound: true },
+      REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES,
+      99,
+    );
+
+    expect(calls).toEqual([["anim", false, 1.25]]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer set_object_team_event as unit refresh without processed object", () => {
+    const calls: unknown[] = [];
+    const player = {
+      ourTeam: 2,
+      processObjectTeam: (data: Uint8Array | string | null, size: number) => {
+        calls.push(["process", data, size]);
+        return null;
+      },
+      deleteObjectFromSelection: (object: unknown) => calls.push(["delete", object]),
+      processChangeObjectAmount: () => calls.push("change-amount"),
+    };
+
+    playerSetObjectTeamEvent(player, "team", 4, 99);
+
+    expect(calls).toEqual([["process", "team", 4], "change-amount"]);
+  });
+
+  it("ports ZPlayer set_object_team_event as preserving local owned selection", () => {
+    const calls: unknown[] = [];
+    const object = { getOwner: () => 2 };
+    const player = {
+      ourTeam: 2,
+      processObjectTeam: () => object,
+      deleteObjectFromSelection: (value: typeof object) => calls.push(["delete", value]),
+      processChangeObjectAmount: () => calls.push("change-amount"),
+    };
+
+    playerSetObjectTeamEvent(player, new Uint8Array([1]), 1, 99);
+
+    expect(calls).toEqual(["change-amount"]);
+  });
+
+  it("ports ZPlayer set_object_team_event as deselecting objects lost to another team", () => {
+    const calls: unknown[] = [];
+    const object = { id: "lost-object", getOwner: () => 3 };
+    const player = {
+      ourTeam: 2,
+      processObjectTeam: (data: Uint8Array | string | null, size: number) => {
+        calls.push([
+          "process",
+          data instanceof Uint8Array ? [...data] : data,
+          size,
+        ]);
+        return object;
+      },
+      deleteObjectFromSelection: (value: typeof object) =>
+        calls.push(["delete", value.id]),
+      processChangeObjectAmount: () => calls.push("change-amount"),
+    };
+
+    playerSetObjectTeamEvent(player, new Uint8Array([7]), 1, 99);
+
+    expect(calls).toEqual([
+      ["process", [7], 1],
+      ["delete", "lost-object"],
+      "change-amount",
+    ]);
+  });
+
+  it("ports ZPlayer set_object_attack_object_event guard exits", () => {
+    const calls: unknown[] = [];
+    const target = createAttackAlertTarget(42, 2);
+    const object = { getAttackObject: () => target };
+    const state = createAttackAlertState(object, calls);
+
+    playerSetObjectAttackObjectEvent(
+      { ...state, processObjectAttackObject: () => null },
+      new Uint8Array([1]),
+      1,
+      99,
+      () => 0,
+    );
+    playerSetObjectAttackObjectEvent(
+      { ...state, processObjectAttackObject: () => ({ getAttackObject: () => null }) },
+      new Uint8Array([1]),
+      1,
+      99,
+      () => 0,
+    );
+    playerSetObjectAttackObjectEvent(
+      {
+        ...state,
+        processObjectAttackObject: () => ({
+          getAttackObject: () => createAttackAlertTarget(43, 3),
+        }),
+      },
+      new Uint8Array([1]),
+      1,
+      99,
+      () => 0,
+    );
+    playerSetObjectAttackObjectEvent(
+      {
+        ...state,
+        zhud: {
+          ...state.zhud,
+          getARefId: () => 7,
+        },
+      },
+      new Uint8Array([1]),
+      1,
+      99,
+      () => 0,
+    );
+    playerSetObjectAttackObjectEvent(state, new Uint8Array([1]), 1, 99, () => 4);
+
+    expect(calls).toEqual([
+      ["process", [1], 1],
+      ["process", [1], 1],
+      ["process", [1], 1],
+      ["process", [1], 1],
+      ["process", [1], 1],
+    ]);
+    expect(state.spaceEventList).toEqual([]);
+  });
+
+  it("ports ZPlayer set_object_attack_object_event as local under-attack alert", () => {
+    const calls: unknown[] = [];
+    const target = createAttackAlertTarget(42, 2);
+    const object = { getAttackObject: () => target };
+    const state = createAttackAlertState(object, calls);
+    const data = new Uint8Array([3, 5]);
+
+    playerSetObjectAttackObjectEvent(state, data, data.length, 99, () => 0);
+
+    expect(calls).toEqual([
+      ["process", [3, 5], 2],
+      ["set-a-ref-id", 42],
+      ["set-portrait-object", 42],
+      ["start-portrait-anim", PortraitAnimationType.WereUnderAttack],
+    ]);
+    expect(state.spaceEventList[0]).toMatchObject({
+      refId: 42,
+      selectObject: true,
+      openGui: false,
+    });
+  });
+
+  it("ports ZPlayer set_object_attack_object_event as ARefID only during active portrait", () => {
+    const calls: unknown[] = [];
+    const target = createAttackAlertTarget(42, 2);
+    const object = { getAttackObject: () => target };
+    const state = createAttackAlertState(object, calls, true);
+
+    playerSetObjectAttackObjectEvent(state, new Uint8Array([1]), 1, 99, () => 0);
+
+    expect(calls).toEqual([
+      ["process", [1], 1],
+      ["set-a-ref-id", 42],
+    ]);
+    expect(state.spaceEventList[0]).toMatchObject({
+      refId: 42,
+      selectObject: true,
+    });
+  });
+
   it("ports ZPlayer display_login_event as no-op for invalid packet size", () => {
     const loginMenu = { id: "login" };
     const state = {
@@ -806,6 +1112,22 @@ describe("player events", () => {
     playerDeletePlayerEvent(player, "delete-player", 13, 99);
 
     expect(calls).toEqual(["delete-player", 13]);
+  });
+
+  it("ports ZPlayer delete_object_event as object deletion payload delegation", () => {
+    const calls: unknown[] = [];
+    const deletedObject = { id: "deleted-object" };
+    const player = {
+      processDeleteObject: (data: Uint8Array | string | null, size: number) => {
+        calls.push(data, size);
+        return deletedObject;
+      },
+    };
+    const data = new Uint8Array([5, 7]);
+
+    playerDeleteObjectEvent(player, data, data.length, 99);
+
+    expect(calls).toEqual([data, 2]);
   });
 
   it("ports ZPlayer set_player_id_event as player-id payload delegation", () => {
@@ -1602,6 +1924,61 @@ function createStoreMapPlayer(calls: unknown[], loaded: boolean) {
     },
     playPlanetMusic(terrainType: number) {
       calls.push("music", terrainType);
+    },
+  };
+}
+
+function createAttackAlertTarget(refId: number, owner: number) {
+  return {
+    getOwner: () => owner,
+    getRefId: () => refId,
+  };
+}
+
+function createSnipeObject(refId: number, x: number, y: number, owner: number) {
+  return {
+    getRefId: () => refId,
+    getCenterCoords: () => ({ x, y }),
+    getOwner: () => owner,
+  };
+}
+
+function createRepairAnimObject(refId: number, owner: number, calls: unknown[]) {
+  return {
+    getRefId: () => refId,
+    getOwner: () => owner,
+    doRepairBuildingAnim: (on: boolean, remainingTime: number) => {
+      calls.push(["anim", on, remainingTime]);
+    },
+  };
+}
+
+function createAttackAlertState<TObject extends { getAttackObject(): unknown }>(
+  object: TObject,
+  calls: unknown[],
+  portraitAnimating = false,
+) {
+  return {
+    ourTeam: 2,
+    zhud: {
+      getARefId: () => -1,
+      setARefId: (refId: number) => calls.push(["set-a-ref-id", refId]),
+      aportrait: {
+        doingAnim: () => portraitAnimating,
+        setObject: (target: { getRefId(): number }) =>
+          calls.push(["set-portrait-object", target.getRefId()]),
+        startAnim: (animation: PortraitAnimationType) =>
+          calls.push(["start-portrait-anim", animation]),
+      },
+    },
+    spaceEventList: [] as SpaceBarEvent[],
+    processObjectAttackObject(data: Uint8Array | string | null, size: number) {
+      calls.push([
+        "process",
+        data instanceof Uint8Array ? [...data] : data,
+        size,
+      ]);
+      return object;
     },
   };
 }

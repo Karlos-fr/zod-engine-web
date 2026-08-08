@@ -8,6 +8,7 @@ import {
   WaypointMode,
 } from "../src/simulation/entities/EntityTypes";
 import {
+  damageEntityHealth,
   GameEntity,
   isObjectBeforeByRenderDepth,
   setEntityHealthPercent,
@@ -607,6 +608,44 @@ describe("GameEntity", () => {
     setEntityHealthPercent(entity, -20, {});
     expect(entity.initialHealthPercent).toBe(0);
     expect(calls).toEqual([80, 0]);
+  });
+
+  it("ports ZObject DamageHealth as no-op for already dead entities", () => {
+    const calls: unknown[] = [];
+    const entity = {
+      health: 0,
+      setHealth: (health: number) => calls.push(["set-health", health]),
+      recalcBuildTime: () => {
+        calls.push("recalc-build-time");
+        return true;
+      },
+    };
+
+    expect(damageEntityHealth(entity, 5, {})).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
+  it("ports ZObject DamageHealth through SetHealth and build-time recalculation", () => {
+    const map = { id: "map" };
+    const calls: unknown[] = [];
+    const entity = {
+      health: 50,
+      setHealth: (health: number, map_: typeof map) => {
+        calls.push(["set-health", health, map_]);
+        entity.health = Math.max(0, health);
+      },
+      recalcBuildTime: () => {
+        calls.push("recalc-build-time");
+        return true;
+      },
+    };
+
+    expect(damageEntityHealth(entity, 18, map)).toBe(32);
+    expect(entity.health).toBe(32);
+    expect(calls).toEqual([
+      ["set-health", 32, map],
+      "recalc-build-time",
+    ]);
   });
 
   it("does not recalculate build time for the base entity", () => {

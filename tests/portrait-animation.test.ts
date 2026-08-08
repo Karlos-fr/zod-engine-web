@@ -4,6 +4,7 @@ import {
   clearPortraitRobotId,
   getPortraitBlitInfo,
   getPortraitRefId,
+  initPortrait,
   isPortraitDoingAnimation,
   PORTRAIT_BASE_HEIGHT_PIXELS,
   PORTRAIT_BASE_WIDTH_PIXELS,
@@ -47,6 +48,7 @@ import type {
 } from "../src/simulation/PortraitAnimation";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
+  ACTIVE_TEAM_TYPE_COUNT,
   CannonType,
   PlanetType,
   RobotType,
@@ -203,6 +205,65 @@ describe("portrait animation", () => {
     expect(graphics.hand.every((surface) => surface === null)).toBe(true);
     expect(graphics.mouth.every((surface) => surface === null)).toBe(true);
     expect(graphics.shoulders).toBeNull();
+  });
+
+  it("ports ZPortrait Init as backdrop, unit graphics, and frame setup initialization", () => {
+    const vehicleLoads: string[] = [];
+    const backdropLoads = Array.from({ length: PlanetType.Max }, () => [] as string[]);
+    const setupCalls: boolean[] = [];
+    type TestGraphics = {
+      id: string;
+      loads: Array<{ robotType: number; team: number; baseId: string }>;
+      load(robotType: number, team: number, baseGraphics: TestGraphics): void;
+    };
+    const unitGraphics: TestGraphics[][] = Array.from(
+      { length: RobotType.Max },
+      (_, robot) =>
+        Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) => ({
+          id: `${robot}-${team}`,
+          loads: [] as Array<{ robotType: number; team: number; baseId: string }>,
+          load(robotType: number, team: number, baseGraphics: TestGraphics) {
+            this.loads.push({ robotType, team, baseId: baseGraphics.id });
+          },
+        })),
+    );
+    const state = {
+      backdropVehicle: {
+        loadBaseImage: (source: string) => vehicleLoads.push(source),
+      },
+      backdrop: backdropLoads.map((loads) => ({
+        loadBaseImage: (source: string) => loads.push(source),
+      })),
+      unitGraphics,
+      finishedInit: false,
+      setupFrames() {
+        setupCalls.push(this.finishedInit);
+      },
+    };
+
+    initPortrait(state);
+
+    expect(vehicleLoads).toEqual(["assets/other/hud/backdrop_vehicle.bmp"]);
+    expect(backdropLoads).toEqual([
+      ["assets/other/hud/backdrop_desert.bmp"],
+      ["assets/other/hud/backdrop_volcanic.bmp"],
+      ["assets/other/hud/backdrop_arctic.bmp"],
+      ["assets/other/hud/backdrop_jungle.bmp"],
+      ["assets/other/hud/backdrop_city.bmp"],
+    ]);
+    expect(
+      unitGraphics.flatMap((robotGraphics) =>
+        robotGraphics.flatMap((graphics) => graphics.loads),
+      ),
+    ).toHaveLength(RobotType.Max * ACTIVE_TEAM_TYPE_COUNT);
+    expect(unitGraphics[RobotType.Grunt]![TeamType.Null]!.loads).toEqual([
+      { robotType: RobotType.Grunt, team: TeamType.Null, baseId: "0-1" },
+    ]);
+    expect(unitGraphics[RobotType.Laser]![TeamType.Black]!.loads).toEqual([
+      { robotType: RobotType.Laser, team: TeamType.Black, baseId: "5-1" },
+    ]);
+    expect(setupCalls).toEqual([false]);
+    expect(state.finishedInit).toBe(true);
   });
 
   it("ports ZPortrait GetBlitInfo as fixed portrait viewport clipping", () => {

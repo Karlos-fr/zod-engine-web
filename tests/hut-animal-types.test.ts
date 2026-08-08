@@ -5,8 +5,10 @@ import {
   HUT_ANIMAL_TYPE_COUNT,
   chooseRandomHutAnimal,
   createHutAnimalGraphics,
+  gotoHutAnimalTile,
   initHutAnimalTypes,
   loadHutAnimalGraphics,
+  type HutAnimalGotoTileState,
   type HutAnimalGraphics,
   type HutAnimalInitState,
   type HutAnimalGoHomeState,
@@ -307,6 +309,130 @@ describe("hut animal types", () => {
 
     expect(state.goingHome).toBe(true);
     expect(calls).toEqual([[2, 4]]);
+  });
+
+  it("ports AHutAnimal GotoTile as waypoint setup and scaled movement", () => {
+    const state: HutAnimalGotoTileState = {
+      x: 8,
+      y: 8,
+      dx: 0,
+      dy: 0,
+      realMoveSpeed: 4,
+      direction: 1,
+      hutAnimalState: HutAnimalState.Nothing,
+      xover: 9,
+      yover: 10,
+      currentWaypoint: {
+        sx: 0,
+        sy: 0,
+        x: 0,
+        y: 0,
+        adx: 0,
+        ady: 0,
+      },
+    };
+    const vectors: Array<[number, number]> = [];
+
+    gotoHutAnimalTile(state, 2, 0, (dx, dy) => {
+      vectors.push([dx, dy]);
+      return 3;
+    });
+
+    expect(state.currentWaypoint).toEqual({
+      sx: 8,
+      sy: 8,
+      x: 40,
+      y: 8,
+      adx: 32,
+      ady: 0,
+    });
+    expect(state.xover).toBe(0);
+    expect(state.yover).toBe(0);
+    expect(state.dx).toBe(4);
+    expect(state.dy).toBe(0);
+    expect(vectors).toEqual([[4, 0]]);
+    expect(state.direction).toBe(3);
+    expect(state.hutAnimalState).toBe(HutAnimalState.Walking);
+  });
+
+  it("ports AHutAnimal GotoTile as idle when already at the tile center", () => {
+    const state: HutAnimalGotoTileState = {
+      x: 40,
+      y: 56,
+      dx: 7,
+      dy: 8,
+      realMoveSpeed: 4,
+      direction: 2,
+      hutAnimalState: HutAnimalState.Walking,
+      xover: 1,
+      yover: 2,
+      currentWaypoint: {
+        sx: 0,
+        sy: 0,
+        x: 0,
+        y: 0,
+        adx: 0,
+        ady: 0,
+      },
+    };
+    let idleState: HutAnimalGotoTileState | null = null;
+
+    gotoHutAnimalTile(
+      state,
+      2,
+      3,
+      () => {
+        throw new Error("direction should not be resolved for zero movement");
+      },
+      (nextState) => {
+        idleState = nextState;
+        nextState.hutAnimalState = HutAnimalState.Nothing;
+      },
+    );
+
+    expect(state.currentWaypoint).toEqual({
+      sx: 40,
+      sy: 56,
+      x: 40,
+      y: 56,
+      adx: 0,
+      ady: 0,
+    });
+    expect(state.xover).toBe(0);
+    expect(state.yover).toBe(0);
+    expect(state.dx).toBe(0);
+    expect(state.dy).toBe(0);
+    expect(idleState).toBe(state);
+    expect(state.hutAnimalState).toBe(HutAnimalState.Nothing);
+  });
+
+  it("ports AHutAnimal GotoTile as preserving direction when unresolved", () => {
+    const state: HutAnimalGotoTileState = {
+      x: 8,
+      y: 8,
+      dx: 0,
+      dy: 0,
+      realMoveSpeed: 5,
+      direction: 6,
+      hutAnimalState: HutAnimalState.Nothing,
+      xover: 0,
+      yover: 0,
+      currentWaypoint: {
+        sx: 0,
+        sy: 0,
+        x: 0,
+        y: 0,
+        adx: 0,
+        ady: 0,
+      },
+    };
+
+    gotoHutAnimalTile(state, 1, 0, () => -1);
+
+    expect(state.dx).toBe(5);
+    expect(state.dy).toBe(0);
+    expect(state.direction).toBe(6);
+    expect(state.hutAnimalState).toBe(HutAnimalState.Walking);
   });
 
   it("ports AHutAnimal TileIsTooFar using the tile center and roam distance", () => {

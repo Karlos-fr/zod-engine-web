@@ -61,10 +61,13 @@ import {
   PLAYER_NEWS_ACTIVE_DURATION_SECONDS,
   PLAYER_NEWS_FADE_START_SECONDS,
   PLAYER_NEWS_ROW_SPACING_PIXELS,
+  PLAYER_PLACE_CANNON_PACKET_SIZE_BYTES,
   PLAYER_SCROLL_SPEED_PIXELS_PER_SECOND,
   PLAYER_SELECTION_SHIFT_TICK_SECONDS,
   PLAYER_SPACE_BAR_EVENT_LIFETIME_SECONDS,
   PLAYER_SPLASH_FADE_PER_SECOND,
+  doPlayerPlaceCannon,
+  encodePlayerPlaceCannonPacket,
   processPlayerChangeObjectAmount,
   playerDevWaypointsNoWay,
   playerMiddleClickEvent,
@@ -97,6 +100,7 @@ import {
   sendPlayerVoteYes,
   setPlayerMusicOff,
   setNextPlayerSoundSetting,
+  setPlayerTeam,
   selectPlayerZObject,
   setPlayerPlaceCannonCoords,
   setPlayerSelectionZTime,
@@ -577,6 +581,87 @@ describe("player presentation constants", () => {
     });
   });
 
+  it("ports place_cannon_packet encoding for ZPlayer DoPlaceCannon", () => {
+    const packet = encodePlayerPlaceCannonPacket({
+      refId: 0x01020304,
+      tileX: 0x05060708,
+      tileY: 0x090a0b0c,
+      objectId: 0x8d,
+    });
+
+    expect(packet).toHaveLength(PLAYER_PLACE_CANNON_PACKET_SIZE_BYTES);
+    expect([...packet]).toEqual([
+      0x04,
+      0x03,
+      0x02,
+      0x01,
+      0x08,
+      0x07,
+      0x06,
+      0x05,
+      0x0c,
+      0x0b,
+      0x0a,
+      0x09,
+      0x8d,
+      0,
+      0,
+      0,
+    ]);
+  });
+
+  it("ports ZPlayer DoPlaceCannon as no send while placement is inactive", () => {
+    const state = {
+      placeCannon: false,
+      placeCannonTileX: 3,
+      placeCannonTileY: 5,
+      placeCannonRefId: 42,
+      placeCannonObjectId: 7,
+    };
+
+    const result = doPlayerPlaceCannon(state, {
+      sendMessage() {
+        throw new Error("sendMessage should not be called");
+      },
+    });
+
+    expect(result).toBe(false);
+    expect(state.placeCannon).toBe(false);
+  });
+
+  it("ports ZPlayer DoPlaceCannon as one placement packet send", () => {
+    const state = {
+      placeCannon: true,
+      placeCannonTileX: 3,
+      placeCannonTileY: 5,
+      placeCannonRefId: 42,
+      placeCannonObjectId: 7,
+    };
+    const calls: Array<{ packId: TcpEvent; data: Uint8Array | null; size: number }> = [];
+
+    const result = doPlayerPlaceCannon(state, {
+      sendMessage(packId, data, size) {
+        calls.push({ packId, data: data ? new Uint8Array(data) : null, size });
+        return 99;
+      },
+    });
+
+    expect(result).toBe(true);
+    expect(state.placeCannon).toBe(false);
+    expect(calls).toEqual([
+      {
+        packId: TcpEvent.PlaceCannon,
+        data: encodePlayerPlaceCannonPacket({
+          refId: 42,
+          tileX: 3,
+          tileY: 5,
+          objectId: 7,
+        }),
+        size: PLAYER_PLACE_CANNON_PACKET_SIZE_BYTES,
+      },
+    ]);
+  });
+
   it("ports ZPlayer ShowPcursor as placement cursor position and lifetime", () => {
     const state = {
       pcursorDeathTime: 0,
@@ -886,6 +971,117 @@ describe("player presentation constants", () => {
       "set-unit-amount",
       11,
     ]);
+  });
+
+  it("ports ZPlayer SetPlayerTeam as team propagation and local UI reset", () => {
+    const calls: Array<string | number | null> = [];
+    const quickGroups = Array.from({ length: 10 }, (_, index) => [
+      { refId: index },
+    ]);
+    const state = {
+      ourTeam: TeamType.Red,
+      teamUnitsAvailable: [0, 4, 9],
+      haveExplosives: true,
+      canPickupGrenades: true,
+      canMove: true,
+      canEquip: true,
+      canAttack: true,
+      canRepair: true,
+      canBeRepaired: true,
+      selectedList: [{ refId: 11 }],
+      quickGroups,
+      spaceEventList: [new SpaceBarEvent(2, true)],
+      cursor: {
+        setTeam: (team: TeamType) => calls.push("cursor", team),
+      },
+      hud: {
+        setTeam: (team: TeamType) => calls.push("hud-team", team),
+        setSelectedObject: (selectedObject: unknown | null) =>
+          calls.push("hud-selected", selectedObject as null),
+        reRenderAll: () => calls.push("hud-rerender"),
+        setUnitAmount: (unitAmount: number) =>
+          calls.push("set-unit-amount", unitAmount),
+      },
+      componentMessage: {
+        setTeam: (team: TeamType) => calls.push("component-message", team),
+      },
+      guiFactoryList: {
+        setTeam: (team: TeamType) => calls.push("gui-factory", team),
+      },
+      refindOurFortRefId: () => calls.push("refind-fort"),
+      determineCursor: () => calls.push("determine-cursor"),
+      reSetupButtons: () => calls.push("re-setup-buttons"),
+      checkUnitLimitReached: () => calls.push("check-unit-limit-reached"),
+    };
+
+    setPlayerTeam(state, TeamType.Blue);
+
+    expect(state.ourTeam).toBe(TeamType.Blue);
+    expect(state.selectedList).toEqual([]);
+    expect(state.quickGroups).toEqual([[], [], [], [], [], [], [], [], [], []]);
+    expect(state.spaceEventList).toEqual([]);
+    expect(state.haveExplosives).toBe(false);
+    expect(state.canPickupGrenades).toBe(false);
+    expect(state.canMove).toBe(false);
+    expect(state.canEquip).toBe(false);
+    expect(state.canAttack).toBe(false);
+    expect(state.canRepair).toBe(false);
+    expect(state.canBeRepaired).toBe(false);
+    expect(calls).toEqual([
+      "cursor",
+      TeamType.Blue,
+      "hud-team",
+      TeamType.Blue,
+      "component-message",
+      TeamType.Blue,
+      "gui-factory",
+      TeamType.Blue,
+      "refind-fort",
+      "hud-selected",
+      null,
+      "hud-rerender",
+      "determine-cursor",
+      "re-setup-buttons",
+      "check-unit-limit-reached",
+      "set-unit-amount",
+      9,
+    ]);
+  });
+
+  it("ports ZPlayer SetPlayerTeam as optional GUI factory propagation", () => {
+    const calls: string[] = [];
+    const state = {
+      ourTeam: TeamType.Red,
+      teamUnitsAvailable: [],
+      haveExplosives: false,
+      canPickupGrenades: false,
+      canMove: false,
+      canEquip: false,
+      canAttack: false,
+      canRepair: false,
+      canBeRepaired: false,
+      selectedList: [],
+      quickGroups: [],
+      spaceEventList: [],
+      cursor: { setTeam: () => undefined },
+      hud: {
+        setTeam: () => undefined,
+        setSelectedObject: () => undefined,
+        reRenderAll: () => undefined,
+        setUnitAmount: () => undefined,
+      },
+      componentMessage: { setTeam: () => undefined },
+      guiFactoryList: null,
+      refindOurFortRefId: () => undefined,
+      determineCursor: () => calls.push("determine-cursor"),
+      reSetupButtons: () => undefined,
+      checkUnitLimitReached: () => undefined,
+    };
+
+    setPlayerTeam(state, TeamType.Blue);
+
+    expect(state.ourTeam).toBe(TeamType.Blue);
+    expect(calls).toEqual(["determine-cursor"]);
   });
 
   it("replaces ZPlayer SetUseOpenGL as player Canvas rendering path assignment", () => {

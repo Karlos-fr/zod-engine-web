@@ -4,8 +4,13 @@
 
 import type { GameEntity } from "./entities/GameEntity";
 import type { PlanetType, TeamType } from "./SimulationConstants";
-import { RobotType } from "./SimulationConstants";
+import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  PlanetType as PlanetTypeValue,
+  RobotType,
+} from "./SimulationConstants";
 import { MapObjectType } from "../world/MapFormat";
+import { TEAM_RENDERING_BASE_TEAM } from "./TeamRendering";
 
 /**
  * Port of upstream `_ZPORTRAIT_H_`.
@@ -256,6 +261,85 @@ export class PortraitUnitGraphics<TSurface = unknown> {
     this.hand = Array.from({ length: PORTRAIT_MAX_HANDS }, () => null);
     this.mouth = Array.from({ length: PORTRAIT_MAX_MOUTHS }, () => null);
   }
+}
+
+/**
+ * Replacement for upstream `ZSDL_Surface::LoadBaseImage` used by `ZPortrait::Init`.
+ * Role: Loads one portrait backdrop asset from its source path.
+ * Upstream: zportrait.cpp:35, zportrait.cpp:40
+ */
+export type PortraitBackdropImage = {
+  loadBaseImage(source: string): void;
+};
+
+/**
+ * Port of upstream `ZPortrait_Unit_Graphics::Load` call target.
+ * Role: Loads one robot/team portrait graphics set using the base-team graphics as source.
+ * Upstream: zportrait.cpp:45
+ */
+export type PortraitUnitGraphicsLoader = {
+  load(
+    robotType: RobotType | number,
+    team: TeamType | number,
+    baseGraphics: PortraitUnitGraphicsLoader,
+  ): void;
+};
+
+/**
+ * Port of upstream `ZPortrait::Init` mutable fields and call targets.
+ * Role: Holds backdrop images, unit graphics, frame setup, and initialization status.
+ * Upstream: zportrait.cpp:29-50
+ */
+export type PortraitInitState<
+  TBackdrop extends PortraitBackdropImage = PortraitBackdropImage,
+  TGraphics extends PortraitUnitGraphicsLoader = PortraitUnitGraphicsLoader,
+> = {
+  backdropVehicle: TBackdrop;
+  backdrop: TBackdrop[];
+  unitGraphics: TGraphics[][];
+  finishedInit: boolean;
+  setupFrames(): void;
+};
+
+const PORTRAIT_PLANET_ASSET_NAMES = [
+  "desert",
+  "volcanic",
+  "arctic",
+  "jungle",
+  "city",
+] as const;
+
+/**
+ * Port of upstream `ZPortrait::Init`.
+ * Role: Loads portrait backdrops, robot/team graphics, animation frames, and init status.
+ * Upstream: zportrait.cpp:29-50
+ */
+export function initPortrait<
+  TBackdrop extends PortraitBackdropImage,
+  TGraphics extends PortraitUnitGraphicsLoader,
+>(
+  state: PortraitInitState<TBackdrop, TGraphics>,
+): void {
+  state.backdropVehicle.loadBaseImage("assets/other/hud/backdrop_vehicle.bmp");
+
+  for (let planet = 0; planet < PlanetTypeValue.Max; planet += 1) {
+    state.backdrop[planet]?.loadBaseImage(
+      `assets/other/hud/backdrop_${PORTRAIT_PLANET_ASSET_NAMES[planet]}.bmp`,
+    );
+  }
+
+  for (let robot = 0; robot < RobotType.Max; robot += 1) {
+    for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+      const graphics = state.unitGraphics[robot]?.[team];
+      const baseGraphics = state.unitGraphics[robot]?.[TEAM_RENDERING_BASE_TEAM];
+      if (!graphics || !baseGraphics) continue;
+
+      graphics.load(robot, team, baseGraphics);
+    }
+  }
+
+  state.setupFrames();
+  state.finishedInit = true;
 }
 
 /**

@@ -7,13 +7,17 @@ import {
   type CraneAnimPacket,
   type DoPortraitAnimPacket,
   type DriverHitPacket,
+  type RepairBuildingAnimPacket,
+  type SnipeObjectPacket,
   type TeamEndedPacket,
 } from "./EventHandler";
+import { SoundEngineSound } from "../audio/AudioService";
 import { GAME_VERSION } from "./SimulationConstants";
 import { HudEndUnit, startHudEndAnimations, type HudEndAnimationState } from "../ui/HudLayout";
 import { MapObjectType } from "../world/MapFormat";
 import { PortraitAnimationType } from "./PortraitAnimation";
 import { addPlayerSpaceBarEvent, SpaceBarEvent } from "./PlayerPresentation";
+import type { RobotTurretEffectSpawn } from "./RobotTurretEffect";
 
 /**
  * Port of upstream `ZPlayer::ProcessPlayerID` call target.
@@ -139,6 +143,20 @@ export type PlayerTeamEndedEventState = {
 export const DO_PORTRAIT_ANIM_PACKET_SIZE_BYTES = 8;
 
 /**
+ * Port of upstream `sizeof(snipe_object_packet)`.
+ * Role: Defines the fixed packet byte length accepted by player snipe-object events.
+ * Upstream: event_handler.h:122-125
+ */
+export const SNIPE_OBJECT_PACKET_SIZE_BYTES = 4;
+
+/**
+ * Port of upstream `sizeof(repair_building_anim_packet)`.
+ * Role: Defines the fixed packet byte length accepted by player repair animation events.
+ * Upstream: event_handler.h:108-114
+ */
+export const REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES = 24;
+
+/**
  * Port of upstream object lookup surface used by `ZPlayer::do_portrait_anim_event`.
  * Role: Supplies reference id and ownership for portrait event targeting.
  * Upstream: zplayer_events.cpp:1308-1312
@@ -194,6 +212,137 @@ export type PlayerPickupGrenadeEventState<
   objectList: TObject[];
   aportrait: PlayerAuxPortraitTarget<TObject>;
   spaceEventList: SpaceBarEvent[];
+};
+
+/**
+ * Port of upstream snipe-object target surface used by `ZPlayer::snipe_object_event`.
+ * Role: Supplies reference id, center coordinates, and owner for the spawned effect.
+ * Upstream: zplayer_events.cpp:1131-1139
+ */
+export type PlayerSnipeObjectTarget = {
+  getRefId(): number;
+  getCenterCoords(): { x: number; y: number };
+  getOwner(): number;
+};
+
+/**
+ * Port of upstream `ZPlayer::snipe_object_event` state.
+ * Role: Holds objects, simulation time, and effect list used by snipe visual effects.
+ * Upstream: zplayer_events.cpp:1123-1140
+ */
+export type PlayerSnipeObjectEventState<
+  TObject extends PlayerSnipeObjectTarget = PlayerSnipeObjectTarget,
+  TTime = unknown,
+> = {
+  objectList: TObject[];
+  ztime: TTime | null;
+  effectList: RobotTurretEffectSpawn<TTime>[];
+};
+
+/**
+ * Port of upstream repair-animation target surface used by `ZPlayer::set_repair_building_anim_event`.
+ * Role: Supplies identity, owner, and repair-animation mutation.
+ * Upstream: zplayer_events.cpp:1075-1081
+ */
+export type PlayerRepairBuildingAnimObject = {
+  getRefId(): number;
+  getOwner(): number;
+  doRepairBuildingAnim(on: boolean, remainingTime: number): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::set_repair_building_anim_event` state.
+ * Role: Holds local objects, team, retained focus events, and sound playback target.
+ * Upstream: zplayer_events.cpp:1067-1093
+ */
+export type PlayerRepairBuildingAnimEventState<
+  TObject extends PlayerRepairBuildingAnimObject = PlayerRepairBuildingAnimObject,
+> = {
+  ourTeam: number;
+  objectList: TObject[];
+  spaceEventList: SpaceBarEvent[];
+  playWav(sound: SoundEngineSound): void;
+};
+
+/**
+ * Port of upstream attack-target object surface used by `ZPlayer::set_object_attack_object_event`.
+ * Role: Supplies the object currently being attacked after attack-target packet processing.
+ * Upstream: zplayer_events.cpp:804-810
+ */
+export type PlayerObjectAttackObjectSource<TTarget> = {
+  getAttackObject(): TTarget | null;
+};
+
+/**
+ * Port of upstream attack-alert target surface used by `ZPlayer::set_object_attack_object_event`.
+ * Role: Supplies target ownership and reference id for HUD alert state.
+ * Upstream: zplayer_events.cpp:809-823
+ */
+export type PlayerObjectAttackAlertTarget = {
+  getOwner(): number;
+  getRefId(): number;
+};
+
+/**
+ * Port of upstream HUD attack-alert surface used by `ZPlayer::set_object_attack_object_event`.
+ * Role: Stores the active alert target and exposes the auxiliary portrait.
+ * Upstream: zplayer_events.cpp:811-819
+ */
+export type PlayerObjectAttackAlertHud<TTarget> = {
+  getARefId(): number;
+  setARefId(refId: number): void;
+  aportrait: PlayerAuxPortraitTarget<TTarget>;
+};
+
+/**
+ * Port of upstream `ZPlayer::set_object_attack_object_event` state.
+ * Role: Holds local team, HUD attack alert state, retained focus events, and packet processor.
+ * Upstream: zplayer_events.cpp:800-824
+ */
+export type PlayerObjectAttackObjectEventState<
+  TTarget extends PlayerObjectAttackAlertTarget = PlayerObjectAttackAlertTarget,
+  TObject extends PlayerObjectAttackObjectSource<TTarget> =
+    PlayerObjectAttackObjectSource<TTarget>,
+> = {
+  ourTeam: number;
+  zhud: PlayerObjectAttackAlertHud<TTarget>;
+  spaceEventList: SpaceBarEvent[];
+  processObjectAttackObject(
+    data: Uint8Array | string | null,
+    size: number,
+  ): TObject | null;
+};
+
+/**
+ * Port of upstream object-team target surface used by `ZPlayer::set_object_team_event`.
+ * Role: Supplies the object's current owner after object-team packet processing.
+ * Upstream: zplayer_events.cpp:786-792
+ */
+export type PlayerObjectTeamEventObject = {
+  getOwner(): number;
+};
+
+/**
+ * Port of upstream `ZPlayer::set_object_team_event` state.
+ * Role: Holds local team, object-team processor, selection deletion, and unit-count refresh.
+ * Upstream: zplayer_events.cpp:782-798
+ */
+export type PlayerObjectTeamEventState<
+  TObject extends PlayerObjectTeamEventObject = PlayerObjectTeamEventObject,
+> = {
+  ourTeam: number;
+  processObjectTeam(data: Uint8Array | string | null, size: number): TObject | null;
+  deleteObjectFromSelection(object: TObject): void;
+  processChangeObjectAmount(): void;
+};
+
+/**
+ * Port of upstream `ZPlayer::ProcessDeleteObject` call target.
+ * Role: Processes an object-deletion payload and performs cleanup internally.
+ * Upstream: zplayer_events.cpp:836-842
+ */
+export type PlayerDeleteObjectEventProcessor<TObject = unknown> = {
+  processDeleteObject(data: Uint8Array | string | null, size: number): TObject | null;
 };
 
 /**
@@ -922,6 +1071,21 @@ export function playerDeletePlayerEvent(
 }
 
 /**
+ * Port of upstream `ZPlayer::delete_object_event`.
+ * Role: Delegates an object-deletion payload to the player processor.
+ * Upstream: zplayer_events.cpp:832-843
+ */
+export function playerDeleteObjectEvent<TObject>(
+  player: PlayerDeleteObjectEventProcessor<TObject>,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+  void player.processDeleteObject(data, size);
+}
+
+/**
  * Port of upstream `ZPlayer::set_player_id_event`.
  * Role: Delegates a player-id update payload to the player processor.
  * Upstream: zplayer_events.cpp:1227-1230
@@ -1133,6 +1297,57 @@ function parsePickupGrenadePacket(
   return { refId: view.getInt32(0, true) };
 }
 
+function parseSnipeObjectPacket(
+  data: Uint8Array | string | SnipeObjectPacket | null,
+): SnipeObjectPacket | null {
+  if (data === null) return null;
+  if (typeof data === "object" && !(data instanceof Uint8Array)) return data;
+
+  const bytes = new Uint8Array(SNIPE_OBJECT_PACKET_SIZE_BYTES);
+  if (typeof data === "string") {
+    for (
+      let i = 0;
+      i < SNIPE_OBJECT_PACKET_SIZE_BYTES && i < data.length;
+      i += 1
+    ) {
+      bytes[i] = data.charCodeAt(i) & 0xff;
+    }
+  } else {
+    bytes.set(data.subarray(0, SNIPE_OBJECT_PACKET_SIZE_BYTES));
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { refId: view.getInt32(0, true) };
+}
+
+function parseRepairBuildingAnimPacket(
+  data: Uint8Array | string | RepairBuildingAnimPacket | null,
+): RepairBuildingAnimPacket | null {
+  if (data === null) return null;
+  if (typeof data === "object" && !(data instanceof Uint8Array)) return data;
+
+  const bytes = new Uint8Array(REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES);
+  if (typeof data === "string") {
+    for (
+      let i = 0;
+      i < REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES && i < data.length;
+      i += 1
+    ) {
+      bytes[i] = data.charCodeAt(i) & 0xff;
+    }
+  } else {
+    bytes.set(data.subarray(0, REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES));
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return {
+    refId: view.getInt32(0, true),
+    on: bytes[4] !== 0,
+    remainingTime: view.getFloat64(8, true),
+    playSound: bytes[16] !== 0,
+  };
+}
+
 function isAllowedPortraitEventAnimation(animation: number): boolean {
   return (
     animation === PortraitAnimationType.VehicleCaptured ||
@@ -1205,6 +1420,137 @@ export function playerPickupGrenadeEvent<
     player.aportrait.startAnim(PortraitAnimationType.GrenadesCollected);
     addPlayerSpaceBarEvent(player, new SpaceBarEvent(packet.refId, true));
   }
+}
+
+/**
+ * Port of upstream `ZPlayer::snipe_object_event`.
+ * Role: Spawns a robot turret debris effect at the sniped object's center.
+ * Upstream: zplayer_events.cpp:1123-1140
+ */
+export function playerSnipeObjectEvent<
+  TObject extends PlayerSnipeObjectTarget,
+  TTime,
+>(
+  player: PlayerSnipeObjectEventState<TObject, TTime>,
+  data: Uint8Array | string | SnipeObjectPacket | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+
+  if (size !== SNIPE_OBJECT_PACKET_SIZE_BYTES) return;
+
+  const packet = parseSnipeObjectPacket(data);
+  if (!packet) return;
+
+  const object = player.objectList.find(
+    (candidate) => candidate.getRefId() === packet.refId,
+  );
+  if (!object) return;
+
+  const center = object.getCenterCoords();
+  player.effectList.push({
+    ztime: player.ztime,
+    x: center.x,
+    y: center.y - 4,
+    owner: object.getOwner(),
+  });
+}
+
+/**
+ * Port of upstream `ZPlayer::set_repair_building_anim_event`.
+ * Role: Applies repair animation state and local repair sounds/focus events.
+ * Upstream: zplayer_events.cpp:1067-1093
+ */
+export function playerSetRepairBuildingAnimEvent<
+  TObject extends PlayerRepairBuildingAnimObject,
+>(
+  player: PlayerRepairBuildingAnimEventState<TObject>,
+  data: Uint8Array | string | RepairBuildingAnimPacket | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+
+  if (size !== REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES) return;
+
+  const packet = parseRepairBuildingAnimPacket(data);
+  if (!packet) return;
+
+  const object = player.objectList.find(
+    (candidate) => candidate.getRefId() === packet.refId,
+  );
+  if (!object) return;
+
+  object.doRepairBuildingAnim(packet.on, packet.remainingTime);
+
+  if (!packet.playSound || object.getOwner() !== player.ourTeam) return;
+
+  if (packet.on) {
+    player.playWav(SoundEngineSound.CompStartingRepairSnd);
+  } else {
+    player.playWav(SoundEngineSound.CompVehicleRepairedSnd);
+    addPlayerSpaceBarEvent(player, new SpaceBarEvent(packet.refId));
+  }
+}
+
+/**
+ * Port of upstream `ZPlayer::set_object_team_event`.
+ * Role: Processes object-team updates, deselects lost objects, and refreshes unit counts.
+ * Upstream: zplayer_events.cpp:782-798
+ */
+export function playerSetObjectTeamEvent<TObject extends PlayerObjectTeamEventObject>(
+  player: PlayerObjectTeamEventState<TObject>,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+): void {
+  void dummy;
+
+  const object = player.processObjectTeam(data, size);
+  if (object && object.getOwner() !== player.ourTeam) {
+    player.deleteObjectFromSelection(object);
+  }
+
+  player.processChangeObjectAmount();
+}
+
+/**
+ * Port of upstream `ZPlayer::set_object_attack_object_event`.
+ * Role: Processes attack-target updates and sometimes raises the local under-attack HUD alert.
+ * Upstream: zplayer_events.cpp:800-830
+ */
+export function playerSetObjectAttackObjectEvent<
+  TTarget extends PlayerObjectAttackAlertTarget,
+  TObject extends PlayerObjectAttackObjectSource<TTarget>,
+>(
+  player: PlayerObjectAttackObjectEventState<TTarget, TObject>,
+  data: Uint8Array | string | null,
+  size: number,
+  dummy: number,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  void dummy;
+
+  const object = player.processObjectAttackObject(data, size);
+  if (!object) return;
+
+  const attackObject = object.getAttackObject();
+  if (!attackObject) return;
+  if (attackObject.getOwner() !== player.ourTeam) return;
+  if (player.zhud.getARefId() !== -1) return;
+  if (randomInt(5) % 5 !== 0) return;
+
+  const attackRefId = attackObject.getRefId();
+  player.zhud.setARefId(attackRefId);
+
+  if (!player.zhud.aportrait.doingAnim()) {
+    player.zhud.aportrait.setObject(attackObject);
+    player.zhud.aportrait.startAnim(PortraitAnimationType.WereUnderAttack);
+  }
+
+  addPlayerSpaceBarEvent(player, new SpaceBarEvent(attackRefId, true));
 }
 
 /**

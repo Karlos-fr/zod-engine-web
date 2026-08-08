@@ -327,6 +327,16 @@ export type EntityHealthPercentState<TMap> = EntityHealthSetter<TMap> & {
 };
 
 /**
+ * Port of upstream `ZObject::DamageHealth` mutable fields and call targets.
+ * Role: Provides current health, concrete health assignment, and build-time recalculation.
+ * Upstream: zobject.cpp:364-384
+ */
+export type EntityDamageHealthState<TMap> = EntityHealthSetter<TMap> & {
+  health: number;
+  recalcBuildTime(): boolean;
+};
+
+/**
  * Port of upstream `ZObject::SetHealthPercent`.
  * Role: Clamps the initial health percentage and applies proportional health.
  * Upstream: zobject.cpp:301-310
@@ -340,6 +350,24 @@ export function setEntityHealthPercent<TMap>(
 
   entity.initialHealthPercent = clampedHealthPercent;
   entity.setHealth((clampedHealthPercent * entity.maxHealth) / 100, map);
+}
+
+/**
+ * Port of upstream `ZObject::DamageHealth`.
+ * Role: Applies damage through SetHealth, refreshes build timing, and returns current health.
+ * Upstream: zobject.cpp:364-384
+ */
+export function damageEntityHealth<TMap>(
+  entity: EntityDamageHealthState<TMap>,
+  damageAmount: number,
+  map: TMap,
+): number {
+  if (entity.health <= 0) return entity.health;
+
+  entity.setHealth(entity.health - damageAmount, map);
+  entity.recalcBuildTime();
+
+  return entity.health;
 }
 
 /**

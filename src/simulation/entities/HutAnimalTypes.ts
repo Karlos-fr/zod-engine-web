@@ -67,6 +67,38 @@ export type HutAnimalGoHomeState = {
 };
 
 /**
+ * Minimal state consumed by ported `AHutAnimal::GotoTile`.
+ * Role: Stores movement deltas, waypoint tracking, heading, and active behavior state.
+ * Upstream: ahutanimal.h:44-47, ahutanimal.h:55, zobject.h:38, zobject.h:83
+ */
+export type HutAnimalGotoTileState = {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  realMoveSpeed: number;
+  direction: number;
+  hutAnimalState: HutAnimalState;
+  xover: number;
+  yover: number;
+  currentWaypoint: {
+    sx: number;
+    sy: number;
+    x: number;
+    y: number;
+    adx: number;
+    ady: number;
+  };
+};
+
+/**
+ * Port of upstream `AHutAnimal::DirectionFromLoc` dependency surface.
+ * Role: Resolves a movement vector to one of the hut animal direction indices.
+ * Upstream: ahutanimal.cpp:295
+ */
+export type HutAnimalDirectionFromVector = (dx: number, dy: number) => number;
+
+/**
  * Port of upstream `AHutAnimal::animals_in_palette` dependency surface.
  * Role: Stores which hut animal species may spawn for each planet palette.
  * Upstream: ahutanimal.h:66
@@ -401,6 +433,54 @@ export function sendHutAnimalHome(
 ): void {
   state.goingHome = true;
   gotoTile(state.homeX >> 4, state.homeY >> 4);
+}
+
+/**
+ * Port of upstream `AHutAnimal::GotoTile`.
+ * Role: Targets a tile center, updates waypoint tracking, and starts walking toward it.
+ * Upstream: ahutanimal.cpp:259-299
+ */
+export function gotoHutAnimalTile(
+  state: HutAnimalGotoTileState,
+  tileX: number,
+  tileY: number,
+  directionFromVector: HutAnimalDirectionFromVector,
+  setStateNothing: (state: HutAnimalGotoTileState) => void = (nextState) => {
+    nextState.hutAnimalState = HutAnimalState.Nothing;
+  },
+): void {
+  const targetX = (tileX << 4) + 8;
+  const targetY = (tileY << 4) + 8;
+
+  state.currentWaypoint.sx = state.x;
+  state.currentWaypoint.sy = state.y;
+  state.currentWaypoint.x = targetX;
+  state.currentWaypoint.y = targetY;
+  state.currentWaypoint.adx = Math.abs(targetX - state.x);
+  state.currentWaypoint.ady = Math.abs(targetY - state.y);
+
+  state.xover = 0;
+  state.yover = 0;
+
+  state.dx = targetX - state.x;
+  state.dy = targetY - state.y;
+
+  const magnitude = Math.sqrt(state.dx * state.dx + state.dy * state.dy);
+
+  if (magnitude < 0.0001) {
+    setStateNothing(state);
+    return;
+  }
+
+  state.dx = (state.dx / magnitude) * state.realMoveSpeed;
+  state.dy = (state.dy / magnitude) * state.realMoveSpeed;
+
+  const newDirection = directionFromVector(state.dx, state.dy);
+  if (newDirection !== -1) {
+    state.direction = newDirection;
+  }
+
+  state.hutAnimalState = HutAnimalState.Walking;
 }
 
 /**
