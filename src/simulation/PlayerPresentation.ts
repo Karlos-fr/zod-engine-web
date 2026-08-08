@@ -72,6 +72,56 @@ export type PlayerNewsEntry<TTextImage = unknown> = {
 };
 
 /**
+ * Replacement for upstream small-font text surface rendering.
+ * Role: Produces the browser text image stored by player news entries.
+ * Upstream: zplayer.cpp:620-629
+ */
+export type PlayerNewsTextRenderer<TTextImage> = (
+  message: string,
+) => TTextImage | null;
+
+/**
+ * Port of upstream `ZPlayer::AddNewsEntry` news list state.
+ * Role: Stores active player news entries newest-first.
+ * Upstream: zplayer.cpp:598-644
+ */
+export type PlayerNewsEntryState<TTextImage = unknown> = {
+  newsList: Array<PlayerNewsEntry<TTextImage>>;
+};
+
+/**
+ * Port of upstream `ZPlayer::AddNewsEntry`.
+ * Role: Adds a rendered player news message with color-key-safe text color and expiry time.
+ * Upstream: zplayer.cpp:598-644
+ */
+export function addPlayerNewsEntry<TTextImage>(
+  state: PlayerNewsEntryState<TTextImage>,
+  message: string,
+  red: number,
+  green: number,
+  blue: number,
+  renderText: PlayerNewsTextRenderer<TTextImage>,
+  now = currentTime(),
+): boolean {
+  if (!message.length) return false;
+
+  const safeRed = red === 0 && green === 0 && blue === 0 ? 1 : red;
+  const textImage = renderText(message);
+  if (!textImage) return false;
+
+  state.newsList.unshift({
+    red: safeRed,
+    green,
+    blue,
+    message,
+    deathTime: now + PLAYER_NEWS_ACTIVE_DURATION_SECONDS,
+    textImage,
+  });
+
+  return true;
+}
+
+/**
  * Port of upstream `mouse_button_info`.
  * Role: Stores mouse button screen/map coordinates and click-origin flags.
  * Upstream: zplayer.h:95-104
@@ -647,6 +697,17 @@ export type PlayerModifierKeyState = {
   rightAltDown: boolean;
 };
 
+/**
+ * Port of upstream `ZPlayer::keyup_event` mutable keyboard state.
+ * Role: Holds ASCII, modifier, and arrow-key flags updated by key release events.
+ * Upstream: zplayer_events.cpp:564-608
+ */
+export type PlayerKeyUpEventState = PlayerAsciiState &
+  PlayerScrollKeyState &
+  PlayerModifierKeyState & {
+    sendDevWaypointsOfSelected(): void;
+  };
+
 export type PlayerLoginState = {
   loginName: string;
   loginPassword: string;
@@ -800,6 +861,31 @@ export type PlayerSelectableZObject = PlayerSelectionGroupDetailsObject & {
   getOwner(): number;
 };
 
+/**
+ * Port of upstream selectable `ZObject` access used by player type selection.
+ * Role: Exposes owner, object id, and selection capability for bulk selection.
+ * Upstream: zplayer.cpp:2535-2546
+ */
+export type PlayerSelectableByTypeObject = PlayerSelectionGroupDetailsObject & {
+  getOwner(): number;
+  selectable(): boolean;
+};
+
+/**
+ * Port of upstream `ZPlayer::SelectAllOfType` mutable selection state.
+ * Role: Supplies owned objects, selection flags, and HUD refresh hooks for type-wide selection.
+ * Upstream: zplayer.cpp:2524-2555
+ */
+export type PlayerSelectAllOfTypeState<
+  TObject extends PlayerSelectableByTypeObject = PlayerSelectableByTypeObject,
+> = Omit<PlayerSelectionGroupDetailsState, "selectedList"> & {
+  ourTeam: number;
+  passiveEngagableObjectList: readonly TObject[];
+  selectedList: TObject[];
+  hud: PlayerHudSelectionTarget<TObject>;
+  determineCursor(): void;
+};
+
 export type PlayerSelectZObjectState<
   TObject extends PlayerSelectableZObject = PlayerSelectableZObject,
 > = Omit<PlayerSelectionGroupDetailsState, "selectedList"> & {
@@ -812,6 +898,33 @@ export type PlayerSelectZObjectState<
 
 export type PlayerSelectionCenteredObject = {
   getCenterCoords(): { x: number; y: number };
+};
+
+/**
+ * Port of upstream selectable `ZObject` access used by random player selection.
+ * Role: Exposes owner, object id, and center coordinates for choosing and focusing a unit.
+ * Upstream: zplayer.cpp:1715-1739
+ */
+export type PlayerRandomSelectableUnitObject =
+  PlayerSelectionGroupDetailsObject &
+    PlayerSelectionCenteredObject & {
+      getOwner(): number;
+    };
+
+/**
+ * Port of upstream `ZPlayer::RandomlySelectUnitType` mutable selection state.
+ * Role: Supplies objects, selection flags, HUD refresh, cursor refresh, and camera focus.
+ * Upstream: zplayer.cpp:1707-1741
+ */
+export type PlayerRandomlySelectUnitTypeState<
+  TObject extends PlayerRandomSelectableUnitObject = PlayerRandomSelectableUnitObject,
+> = Omit<PlayerSelectionGroupDetailsState, "selectedList"> & {
+  ourTeam: number;
+  objectList: readonly TObject[];
+  selectedList: TObject[];
+  hud: PlayerHudSelectionTarget<TObject>;
+  determineCursor(): void;
+  focusCameraTo(mapX: number, mapY: number): void;
 };
 
 export type PlayerSelectionQuickGroupObject = {
@@ -1681,6 +1794,53 @@ export function setPlayerAsciiState(
 }
 
 /**
+ * Port of upstream `ZPlayer::keyup_event`.
+ * Role: Clears released key state and flushes selected development waypoints after final shift release.
+ * Upstream: zplayer_events.cpp:564-608
+ */
+export function playerKeyUpEvent(
+  state: PlayerKeyUpEventState,
+  event: PlayerKeyEvent,
+): void {
+  setPlayerAsciiState(state, event.theKey, false);
+
+  switch (event.theKey) {
+    case 305:
+      state.rightCtrlDown = false;
+      break;
+    case 306:
+      state.leftCtrlDown = false;
+      break;
+    case 307:
+      state.rightAltDown = false;
+      break;
+    case 308:
+      state.leftAltDown = false;
+      break;
+    case 273:
+      state.upDown = false;
+      break;
+    case 274:
+      state.downDown = false;
+      break;
+    case 275:
+      state.rightDown = false;
+      break;
+    case 276:
+      state.leftDown = false;
+      break;
+    case 304:
+      state.leftShiftDown = false;
+      if (!isPlayerShiftDown(state)) state.sendDevWaypointsOfSelected();
+      break;
+    case 303:
+      state.rightShiftDown = false;
+      if (!isPlayerShiftDown(state)) state.sendDevWaypointsOfSelected();
+      break;
+  }
+}
+
+/**
  * Port of upstream `ZPlayer::AsciiDown`.
  * Role: Reads one lowercase ASCII key state when the key is tracked.
  * Upstream: zplayer.cpp:3096-3104
@@ -2164,6 +2324,87 @@ export function selectPlayerZObject<TObject extends PlayerSelectableZObject>(
   state.clearDevWaypointsOfSelected();
 
   return true;
+}
+
+const PLAYER_SELECTABLE_OBJECT_TYPES: readonly number[] = [
+  MapObjectType.Robot,
+  MapObjectType.Vehicle,
+  MapObjectType.Cannon,
+];
+
+/**
+ * Port of upstream `ZPlayer::SelectAllOfType`.
+ * Role: Selects owned selectable passive objects matching one object type, then refreshes selection UI.
+ * Upstream: zplayer.cpp:2524-2555
+ */
+export function selectAllPlayerObjectsOfType<
+  TObject extends PlayerSelectableByTypeObject,
+>(state: PlayerSelectAllOfTypeState<TObject>, type: MapObjectType | number): void {
+  if (state.ourTeam === TeamType.Null) return;
+  if (
+    type !== -1 &&
+    !PLAYER_SELECTABLE_OBJECT_TYPES.includes(type as MapObjectType)
+  ) {
+    return;
+  }
+
+  clearPlayerSelectionInfo(state);
+
+  for (const object of state.passiveEngagableObjectList) {
+    const { objectType } = object.getObjectId();
+
+    if (type !== -1) {
+      if (objectType !== type) continue;
+    } else if (
+      objectType !== MapObjectType.Robot &&
+      objectType !== MapObjectType.Vehicle
+    ) {
+      continue;
+    }
+
+    if (object.getOwner() !== state.ourTeam) continue;
+    if (!object.selectable()) continue;
+
+    state.selectedList.push(object);
+  }
+
+  setupPlayerSelectionGroupDetails(state, false);
+  state.determineCursor();
+  givePlayerHudSelected(state);
+}
+
+/**
+ * Port of upstream `ZPlayer::RandomlySelectUnitType`.
+ * Role: Chooses one owned unit of the requested object type, selects it, and focuses the camera.
+ * Upstream: zplayer.cpp:1707-1741
+ */
+export function randomlySelectPlayerUnitType<
+  TObject extends PlayerRandomSelectableUnitObject,
+>(
+  state: PlayerRandomlySelectUnitTypeState<TObject>,
+  type: MapObjectType | number,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): void {
+  if (state.ourTeam === TeamType.Null) return;
+
+  const choices = state.objectList.filter((object) => {
+    if (object.getOwner() !== state.ourTeam) return false;
+    return object.getObjectId().objectType === type;
+  });
+
+  const choice =
+    choices.length > 0 ? choices[Math.trunc(randomInt(choices.length))] : undefined;
+  if (!choice) return;
+
+  clearPlayerSelectionInfo(state);
+  state.selectedList.push(choice);
+  setupPlayerSelectionGroupDetails(state, false);
+  state.determineCursor();
+  givePlayerHudSelected(state);
+
+  const center = choice.getCenterCoords();
+  state.focusCameraTo(center.x, center.y);
 }
 
 /**

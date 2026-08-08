@@ -14,6 +14,7 @@ import { MainMenuType } from "../src/ui/MainMenuBase";
 import { MapObjectType } from "../src/world/MapFormat";
 import {
   addPlayerSpaceBarEvent,
+  addPlayerNewsEntry,
   averageCoordsOfPlayerSelection,
   clearAllPlayerSelectionInfo,
   clearPlayerAnimals,
@@ -72,12 +73,14 @@ import {
   playerDevWaypointsNoWay,
   playerMiddleClickEvent,
   playerMiddleUnclickEvent,
+  playerKeyUpEvent,
   refindPlayerFortRefId,
   playerRightClickEvent,
   playerTestEvent,
   renderPlayerPlaceCannon,
   renderPlayerPreviousCursor,
   playerAButton,
+  randomlySelectPlayerUnitType,
   playerBButton,
   playerDButton,
   playerGButton,
@@ -101,6 +104,7 @@ import {
   setPlayerMusicOff,
   setNextPlayerSoundSetting,
   setPlayerTeam,
+  selectAllPlayerObjectsOfType,
   selectPlayerZObject,
   setPlayerPlaceCannonCoords,
   setPlayerSelectionZTime,
@@ -196,6 +200,71 @@ describe("player presentation constants", () => {
       deathTime: 42.5,
       textImage: { id: "rendered-text" },
     });
+  });
+
+  it("ports ZPlayer AddNewsEntry as newest-first rendered news insertion", () => {
+    const state = {
+      newsList: [
+        {
+          red: 10,
+          green: 20,
+          blue: 30,
+          message: "Old news",
+          deathTime: 40,
+          textImage: { id: "old" },
+        },
+      ],
+    };
+    const rendered: string[] = [];
+
+    expect(
+      addPlayerNewsEntry(
+        state,
+        "Unit ready",
+        0,
+        0,
+        0,
+        (message) => {
+          rendered.push(message);
+          return { id: `text:${message}` };
+        },
+        12.5,
+      ),
+    ).toBe(true);
+
+    expect(rendered).toEqual(["Unit ready"]);
+    expect(state.newsList).toEqual([
+      {
+        red: 1,
+        green: 0,
+        blue: 0,
+        message: "Unit ready",
+        deathTime: 29.5,
+        textImage: { id: "text:Unit ready" },
+      },
+      {
+        red: 10,
+        green: 20,
+        blue: 30,
+        message: "Old news",
+        deathTime: 40,
+        textImage: { id: "old" },
+      },
+    ]);
+  });
+
+  it("ports ZPlayer AddNewsEntry guard exits for empty or unrenderable messages", () => {
+    const state = { newsList: [] as Array<PlayerNewsEntry<{ id: string }>> };
+
+    expect(
+      addPlayerNewsEntry(state, "", 1, 2, 3, () => {
+        throw new Error("renderText should not be called for empty messages");
+      }),
+    ).toBe(false);
+    expect(
+      addPlayerNewsEntry(state, "Hidden", 1, 2, 3, () => null, 5),
+    ).toBe(false);
+    expect(state.newsList).toEqual([]);
   });
 
   it("ports cleared mouse button interaction state", () => {
@@ -1194,6 +1263,49 @@ describe("player presentation constants", () => {
     expect(isPlayerAsciiDown(state, "c".charCodeAt(0))).toBe(false);
     expect(isPlayerAsciiDown(state, "A".charCodeAt(0))).toBe(false);
     expect(isPlayerAsciiDown(state, "{".charCodeAt(0))).toBe(false);
+  });
+
+  it("ports ZPlayer keyup_event as ASCII and arrow/modifier release", () => {
+    const state = createPlayerKeyUpEventState();
+    state.asciiDown["d".charCodeAt(0) - "a".charCodeAt(0)] = true;
+
+    playerKeyUpEvent(state, { theKey: "d".charCodeAt(0), theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 305, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 306, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 307, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 308, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 273, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 274, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 275, theUnicode: 0 });
+    playerKeyUpEvent(state, { theKey: 276, theUnicode: 0 });
+
+    expect(state.asciiDown["d".charCodeAt(0) - "a".charCodeAt(0)]).toBe(false);
+    expect(state).toMatchObject({
+      rightCtrlDown: false,
+      leftCtrlDown: false,
+      rightAltDown: false,
+      leftAltDown: false,
+      upDown: false,
+      downDown: false,
+      rightDown: false,
+      leftDown: false,
+    });
+    expect(state.calls).toEqual([]);
+  });
+
+  it("ports ZPlayer keyup_event as dev waypoint flush after final shift release", () => {
+    const state = createPlayerKeyUpEventState();
+
+    playerKeyUpEvent(state, { theKey: 304, theUnicode: 0 });
+
+    expect(state.leftShiftDown).toBe(false);
+    expect(state.rightShiftDown).toBe(true);
+    expect(state.calls).toEqual([]);
+
+    playerKeyUpEvent(state, { theKey: 303, theUnicode: 0 });
+
+    expect(state.rightShiftDown).toBe(false);
+    expect(state.calls).toEqual(["send-dev-waypoints"]);
   });
 
   it("ports ZPlayer ClearAnimals as bird list clearing", () => {
@@ -2203,6 +2315,152 @@ describe("player presentation constants", () => {
     ]);
   });
 
+  it("ports ZPlayer SelectAllOfType guard exits without changing selection", () => {
+    const previous = createSelectablePlayerObject({ owner: TeamType.Red });
+    const selectable = createSelectablePlayerObject({ owner: TeamType.Red });
+    const nullTeamState = createSelectAllOfTypeState([previous], [selectable]);
+    nullTeamState.ourTeam = TeamType.Null;
+
+    selectAllPlayerObjectsOfType(nullTeamState, MapObjectType.Robot);
+
+    expect(nullTeamState.selectedList).toEqual([previous]);
+    expect(nullTeamState.calls).toEqual([]);
+
+    const invalidTypeState = createSelectAllOfTypeState([previous], [selectable]);
+
+    selectAllPlayerObjectsOfType(invalidTypeState, MapObjectType.Building);
+
+    expect(invalidTypeState.selectedList).toEqual([previous]);
+    expect(invalidTypeState.calls).toEqual([]);
+  });
+
+  it("ports ZPlayer SelectAllOfType -1 as owned selectable robots and vehicles", () => {
+    const robot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Red,
+      canPickupGrenades: true,
+    });
+    const vehicle = createSelectablePlayerObject({
+      objectType: MapObjectType.Vehicle,
+      owner: TeamType.Red,
+      canAttack: true,
+    });
+    const cannon = createSelectablePlayerObject({
+      objectType: MapObjectType.Cannon,
+      owner: TeamType.Red,
+    });
+    const hostileRobot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Blue,
+    });
+    const hiddenVehicle = createSelectablePlayerObject({
+      objectType: MapObjectType.Vehicle,
+      owner: TeamType.Red,
+      selectable: false,
+    });
+    const previous = createSelectablePlayerObject({ owner: TeamType.Red });
+    const state = createSelectAllOfTypeState(
+      [previous],
+      [robot, vehicle, cannon, hostileRobot, hiddenVehicle],
+    );
+
+    selectAllPlayerObjectsOfType(state, -1);
+
+    expect(state.selectedList).toEqual([robot, vehicle]);
+    expect(state.canEquip).toBe(true);
+    expect(state.canMove).toBe(true);
+    expect(state.canAttack).toBe(true);
+    expect(state.canPickupGrenades).toBe(true);
+    expect(state.calls).toEqual(["determine-cursor", ["hud", robot]]);
+  });
+
+  it("ports ZPlayer SelectAllOfType as explicit cannon selection", () => {
+    const cannon = createSelectablePlayerObject({
+      objectType: MapObjectType.Cannon,
+      owner: TeamType.Red,
+      canAttack: true,
+    });
+    const robot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Red,
+    });
+    const state = createSelectAllOfTypeState([], [cannon, robot]);
+
+    selectAllPlayerObjectsOfType(state, MapObjectType.Cannon);
+
+    expect(state.selectedList).toEqual([cannon]);
+    expect(state.canMove).toBe(false);
+    expect(state.canAttack).toBe(true);
+    expect(state.calls).toEqual(["determine-cursor", ["hud", cannon]]);
+  });
+
+  it("ports ZPlayer RandomlySelectUnitType guard exits without changing selection", () => {
+    const previous = createSelectablePlayerObject({ owner: TeamType.Red });
+    const robot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Red,
+    });
+    const nullTeamState = createRandomlySelectUnitTypeState([previous], [robot]);
+    nullTeamState.ourTeam = TeamType.Null;
+
+    randomlySelectPlayerUnitType(nullTeamState, MapObjectType.Robot, () => 0);
+
+    expect(nullTeamState.selectedList).toEqual([previous]);
+    expect(nullTeamState.calls).toEqual([]);
+
+    const noMatchState = createRandomlySelectUnitTypeState([previous], [robot]);
+
+    randomlySelectPlayerUnitType(noMatchState, MapObjectType.Cannon, () => {
+      throw new Error("randomInt should not be called without choices");
+    });
+
+    expect(noMatchState.selectedList).toEqual([previous]);
+    expect(noMatchState.calls).toEqual([]);
+  });
+
+  it("ports ZPlayer RandomlySelectUnitType as owned type choice and camera focus", () => {
+    const firstRobot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Red,
+      centerX: 100,
+      centerY: 120,
+    });
+    const secondRobot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Red,
+      canPickupGrenades: true,
+      centerX: 220,
+      centerY: 240,
+    });
+    const hostileRobot = createSelectablePlayerObject({
+      objectType: MapObjectType.Robot,
+      owner: TeamType.Blue,
+    });
+    const ownedVehicle = createSelectablePlayerObject({
+      objectType: MapObjectType.Vehicle,
+      owner: TeamType.Red,
+    });
+    const previous = createSelectablePlayerObject({ owner: TeamType.Red });
+    const state = createRandomlySelectUnitTypeState(
+      [previous],
+      [firstRobot, hostileRobot, ownedVehicle, secondRobot],
+    );
+
+    randomlySelectPlayerUnitType(state, MapObjectType.Robot, (maxExclusive) => {
+      expect(maxExclusive).toBe(2);
+      return 1;
+    });
+
+    expect(state.selectedList).toEqual([secondRobot]);
+    expect(state.canEquip).toBe(true);
+    expect(state.canPickupGrenades).toBe(true);
+    expect(state.calls).toEqual([
+      "determine-cursor",
+      ["hud", secondRobot],
+      ["focus", 220, 240],
+    ]);
+  });
+
   it("ports selection_info::AverageCoordsOfSelected as null for empty selection", () => {
     expect(averageCoordsOfPlayerSelection({ selectedList: [] })).toBeNull();
   });
@@ -2838,10 +3096,13 @@ type SelectablePlayerTestObject = {
   selectableValue: boolean;
   canAttackValue: boolean;
   canPickupGrenadesValue: boolean;
+  centerX: number;
+  centerY: number;
   getGroupLeader(): SelectablePlayerTestObject | null;
   selectable(): boolean;
   getOwner(): number;
   getObjectId(): { objectType: number; objectId: number };
+  getCenterCoords(): { x: number; y: number };
   hasExplosives(): boolean;
   canAttack(): boolean;
   canBeRepaired(): boolean;
@@ -2858,6 +3119,8 @@ function createSelectablePlayerObject(
     selectable: boolean;
     canAttack: boolean;
     canPickupGrenades: boolean;
+    centerX: number;
+    centerY: number;
   }> = {},
 ): SelectablePlayerTestObject {
   return {
@@ -2869,6 +3132,8 @@ function createSelectablePlayerObject(
     selectableValue: overrides.selectable ?? true,
     canAttackValue: overrides.canAttack ?? false,
     canPickupGrenadesValue: overrides.canPickupGrenades ?? false,
+    centerX: overrides.centerX ?? 10,
+    centerY: overrides.centerY ?? 20,
     getGroupLeader() {
       return this.groupLeader;
     },
@@ -2880,6 +3145,9 @@ function createSelectablePlayerObject(
     },
     getObjectId() {
       return { objectType: this.objectType, objectId: this.objectId };
+    },
+    getCenterCoords() {
+      return { x: this.centerX, y: this.centerY };
     },
     hasExplosives() {
       return false;
@@ -2939,6 +3207,136 @@ function createSelectZObjectState(
     },
     clearDevWaypointsOfSelected() {
       calls.push("clear-dev-waypoints");
+    },
+  };
+}
+
+function createSelectAllOfTypeState(
+  selectedList: SelectablePlayerTestObject[],
+  passiveEngagableObjectList: SelectablePlayerTestObject[],
+): {
+  calls: Array<string | ["hud", SelectablePlayerTestObject | null]>;
+  ourTeam: TeamType;
+  passiveEngagableObjectList: SelectablePlayerTestObject[];
+  haveExplosives: boolean;
+  canPickupGrenades: boolean;
+  canMove: boolean;
+  canEquip: boolean;
+  canAttack: boolean;
+  canRepair: boolean;
+  canBeRepaired: boolean;
+  selectedList: SelectablePlayerTestObject[];
+  hud: { setSelectedObject(selectedObject: SelectablePlayerTestObject | null): void };
+  determineCursor(): void;
+} {
+  const calls: Array<string | ["hud", SelectablePlayerTestObject | null]> = [];
+
+  return {
+    calls,
+    ourTeam: TeamType.Red,
+    passiveEngagableObjectList,
+    haveExplosives: true,
+    canPickupGrenades: true,
+    canMove: true,
+    canEquip: true,
+    canAttack: true,
+    canRepair: true,
+    canBeRepaired: true,
+    selectedList,
+    hud: {
+      setSelectedObject(selectedObject) {
+        calls.push(["hud", selectedObject]);
+      },
+    },
+    determineCursor() {
+      calls.push("determine-cursor");
+    },
+  };
+}
+
+function createRandomlySelectUnitTypeState(
+  selectedList: SelectablePlayerTestObject[],
+  objectList: SelectablePlayerTestObject[],
+): {
+  calls: Array<
+    string | ["hud", SelectablePlayerTestObject | null] | ["focus", number, number]
+  >;
+  ourTeam: TeamType;
+  objectList: SelectablePlayerTestObject[];
+  haveExplosives: boolean;
+  canPickupGrenades: boolean;
+  canMove: boolean;
+  canEquip: boolean;
+  canAttack: boolean;
+  canRepair: boolean;
+  canBeRepaired: boolean;
+  selectedList: SelectablePlayerTestObject[];
+  hud: { setSelectedObject(selectedObject: SelectablePlayerTestObject | null): void };
+  determineCursor(): void;
+  focusCameraTo(mapX: number, mapY: number): void;
+} {
+  const calls: Array<
+    string | ["hud", SelectablePlayerTestObject | null] | ["focus", number, number]
+  > = [];
+
+  return {
+    calls,
+    ourTeam: TeamType.Red,
+    objectList,
+    haveExplosives: true,
+    canPickupGrenades: true,
+    canMove: true,
+    canEquip: true,
+    canAttack: true,
+    canRepair: true,
+    canBeRepaired: true,
+    selectedList,
+    hud: {
+      setSelectedObject(selectedObject) {
+        calls.push(["hud", selectedObject]);
+      },
+    },
+    determineCursor() {
+      calls.push("determine-cursor");
+    },
+    focusCameraTo(mapX, mapY) {
+      calls.push(["focus", mapX, mapY]);
+    },
+  };
+}
+
+function createPlayerKeyUpEventState(): {
+  calls: string[];
+  asciiDown: boolean[];
+  leftDown: boolean;
+  rightDown: boolean;
+  upDown: boolean;
+  downDown: boolean;
+  leftShiftDown: boolean;
+  rightShiftDown: boolean;
+  leftCtrlDown: boolean;
+  rightCtrlDown: boolean;
+  leftAltDown: boolean;
+  rightAltDown: boolean;
+  sendDevWaypointsOfSelected(): void;
+} {
+  const calls: string[] = [];
+
+  return {
+    calls,
+    asciiDown: Array.from({ length: PLAYER_ASCII_DOWN_MAX }, () => false),
+    leftDown: true,
+    rightDown: true,
+    upDown: true,
+    downDown: true,
+    leftShiftDown: true,
+    rightShiftDown: true,
+    leftCtrlDown: true,
+    rightCtrlDown: true,
+    leftAltDown: true,
+    rightAltDown: true,
+    sendDevWaypointsOfSelected() {
+      calls.push("send-dev-waypoints");
     },
   };
 }

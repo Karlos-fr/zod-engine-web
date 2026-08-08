@@ -10,6 +10,7 @@ import {
   type MapSurfaceRepeatBlitCommand,
   type MapTileRenderCommand,
   type MapViewportRenderCommand,
+  type MapZoneEffectBlitCommand,
   replaceUnusableTiles,
   updateMapPalettesTileFormat,
   writeMap,
@@ -1046,6 +1047,172 @@ describe("GameMap", () => {
     });
   });
 
+  it("replaces ZMap::DoZoneEffects with shifted land and water marker blits", () => {
+    const redLand = { id: "red-land", baseSurface: { width: 10, height: 8 } };
+    const blueWater = { id: "blue-water", baseSurface: { width: 10, height: 8 } };
+    const map = new GameMap({
+      width: 10,
+      height: 8,
+      tiles: Array.from({ length: 80 }, () => ({ terrain: "plain" })),
+      shiftX: 10,
+      shiftY: 20,
+      viewWidth: 64,
+      viewHeight: 48,
+      zoneInfoList: [
+        {
+          id: 0,
+          owner: TeamType.Red,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          tiles: [
+            {
+              renderLocation: { x: 20, y: 30, width: 0, height: 0 },
+              isWater: false,
+              bobIndex: 0,
+              nextTime: 0,
+            },
+          ],
+        },
+        {
+          id: 1,
+          owner: TeamType.Blue,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          tiles: [
+            {
+              renderLocation: { x: 12, y: 25, width: 0, height: 0 },
+              isWater: true,
+              bobIndex: 0,
+              nextTime: 5,
+            },
+          ],
+        },
+      ],
+    });
+
+    const commands: Array<
+      MapZoneEffectBlitCommand<typeof redLand | typeof blueWater>
+    > = map.doZoneEffects(
+      10,
+      [{ id: "base-land", baseSurface: { width: 10, height: 8 } }, redLand],
+      [
+        { id: "base-water", baseSurface: { width: 10, height: 8 } },
+        undefined,
+        blueWater,
+      ],
+      3,
+      4,
+      () => 123456,
+    );
+
+    expect(commands).toEqual([
+      {
+        surface: redLand,
+        region: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 10,
+          height: 8,
+          destinationX: 13,
+          destinationY: 14,
+        },
+        owner: TeamType.Red,
+        isWater: false,
+      },
+      {
+        surface: blueWater,
+        region: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 10,
+          height: 8,
+          destinationX: 5,
+          destinationY: 10,
+        },
+        owner: TeamType.Blue,
+        isWater: true,
+      },
+    ]);
+    expect(map.zoneInfoList[1].tiles[0]).toMatchObject({
+      bobIndex: 1,
+      nextTime: 10.623456,
+    });
+  });
+
+  it("replaces ZMap::DoZoneEffects as clipped and skipped marker commands", () => {
+    const redLand = { id: "red-land", baseSurface: { width: 10, height: 8 } };
+    const map = new GameMap({
+      width: 10,
+      height: 8,
+      tiles: Array.from({ length: 80 }, () => ({ terrain: "plain" })),
+      shiftX: 10,
+      shiftY: 20,
+      viewWidth: 64,
+      viewHeight: 48,
+      zoneInfoList: [
+        {
+          id: 0,
+          owner: TeamType.Red,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          tiles: [
+            {
+              renderLocation: { x: 5, y: 16, width: 0, height: 0 },
+              isWater: false,
+              bobIndex: 0,
+              nextTime: 0,
+            },
+            {
+              renderLocation: { x: 100, y: 100, width: 0, height: 0 },
+              isWater: false,
+              bobIndex: 0,
+              nextTime: 0,
+            },
+            {
+              renderLocation: { x: 20, y: 24, width: 0, height: 0 },
+              isWater: true,
+              bobIndex: 1,
+              nextTime: 20,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      map.doZoneEffects(
+        10,
+        [{ id: "base-land", baseSurface: { width: 10, height: 8 } }, redLand],
+        [],
+      ),
+    ).toEqual([
+      {
+        surface: redLand,
+        region: {
+          sourceX: 5,
+          sourceY: 4,
+          width: 5,
+          height: 4,
+          destinationX: 0,
+          destinationY: 0,
+        },
+        owner: TeamType.Red,
+        isWater: false,
+      },
+    ]);
+    expect(map.zoneInfoList[0].tiles[2]).toMatchObject({
+      bobIndex: 1,
+      nextTime: 20,
+    });
+    expect(map.doZoneEffects(10, [], [])).toEqual([]);
+  });
+
   it("replaces ZMap::DoRender as a full-map viewport blit command", () => {
     const surface: FullMapRenderSurfaceState = { unload: vi.fn() };
     const map = new GameMap({
@@ -1441,6 +1608,101 @@ describe("GameMap", () => {
         fullRenderSurface,
       }).renderTile(0, []),
     ).toBeNull();
+  });
+
+  it("ports ZMap::ChangeTile as tile replacement, effect-list refresh, and rerender command", () => {
+    const atlas = { id: "desert-atlas" };
+    const fullRenderSurface: FullMapRenderSurfaceState = { unload: vi.fn() };
+    const land = {
+      ...paletteTileInfo,
+      isUsable: true,
+      isEffect: false,
+      isWater: false,
+    };
+    const water = {
+      ...paletteTileInfo,
+      isUsable: true,
+      isEffect: false,
+      isWater: true,
+    };
+    const effect = {
+      ...paletteTileInfo,
+      isUsable: true,
+      isEffect: true,
+      isWater: false,
+    };
+    const map = new GameMap({
+      width: 3,
+      height: 2,
+      tiles: Array.from({ length: 6 }, () => ({ terrain: "plain" })),
+      mapTiles: [
+        { tile: 0 },
+        { tile: 1 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+      ],
+      terrainType: PlanetType.Desert,
+      paletteTileInfo: [[land, water, effect]],
+      mapWaterList: [
+        { tile: 1, nextEffectTime: 4 },
+        { tile: 5, nextEffectTime: 8 },
+      ],
+      mapEffectList: [{ tile: 3, nextEffectTime: 2 }],
+      fullRenderSurface,
+    });
+
+    const command: MapTileRenderCommand<typeof atlas, FullMapRenderSurfaceState> =
+      map.changeTile(1, { tile: 2 }, [atlas])!;
+
+    expect(map.mapTiles[1]).toEqual({ tile: 2 });
+    expect(map.mapWaterList).toEqual([{ tile: 5, nextEffectTime: 8 }]);
+    expect(map.mapEffectList).toEqual([
+      { tile: 3, nextEffectTime: 2 },
+      { tile: 1, nextEffectTime: 0 },
+    ]);
+    expect(command).toEqual({
+      atlasSurface: atlas,
+      fullRenderSurface,
+      source: {
+        sourceX: 32,
+        sourceY: 0,
+        width: 16,
+        height: 16,
+        destinationX: 16,
+        destinationY: 0,
+      },
+    });
+  });
+
+  it("ports ZMap::ChangeTile as water-list insertion without rerender surface", () => {
+    const land = {
+      ...paletteTileInfo,
+      isUsable: true,
+      isEffect: false,
+      isWater: false,
+    };
+    const water = {
+      ...paletteTileInfo,
+      isUsable: true,
+      isEffect: false,
+      isWater: true,
+    };
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      mapTiles: [{ tile: 0 }],
+      terrainType: PlanetType.Desert,
+      paletteTileInfo: [[land, water]],
+    });
+
+    expect(map.changeTile(0, { tile: 1 }, [{ id: "atlas" }])).toBeNull();
+    expect(map.mapTiles[0]).toEqual({ tile: 1 });
+    expect(map.mapEffectList).toEqual([]);
+    expect(map.mapWaterList).toEqual([{ tile: 0, nextEffectTime: 0 }]);
+    expect(map.changeTile(5, { tile: 0 }, [{ id: "atlas" }])).toBeNull();
   });
 
   it("ports ZMap::CoordIsRoad as palette road lookup at map pixels", () => {

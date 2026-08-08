@@ -7,9 +7,11 @@ import type { Tile } from "./Tile";
 import type { MapBasics } from "./MapBasics";
 import {
   createMapZoneInfoTile,
+  createMapEffectInfo,
   MAX_SHIFT_CLICK_PIXELS,
   SHIFT_CLICK_SPEED_PIXELS_PER_SECOND,
   SHIFT_CLICK_STREAM_SECONDS,
+  type MapEffectInfo,
   type MapObject,
   type MapTile,
   type MapZone,
@@ -38,7 +40,7 @@ const ZMAP_PLANET_TYPE_DEBUG_NAMES: readonly string[] =
 
 type GameMapPaletteTileInfo = Pick<
   PaletteTileInfo,
-  "craterType" | "isPassable" | "isRoad" | "isWater"
+  "craterType" | "isEffect" | "isPassable" | "isRoad" | "isUsable" | "isWater"
 >;
 
 export type PaletteTileCoordinatesResult = {
@@ -69,6 +71,27 @@ export type MapSurfaceRepeatBlitCommand<TSurface> = {
   surface: TSurface;
   region: SurfaceBlitRegion;
   renderHit: boolean;
+};
+
+/**
+ * Port of upstream zone marker base-surface dependency.
+ * Role: Provides marker dimensions for clipped zone-effect blits.
+ * Upstream: zmap.cpp:1785
+ */
+export type MapZoneEffectMarkerSurface = {
+  baseSurface: { width: number; height: number } | null;
+};
+
+/**
+ * Replacement for upstream zone marker `BlitSurface` calls.
+ * Role: Describes one owner-colored land or water zone marker blit.
+ * Upstream: zmap.cpp:1802-1807
+ */
+export type MapZoneEffectBlitCommand<TSurface> = {
+  surface: TSurface;
+  region: SurfaceBlitRegion;
+  owner: TeamType | number;
+  isWater: boolean;
 };
 
 /**
@@ -400,7 +423,7 @@ export class GameMap {
   readonly width: number;
   readonly height: number;
   readonly tiles: Tile[];
-  readonly mapTiles: readonly MapTile[];
+  readonly mapTiles: MapTile[];
   readonly objectList: MapObject[];
   mapName: string;
   terrainType: number;
@@ -408,6 +431,8 @@ export class GameMap {
   zoneCount: number;
   zoneList: MapZone[];
   zoneInfoList: MapZoneInfo[];
+  mapEffectList: MapEffectInfo[];
+  mapWaterList: MapEffectInfo[];
   paletteTileInfo: readonly (readonly GameMapPaletteTileInfo[])[];
   submergeInfoSetup: boolean;
   submergeAmounts: readonly (readonly number[])[];
@@ -442,6 +467,8 @@ export class GameMap {
     zoneCount?: number;
     zoneList?: MapZone[];
     zoneInfoList?: MapZoneInfo[];
+    mapEffectList?: MapEffectInfo[];
+    mapWaterList?: MapEffectInfo[];
     paletteTileInfo?: readonly (readonly GameMapPaletteTileInfo[])[];
     submergeInfoSetup?: boolean;
     submergeAmounts?: readonly (readonly number[])[];
@@ -467,9 +494,9 @@ export class GameMap {
     this.width = options.width;
     this.height = options.height;
     this.tiles = options.tiles;
-    this.mapTiles =
-      options.mapTiles ??
-      Array.from({ length: options.width * options.height }, () => ({ tile: 0 }));
+    this.mapTiles = options.mapTiles
+      ? [...options.mapTiles]
+      : Array.from({ length: options.width * options.height }, () => ({ tile: 0 }));
     this.objectList = options.objectList ?? [];
     this.mapName = options.mapName ?? "";
     this.terrainType = options.terrainType ?? 0;
@@ -477,6 +504,8 @@ export class GameMap {
     this.zoneCount = options.zoneCount ?? 0;
     this.zoneList = options.zoneList ?? [];
     this.zoneInfoList = options.zoneInfoList ?? [];
+    this.mapEffectList = options.mapEffectList ?? [];
+    this.mapWaterList = options.mapWaterList ?? [];
     this.paletteTileInfo = options.paletteTileInfo ?? [];
     this.submergeInfoSetup = options.submergeInfoSetup ?? false;
     this.submergeAmounts = options.submergeAmounts ?? [];
@@ -826,6 +855,67 @@ export class GameMap {
     if (!source) return null;
 
     return this.getBlitInfoFromDimensions(x, y, source.width, source.height);
+  }
+
+  /**
+   * Replacement for upstream `ZMap::DoZoneEffects`.
+   * Role: Builds clipped owner-zone marker blits and advances water-marker bobbing.
+   * Upstream: zmap.cpp:1773-1813
+   */
+  doZoneEffects<TSurface extends MapZoneEffectMarkerSurface>(
+    time: number,
+    zoneMarkers: readonly (TSurface | null | undefined)[],
+    zoneWaterMarkers: readonly (TSurface | null | undefined)[],
+    shiftX = 0,
+    shiftY = 0,
+    randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+      Math.floor(Math.random() * maxExclusive),
+  ): Array<MapZoneEffectBlitCommand<TSurface>> {
+    const baseSurface = zoneMarkers[0]?.baseSurface;
+    if (!baseSurface) return [];
+
+    const commands: Array<MapZoneEffectBlitCommand<TSurface>> = [];
+
+    for (const zoneInfo of this.zoneInfoList) {
+      for (const tile of zoneInfo.tiles) {
+        const region = this.getBlitInfo(
+          baseSurface,
+          tile.renderLocation.x,
+          tile.renderLocation.y,
+        );
+        if (!region) continue;
+
+        const marker = tile.isWater
+          ? zoneWaterMarkers[zoneInfo.owner]
+          : zoneMarkers[zoneInfo.owner];
+        if (!marker?.baseSurface) continue;
+
+        let bobShiftY = 0;
+        if (tile.isWater) {
+          if (time > tile.nextTime) {
+            tile.bobIndex = tile.bobIndex ? 0 : 1;
+            tile.nextTime = time + ((randomInt(300000) + 500000) * 0.000001);
+          }
+
+          if (tile.bobIndex) {
+            bobShiftY = 1;
+          }
+        }
+
+        commands.push({
+          surface: marker,
+          region: {
+            ...region,
+            destinationX: region.destinationX + shiftX,
+            destinationY: region.destinationY + shiftY + bobShiftY,
+          },
+          owner: zoneInfo.owner,
+          isWater: tile.isWater,
+        });
+      }
+    }
+
+    return commands;
   }
 
   /**
@@ -1240,6 +1330,53 @@ export class GameMap {
         destinationY: destination.y,
       },
     };
+  }
+
+  /**
+   * Port of upstream `ZMap::ChangeTile`.
+   * Role: Replaces one map tile, refreshes terrain effect/water lists, and emits an optional rerender command.
+   * Upstream: zmap.cpp:1122-1177
+   */
+  changeTile<TAtlasSurface>(
+    index: number,
+    newTile: MapTile,
+    planetTemplates: readonly (TAtlasSurface | null | undefined)[] = [],
+  ): MapTileRenderCommand<TAtlasSurface, FullMapRenderSurfaceState> | null {
+    const previousTile = this.mapTiles[index];
+    if (!previousTile) return null;
+
+    const previousInfo =
+      this.paletteTileInfo[this.terrainType]?.[previousTile.tile];
+
+    if (previousInfo?.isUsable) {
+      if (previousInfo.isEffect) {
+        this.mapEffectList = this.mapEffectList.filter(
+          (effectInfo) => effectInfo.tile !== index,
+        );
+      }
+
+      if (previousInfo.isWater && !previousInfo.isEffect) {
+        this.mapWaterList = this.mapWaterList.filter(
+          (effectInfo) => effectInfo.tile !== index,
+        );
+      }
+    }
+
+    this.mapTiles[index] = newTile;
+
+    const nextInfo = this.paletteTileInfo[this.terrainType]?.[newTile.tile];
+
+    if (nextInfo?.isUsable) {
+      if (nextInfo.isEffect) {
+        this.mapEffectList.push(createMapEffectInfo(index));
+      }
+
+      if (nextInfo.isWater && !nextInfo.isEffect) {
+        this.mapWaterList.push(createMapEffectInfo(index));
+      }
+    }
+
+    return this.fullRenderSurface ? this.renderTile(index, planetTemplates) : null;
   }
 
   /**
