@@ -34,6 +34,8 @@ import {
   processLightVehicle,
   processMediumVehicle,
   processMissileLauncherVehicle,
+  renderCraneVehicle,
+  renderCraneVehicleEntity,
   type ApcVehicleInitState,
   type CraneVehicleInitState,
   type HeavyVehicleInitState,
@@ -829,6 +831,175 @@ describe("vehicle entity", () => {
     expect(state.turretDirection).toBe(3);
     expect(state.hookIndex).toBe(4);
     expect(state.constructionAnimation).toBeNull();
+  });
+
+  it("replaces VCrane RenderCrane as ordered hook and boom render commands", () => {
+    const zmap = createVehicleRenderMap<string>();
+
+    expect(
+      renderCraneVehicle(
+        {
+          position: { x: 100, y: 200 },
+          direction: 3,
+          hookIndex: 5,
+          doHitEffect: true,
+          hookImages: Array.from({ length: 16 }, (_, index) => `hook-${index}`),
+          craneImages: Array.from({ length: MAX_ANGLE_TYPES }, (_, index) =>
+            `crane-${index}`,
+          ),
+        },
+        zmap,
+      ),
+    ).toEqual([
+      {
+        surface: "hook-5",
+        x: 126,
+        y: 216,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "crane-3",
+        x: 103,
+        y: 196,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+  });
+
+  it("replaces VCrane RenderCrane by skipping missing hook or boom surfaces", () => {
+    const zmap = createVehicleRenderMap<string>();
+
+    expect(
+      renderCraneVehicle(
+        {
+          position: { x: 12, y: 34 },
+          direction: 7,
+          hookIndex: 2,
+          doHitEffect: false,
+          hookImages: [],
+          craneImages: Array.from({ length: MAX_ANGLE_TYPES }, (_, index) =>
+            index === 7 ? "crane-7" : null,
+          ),
+        },
+        zmap,
+      ),
+    ).toEqual([
+      {
+        surface: "crane-7",
+        x: 10,
+        y: 26,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+
+    expect(
+      renderCraneVehicle(
+        {
+          position: { x: 12, y: 34 },
+          direction: 9,
+          hookIndex: 0,
+          doHitEffect: false,
+          hookImages: [],
+          craneImages: [],
+        },
+        zmap,
+      ),
+    ).toEqual([]);
+  });
+
+  it("replaces VCrane DoRender as wreck rendering when destroyed", () => {
+    const state = createCraneRenderState({
+      destroyed: true,
+      doHitEffect: true,
+    });
+
+    expect(renderCraneVehicleEntity(state, createVehicleRenderMap())).toEqual([
+      {
+        surface: "wasted-blue",
+        x: 100,
+        y: 200,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(true);
+  });
+
+  it("replaces VCrane DoRender as construction, base, hook, and boom commands", () => {
+    const renderedConstruction = [
+      {
+        surface: "construction",
+        x: 70,
+        y: 80,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ];
+    const state = createCraneRenderState({
+      constructionAnimation: {
+        killMe: () => false,
+        render: () => renderedConstruction,
+      },
+      direction: 3,
+      hookIndex: 5,
+      moveIndex: 2,
+      doHitEffect: true,
+    });
+
+    expect(renderCraneVehicleEntity(state, createVehicleRenderMap())).toEqual([
+      renderedConstruction[0],
+      {
+        surface: "base-blue-3-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "hook-5",
+        x: 126,
+        y: 216,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "crane-3",
+        x: 103,
+        y: 196,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VCrane DoRender by skipping killed animation and null-team crane arm", () => {
+    const state = createCraneRenderState({
+      owner: TeamType.Null,
+      constructionAnimation: {
+        killMe: () => true,
+        render: () => {
+          throw new Error("should not render killed construction animation");
+        },
+      },
+      direction: 4,
+      moveIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(renderCraneVehicleEntity(state, createVehicleRenderMap())).toEqual([
+      {
+        surface: "base-null-4-1",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
   });
 
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {
@@ -2259,6 +2430,108 @@ describe("vehicle entity", () => {
     ]);
   });
 });
+
+function createVehicleRenderMap<TSurface>(): {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): {
+    surface: TSurface;
+    x: number;
+    y: number;
+    renderHit: boolean;
+    aboutCenter: boolean;
+  };
+} {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}
+
+function createCraneRenderState(
+  overrides: Partial<{
+    position: { x: number; y: number };
+    owner: TeamType;
+    direction: number;
+    moveIndex: number;
+    hookIndex: number;
+    doHitEffect: boolean;
+    destroyed: boolean;
+    constructionAnimation: {
+      killMe(): boolean;
+      render(): ReadonlyArray<{
+        surface: string;
+        x: number;
+        y: number;
+        renderHit: boolean;
+        aboutCenter: boolean;
+      }>;
+    } | null;
+  }> = {},
+): {
+  position: { x: number; y: number };
+  owner: TeamType;
+  direction: number;
+  moveIndex: number;
+  hookIndex: number;
+  doHitEffect: boolean;
+  destroyed: boolean;
+  constructionAnimation: {
+    killMe(): boolean;
+    render(): ReadonlyArray<{
+      surface: string;
+      x: number;
+      y: number;
+      renderHit: boolean;
+      aboutCenter: boolean;
+    }>;
+  } | null;
+  baseImages: string[][][];
+  craneImages: string[];
+  hookImages: string[];
+  wastedImages: string[];
+} {
+  const baseImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+      Array.from({ length: 3 }, (_, moveIndex) => {
+        const teamName =
+          team === TeamType.Null
+            ? "null"
+            : team === TeamType.Blue
+              ? "blue"
+              : `team-${team}`;
+        return `base-${teamName}-${direction}-${moveIndex}`;
+      }),
+    ),
+  );
+  const wastedImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    team === TeamType.Blue ? "wasted-blue" : `wasted-${team}`,
+  );
+
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    moveIndex: 0,
+    hookIndex: 0,
+    doHitEffect: false,
+    destroyed: false,
+    constructionAnimation: null,
+    baseImages,
+    craneImages: Array.from(
+      { length: MAX_ANGLE_TYPES },
+      (_, index) => `crane-${index}`,
+    ),
+    hookImages: Array.from({ length: 16 }, (_, index) => `hook-${index}`),
+    wastedImages,
+    ...overrides,
+  };
+}
 
 function createCraneAnimationRepairObject(objectType: number, objectId: number): {
   getObjectId(): { objectType: number; objectId: number };

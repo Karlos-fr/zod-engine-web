@@ -14,6 +14,11 @@ import {
   playPyroSelectedAnim,
   playSniperSelectedAnim,
   playToughSelectedAnim,
+  renderGruntRobot,
+  renderLaserRobot,
+  renderPsychoRobot,
+  renderPyroRobot,
+  renderSniperRobot,
   RobotEntity,
 } from "../src/simulation/entities/RobotEntity";
 import { RobotObjectMode } from "../src/simulation/entities/RobotEntity";
@@ -182,6 +187,148 @@ describe("robot entity", () => {
     expect(made[0]).toEqual([TeamType.Blue, baseSurfaces[0]?.[0]]);
   });
 
+  it("replaces RGrunt DoRender with a submerged clipped hit blit command", () => {
+    const state = createGruntRobotRenderState({
+      mode: RobotObjectMode.Attacking,
+      direction: 2,
+      actionIndex: 1,
+      doHitEffect: true,
+    });
+    const calls: unknown[] = [];
+
+    expect(
+      renderGruntRobot(
+        state,
+        {
+          submergeAmount: (x, y) => {
+            calls.push({ submerge: [x, y] });
+            return 5;
+          },
+          getBlitInfo: (x, y, width, height) => {
+            calls.push({ blit: [x, y, width, height] });
+            return {
+              sourceX: 2,
+              sourceY: 3,
+              width: 9,
+              height: 10,
+              destinationX: 40,
+              destinationY: 50,
+            };
+          },
+        },
+        7,
+        -4,
+      ),
+    ).toEqual({
+      surface: "fire-blue-2-1",
+      region: {
+        sourceX: 2,
+        sourceY: 3,
+        width: 9,
+        height: 10,
+        destinationX: 47,
+        destinationY: 46,
+      },
+      renderHit: true,
+    });
+    expect(calls).toEqual([
+      { submerge: [108, 208] },
+      { blit: [100, 205, 16, 11] },
+    ]);
+    expect(state.submergeAmount).toBe(5);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces RGrunt DoRender attack as grenade or firearm image selection", () => {
+    const zmap = createRobotRenderMap();
+
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 4,
+          grenadeIndex: 2,
+          canThrowGrenades: true,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("throw-blue-4-2");
+
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 5,
+          grenadeIndex: 1,
+          attackObject: { attackedOnlyByExplosives: () => true },
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("throw-blue-5-1");
+
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 6,
+          actionIndex: 3,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("fire-blue-6-3");
+  });
+
+  it("replaces RGrunt DoRender as shared robot action and guard rendering", () => {
+    const zmap = createRobotRenderMap();
+
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Walking,
+          direction: 3,
+          moveIndex: 2,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("walk-blue-3-2");
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Cigarette,
+          actionIndex: 4,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("cigarette-blue-4");
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({
+          owner: TeamType.Null,
+          mode: RobotObjectMode.Attacking,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("null-image");
+
+    expect(
+      renderGruntRobot(
+        createGruntRobotRenderState({ nullImage: null, mode: 999 }),
+        zmap,
+      ),
+    ).toBeNull();
+
+    const submerged = createGruntRobotRenderState({ doHitEffect: true });
+    expect(
+      renderGruntRobot(submerged, {
+        submergeAmount: () => 16,
+        getBlitInfo: () => {
+          throw new Error("getBlitInfo should not be called");
+        },
+      }),
+    ).toBeNull();
+    expect(submerged.doHitEffect).toBe(false);
+  });
+
   it("ports RLaser Init as team-colored firing image initialization", () => {
     const loaded: Array<[number, number, number, string | { id: string } | null]> =
       [];
@@ -222,6 +369,73 @@ describe("robot entity", () => {
     ]);
   });
 
+  it("replaces RLaser DoRender with the shared submerged clipped hit blit command", () => {
+    const state = createGruntRobotRenderState({
+      mode: RobotObjectMode.Standing,
+      direction: 5,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderLaserRobot(
+        state,
+        {
+          submergeAmount: () => 3,
+          getBlitInfo: (x, y, width, height) => ({
+            sourceX: 1,
+            sourceY: 2,
+            width,
+            height,
+            destinationX: x - 10,
+            destinationY: y - 20,
+          }),
+        },
+        4,
+        9,
+      ),
+    ).toEqual({
+      surface: "stand-blue-5",
+      region: {
+        sourceX: 1,
+        sourceY: 2,
+        width: 16,
+        height: 13,
+        destinationX: 94,
+        destinationY: 192,
+      },
+      renderHit: true,
+    });
+    expect(state.submergeAmount).toBe(3);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces RLaser DoRender attack as grenade or laser-fire image selection", () => {
+    const zmap = createRobotRenderMap();
+
+    expect(
+      renderLaserRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 1,
+          grenadeIndex: 2,
+          canThrowGrenades: true,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("throw-blue-1-2");
+
+    expect(
+      renderLaserRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 7,
+          actionIndex: 2,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("fire-blue-7-2");
+  });
+
   it("ports RPsycho Init as team-colored firing image initialization", () => {
     const loaded: Array<[number, number, number, string | { id: string } | null]> =
       [];
@@ -259,6 +473,73 @@ describe("robot entity", () => {
       1,
       { id: "team-2-psycho-red-base-6-1" },
     ]);
+  });
+
+  it("replaces RPsycho DoRender with the shared submerged clipped hit blit command", () => {
+    const state = createGruntRobotRenderState({
+      mode: RobotObjectMode.FullScan,
+      actionIndex: 6,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderPsychoRobot(
+        state,
+        {
+          submergeAmount: () => 2,
+          getBlitInfo: (x, y, width, height) => ({
+            sourceX: 5,
+            sourceY: 6,
+            width,
+            height,
+            destinationX: x + 2,
+            destinationY: y + 3,
+          }),
+        },
+        -8,
+        10,
+      ),
+    ).toEqual({
+      surface: "full-blue-6",
+      region: {
+        sourceX: 5,
+        sourceY: 6,
+        width: 16,
+        height: 14,
+        destinationX: 94,
+        destinationY: 215,
+      },
+      renderHit: true,
+    });
+    expect(state.submergeAmount).toBe(2);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces RPsycho DoRender attack as grenade or psycho-fire image selection", () => {
+    const zmap = createRobotRenderMap();
+
+    expect(
+      renderPsychoRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 2,
+          grenadeIndex: 1,
+          attackObject: { attackedOnlyByExplosives: () => true },
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("throw-blue-2-1");
+
+    expect(
+      renderPsychoRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 3,
+          actionIndex: 1,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("fire-blue-3-1");
   });
 
   it("ports RPyro Init as team-colored firing image initialization", () => {
@@ -301,6 +582,73 @@ describe("robot entity", () => {
     ]);
   });
 
+  it("replaces RPyro DoRender with the shared submerged clipped hit blit command", () => {
+    const state = createGruntRobotRenderState({
+      mode: RobotObjectMode.HeadStretch,
+      actionIndex: 4,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderPyroRobot(
+        state,
+        {
+          submergeAmount: () => 1,
+          getBlitInfo: (x, y, width, height) => ({
+            sourceX: 7,
+            sourceY: 8,
+            width,
+            height,
+            destinationX: x + 9,
+            destinationY: y - 6,
+          }),
+        },
+        2,
+        5,
+      ),
+    ).toEqual({
+      surface: "head-blue-4",
+      region: {
+        sourceX: 7,
+        sourceY: 8,
+        width: 16,
+        height: 15,
+        destinationX: 111,
+        destinationY: 200,
+      },
+      renderHit: true,
+    });
+    expect(state.submergeAmount).toBe(1);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces RPyro DoRender attack as grenade or pyro-fire image selection", () => {
+    const zmap = createRobotRenderMap();
+
+    expect(
+      renderPyroRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 0,
+          grenadeIndex: 3,
+          canThrowGrenades: true,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("throw-blue-0-3");
+
+    expect(
+      renderPyroRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 4,
+          actionIndex: 2,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("fire-blue-4-2");
+  });
+
   it("ports RSniper Init as shared grunt firing image initialization", () => {
     const loaded: Array<[number, number, number, string | { id: string } | null]> =
       [];
@@ -338,6 +686,73 @@ describe("robot entity", () => {
       4,
       { id: "team-2-sniper-red-base-4-4" },
     ]);
+  });
+
+  it("replaces RSniper DoRender with the shared submerged clipped hit blit command", () => {
+    const state = createGruntRobotRenderState({
+      mode: RobotObjectMode.PickupDownGrenades,
+      actionIndex: 3,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderSniperRobot(
+        state,
+        {
+          submergeAmount: () => 6,
+          getBlitInfo: (x, y, width, height) => ({
+            sourceX: 3,
+            sourceY: 4,
+            width,
+            height,
+            destinationX: x - 1,
+            destinationY: y + 1,
+          }),
+        },
+        -2,
+        -5,
+      ),
+    ).toEqual({
+      surface: "pickup-down-blue-3",
+      region: {
+        sourceX: 3,
+        sourceY: 4,
+        width: 16,
+        height: 10,
+        destinationX: 97,
+        destinationY: 202,
+      },
+      renderHit: true,
+    });
+    expect(state.submergeAmount).toBe(6);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces RSniper DoRender attack as grenade or sniper-fire image selection", () => {
+    const zmap = createRobotRenderMap();
+
+    expect(
+      renderSniperRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 6,
+          grenadeIndex: 4,
+          attackObject: { attackedOnlyByExplosives: () => true },
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("throw-blue-6-4");
+
+    expect(
+      renderSniperRobot(
+        createGruntRobotRenderState({
+          mode: RobotObjectMode.Attacking,
+          direction: 5,
+          actionIndex: 3,
+        }),
+        zmap,
+      )?.surface,
+    ).toBe("fire-blue-5-3");
   });
 
   it("ports RTough Init as team-colored firing image initialization", () => {
@@ -767,3 +1182,124 @@ describe("robot entity", () => {
     ]);
   });
 });
+
+function createRobotRenderMap(): {
+  submergeAmount(x: number, y: number): number;
+  getBlitInfo(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): {
+    sourceX: number;
+    sourceY: number;
+    width: number;
+    height: number;
+    destinationX: number;
+    destinationY: number;
+  };
+} {
+  return {
+    submergeAmount: () => 0,
+    getBlitInfo: () => ({
+      sourceX: 0,
+      sourceY: 0,
+      width: 16,
+      height: 16,
+      destinationX: 100,
+      destinationY: 200,
+    }),
+  };
+}
+
+function createGruntRobotRenderState(
+  overrides: Partial<{
+    position: { x: number; y: number };
+    owner: TeamType;
+    direction: number;
+    moveIndex: number;
+    actionIndex: number;
+    grenadeIndex: number;
+    mode: RobotObjectMode | number;
+    doHitEffect: boolean;
+    submergeAmount: number;
+    nullImage: string | null;
+    canThrowGrenades: boolean;
+    attackObject: { attackedOnlyByExplosives(): boolean } | null;
+  }> = {},
+): {
+  position: { x: number; y: number };
+  owner: TeamType;
+  direction: number;
+  moveIndex: number;
+  actionIndex: number;
+  grenadeIndex: number;
+  mode: RobotObjectMode | number;
+  doHitEffect: boolean;
+  submergeAmount: number;
+  nullImage: string | null;
+  canThrowGrenades: boolean;
+  attackObject: { attackedOnlyByExplosives(): boolean } | null;
+  walkImages: string[][][];
+  standImages: string[][];
+  beerImages: string[][];
+  cigaretteImages: string[][];
+  fullAreaScanImages: string[][];
+  headStretchImages: string[][];
+  pickupUpImages: string[][];
+  pickupDownImages: string[][];
+  fireImages: string[][][];
+  throwSomethingImages: string[][][];
+} {
+  const teamName = (team: number): string =>
+    team === TeamType.Blue ? "blue" : team === TeamType.Null ? "null" : `${team}`;
+  const actionImages = (prefix: string): string[][] =>
+    Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from(
+        { length: 8 },
+        (_, index) => `${prefix}-${teamName(team)}-${index}`,
+      ),
+    );
+  const directionalImages = (prefix: string): string[][] =>
+    Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from(
+        { length: 8 },
+        (_, direction) => `${prefix}-${teamName(team)}-${direction}`,
+      ),
+    );
+  const movingImages = (prefix: string): string[][][] =>
+    Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: 8 }, (_, direction) =>
+        Array.from(
+          { length: 5 },
+          (_, frame) => `${prefix}-${teamName(team)}-${direction}-${frame}`,
+        ),
+      ),
+    );
+
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    moveIndex: 0,
+    actionIndex: 0,
+    grenadeIndex: 0,
+    mode: RobotObjectMode.Standing,
+    doHitEffect: false,
+    submergeAmount: 0,
+    nullImage: "null-image",
+    canThrowGrenades: false,
+    attackObject: null,
+    walkImages: movingImages("walk"),
+    standImages: directionalImages("stand"),
+    beerImages: actionImages("beer"),
+    cigaretteImages: actionImages("cigarette"),
+    fullAreaScanImages: actionImages("full"),
+    headStretchImages: actionImages("head"),
+    pickupUpImages: actionImages("pickup-up"),
+    pickupDownImages: actionImages("pickup-down"),
+    fireImages: movingImages("fire"),
+    throwSomethingImages: movingImages("throw"),
+    ...overrides,
+  };
+}

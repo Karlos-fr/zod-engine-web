@@ -36,6 +36,7 @@ import {
   TEAM_RENDERING_BASE_TEAM,
   type TeamSurfaceFactory,
 } from "../TeamRendering";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 
 export type VehicleSharedImage<TSurface> = {
   getBaseSurface(): TSurface | null;
@@ -160,6 +161,62 @@ export type CraneVehicleConstructionAnimationFactory<
   spawn: CraneVehicleConstructionAnimationSpawn<TTime>,
 ) => TAnimation;
 
+/**
+ * Adaptation support for upstream `VCrane::RenderCrane`.
+ * Role: Stores crane boom and hook image state needed to emit render commands.
+ * Upstream: vcrane.cpp:192-229
+ */
+export type CraneVehicleRenderState<TSurface> = {
+  position: { x: number; y: number };
+  direction: number;
+  hookIndex: number;
+  doHitEffect: boolean;
+  hookImages: readonly (TSurface | null | undefined)[];
+  craneImages: readonly (TSurface | null | undefined)[];
+};
+
+/**
+ * Adaptation support for upstream `VCrane::RenderCrane`.
+ * Role: Creates map-relative surface render commands for crane images.
+ * Upstream: vcrane.cpp:207-220
+ */
+export type CraneVehicleRenderMap<TSurface> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type CraneVehicleRenderConstructionAnimation<TSurface> = {
+  killMe(): boolean;
+  render(
+    zmap: CraneVehicleRenderMap<TSurface>,
+  ): readonly MapSurfaceRenderCommand<TSurface>[];
+};
+
+/**
+ * Adaptation support for upstream `VCrane::DoRender`.
+ * Role: Stores crane vehicle images and animation state needed to emit render commands.
+ * Upstream: vcrane.cpp:148-190
+ */
+export type CraneVehicleEntityRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  direction: number;
+  moveIndex: number;
+  hookIndex: number;
+  doHitEffect: boolean;
+  destroyed: boolean;
+  constructionAnimation: CraneVehicleRenderConstructionAnimation<TSurface> | null;
+  baseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  craneImages: readonly (TSurface | null | undefined)[];
+  hookImages: readonly (TSurface | null | undefined)[];
+  wastedImages: readonly (TSurface | null | undefined)[];
+};
+
 export type MissileLauncherVehicleProcessState = {
   moving: boolean;
   moveIndex: number;
@@ -187,6 +244,10 @@ export type MediumVehicleProcessState = MissileLauncherVehicleProcessState & {
 const VEHICLE_TANK_LID_FRAME_COUNT = 3;
 const VEHICLE_TANK_ROBOT_FRAME_COUNT = 2;
 const VEHICLE_ROTATION_DEGREES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+const CRANE_VEHICLE_BOOM_OFFSET_X = [-6, -3, 0, 3, 6, 1, 0, -2] as const;
+const CRANE_VEHICLE_BOOM_OFFSET_Y = [-6, -4, -5, -4, -6, -8, -9, -8] as const;
+const CRANE_VEHICLE_HOOK_OFFSET_X = [0, 4, 14, 23, 25, 21, 14, 5] as const;
+const CRANE_VEHICLE_HOOK_OFFSET_Y = [14, 20, 23, 20, 14, 8, 5, 8] as const;
 const VEHICLE_INVERTED_ROTATION_DEGREES = [
   180,
   225,
@@ -991,6 +1052,116 @@ export function processCraneVehicle<
   }
 
   return 1;
+}
+
+/**
+ * Replacement for upstream `VCrane::RenderCrane`.
+ * Role: Builds map-relative render commands for the crane hook and boom.
+ * Upstream: vcrane.cpp:192-229
+ */
+export function renderCraneVehicle<TSurface>(
+  state: CraneVehicleRenderState<TSurface>,
+  zmap: CraneVehicleRenderMap<TSurface>,
+): Array<MapSurfaceRenderCommand<TSurface>> {
+  const direction = state.direction;
+  const boomX =
+    state.position.x + (CRANE_VEHICLE_BOOM_OFFSET_X[direction] ?? 0);
+  const boomY =
+    state.position.y + (CRANE_VEHICLE_BOOM_OFFSET_Y[direction] ?? 0);
+  const commands: Array<MapSurfaceRenderCommand<TSurface>> = [];
+
+  const hookSurface = state.hookImages[state.hookIndex];
+  if (hookSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        hookSurface,
+        boomX + (CRANE_VEHICLE_HOOK_OFFSET_X[direction] ?? 0),
+        boomY + (CRANE_VEHICLE_HOOK_OFFSET_Y[direction] ?? 0),
+        state.doHitEffect,
+        false,
+      ),
+    );
+  }
+
+  const craneSurface = state.craneImages[direction];
+  if (craneSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        craneSurface,
+        boomX,
+        boomY,
+        state.doHitEffect,
+        false,
+      ),
+    );
+  }
+
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VCrane::DoRender`.
+ * Role: Builds render commands for a crane vehicle body, wreck, crane arm, and construction animation.
+ * Upstream: vcrane.cpp:148-190
+ */
+export function renderCraneVehicleEntity<TSurface>(
+  state: CraneVehicleEntityRenderState<TSurface>,
+  zmap: CraneVehicleRenderMap<TSurface>,
+): Array<MapSurfaceRenderCommand<TSurface>> {
+  if (state.destroyed) {
+    const wastedSurface = state.wastedImages[state.owner];
+    return wastedSurface
+      ? [
+          zmap.renderZSurface(
+            wastedSurface,
+            state.position.x,
+            state.position.y,
+            false,
+            false,
+          ),
+        ]
+      : [];
+  }
+
+  const renderHit = state.doHitEffect;
+  const commands: Array<MapSurfaceRenderCommand<TSurface>> = [];
+
+  if (state.constructionAnimation && !state.constructionAnimation.killMe()) {
+    commands.push(...state.constructionAnimation.render(zmap));
+  }
+
+  const baseSurface =
+    state.baseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x,
+        state.position.y,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.owner !== TeamType.Null) {
+    commands.push(
+      ...renderCraneVehicle(
+        {
+          position: state.position,
+          direction: state.direction,
+          hookIndex: state.hookIndex,
+          doHitEffect: renderHit,
+          hookImages: state.hookImages,
+          craneImages: state.craneImages,
+        },
+        zmap,
+      ),
+    );
+  }
+
+  state.doHitEffect = false;
+  return commands;
 }
 
 /**
