@@ -45,6 +45,59 @@ export type VehicleSharedImageInitState<TSurface> = {
   tankRobotImages: VehicleSharedImage<TSurface>[][][];
 };
 
+export type MissileLauncherVehicleInitState<TSurface> = {
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  topImages: VehicleSharedImage<TSurface>[][];
+  wastedImages: VehicleSharedImage<TSurface>[];
+  loadImage(filename: string): TSurface | null;
+};
+
+export type ApcVehicleInitState<TSurface> = {
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  openImages: VehicleSharedImage<TSurface>[][][];
+  topImages: VehicleSharedImage<TSurface>[];
+  wastedImages: VehicleSharedImage<TSurface>[];
+  loadImage(filename: string): TSurface | null;
+};
+
+export type LightVehicleInitState<TSurface> = {
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  damagedBaseImages: VehicleSharedImage<TSurface>[][][];
+  topImages: VehicleSharedImage<TSurface>[];
+  loadImage(filename: string): TSurface | null;
+};
+
+export type HeavyVehicleInitState<TSurface> = {
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  damagedBaseImages: VehicleSharedImage<TSurface>[][][];
+  topImages: VehicleSharedImage<TSurface>[][];
+  loadImage(filename: string): TSurface | null;
+};
+
+export type MediumVehicleInitState<TSurface> = {
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  damagedBaseImages: VehicleSharedImage<TSurface>[][][];
+  topImages: VehicleSharedImage<TSurface>[];
+  topPopImages: VehicleSharedImage<TSurface>[];
+  loadImage(filename: string): TSurface | null;
+};
+
+export type JeepVehicleInitState<TSurface> = {
+  wastedImage: VehicleSharedImage<TSurface>;
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  underImages: VehicleSharedImage<TSurface>[][];
+  turrentImages: VehicleSharedImage<TSurface>[];
+  fireImages: VehicleSharedImage<TSurface>[];
+};
+
+export type CraneVehicleInitState<TSurface> = {
+  baseImages: VehicleSharedImage<TSurface>[][][];
+  craneImages: VehicleSharedImage<TSurface>[];
+  hookImages: VehicleSharedImage<TSurface>[];
+  wastedImages: VehicleSharedImage<TSurface>[];
+  loadImage(filename: string): TSurface | null;
+};
+
 export type MissileLauncherVehicleProcessState = {
   moving: boolean;
   moveIndex: number;
@@ -72,6 +125,16 @@ export type MediumVehicleProcessState = MissileLauncherVehicleProcessState & {
 const VEHICLE_TANK_LID_FRAME_COUNT = 3;
 const VEHICLE_TANK_ROBOT_FRAME_COUNT = 2;
 const VEHICLE_ROTATION_DEGREES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+const VEHICLE_INVERTED_ROTATION_DEGREES = [
+  180,
+  225,
+  270,
+  315,
+  0,
+  45,
+  90,
+  135,
+] as const;
 const VEHICLE_TEAM_TYPE_ASSET_NAMES = [
   "null",
   "red",
@@ -133,6 +196,641 @@ export function initVehicleSharedImages<TSurface>(
         state.tankRobotImages[TeamType.Null][rotation][frame] = redImage;
       }
     }
+  }
+}
+
+/**
+ * Port of upstream `VMissileLauncher::Init`.
+ * Role: Initializes mobile-missile base, turret, and wreck images for every team.
+ * Upstream: vmissilelauncher.cpp:45-84
+ */
+export function initMissileLauncherVehicle<TSurface>(
+  state: MissileLauncherVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const nullBase = state.loadImage(
+    "assets/units/vehicles/missile_launcher/empty_null.png",
+  );
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      state.baseImages[TeamType.Null]?.[rotation]?.[frame]?.loadBaseImage(
+        nullBase,
+      );
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (!baseImage || !targetImage) continue;
+
+        loadTeamZSurface(
+          team,
+          baseImage,
+          targetImage,
+          `assets/units/vehicles/missile_launcher/base_${
+            VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+          }_r${VEHICLE_ROTATION_DEGREES[rotation]
+            .toString()
+            .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          makeTeamSurface,
+        );
+      }
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      const baseImage =
+        state.topImages[TEAM_RENDERING_BASE_TEAM]?.[rotation];
+      const targetImage = state.topImages[team]?.[rotation];
+      if (!baseImage || !targetImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        targetImage,
+        `assets/units/vehicles/missile_launcher/top_${
+          VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+        }_r${VEHICLE_ROTATION_DEGREES[rotation]
+          .toString()
+          .padStart(3, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const baseImage = state.wastedImages[TEAM_RENDERING_BASE_TEAM];
+    const targetImage = state.wastedImages[team];
+    if (!baseImage || !targetImage) continue;
+
+    loadTeamZSurface(
+      team,
+      baseImage,
+      targetImage,
+      `assets/units/vehicles/missile_launcher/wasted_${
+        VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+      }.png`,
+      makeTeamSurface,
+    );
+  }
+
+  const redWasted = state.wastedImages[TeamType.Red]?.getBaseSurface() ?? null;
+  state.wastedImages[TeamType.Null]?.loadBaseImage(redWasted);
+}
+
+/**
+ * Port of upstream `VAPC::Init`.
+ * Role: Initializes APC base, open-door, top, and wreck images for every team.
+ * Upstream: vapc.cpp:37-83
+ */
+export function initApcVehicle<TSurface>(
+  state: ApcVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const emptyBase = state.loadImage("assets/units/vehicles/apc/empty.png");
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      state.baseImages[TeamType.Null]?.[rotation]?.[frame]?.loadBaseImage(
+        emptyBase,
+      );
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (!baseImage || !targetImage) continue;
+
+        loadTeamZSurface(
+          team,
+          baseImage,
+          targetImage,
+          `assets/units/vehicles/apc/base_${
+            VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+          }_r${VEHICLE_ROTATION_DEGREES[rotation]
+            .toString()
+            .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          makeTeamSurface,
+        );
+      }
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      for (let frame = 0; frame < 5; frame += 1) {
+        const baseImage =
+          state.openImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.openImages[team]?.[rotation]?.[frame];
+        if (!baseImage || !targetImage) continue;
+
+        loadTeamZSurface(
+          team,
+          baseImage,
+          targetImage,
+          `assets/units/vehicles/apc/open_${
+            VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+          }_r${VEHICLE_ROTATION_DEGREES[rotation]
+            .toString()
+            .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          makeTeamSurface,
+        );
+      }
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    state.topImages[rotation]?.loadBaseImage(
+      `assets/units/vehicles/apc/top_r${VEHICLE_ROTATION_DEGREES[rotation]
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const baseImage = state.wastedImages[TEAM_RENDERING_BASE_TEAM];
+    const targetImage = state.wastedImages[team];
+    if (!baseImage || !targetImage) continue;
+
+    loadTeamZSurface(
+      team,
+      baseImage,
+      targetImage,
+      `assets/units/vehicles/apc/wasted_${VEHICLE_TEAM_TYPE_ASSET_NAMES[team]}.png`,
+      makeTeamSurface,
+    );
+  }
+
+  const redWasted = state.wastedImages[TeamType.Red];
+  if (redWasted) state.wastedImages[TeamType.Null] = redWasted;
+}
+
+/**
+ * Port of upstream `VLight::Init`.
+ * Role: Initializes light vehicle base, damaged base, and turret images.
+ * Upstream: vlight.cpp:48-96
+ */
+export function initLightVehicle<TSurface>(
+  state: LightVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const emptyBase = state.loadImage("assets/units/vehicles/light/empty.png");
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      state.baseImages[TeamType.Null]?.[rotation]?.[frame]?.loadBaseImage(
+        emptyBase,
+      );
+      state.damagedBaseImages[TeamType.Null]?.[rotation]?.[
+        frame
+      ]?.loadBaseImage(emptyBase);
+    }
+  }
+
+  const sourceRotations = [0, 1, 2, 7] as const;
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (const rotation of sourceRotations) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (baseImage && targetImage) {
+          loadTeamZSurface(
+            team,
+            baseImage,
+            targetImage,
+            `assets/units/vehicles/light/base_${
+              VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+            }_r${VEHICLE_ROTATION_DEGREES[rotation]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+            makeTeamSurface,
+          );
+        }
+
+        const mirroredRotation = rotation === 7 ? 3 : rotation + 4;
+        const mirroredFrame = 2 - frame;
+        const mirroredBase = state.baseImages[team]?.[mirroredRotation]?.[
+          mirroredFrame
+        ];
+        if (targetImage && mirroredBase) {
+          mirroredBase.loadBaseImage(targetImage.getBaseSurface());
+        }
+
+        const damagedBaseImage =
+          state.damagedBaseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[
+            frame
+          ];
+        const damagedTargetImage =
+          state.damagedBaseImages[team]?.[rotation]?.[frame];
+        if (damagedBaseImage && damagedTargetImage) {
+          loadTeamZSurface(
+            team,
+            damagedBaseImage,
+            damagedTargetImage,
+            `assets/units/vehicles/light/base_damaged_${
+              VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+            }_r${VEHICLE_ROTATION_DEGREES[rotation]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+            makeTeamSurface,
+          );
+        }
+
+        const mirroredDamagedBase = state.damagedBaseImages[team]?.[
+          mirroredRotation
+        ]?.[mirroredFrame];
+        if (damagedTargetImage && mirroredDamagedBase) {
+          mirroredDamagedBase.loadBaseImage(
+            damagedTargetImage.getBaseSurface(),
+          );
+        }
+      }
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    state.topImages[rotation]?.loadBaseImage(
+      `assets/units/vehicles/light/top_r${VEHICLE_ROTATION_DEGREES[rotation]
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+  }
+}
+
+/**
+ * Port of upstream `VHeavy::Init`.
+ * Role: Initializes heavy vehicle base, damaged base, and team-colored turret images.
+ * Upstream: vheavy.cpp:47-97
+ */
+export function initHeavyVehicle<TSurface>(
+  state: HeavyVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const emptyBase = state.loadImage("assets/units/vehicles/heavy/empty.png");
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      state.baseImages[TeamType.Null]?.[rotation]?.[frame]?.loadBaseImage(
+        emptyBase,
+      );
+      state.damagedBaseImages[TeamType.Null]?.[rotation]?.[
+        frame
+      ]?.loadBaseImage(emptyBase);
+    }
+  }
+
+  const sourceRotations = [0, 1, 2, 7] as const;
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (const rotation of sourceRotations) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (baseImage && targetImage) {
+          loadTeamZSurface(
+            team,
+            baseImage,
+            targetImage,
+            `assets/units/vehicles/heavy/base_${
+              VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+            }_r${VEHICLE_ROTATION_DEGREES[rotation]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+            makeTeamSurface,
+          );
+        }
+
+        const mirroredRotation = rotation === 7 ? 3 : rotation + 4;
+        const mirroredFrame = 2 - frame;
+        if (targetImage && state.baseImages[team]?.[mirroredRotation]) {
+          state.baseImages[team][mirroredRotation][mirroredFrame] = targetImage;
+        }
+
+        const damagedBaseImage =
+          state.damagedBaseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[
+            frame
+          ];
+        const damagedTargetImage =
+          state.damagedBaseImages[team]?.[rotation]?.[frame];
+        if (damagedBaseImage && damagedTargetImage) {
+          loadTeamZSurface(
+            team,
+            damagedBaseImage,
+            damagedTargetImage,
+            `assets/units/vehicles/heavy/base_damaged_${
+              VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+            }_r${VEHICLE_ROTATION_DEGREES[rotation]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+            makeTeamSurface,
+          );
+        }
+
+        if (
+          damagedTargetImage &&
+          state.damagedBaseImages[team]?.[mirroredRotation]
+        ) {
+          state.damagedBaseImages[team][mirroredRotation][mirroredFrame] =
+            damagedTargetImage;
+        }
+      }
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      const baseImage =
+        state.topImages[TEAM_RENDERING_BASE_TEAM]?.[rotation];
+      const targetImage = state.topImages[team]?.[rotation];
+      if (!baseImage || !targetImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        targetImage,
+        `assets/units/vehicles/heavy/top_${
+          VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+        }_r${VEHICLE_ROTATION_DEGREES[rotation]
+          .toString()
+          .padStart(3, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+  }
+}
+
+/**
+ * Port of upstream `VMedium::Init`.
+ * Role: Initializes medium vehicle base, damaged base, turret, and pop-up turret images.
+ * Upstream: vmedium.cpp:49-103
+ */
+export function initMediumVehicle<TSurface>(
+  state: MediumVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const emptyBase = state.loadImage(
+    "assets/units/vehicles/medium/empty_null.png",
+  );
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      state.baseImages[TeamType.Null]?.[rotation]?.[frame]?.loadBaseImage(
+        emptyBase,
+      );
+      state.damagedBaseImages[TeamType.Null]?.[rotation]?.[
+        frame
+      ]?.loadBaseImage(emptyBase);
+    }
+  }
+
+  const sourceRotations = [0, 1, 2, 7] as const;
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (const rotation of sourceRotations) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (baseImage && targetImage) {
+          loadTeamZSurface(
+            team,
+            baseImage,
+            targetImage,
+            `assets/units/vehicles/medium/base_${
+              VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+            }_r${VEHICLE_ROTATION_DEGREES[rotation]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+            makeTeamSurface,
+          );
+        }
+
+        const mirroredRotation = rotation === 7 ? 3 : rotation + 4;
+        const mirroredFrame = 2 - frame;
+        const mirroredBase = state.baseImages[team]?.[mirroredRotation]?.[
+          mirroredFrame
+        ];
+        if (targetImage && mirroredBase) {
+          mirroredBase.loadBaseImage(targetImage.getBaseSurface());
+        }
+
+        const damagedBaseImage =
+          state.damagedBaseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[
+            frame
+          ];
+        const damagedTargetImage =
+          state.damagedBaseImages[team]?.[rotation]?.[frame];
+        if (damagedBaseImage && damagedTargetImage) {
+          loadTeamZSurface(
+            team,
+            damagedBaseImage,
+            damagedTargetImage,
+            `assets/units/vehicles/medium/base_damaged_${
+              VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+            }_r${VEHICLE_ROTATION_DEGREES[rotation]
+              .toString()
+              .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+            makeTeamSurface,
+          );
+        }
+
+        const mirroredDamagedBase = state.damagedBaseImages[team]?.[
+          mirroredRotation
+        ]?.[mirroredFrame];
+        if (damagedTargetImage && mirroredDamagedBase) {
+          mirroredDamagedBase.loadBaseImage(
+            damagedTargetImage.getBaseSurface(),
+          );
+        }
+      }
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    state.topImages[rotation]?.loadBaseImage(
+      `assets/units/vehicles/medium/topf_r${VEHICLE_ROTATION_DEGREES[rotation]
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+  }
+
+  for (let frame = 0; frame < 8; frame += 1) {
+    state.topPopImages[frame]?.loadBaseImage(
+      `assets/units/vehicles/medium/top_pop_n${frame
+        .toString()
+        .padStart(2, "0")}.png`,
+    );
+  }
+}
+
+/**
+ * Port of upstream `VJeep::Init`.
+ * Role: Initializes jeep base, undercarriage, turret, fire, and wreck images.
+ * Upstream: vjeep.cpp:54-107
+ */
+export function initJeepVehicle<TSurface>(
+  state: JeepVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  state.wastedImage.loadBaseImage("assets/units/vehicles/jeep/wasted.png");
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    const emptyImage = state.baseImages[TeamType.Null]?.[rotation]?.[1];
+    if (!emptyImage) continue;
+
+    emptyImage.loadBaseImage(
+      `assets/units/vehicles/jeep/empty_r${VEHICLE_ROTATION_DEGREES[rotation]
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+
+    state.baseImages[TeamType.Null]?.[rotation]?.[0]?.loadBaseImage(
+      emptyImage.getBaseSurface(),
+    );
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      for (let frame = 0; frame < 2; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (!baseImage || !targetImage) continue;
+
+        loadTeamZSurface(
+          team,
+          baseImage,
+          targetImage,
+          `assets/units/vehicles/jeep/base_${
+            VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+          }_r${VEHICLE_ROTATION_DEGREES[rotation]
+            .toString()
+            .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          makeTeamSurface,
+        );
+      }
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    if (rotation === 2 || rotation === 6) continue;
+
+    for (let frame = 0; frame < 4; frame += 1) {
+      state.underImages[rotation]?.[frame]?.loadBaseImage(
+        `assets/units/vehicles/jeep/under_r${VEHICLE_ROTATION_DEGREES[rotation]
+          .toString()
+          .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+      );
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    state.turrentImages[rotation]?.loadBaseImage(
+      `assets/units/vehicles/jeep/fire_r${VEHICLE_ROTATION_DEGREES[rotation]
+        .toString()
+        .padStart(3, "0")}_n00.png`,
+    );
+    state.fireImages[rotation]?.loadBaseImage(
+      `assets/units/vehicles/jeep/fire_r${VEHICLE_ROTATION_DEGREES[rotation]
+        .toString()
+        .padStart(3, "0")}_n01.png`,
+    );
+  }
+}
+
+/**
+ * Port of upstream `VCrane::Init`.
+ * Role: Initializes crane vehicle base, boom, hook, and wreck images.
+ * Upstream: vcrane.cpp:49-92
+ */
+export function initCraneVehicle<TSurface>(
+  state: CraneVehicleInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  const emptyBase = state.loadImage(
+    "assets/units/vehicles/crane/empty_null.png",
+  );
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      state.baseImages[TeamType.Null]?.[rotation]?.[frame]?.loadBaseImage(
+        emptyBase,
+      );
+    }
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const baseImage =
+          state.baseImages[TEAM_RENDERING_BASE_TEAM]?.[rotation]?.[frame];
+        const targetImage = state.baseImages[team]?.[rotation]?.[frame];
+        if (!baseImage || !targetImage) continue;
+
+        loadTeamZSurface(
+          team,
+          baseImage,
+          targetImage,
+          `assets/units/vehicles/crane/base_${
+            VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+          }_r${VEHICLE_ROTATION_DEGREES[rotation]
+            .toString()
+            .padStart(3, "0")}_n${frame.toString().padStart(2, "0")}.png`,
+          makeTeamSurface,
+        );
+      }
+    }
+  }
+
+  for (let rotation = 0; rotation < MAX_ANGLE_TYPES; rotation += 1) {
+    state.craneImages[rotation]?.loadBaseImage(
+      `assets/units/vehicles/crane/crane_r${VEHICLE_INVERTED_ROTATION_DEGREES[
+        rotation
+      ]
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+  }
+
+  for (let frame = 0; frame < 8; frame += 1) {
+    const hookImage = state.hookImages[frame];
+    if (!hookImage) continue;
+
+    hookImage.loadBaseImage(
+      `assets/units/vehicles/crane/hook_n${frame
+        .toString()
+        .padStart(2, "0")}.png`,
+    );
+    state.hookImages[15 - frame] = hookImage;
+  }
+
+  for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const baseImage = state.wastedImages[TEAM_RENDERING_BASE_TEAM];
+    const targetImage = state.wastedImages[team];
+    if (!baseImage || !targetImage) continue;
+
+    loadTeamZSurface(
+      team,
+      baseImage,
+      targetImage,
+      `assets/units/vehicles/crane/wasted_${
+        VEHICLE_TEAM_TYPE_ASSET_NAMES[team]
+      }.png`,
+      makeTeamSurface,
+    );
   }
 }
 

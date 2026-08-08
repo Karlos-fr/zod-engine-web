@@ -6,6 +6,7 @@ import {
 } from "../src/simulation/DeathEffect";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
+  initApcVehicle,
   doApcVehicleDeathEffect,
   doCraneVehicleDeathEffect,
   doHeavyVehicleDeathEffect,
@@ -21,10 +22,23 @@ import {
   fireLightVehicleTurrentMissile,
   fireMediumVehicleTurrentMissile,
   initVehicleSharedImages,
+  initCraneVehicle,
+  initHeavyVehicle,
+  initJeepVehicle,
+  initMissileLauncherVehicle,
+  initLightVehicle,
+  initMediumVehicle,
   processHeavyVehicle,
   processLightVehicle,
   processMediumVehicle,
   processMissileLauncherVehicle,
+  type ApcVehicleInitState,
+  type CraneVehicleInitState,
+  type HeavyVehicleInitState,
+  type JeepVehicleInitState,
+  type LightVehicleInitState,
+  type MediumVehicleInitState,
+  type MissileLauncherVehicleInitState,
   type VehicleRestrictedSoundCommand,
   VehicleEntity,
 } from "../src/simulation/entities/VehicleEntity";
@@ -107,6 +121,541 @@ describe("vehicle entity", () => {
     expect(tankRobotImages[TeamType.Null]?.[7]?.[1]).toBe(
       tankRobotImages[TeamType.Red]?.[7]?.[1],
     );
+  });
+
+  it("ports VMissileLauncher Init as team-colored base, top, and wreck images", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createVehicleImageFrames),
+      ),
+      topImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      wastedImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, createImage),
+      loadImage(filename) {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    } satisfies MissileLauncherVehicleInitState<Surface>;
+
+    initMissileLauncherVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadCalls).toEqual([
+      "assets/units/vehicles/missile_launcher/empty_null.png",
+    ]);
+    expect(state.baseImages[TeamType.Null]?.[3]?.[2]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/missile_launcher/empty_null.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[3]?.[2]?.source).toBe(
+      "assets/units/vehicles/missile_launcher/base_red_r135_n02.png",
+    );
+    expect(state.baseImages[TeamType.Blue]?.[3]?.[2]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/missile_launcher/base_red_r135_n02.png",
+    });
+    expect(state.topImages[TeamType.Red]?.[3]?.source).toBe(
+      "assets/units/vehicles/missile_launcher/top_red_r135.png",
+    );
+    expect(state.topImages[TeamType.Blue]?.[3]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/missile_launcher/top_red_r135.png",
+    });
+    expect(state.wastedImages[TeamType.Red]?.source).toBe(
+      "assets/units/vehicles/missile_launcher/wasted_red.png",
+    );
+    expect(state.wastedImages[TeamType.Blue]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/missile_launcher/wasted_red.png",
+    });
+    expect(state.wastedImages[TeamType.Null]?.source).toEqual({
+      id: "assets/units/vehicles/missile_launcher/wasted_red.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 33);
+
+    function createVehicleImageFrames(): LoadedImage[] {
+      return Array.from({ length: 3 }, createImage);
+    }
+  });
+
+  it("ports VAPC Init as team-colored APC vehicle images", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createBaseFrames),
+      ),
+      openImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createOpenFrames),
+      ),
+      topImages: Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      wastedImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, createImage),
+      loadImage(filename) {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    } satisfies ApcVehicleInitState<Surface>;
+
+    initApcVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadCalls).toEqual(["assets/units/vehicles/apc/empty.png"]);
+    expect(state.baseImages[TeamType.Null]?.[3]?.[2]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/apc/empty.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[3]?.[2]?.source).toBe(
+      "assets/units/vehicles/apc/base_red_r135_n02.png",
+    );
+    expect(state.baseImages[TeamType.Blue]?.[3]?.[2]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/apc/base_red_r135_n02.png",
+    });
+    expect(state.openImages[TeamType.Red]?.[3]?.[4]?.source).toBe(
+      "assets/units/vehicles/apc/open_red_r135_n04.png",
+    );
+    expect(state.openImages[TeamType.Blue]?.[3]?.[4]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/apc/open_red_r135_n04.png",
+    });
+    expect(state.topImages[3]?.source).toBe(
+      "assets/units/vehicles/apc/top_r135.png",
+    );
+    expect(state.wastedImages[TeamType.Red]?.source).toBe(
+      "assets/units/vehicles/apc/wasted_red.png",
+    );
+    expect(state.wastedImages[TeamType.Blue]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/apc/wasted_red.png",
+    });
+    expect(state.wastedImages[TeamType.Null]).toBe(
+      state.wastedImages[TeamType.Red],
+    );
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 65);
+
+    function createBaseFrames(): LoadedImage[] {
+      return Array.from({ length: 3 }, createImage);
+    }
+
+    function createOpenFrames(): LoadedImage[] {
+      return Array.from({ length: 5 }, createImage);
+    }
+  });
+
+  it("ports VLight Init as light vehicle images with mirrored base frames", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createFrames),
+      ),
+      damagedBaseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createFrames),
+      ),
+      topImages: Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      loadImage(filename) {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    } satisfies LightVehicleInitState<Surface>;
+
+    initLightVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadCalls).toEqual(["assets/units/vehicles/light/empty.png"]);
+    expect(state.baseImages[TeamType.Null]?.[6]?.[1]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/light/empty.png",
+    });
+    expect(state.damagedBaseImages[TeamType.Null]?.[6]?.[1]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/light/empty.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[2]?.[0]?.source).toBe(
+      "assets/units/vehicles/light/base_red_r090_n00.png",
+    );
+    expect(state.baseImages[TeamType.Red]?.[6]?.[2]?.source).toEqual({
+      id: "assets/units/vehicles/light/base_red_r090_n00.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[7]?.[1]?.source).toBe(
+      "assets/units/vehicles/light/base_red_r315_n01.png",
+    );
+    expect(state.baseImages[TeamType.Red]?.[3]?.[1]?.source).toEqual({
+      id: "assets/units/vehicles/light/base_red_r315_n01.png",
+    });
+    expect(state.baseImages[TeamType.Blue]?.[1]?.[2]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/light/base_red_r045_n02.png",
+    });
+    expect(state.baseImages[TeamType.Blue]?.[5]?.[0]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/light/base_red_r045_n02.png",
+    });
+    expect(state.damagedBaseImages[TeamType.Red]?.[0]?.[2]?.source).toBe(
+      "assets/units/vehicles/light/base_damaged_red_r000_n02.png",
+    );
+    expect(state.damagedBaseImages[TeamType.Red]?.[4]?.[0]?.source).toEqual({
+      id: "assets/units/vehicles/light/base_damaged_red_r000_n02.png",
+    });
+    expect(state.topImages[3]?.source).toBe(
+      "assets/units/vehicles/light/top_r135.png",
+    );
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 24);
+
+    function createFrames(): LoadedImage[] {
+      return Array.from({ length: 3 }, createImage);
+    }
+  });
+
+  it("ports VHeavy Init as heavy vehicle images with aliased mirror frames", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createFrames),
+      ),
+      damagedBaseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createFrames),
+      ),
+      topImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      loadImage(filename) {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    } satisfies HeavyVehicleInitState<Surface>;
+
+    initHeavyVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadCalls).toEqual(["assets/units/vehicles/heavy/empty.png"]);
+    expect(state.baseImages[TeamType.Null]?.[6]?.[1]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/heavy/empty.png",
+    });
+    expect(state.damagedBaseImages[TeamType.Null]?.[6]?.[1]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/heavy/empty.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[2]?.[0]?.source).toBe(
+      "assets/units/vehicles/heavy/base_red_r090_n00.png",
+    );
+    expect(state.baseImages[TeamType.Red]?.[6]?.[2]).toBe(
+      state.baseImages[TeamType.Red]?.[2]?.[0],
+    );
+    expect(state.baseImages[TeamType.Blue]?.[7]?.[2]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/heavy/base_red_r315_n02.png",
+    });
+    expect(state.baseImages[TeamType.Blue]?.[3]?.[0]).toBe(
+      state.baseImages[TeamType.Blue]?.[7]?.[2],
+    );
+    expect(state.damagedBaseImages[TeamType.Red]?.[1]?.[1]?.source).toBe(
+      "assets/units/vehicles/heavy/base_damaged_red_r045_n01.png",
+    );
+    expect(state.damagedBaseImages[TeamType.Red]?.[5]?.[1]).toBe(
+      state.damagedBaseImages[TeamType.Red]?.[1]?.[1],
+    );
+    expect(state.topImages[TeamType.Red]?.[3]?.source).toBe(
+      "assets/units/vehicles/heavy/top_red_r135.png",
+    );
+    expect(state.topImages[TeamType.Blue]?.[3]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/heavy/top_red_r135.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 32);
+
+    function createFrames(): LoadedImage[] {
+      return Array.from({ length: 3 }, createImage);
+    }
+  });
+
+  it("ports VMedium Init as medium vehicle images with pop-up turret frames", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createFrames),
+      ),
+      damagedBaseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createFrames),
+      ),
+      topImages: Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      topPopImages: Array.from({ length: 8 }, createImage),
+      loadImage(filename) {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    } satisfies MediumVehicleInitState<Surface>;
+
+    initMediumVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadCalls).toEqual([
+      "assets/units/vehicles/medium/empty_null.png",
+    ]);
+    expect(state.baseImages[TeamType.Null]?.[6]?.[1]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/medium/empty_null.png",
+    });
+    expect(state.damagedBaseImages[TeamType.Null]?.[6]?.[1]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/medium/empty_null.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[2]?.[0]?.source).toBe(
+      "assets/units/vehicles/medium/base_red_r090_n00.png",
+    );
+    expect(state.baseImages[TeamType.Red]?.[6]?.[2]?.source).toEqual({
+      id: "assets/units/vehicles/medium/base_red_r090_n00.png",
+    });
+    expect(state.baseImages[TeamType.Blue]?.[7]?.[2]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/medium/base_red_r315_n02.png",
+    });
+    expect(state.baseImages[TeamType.Blue]?.[3]?.[0]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/medium/base_red_r315_n02.png",
+    });
+    expect(state.damagedBaseImages[TeamType.Red]?.[1]?.[1]?.source).toBe(
+      "assets/units/vehicles/medium/base_damaged_red_r045_n01.png",
+    );
+    expect(state.damagedBaseImages[TeamType.Red]?.[5]?.[1]?.source).toEqual({
+      id: "assets/units/vehicles/medium/base_damaged_red_r045_n01.png",
+    });
+    expect(state.topImages[3]?.source).toBe(
+      "assets/units/vehicles/medium/topf_r135.png",
+    );
+    expect(state.topPopImages[0]?.source).toBe(
+      "assets/units/vehicles/medium/top_pop_n00.png",
+    );
+    expect(state.topPopImages[7]?.source).toBe(
+      "assets/units/vehicles/medium/top_pop_n07.png",
+    );
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 24);
+
+    function createFrames(): LoadedImage[] {
+      return Array.from({ length: 3 }, createImage);
+    }
+  });
+
+  it("ports VJeep Init as jeep vehicle image loading and team recoloring", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      wastedImage: createImage(),
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createBaseFrames),
+      ),
+      underImages: Array.from({ length: MAX_ANGLE_TYPES }, createUnderFrames),
+      turrentImages: Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      fireImages: Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+    } satisfies JeepVehicleInitState<Surface>;
+
+    initJeepVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(state.wastedImage.source).toBe(
+      "assets/units/vehicles/jeep/wasted.png",
+    );
+    expect(state.baseImages[TeamType.Null]?.[3]?.[1]?.source).toBe(
+      "assets/units/vehicles/jeep/empty_r135.png",
+    );
+    expect(state.baseImages[TeamType.Null]?.[3]?.[0]?.source).toEqual({
+      id: "assets/units/vehicles/jeep/empty_r135.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[3]?.[1]?.source).toBe(
+      "assets/units/vehicles/jeep/base_red_r135_n01.png",
+    );
+    expect(state.baseImages[TeamType.Blue]?.[3]?.[1]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/jeep/base_red_r135_n01.png",
+    });
+    expect(state.underImages[1]?.[3]?.source).toBe(
+      "assets/units/vehicles/jeep/under_r045_n03.png",
+    );
+    expect(state.underImages[2]?.[0]?.source).toBeNull();
+    expect(state.underImages[6]?.[0]?.source).toBeNull();
+    expect(state.turrentImages[7]?.source).toBe(
+      "assets/units/vehicles/jeep/fire_r315_n00.png",
+    );
+    expect(state.fireImages[7]?.source).toBe(
+      "assets/units/vehicles/jeep/fire_r315_n01.png",
+    );
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 16);
+
+    function createBaseFrames(): LoadedImage[] {
+      return Array.from({ length: 2 }, createImage);
+    }
+
+    function createUnderFrames(): LoadedImage[] {
+      return Array.from({ length: 4 }, createImage);
+    }
+  });
+
+  it("ports VCrane Init as crane vehicle image loading and hook mirroring", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      baseImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createBaseFrames),
+      ),
+      craneImages: Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      hookImages: Array.from({ length: 16 }, createImage),
+      wastedImages: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, createImage),
+      loadImage(filename) {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    } satisfies CraneVehicleInitState<Surface>;
+
+    initCraneVehicle(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(loadCalls).toEqual([
+      "assets/units/vehicles/crane/empty_null.png",
+    ]);
+    expect(state.baseImages[TeamType.Null]?.[3]?.[2]?.source).toEqual({
+      id: "loaded:assets/units/vehicles/crane/empty_null.png",
+    });
+    expect(state.baseImages[TeamType.Red]?.[3]?.[2]?.source).toBe(
+      "assets/units/vehicles/crane/base_red_r135_n02.png",
+    );
+    expect(state.baseImages[TeamType.Blue]?.[3]?.[2]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/crane/base_red_r135_n02.png",
+    });
+    expect(state.craneImages[0]?.source).toBe(
+      "assets/units/vehicles/crane/crane_r180.png",
+    );
+    expect(state.craneImages[7]?.source).toBe(
+      "assets/units/vehicles/crane/crane_r135.png",
+    );
+    expect(state.hookImages[0]?.source).toBe(
+      "assets/units/vehicles/crane/hook_n00.png",
+    );
+    expect(state.hookImages[15]).toBe(state.hookImages[0]);
+    expect(state.hookImages[8]).toBe(state.hookImages[7]);
+    expect(state.wastedImages[TeamType.Null]?.source).toBe(
+      "assets/units/vehicles/crane/wasted_null.png",
+    );
+    expect(state.wastedImages[TeamType.Red]?.source).toBe(
+      "assets/units/vehicles/crane/wasted_red.png",
+    );
+    expect(state.wastedImages[TeamType.Blue]?.source).toEqual({
+      id: "team-2-assets/units/vehicles/crane/wasted_red.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 25);
+
+    function createBaseFrames(): LoadedImage[] {
+      return Array.from({ length: 3 }, createImage);
+    }
   });
 
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {

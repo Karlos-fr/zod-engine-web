@@ -1,6 +1,7 @@
 /**
  * Upstream: etoughrocket.h
  */
+import { SoundEngineSound } from "../audio/AudioService";
 import type { ToughSmokeEffectSpawn } from "./ToughSmokeEffect";
 
 /**
@@ -41,6 +42,58 @@ export type ToughRocketSmokePlacementState<TTime = unknown> = {
   initTime: number;
   lastSmokeTime: number;
 };
+
+/**
+ * Port of upstream `EToughMushroom` creation by `EToughRocket::Process`.
+ * Role: Describes the mushroom explosion effect spawned at the rocket impact point.
+ * Upstream: etoughrocket.cpp:84
+ */
+export type ToughRocketMushroomSpawn<TTime = unknown> = {
+  ztime: TTime;
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream restricted explosion sound call by `EToughRocket::Process`.
+ * Role: Describes a positional explosion sound emitted by the rocket impact.
+ * Upstream: etoughrocket.cpp:85
+ */
+export type ToughRocketRestrictedSoundCommand = {
+  sound: SoundEngineSound | number;
+  x: number;
+  y: number;
+};
+
+/**
+ * Port of upstream `ZMap::CreateCrater` dependency.
+ * Role: Applies a crater to the map at the rocket impact point.
+ * Upstream: etoughrocket.cpp:88
+ */
+export type ToughRocketCraterMap = {
+  createCrater(
+    x: number,
+    y: number,
+    randomCrater: boolean,
+    size: number,
+  ): void;
+};
+
+/**
+ * Port of upstream `EToughRocket::Process` mutable fields.
+ * Role: Tracks tough rocket lifetime, movement, smoke cadence, and impact position.
+ * Upstream: etoughrocket.cpp:74-98
+ */
+export type ToughRocketProcessState<TTime = unknown> =
+  ToughRocketSmokePlacementState<TTime> & {
+    killMe: boolean;
+    finalTime: number;
+    x: number;
+    y: number;
+    endX: number;
+    endY: number;
+    bulletSpeed: number;
+  };
 
 /**
  * Replacement for upstream `ZMap::RenderZSurface` dependency.
@@ -126,6 +179,53 @@ export function placeToughRocketSmoke<TTime>(
     });
 
     state.lastSmokeTime += timeD2;
+  }
+}
+
+/**
+ * Port of upstream `EToughRocket::Process`.
+ * Role: Advances tough rocket movement until impact, then spawns explosion effects.
+ * Upstream: etoughrocket.cpp:74-98
+ */
+export function processToughRocketEffect<TTime>(
+  state: ToughRocketProcessState<TTime>,
+  currentTime: number,
+  mushroomEffects: ToughRocketMushroomSpawn<TTime>[] | null,
+  soundCommands: ToughRocketRestrictedSoundCommand[] | null,
+  zmap: ToughRocketCraterMap | null,
+  smokeEffects: ToughSmokeEffectSpawn<TTime>[] | null,
+): void {
+  if (state.killMe) return;
+
+  if (currentTime >= state.finalTime) {
+    state.killMe = true;
+
+    mushroomEffects?.push({
+      ztime: state.ztime,
+      x: state.endX,
+      y: state.endY,
+    });
+
+    soundCommands?.push({
+      sound: SoundEngineSound.RandomExplosionSnd,
+      x: state.endX,
+      y: state.endY,
+    });
+
+    zmap?.createCrater(state.endX, state.endY, false, 0.35);
+    return;
+  }
+
+  state.x = state.startX + state.directionX * (currentTime - state.initTime);
+  state.y = state.startY + state.directionY * (currentTime - state.initTime);
+
+  if (smokeEffects) {
+    placeToughRocketSmoke(
+      state,
+      currentTime,
+      state.bulletSpeed,
+      smokeEffects,
+    );
   }
 }
 

@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { SoundEngineSound } from "../src/audio/AudioService";
 import {
   ETOUGH_ROCKET_HEADER_GUARD_PORTED,
   calcToughRocketTimeD,
   calcToughRocketTimeD2,
   initToughRocketEffect,
   placeToughRocketSmoke,
+  processToughRocketEffect,
   renderToughRocketEffect,
   TOUGH_ROCKET_BULLET_FRAME_COUNT,
   type ToughRocketInitState,
+  type ToughRocketMushroomSpawn,
+  type ToughRocketProcessState,
+  type ToughRocketRestrictedSoundCommand,
   type ToughRocketSmokePlacementState,
 } from "../src/simulation/ToughRocketEffect";
 import type { ToughSmokeEffectSpawn } from "../src/simulation/ToughSmokeEffect";
@@ -87,6 +92,111 @@ describe("tough rocket effect", () => {
     expect(effects).toEqual([]);
   });
 
+  it("ports EToughRocket Process as no-op after the rocket is killed", () => {
+    const state = createToughRocketProcessState({
+      killMe: true,
+      x: 10,
+      y: 20,
+    });
+    const mushrooms: ToughRocketMushroomSpawn<typeof state.ztime>[] = [];
+    const sounds: ToughRocketRestrictedSoundCommand[] = [];
+    const smokes: ToughSmokeEffectSpawn<typeof state.ztime>[] = [];
+    const craterCalls: unknown[] = [];
+
+    processToughRocketEffect(
+      state,
+      20,
+      mushrooms,
+      sounds,
+      {
+        createCrater(...args) {
+          craterCalls.push(args);
+        },
+      },
+      smokes,
+    );
+
+    expect(state.x).toBe(10);
+    expect(state.y).toBe(20);
+    expect(mushrooms).toEqual([]);
+    expect(sounds).toEqual([]);
+    expect(smokes).toEqual([]);
+    expect(craterCalls).toEqual([]);
+  });
+
+  it("ports EToughRocket Process as explosion impact effects", () => {
+    const state = createToughRocketProcessState({
+      finalTime: 2,
+      endX: 140,
+      endY: 70,
+    });
+    const mushrooms: ToughRocketMushroomSpawn<typeof state.ztime>[] = [];
+    const sounds: ToughRocketRestrictedSoundCommand[] = [];
+    const smokes: ToughSmokeEffectSpawn<typeof state.ztime>[] = [];
+    const craterCalls: Array<[number, number, boolean, number]> = [];
+
+    processToughRocketEffect(
+      state,
+      2,
+      mushrooms,
+      sounds,
+      {
+        createCrater(x, y, randomCrater, size) {
+          craterCalls.push([x, y, randomCrater, size]);
+        },
+      },
+      smokes,
+    );
+
+    expect(state.killMe).toBe(true);
+    expect(mushrooms).toEqual([{ ztime: state.ztime, x: 140, y: 70 }]);
+    expect(sounds).toEqual([
+      { sound: SoundEngineSound.RandomExplosionSnd, x: 140, y: 70 },
+    ]);
+    expect(craterCalls).toEqual([[140, 70, false, 0.35]]);
+    expect(smokes).toEqual([]);
+  });
+
+  it("ports EToughRocket Process as linear movement and smoke placement", () => {
+    const state = createToughRocketProcessState({
+      initTime: 1,
+      finalTime: 3,
+      startX: 100,
+      startY: 50,
+      directionX: 10,
+      directionY: -5,
+      lastSmokeTime: 1,
+      bulletSpeed: 250,
+    });
+    const mushrooms: ToughRocketMushroomSpawn<typeof state.ztime>[] = [];
+    const sounds: ToughRocketRestrictedSoundCommand[] = [];
+    const smokes: ToughSmokeEffectSpawn<typeof state.ztime>[] = [];
+
+    processToughRocketEffect(state, 1.071, mushrooms, sounds, null, smokes);
+
+    expect(state.killMe).toBe(false);
+    expect(state.x).toBeCloseTo(100.71);
+    expect(state.y).toBeCloseTo(49.645);
+    expect(state.lastSmokeTime).toBeCloseTo(1.064);
+    expect(smokes).toHaveLength(2);
+    expect(smokes[0]).toMatchObject({ ztime: state.ztime });
+    expect(smokes[0]?.x).toBeCloseTo(99.76);
+    expect(smokes[0]?.y).toBeCloseTo(50.12);
+    expect(smokes[1]).toMatchObject({ ztime: state.ztime });
+    expect(smokes[1]?.x).toBeCloseTo(100.08);
+    expect(smokes[1]?.y).toBeCloseTo(49.96);
+    expect(mushrooms).toEqual([]);
+    expect(sounds).toEqual([]);
+  });
+
+  it("ports EToughRocket Process impact as optional effect sinks", () => {
+    const state = createToughRocketProcessState({ finalTime: 2 });
+
+    processToughRocketEffect(state, 2, null, null, null, null);
+
+    expect(state.killMe).toBe(true);
+  });
+
   it("replaces EToughRocket DoRender with a centered map-relative projectile command", () => {
     const bulletImages = [{ id: "tough-rocket-0" }, { id: "tough-rocket-1" }];
     const state = {
@@ -154,3 +264,25 @@ describe("tough rocket effect", () => {
     ).toBeNull();
   });
 });
+
+function createToughRocketProcessState(
+  overrides: Partial<ToughRocketProcessState<{ ztime: number }>> = {},
+): ToughRocketProcessState<{ ztime: number }> {
+  return {
+    killMe: false,
+    ztime: { ztime: 12 },
+    startX: 0,
+    startY: 0,
+    directionX: 1,
+    directionY: 1,
+    initTime: 10,
+    lastSmokeTime: 10,
+    finalTime: 20,
+    x: 3,
+    y: 4,
+    endX: 50,
+    endY: 60,
+    bulletSpeed: 250,
+    ...overrides,
+  };
+}
