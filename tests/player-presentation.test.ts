@@ -35,6 +35,7 @@ import {
   doPlayerMouseScrollUp,
   exitPlayerProgram,
   focusPlayerCameraTo,
+  focusPlayerCameraToFort,
   givePlayerHudSelected,
   handlePlayerButton,
   initPlayerMenus,
@@ -1094,6 +1095,72 @@ describe("player presentation constants", () => {
     expect(state.lastFocusToTime).toBe(7);
     expect(state.finalFocusToTime).toBe(8);
     expect(state.doFocusTo).toBe(false);
+  });
+
+  it("ports ZPlayer FocusCameraToFort guard exits", () => {
+    const calls: unknown[] = [];
+    const state = {
+      ourTeam: TeamType.Null,
+      objectList: [
+        createFocusFortObject({
+          owner: TeamType.Red,
+          objectType: MapObjectType.Building,
+          objectId: BuildingType.FortFront,
+          centerX: 300,
+          centerY: 400,
+        }),
+      ],
+      zmap: createFocusFortMap(calls, false),
+    };
+
+    focusPlayerCameraToFort(state);
+    expect(calls).toEqual(["loaded"]);
+
+    state.zmap = createFocusFortMap(calls, true);
+    focusPlayerCameraToFort(state);
+    expect(calls).toEqual(["loaded", "loaded"]);
+  });
+
+  it("ports ZPlayer FocusCameraToFort as first owned fort camera jump", () => {
+    const calls: unknown[] = [];
+    const state = {
+      ourTeam: TeamType.Blue,
+      objectList: [
+        createFocusFortObject({
+          owner: TeamType.Red,
+          objectType: MapObjectType.Building,
+          objectId: BuildingType.FortFront,
+          centerX: 100,
+          centerY: 200,
+        }),
+        createFocusFortObject({
+          owner: TeamType.Blue,
+          objectType: MapObjectType.Vehicle,
+          objectId: VehicleType.Light,
+          centerX: 300,
+          centerY: 400,
+        }),
+        createFocusFortObject({
+          owner: TeamType.Blue,
+          objectType: MapObjectType.Building,
+          objectId: BuildingType.FortBack,
+          centerX: 600,
+          centerY: 700,
+        }),
+        createFocusFortObject({
+          owner: TeamType.Blue,
+          objectType: MapObjectType.Building,
+          objectId: BuildingType.FortFront,
+          centerX: 900,
+          centerY: 1000,
+        }),
+      ],
+      zmap: createFocusFortMap(calls, true),
+    };
+
+    focusPlayerCameraToFort(state);
+
+    expect(calls).toEqual(["loaded", "view", "set", 440, 540]);
   });
 
   it("ports empty player button hooks as no-op functions", () => {
@@ -2630,6 +2697,47 @@ function createSelectZObjectState(
     clearDevWaypointsOfSelected() {
       calls.push("clear-dev-waypoints");
     },
+  };
+}
+
+function createFocusFortMap(calls: unknown[], loaded: boolean) {
+  return {
+    loaded() {
+      calls.push("loaded");
+      return loaded;
+    },
+    getViewShiftFull() {
+      calls.push("view");
+      return {
+        x: 20,
+        y: 30,
+        viewWidth: 320,
+        viewHeight: 240,
+      };
+    },
+    setViewShift(x: number, y: number) {
+      calls.push("set", x, y);
+    },
+  };
+}
+
+function createFocusFortObject(options: {
+  owner: TeamType;
+  objectType: MapObjectType;
+  objectId: number;
+  centerX: number;
+  centerY: number;
+}) {
+  return {
+    getOwner: () => options.owner,
+    getObjectId: () => ({
+      objectType: options.objectType,
+      objectId: options.objectId,
+    }),
+    getCenterCoords: () => ({
+      x: options.centerX,
+      y: options.centerY,
+    }),
   };
 }
 

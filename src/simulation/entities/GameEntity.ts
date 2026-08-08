@@ -498,6 +498,71 @@ export class GameEntity {
   playAcknowledgeWav(): void {}
 
   /**
+   * Port of upstream `ZObject::PlayAcknowledgeAnim`.
+   * Role: Starts a command acknowledgement or refusal portrait animation.
+   * Upstream: zobject.cpp:420-449
+   */
+  playAcknowledgeAnim(
+    portrait: EntityPortraitAnimationTarget,
+    noWay: boolean,
+    randomInt: () => number = () => Math.floor(Math.random() * 2147483647),
+  ): void {
+    if (noWay) {
+      switch (Math.trunc(randomInt()) % 3) {
+        case 0:
+          portrait.startAnim(PortraitAnimationType.ForgetIt);
+          break;
+        case 1:
+          portrait.startAnim(PortraitAnimationType.GetOuttaHere);
+          break;
+        case 2:
+          portrait.startAnim(PortraitAnimationType.NoWay);
+          break;
+      }
+      return;
+    }
+
+    switch (Math.trunc(randomInt()) % 12) {
+      case 0:
+        portrait.startAnim(PortraitAnimationType.WereOnOurWay);
+        break;
+      case 1:
+        portrait.startAnim(PortraitAnimationType.HereWeGo);
+        break;
+      case 2:
+        portrait.startAnim(PortraitAnimationType.YouveGotIt);
+        break;
+      case 3:
+        portrait.startAnim(PortraitAnimationType.MovingIn);
+        break;
+      case 4:
+        portrait.startAnim(PortraitAnimationType.Okay);
+        break;
+      case 5:
+        portrait.startAnim(PortraitAnimationType.Alright);
+        break;
+      case 6:
+        portrait.startAnim(PortraitAnimationType.NoProblem);
+        break;
+      case 7:
+        portrait.startAnim(PortraitAnimationType.OverNOut);
+        break;
+      case 8:
+        portrait.startAnim(PortraitAnimationType.Affirmative);
+        break;
+      case 9:
+        portrait.startAnim(PortraitAnimationType.GoingIn);
+        break;
+      case 10:
+        portrait.startAnim(PortraitAnimationType.LetsDoIt);
+        break;
+      case 11:
+        portrait.startAnim(PortraitAnimationType.LetsGetEm);
+        break;
+    }
+  }
+
+  /**
    * Port of upstream `ZObject::FireMissile`.
    * Role: Provides the base missile firing hook for combat-capable objects.
    * Upstream: zobject.cpp:266-269

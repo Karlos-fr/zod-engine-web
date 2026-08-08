@@ -453,6 +453,34 @@ export type PlayerFocusCameraState = {
   doFocusTo: boolean;
 };
 
+export type PlayerFocusFortMap = {
+  loaded(): boolean;
+  getViewShiftFull(): {
+    x: number;
+    y: number;
+    viewWidth: number;
+    viewHeight: number;
+  };
+  setViewShift(x: number, y: number): void;
+};
+
+export type PlayerFocusFortObject = {
+  getOwner(): TeamType;
+  getObjectId(): { objectType: number; objectId: number };
+  getCenterCoords(): { x: number; y: number };
+};
+
+/**
+ * Port of upstream `ZPlayer::FocusCameraToFort` state.
+ * Role: Holds map and object data needed to center the camera on the local fort.
+ * Upstream: zplayer.cpp:1743-1773
+ */
+export type PlayerFocusCameraToFortState = {
+  ourTeam: TeamType;
+  objectList: readonly PlayerFocusFortObject[];
+  zmap: PlayerFocusFortMap;
+};
+
 /**
  * Port of upstream `ZHud::OverMiniMap` call target.
  * Role: Provides the minimal HUD API that may remap mouse coordinates through the minimap.
@@ -1156,6 +1184,39 @@ export function focusPlayerCameraTo(
   state.lastFocusToTime = now;
   state.finalFocusToTime = now + 0.7;
   state.doFocusTo = true;
+}
+
+/**
+ * Port of upstream `ZPlayer::FocusCameraToFort`.
+ * Role: Centers the map view on the first owned fort building.
+ * Upstream: zplayer.cpp:1743-1773
+ */
+export function focusPlayerCameraToFort(
+  state: PlayerFocusCameraToFortState,
+): void {
+  if (!state.zmap.loaded()) return;
+  if (state.ourTeam === TeamType.Null) return;
+
+  for (const object of state.objectList) {
+    if (object.getOwner() !== state.ourTeam) continue;
+
+    const objectId = object.getObjectId();
+    if (objectId.objectType !== MapObjectType.Building) continue;
+    if (
+      objectId.objectId !== BuildingType.FortFront &&
+      objectId.objectId !== BuildingType.FortBack
+    ) {
+      continue;
+    }
+
+    const viewShift = state.zmap.getViewShiftFull();
+    const center = object.getCenterCoords();
+    state.zmap.setViewShift(
+      center.x - (viewShift.viewWidth >> 1),
+      center.y - (viewShift.viewWidth >> 1),
+    );
+    return;
+  }
 }
 
 /**

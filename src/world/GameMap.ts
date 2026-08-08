@@ -185,6 +185,42 @@ export function loadMapPaletteInfo(
 }
 
 /**
+ * Port of upstream `ZMap::UpdatePalettesTileFormat`.
+ * Role: Rewrites all planet palette metadata using the newer tile-info fields.
+ * Upstream: zmap.cpp:209-247
+ */
+export function updateMapPalettesTileFormat(
+  planetTileInfo: readonly (readonly PaletteTileInfo[])[],
+  writer: MapPaletteTileInfoWriter,
+): number {
+  for (let planet = 0; planet < PlanetType.Max; planet += 1) {
+    const planetName = ZMAP_PLANET_TYPE_ASSET_NAMES[planet];
+    if (!planetName) continue;
+
+    const tiles = Array.from({ length: MAX_PLANET_TILES }, (_value, index) => {
+      const tile = planetTileInfo[planet]?.[index];
+
+      return {
+        isWater: tile?.isWater ?? false,
+        isPassable: tile?.isPassable ?? false,
+        isUsable: tile?.isUsable ?? false,
+        isRoad: tile?.isRoad ?? false,
+        isEffect: tile?.isEffect ?? false,
+        isWaterEffect: tile?.isWaterEffect ?? false,
+        nextTileInEffect: tile?.nextTileInEffect ?? 0,
+        isStarterTile: tile?.isStarterTile ?? false,
+        takesTankTracks: false,
+        craterType: -1,
+      };
+    });
+
+    writer(`assets/planets/${planetName}.tileinfo`, tiles);
+  }
+
+  return 1;
+}
+
+/**
  * Port of upstream `path_finder`.
  * Role: Provides delegated pathfinding operations owned by the map.
  * Upstream: zmap.h:255-261

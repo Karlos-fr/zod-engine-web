@@ -7,6 +7,7 @@ import {
   type PermanentRenderableStampBlitCommand,
   type MapSurfaceRenderCommand,
   type MapViewportRenderCommand,
+  updateMapPalettesTileFormat,
   writeMapPaletteTileInfo,
 } from "../src/world/GameMap";
 import { MapObjectType, type MapObject } from "../src/world/MapFormat";
@@ -149,6 +150,55 @@ describe("GameMap", () => {
     ).toBe(0);
     expect(planetTileInfo).toEqual([[{ ...paletteTileInfo, nextTileInEffect: 1 }]]);
     expect(writes).toEqual(["assets/planets/desert.tileinfo"]);
+  });
+
+  it("ports ZMap::UpdatePalettesTileFormat as all-planet metadata rewrite", () => {
+    const planetTileInfo = Array.from({ length: PlanetType.Max }, (_planet, planet) =>
+      Array.from({ length: MAX_PLANET_TILES }, (_tile, index) => ({
+        ...paletteTileInfo,
+        isWater: planet === PlanetType.Arctic,
+        isPassable: index % 2 === 0,
+        isUsable: index % 3 === 0,
+        isRoad: index % 5 === 0,
+        isEffect: index % 7 === 0,
+        isWaterEffect: index % 11 === 0,
+        nextTileInEffect: index + planet,
+        isStarterTile: index % 13 === 0,
+        takesTankTracks: true,
+        craterType: 4,
+      })),
+    );
+    const writes: Array<[string, number, typeof paletteTileInfo]> = [];
+
+    const result = updateMapPalettesTileFormat(
+      planetTileInfo,
+      (filename, tiles) => {
+        writes.push([filename, tiles.length, tiles[0] ?? paletteTileInfo]);
+        return filename !== "assets/planets/arctic.tileinfo";
+      },
+    );
+
+    expect(result).toBe(1);
+    expect(writes.map(([filename]) => filename)).toEqual([
+      "assets/planets/desert.tileinfo",
+      "assets/planets/volcanic.tileinfo",
+      "assets/planets/arctic.tileinfo",
+      "assets/planets/jungle.tileinfo",
+      "assets/planets/city.tileinfo",
+    ]);
+    expect(writes.every(([, length]) => length === MAX_PLANET_TILES)).toBe(true);
+    expect(writes[PlanetType.Arctic]?.[2]).toMatchObject({
+      isWater: true,
+      isPassable: true,
+      isUsable: true,
+      isRoad: true,
+      isEffect: true,
+      isWaterEffect: true,
+      nextTileInEffect: PlanetType.Arctic,
+      isStarterTile: true,
+      takesTankTracks: false,
+      craterType: -1,
+    });
   });
 
   it("ports ZMap::RebuildRegions as a pathfinding-region rebuild delegate", () => {

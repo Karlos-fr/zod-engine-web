@@ -102,6 +102,69 @@ describe("GameEntity", () => {
     expect(entity.target).toBeNull();
   });
 
+  it("ports ZObject PlayAcknowledgeAnim as command acknowledgement choices", () => {
+    const entity = new GameEntity({
+      id: "robot-acknowledge-anim",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const startedAnimations: PortraitAnimationType[] = [];
+
+    for (let randomValue = 0; randomValue < 12; randomValue += 1) {
+      entity.playAcknowledgeAnim(
+        {
+          startAnim(animation) {
+            startedAnimations.push(animation);
+          },
+        },
+        false,
+        () => randomValue,
+      );
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.WereOnOurWay,
+      PortraitAnimationType.HereWeGo,
+      PortraitAnimationType.YouveGotIt,
+      PortraitAnimationType.MovingIn,
+      PortraitAnimationType.Okay,
+      PortraitAnimationType.Alright,
+      PortraitAnimationType.NoProblem,
+      PortraitAnimationType.OverNOut,
+      PortraitAnimationType.Affirmative,
+      PortraitAnimationType.GoingIn,
+      PortraitAnimationType.LetsDoIt,
+      PortraitAnimationType.LetsGetEm,
+    ]);
+  });
+
+  it("ports ZObject PlayAcknowledgeAnim as no-way acknowledgement choices", () => {
+    const entity = new GameEntity({
+      id: "robot-no-way-anim",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    const startedAnimations: PortraitAnimationType[] = [];
+
+    for (const randomValue of [0, 1, 2]) {
+      entity.playAcknowledgeAnim(
+        {
+          startAnim(animation) {
+            startedAnimations.push(animation);
+          },
+        },
+        true,
+        () => randomValue,
+      );
+    }
+
+    expect(startedAnimations).toEqual([
+      PortraitAnimationType.ForgetIt,
+      PortraitAnimationType.GetOuttaHere,
+      PortraitAnimationType.NoWay,
+    ]);
+  });
+
   it("keeps the base missile firing hook as a no-op", () => {
     const entity = new GameEntity({
       id: "cannon-fire",
