@@ -7,8 +7,30 @@ import {
 } from "../src/simulation/SimulationConstants";
 import {
   BridgeEntity,
+  renderBridgeBase,
+  type BridgeRenderMap,
+  type BridgeRenderState,
   initBridgePlanetTemplates,
 } from "../src/simulation/entities/BridgeEntity";
+
+type BridgeRenderImage = { name: string };
+
+function createBridgeRenderState(
+  overrides: Partial<BridgeRenderState<BridgeRenderImage>> = {},
+): BridgeRenderState<BridgeRenderImage> {
+  return {
+    position: { x: 48, y: 80 },
+    health: 80,
+    maxHealth: 100,
+    dontStamp: false,
+    doRerender: false,
+    doBaseRerender: true,
+    renderImage: { name: "bridge-base" },
+    renderDamagedImage: { name: "bridge-damaged" },
+    renderDestroyedImage: { name: "bridge-destroyed" },
+    ...overrides,
+  };
+}
 
 describe("bridge entity", () => {
   it("ports BBridge Init as bridge planet template loading", () => {
@@ -813,5 +835,110 @@ describe("bridge entity", () => {
     expect(bridge.underCursorCanAttack(32, 96)).toBe(true);
     expect(bridge.underCursorCanAttack(144, 112)).toBe(true);
     expect(bridge.underCursorCanAttack(64, 80)).toBe(false);
+  });
+
+  it("replaces BBridge DoRender by rerendering and stamping the healthy bridge image", () => {
+    const state = createBridgeRenderState({ doRerender: true });
+    const rerenders: string[] = [];
+    const stampCalls: Array<{ x: number; y: number; surface: BridgeRenderImage }> =
+      [];
+    const map: BridgeRenderMap<BridgeRenderImage> = {
+      permStamp(x, y, surface) {
+        stampCalls.push({ x, y, surface });
+        return true;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderBridgeBase(state, map, () => rerenders.push("rerender"))).toBeNull();
+
+    expect(rerenders).toEqual(["rerender"]);
+    expect(stampCalls).toEqual([
+      { x: 48, y: 80, surface: { name: "bridge-base" } },
+    ]);
+    expect(state.doBaseRerender).toBe(false);
+  });
+
+  it("keeps BBridge DoRender base rerender pending when permanent stamping fails", () => {
+    const state = createBridgeRenderState();
+    const map: BridgeRenderMap<BridgeRenderImage> = {
+      permStamp() {
+        return false;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderBridgeBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BBridge DoRender by rendering the damaged bridge image when stamping is disabled", () => {
+    const state = createBridgeRenderState({
+      health: 49,
+      dontStamp: true,
+    });
+    const map: BridgeRenderMap<BridgeRenderImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderBridgeBase(state, map)).toEqual({
+      surface: { name: "bridge-damaged" },
+      x: 48,
+      y: 80,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BBridge DoRender by rendering the destroyed bridge image", () => {
+    const state = createBridgeRenderState({
+      health: 0,
+      dontStamp: true,
+    });
+    const map: BridgeRenderMap<BridgeRenderImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderBridgeBase(state, map)).toEqual({
+      surface: { name: "bridge-destroyed" },
+      x: 48,
+      y: 80,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces BBridge DoRender as no command when the selected image is missing", () => {
+    const state = createBridgeRenderState({
+      health: 49,
+      renderDamagedImage: null,
+      dontStamp: true,
+    });
+    const map: BridgeRenderMap<BridgeRenderImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderBridgeBase(state, map)).toBeNull();
   });
 });

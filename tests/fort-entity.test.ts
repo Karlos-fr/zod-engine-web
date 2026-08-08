@@ -1,11 +1,102 @@
 import { describe, expect, it } from "vitest";
-import { FortEntity } from "../src/simulation/entities/FortEntity";
+import {
+  renderFortBase,
+  renderFortDestroyedOverlay,
+  renderFortUnitCover,
+  type FortRenderMap,
+  type FortRenderState,
+  type FortPreRenderMap,
+  type FortPreRenderState,
+  type FortUnitCoverMap,
+  type FortUnitCoverState,
+  FortEntity,
+} from "../src/simulation/entities/FortEntity";
 import {
   BuildingType,
   PlanetType,
   TeamType,
 } from "../src/simulation/SimulationConstants";
 import { BuildingState } from "../src/simulation/entities/BuildingTypes";
+
+type FortOverlayImage = { name: string };
+type FortBaseImage = { name: string };
+
+function createFortPreRenderState(
+  overrides: Partial<FortPreRenderState<FortOverlayImage>> = {},
+): FortPreRenderState<FortOverlayImage> {
+  return {
+    position: { x: 160, y: 208 },
+    palette: 1,
+    destroyed: true,
+    isFront: true,
+    destroyedFade: 87,
+    frontDestroyedOverlayImages: [
+      { name: "front-destroyed-p0" },
+      { name: "front-destroyed-p1" },
+    ],
+    backDestroyedOverlayImages: [
+      { name: "back-destroyed-p0" },
+      { name: "back-destroyed-p1" },
+    ],
+    ...overrides,
+  };
+}
+
+function createFortRenderState(
+  overrides: Partial<FortRenderState<FortBaseImage>> = {},
+): FortRenderState<FortBaseImage> {
+  return {
+    position: { x: 176, y: 224 },
+    palette: 1,
+    destroyed: false,
+    isFront: true,
+    dontStamp: false,
+    doBaseRerender: true,
+    frontBaseImages: [{ name: "front-base-p0" }, { name: "front-base-p1" }],
+    frontDestroyedBaseImages: [
+      { name: "front-destroyed-base-p0" },
+      { name: "front-destroyed-base-p1" },
+    ],
+    backBaseImages: [{ name: "back-base-p0" }, { name: "back-base-p1" }],
+    backDestroyedBaseImages: [
+      { name: "back-destroyed-base-p0" },
+      { name: "back-destroyed-base-p1" },
+    ],
+    ...overrides,
+  };
+}
+
+function createFortUnitCoverState(
+  overrides: Partial<FortUnitCoverState<FortBaseImage>> = {},
+): FortUnitCoverState<FortBaseImage> {
+  return {
+    position: { x: 200, y: 240 },
+    shift: { x: 3, y: 5 },
+    palette: 1,
+    destroyed: false,
+    isFront: true,
+    destroyedFade: 143,
+    frontBaseImages: [{ name: "front-base-p0" }, { name: "front-base-p1" }],
+    frontDestroyedBaseImages: [
+      { name: "front-destroyed-base-p0" },
+      { name: "front-destroyed-base-p1" },
+    ],
+    frontDestroyedOverlayImages: [
+      { name: "front-overlay-p0" },
+      { name: "front-overlay-p1" },
+    ],
+    backBaseImages: [{ name: "back-base-p0" }, { name: "back-base-p1" }],
+    backDestroyedBaseImages: [
+      { name: "back-destroyed-base-p0" },
+      { name: "back-destroyed-base-p1" },
+    ],
+    backDestroyedOverlayImages: [
+      { name: "back-overlay-p0" },
+      { name: "back-overlay-p1" },
+    ],
+    ...overrides,
+  };
+}
 
 describe("fort entity", () => {
   it("ports BFort Process as flag animation and production countdown updates", () => {
@@ -239,5 +330,265 @@ describe("fort entity", () => {
     expect(
       entity.cannonNotPlacable({ left: 300, right: 316, top: 220, bottom: 236 }),
     ).toBe(false);
+  });
+
+  it("replaces BFort DoPreRender with a front destroyed overlay render command", () => {
+    const state = createFortPreRenderState();
+    const map: FortPreRenderMap<FortOverlayImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderFortDestroyedOverlay(state, map)).toEqual({
+      surface: {
+        image: { name: "front-destroyed-p1" },
+        alpha: 87,
+      },
+      x: 160,
+      y: 208,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces BFort DoPreRender with a back destroyed overlay render command", () => {
+    const state = createFortPreRenderState({
+      isFront: false,
+      destroyedFade: 203,
+    });
+    const map: FortPreRenderMap<FortOverlayImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderFortDestroyedOverlay(state, map)).toEqual({
+      surface: {
+        image: { name: "back-destroyed-p1" },
+        alpha: 203,
+      },
+      x: 160,
+      y: 208,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces BFort DoPreRender as no command while the fort is alive", () => {
+    const state = createFortPreRenderState({ destroyed: false });
+    const map: FortPreRenderMap<FortOverlayImage> = {
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderFortDestroyedOverlay(state, map)).toBeNull();
+  });
+
+  it("replaces BFort DoPreRender as no command when the overlay image is missing", () => {
+    const state = createFortPreRenderState({
+      frontDestroyedOverlayImages: [],
+    });
+    const map: FortPreRenderMap<FortOverlayImage> = {
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderFortDestroyedOverlay(state, map)).toBeNull();
+  });
+
+  it("replaces BFort DoRender by stamping the selected front base image", () => {
+    const state = createFortRenderState();
+    const stampCalls: Array<{ x: number; y: number; surface: FortBaseImage }> = [];
+    const map: FortRenderMap<FortBaseImage> = {
+      permStamp(x, y, surface) {
+        stampCalls.push({ x, y, surface });
+        return true;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderFortBase(state, map)).toBeNull();
+
+    expect(stampCalls).toEqual([
+      { x: 176, y: 224, surface: { name: "front-base-p1" } },
+    ]);
+    expect(state.doBaseRerender).toBe(false);
+  });
+
+  it("keeps BFort DoRender base rerender pending when permanent stamping fails", () => {
+    const state = createFortRenderState();
+    const map: FortRenderMap<FortBaseImage> = {
+      permStamp() {
+        return false;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderFortBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BFort DoRender by rendering the selected back destroyed base", () => {
+    const state = createFortRenderState({
+      destroyed: true,
+      isFront: false,
+      dontStamp: true,
+    });
+    const map: FortRenderMap<FortBaseImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderFortBase(state, map)).toEqual({
+      surface: { name: "back-destroyed-base-p1" },
+      x: 176,
+      y: 224,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BFort DoRender as no command when the selected base image is missing", () => {
+    const state = createFortRenderState({
+      frontBaseImages: [],
+      doBaseRerender: true,
+    });
+    const map: FortRenderMap<FortBaseImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderFortBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BFort RenderUnitCover with a clipped front cover base blit", () => {
+    const state = createFortUnitCoverState();
+    const mapCalls: Array<[number, number, number, number]> = [];
+    const map: FortUnitCoverMap = {
+      getBlitInfoFromDimensions(x, y, width, height) {
+        mapCalls.push([x, y, width, height]);
+        return {
+          sourceX: 2,
+          sourceY: 4,
+          width: 48,
+          height: 41,
+          destinationX: 10,
+          destinationY: 20,
+        };
+      },
+    };
+
+    expect(renderFortUnitCover(state, map)).toEqual([
+      {
+        surface: { kind: "base", image: { name: "front-base-p1" } },
+        region: {
+          sourceX: 58,
+          sourceY: 108,
+          width: 48,
+          height: 41,
+          destinationX: 13,
+          destinationY: 25,
+        },
+      },
+    ]);
+    expect(mapCalls).toEqual([[256, 344, 48, 41]]);
+  });
+
+  it("replaces BFort RenderUnitCover with destroyed base and overlay blits", () => {
+    const state = createFortUnitCoverState({
+      destroyed: true,
+      isFront: false,
+    });
+    const map: FortUnitCoverMap = {
+      getBlitInfoFromDimensions() {
+        return {
+          sourceX: 0,
+          sourceY: 1,
+          width: 24,
+          height: 20,
+          destinationX: 8,
+          destinationY: 9,
+        };
+      },
+    };
+
+    expect(renderFortUnitCover(state, map)).toEqual([
+      {
+        surface: { kind: "base", image: { name: "back-destroyed-base-p1" } },
+        region: {
+          sourceX: 56,
+          sourceY: 17,
+          width: 24,
+          height: 20,
+          destinationX: 11,
+          destinationY: 14,
+        },
+      },
+      {
+        surface: {
+          kind: "overlay",
+          image: { name: "back-overlay-p1" },
+          alpha: 143,
+        },
+        region: {
+          sourceX: 56,
+          sourceY: 17,
+          width: 24,
+          height: 20,
+          destinationX: 11,
+          destinationY: 14,
+        },
+      },
+    ]);
+  });
+
+  it("replaces BFort RenderUnitCover as no commands outside the viewport", () => {
+    const state = createFortUnitCoverState();
+    const map: FortUnitCoverMap = {
+      getBlitInfoFromDimensions() {
+        return null;
+      },
+    };
+
+    expect(renderFortUnitCover(state, map)).toEqual([]);
+  });
+
+  it("replaces BFort RenderUnitCover as no commands when the selected image is missing", () => {
+    const state = createFortUnitCoverState({
+      frontBaseImages: [],
+    });
+    const map: FortUnitCoverMap = {
+      getBlitInfoFromDimensions() {
+        return {
+          sourceX: 0,
+          sourceY: 0,
+          width: 48,
+          height: 41,
+          destinationX: 0,
+          destinationY: 0,
+        };
+      },
+    };
+
+    expect(renderFortUnitCover(state, map)).toEqual([]);
   });
 });

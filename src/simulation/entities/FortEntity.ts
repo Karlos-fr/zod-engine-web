@@ -4,11 +4,256 @@
 
 import { pointsWithinArea } from "../Common";
 import { BuildingType, PlanetType, TeamType } from "../SimulationConstants";
+import type { SurfaceBlitRegion } from "../../rendering/SurfacePixels";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 import {
   BuildingEntity,
   BuildingState,
   type BuildingShowTimeTextRenderer,
 } from "./BuildingTypes";
+
+export type FortDestroyedOverlayImages<TImage> = ReadonlyArray<
+  TImage | null | undefined
+>;
+
+export type FortPreRenderSurface<TImage> = {
+  image: TImage;
+  alpha: number;
+};
+
+export type FortPreRenderState<TImage> = {
+  position: { x: number; y: number };
+  palette: number;
+  destroyed: boolean;
+  isFront: boolean;
+  destroyedFade: number;
+  frontDestroyedOverlayImages: FortDestroyedOverlayImages<TImage>;
+  backDestroyedOverlayImages: FortDestroyedOverlayImages<TImage>;
+};
+
+export type FortPreRenderMap<TImage> = {
+  renderZSurface(
+    surface: FortPreRenderSurface<TImage>,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<FortPreRenderSurface<TImage>>;
+};
+
+export type FortPreRenderCommand<TImage> =
+  | MapSurfaceRenderCommand<FortPreRenderSurface<TImage>>
+  | null;
+
+export type FortBaseImages<TImage> = ReadonlyArray<TImage | null | undefined>;
+
+export type FortRenderState<TImage> = {
+  position: { x: number; y: number };
+  palette: number;
+  destroyed: boolean;
+  isFront: boolean;
+  dontStamp: boolean;
+  doBaseRerender: boolean;
+  frontBaseImages: FortBaseImages<TImage>;
+  frontDestroyedBaseImages: FortBaseImages<TImage>;
+  backBaseImages: FortBaseImages<TImage>;
+  backDestroyedBaseImages: FortBaseImages<TImage>;
+};
+
+export type FortRenderMap<TImage> = {
+  permStamp(x: number, y: number, surface: TImage): boolean;
+  renderZSurface(
+    surface: TImage,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TImage>;
+};
+
+export type FortRenderCommand<TImage> = MapSurfaceRenderCommand<TImage> | null;
+
+export type FortUnitCoverSurface<TImage> =
+  | { kind: "base"; image: TImage }
+  | { kind: "overlay"; image: TImage; alpha: number };
+
+export type FortUnitCoverBlitCommand<TImage> = {
+  surface: FortUnitCoverSurface<TImage>;
+  region: SurfaceBlitRegion;
+};
+
+export type FortUnitCoverState<TImage> = {
+  position: { x: number; y: number };
+  shift: { x: number; y: number };
+  palette: number;
+  destroyed: boolean;
+  isFront: boolean;
+  destroyedFade: number;
+  frontBaseImages: FortBaseImages<TImage>;
+  frontDestroyedBaseImages: FortBaseImages<TImage>;
+  frontDestroyedOverlayImages: FortDestroyedOverlayImages<TImage>;
+  backBaseImages: FortBaseImages<TImage>;
+  backDestroyedBaseImages: FortBaseImages<TImage>;
+  backDestroyedOverlayImages: FortDestroyedOverlayImages<TImage>;
+};
+
+export type FortUnitCoverMap = {
+  getBlitInfoFromDimensions(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): SurfaceBlitRegion | null;
+};
+
+/**
+ * Replacement for upstream `BFort::DoPreRender`.
+ * Role: Builds the destroyed fort overlay render command with the current fade alpha.
+ * Upstream: bfort.cpp:214-239
+ */
+export function renderFortDestroyedOverlay<TImage>(
+  state: FortPreRenderState<TImage>,
+  zmap: FortPreRenderMap<TImage>,
+): FortPreRenderCommand<TImage> {
+  if (!state.destroyed) return null;
+
+  const image = state.isFront
+    ? state.frontDestroyedOverlayImages[state.palette]
+    : state.backDestroyedOverlayImages[state.palette];
+  if (!image) return null;
+
+  return zmap.renderZSurface(
+    { image, alpha: state.destroyedFade },
+    state.position.x,
+    state.position.y,
+    false,
+    false,
+  );
+}
+
+/**
+ * Replacement for upstream `BFort::DoRender`.
+ * Role: Stamps or renders the fort base image selected by orientation, palette, and destruction state.
+ * Upstream: bfort.cpp:241-301
+ */
+export function renderFortBase<TImage>(
+  state: FortRenderState<TImage>,
+  zmap: FortRenderMap<TImage>,
+): FortRenderCommand<TImage> {
+  if (!state.dontStamp) {
+    if (!state.doBaseRerender) return null;
+
+    const surface = getFortBaseSurface(state);
+    if (!surface) return null;
+
+    if (zmap.permStamp(state.position.x, state.position.y, surface)) {
+      state.doBaseRerender = false;
+    }
+
+    return null;
+  }
+
+  const surface = getFortBaseSurface(state);
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x,
+    state.position.y,
+    false,
+    false,
+  );
+}
+
+function getFortBaseSurface<TImage>(
+  state: FortRenderState<TImage>,
+): TImage | null | undefined {
+  if (state.isFront) {
+    return state.destroyed
+      ? state.frontDestroyedBaseImages[state.palette]
+      : state.frontBaseImages[state.palette];
+  }
+
+  return state.destroyed
+    ? state.backDestroyedBaseImages[state.palette]
+    : state.backBaseImages[state.palette];
+}
+
+/**
+ * Replacement for upstream `BFort::RenderUnitCover`.
+ * Role: Builds clipped blit commands for the fort unit-creation cover region.
+ * Upstream: bfort.cpp:349-401
+ */
+export function renderFortUnitCover<TImage>(
+  state: FortUnitCoverState<TImage>,
+  zmap: FortUnitCoverMap,
+): Array<FortUnitCoverBlitCommand<TImage>> {
+  const sourceOffsetX = 64 - 8;
+  const sourceOffsetY = state.isFront ? 112 - 8 : 16;
+  const region = zmap.getBlitInfoFromDimensions(
+    state.position.x + sourceOffsetX,
+    state.position.y + sourceOffsetY,
+    32 + 16,
+    32 + 9,
+  );
+  if (!region) return [];
+
+  const adjustedRegion = {
+    ...region,
+    sourceX: region.sourceX + sourceOffsetX,
+    sourceY: region.sourceY + sourceOffsetY,
+    destinationX: region.destinationX + state.shift.x,
+    destinationY: region.destinationY + state.shift.y,
+  };
+
+  if (state.isFront) {
+    return buildFortUnitCoverCommands(
+      state,
+      adjustedRegion,
+      state.frontBaseImages[state.palette],
+      state.frontDestroyedBaseImages[state.palette],
+      state.frontDestroyedOverlayImages[state.palette],
+    );
+  }
+
+  return buildFortUnitCoverCommands(
+    state,
+    adjustedRegion,
+    state.backBaseImages[state.palette],
+    state.backDestroyedBaseImages[state.palette],
+    state.backDestroyedOverlayImages[state.palette],
+  );
+}
+
+function buildFortUnitCoverCommands<TImage>(
+  state: FortUnitCoverState<TImage>,
+  region: SurfaceBlitRegion,
+  baseImage: TImage | null | undefined,
+  destroyedBaseImage: TImage | null | undefined,
+  destroyedOverlayImage: TImage | null | undefined,
+): Array<FortUnitCoverBlitCommand<TImage>> {
+  if (!state.destroyed) {
+    if (!baseImage) return [];
+    return [{ surface: { kind: "base", image: baseImage }, region }];
+  }
+
+  const commands: Array<FortUnitCoverBlitCommand<TImage>> = [];
+  if (destroyedBaseImage) {
+    commands.push({ surface: { kind: "base", image: destroyedBaseImage }, region });
+  }
+  if (destroyedOverlayImage) {
+    commands.push({
+      surface: {
+        kind: "overlay",
+        image: destroyedOverlayImage,
+        alpha: state.destroyedFade,
+      },
+      region,
+    });
+  }
+
+  return commands;
+}
 
 /**
  * Browser simulation entity containing the subset of `BFort` behavior already ported.

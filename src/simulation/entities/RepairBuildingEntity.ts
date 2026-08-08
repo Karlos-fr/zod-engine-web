@@ -13,8 +13,84 @@ import {
 } from "./EntityTypes";
 import type { GameEntity, RepairAnimData, RepairUnitOutput } from "./GameEntity";
 import type { GameMap } from "../../world/GameMap";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 
 const REPAIR_BUILDING_ANIM_PACKET_SIZE_BYTES = 24;
+
+export type RepairBuildingBaseImages<TSurface> = ReadonlyArray<
+  ReadonlyArray<TSurface | null | undefined> | null | undefined
+>;
+
+export type RepairBuildingDestroyedBaseImages<TSurface> = ReadonlyArray<
+  TSurface | null | undefined
+>;
+
+export type RepairBuildingRenderState<TSurface> = {
+  position: { x: number; y: number };
+  palette: number;
+  owner: number;
+  destroyed: boolean;
+  dontStamp: boolean;
+  doBaseRerender: boolean;
+  baseImages: RepairBuildingBaseImages<TSurface>;
+  destroyedBaseImages: RepairBuildingDestroyedBaseImages<TSurface>;
+};
+
+export type RepairBuildingRenderMap<TSurface> = {
+  permStamp(x: number, y: number, surface: TSurface): boolean;
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type RepairBuildingRenderCommand<TSurface> =
+  | MapSurfaceRenderCommand<TSurface>
+  | null;
+
+/**
+ * Replacement for upstream `BRepair::DoRender`.
+ * Role: Stamps or renders the repair building base image selected by palette, owner, and destruction state.
+ * Upstream: brepair.cpp:157-202
+ */
+export function renderRepairBuildingBase<TSurface>(
+  state: RepairBuildingRenderState<TSurface>,
+  zmap: RepairBuildingRenderMap<TSurface>,
+): RepairBuildingRenderCommand<TSurface> {
+  if (!state.dontStamp) {
+    if (!state.doBaseRerender) return null;
+
+    const surface = getRepairBuildingBaseSurface(state);
+    if (!surface) return null;
+
+    if (zmap.permStamp(state.position.x, state.position.y, surface)) {
+      state.doBaseRerender = false;
+    }
+
+    return null;
+  }
+
+  const surface = getRepairBuildingBaseSurface(state);
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x,
+    state.position.y,
+    false,
+    false,
+  );
+}
+
+function getRepairBuildingBaseSurface<TSurface>(
+  state: RepairBuildingRenderState<TSurface>,
+): TSurface | null | undefined {
+  if (state.destroyed) return state.destroyedBaseImages[state.palette];
+  return state.baseImages[state.palette]?.[state.owner];
+}
 
 /**
  * Browser simulation entity containing the subset of `BRepair` behavior already ported.

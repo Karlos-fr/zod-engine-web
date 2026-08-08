@@ -6,7 +6,12 @@ import {
 } from "../src/simulation/SimulationConstants";
 import { Waypoint } from "../src/simulation/entities/EntityTypes";
 import { GameEntity } from "../src/simulation/entities/GameEntity";
-import { RepairBuildingEntity } from "../src/simulation/entities/RepairBuildingEntity";
+import {
+  renderRepairBuildingBase,
+  type RepairBuildingRenderMap,
+  type RepairBuildingRenderState,
+  RepairBuildingEntity,
+} from "../src/simulation/entities/RepairBuildingEntity";
 import { MapObjectType } from "../src/world/MapFormat";
 import type { GameMap } from "../src/world/GameMap";
 
@@ -16,6 +21,34 @@ type ImpassableCall = {
   impassable?: boolean;
   destroyable?: boolean;
 };
+
+type RepairBuildingImage = { name: string };
+
+function createRepairBuildingRenderState(
+  overrides: Partial<RepairBuildingRenderState<RepairBuildingImage>> = {},
+): RepairBuildingRenderState<RepairBuildingImage> {
+  return {
+    position: { x: 128, y: 176 },
+    palette: 1,
+    owner: 2,
+    destroyed: false,
+    dontStamp: false,
+    doBaseRerender: true,
+    baseImages: [
+      [],
+      [
+        { name: "normal-p1-o0" },
+        { name: "normal-p1-o1" },
+        { name: "normal-p1-o2" },
+      ],
+    ],
+    destroyedBaseImages: [
+      { name: "destroyed-p0" },
+      { name: "destroyed-p1" },
+    ],
+    ...overrides,
+  };
+}
 
 describe("repair building entity", () => {
   it("ports BRepair Process without advancing animation before the interval", () => {
@@ -408,6 +441,88 @@ describe("repair building entity", () => {
       x: 128,
       y: 224,
     });
+  });
+
+  it("replaces BRepair DoRender by stamping the selected owner base image", () => {
+    const state = createRepairBuildingRenderState();
+    const stampCalls: Array<{ x: number; y: number; surface: RepairBuildingImage }> =
+      [];
+    const map: RepairBuildingRenderMap<RepairBuildingImage> = {
+      permStamp(x, y, surface) {
+        stampCalls.push({ x, y, surface });
+        return true;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderRepairBuildingBase(state, map)).toBeNull();
+
+    expect(stampCalls).toEqual([
+      { x: 128, y: 176, surface: { name: "normal-p1-o2" } },
+    ]);
+    expect(state.doBaseRerender).toBe(false);
+  });
+
+  it("keeps BRepair DoRender base rerender pending when permanent stamping fails", () => {
+    const state = createRepairBuildingRenderState();
+    const map: RepairBuildingRenderMap<RepairBuildingImage> = {
+      permStamp() {
+        return false;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderRepairBuildingBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BRepair DoRender by rendering destroyed bases from palette only", () => {
+    const state = createRepairBuildingRenderState({
+      owner: 0,
+      destroyed: true,
+      dontStamp: true,
+    });
+    const map: RepairBuildingRenderMap<RepairBuildingImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderRepairBuildingBase(state, map)).toEqual({
+      surface: { name: "destroyed-p1" },
+      x: 128,
+      y: 176,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BRepair DoRender as no command when the selected base image is missing", () => {
+    const state = createRepairBuildingRenderState({
+      baseImages: [],
+      doBaseRerender: true,
+    });
+    const map: RepairBuildingRenderMap<RepairBuildingImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderRepairBuildingBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
   });
 });
 

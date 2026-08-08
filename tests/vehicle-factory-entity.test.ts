@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { VehicleFactoryEntity } from "../src/simulation/entities/VehicleFactoryEntity";
+import {
+  renderVehicleFactoryBase,
+  type VehicleFactoryRenderMap,
+  type VehicleFactoryRenderState,
+  VehicleFactoryEntity,
+} from "../src/simulation/entities/VehicleFactoryEntity";
 import type { GameMap } from "../src/world/GameMap";
 import { BuildingState } from "../src/simulation/entities/BuildingTypes";
 
@@ -9,6 +14,38 @@ type ImpassableCall = {
   impassable?: boolean;
   destroyable?: boolean;
 };
+
+type VehicleFactoryImage = { name: string };
+
+function createVehicleFactoryRenderState(
+  overrides: Partial<VehicleFactoryRenderState<VehicleFactoryImage>> = {},
+): VehicleFactoryRenderState<VehicleFactoryImage> {
+  return {
+    position: { x: 112, y: 160 },
+    palette: 1,
+    owner: 2,
+    destroyed: false,
+    dontStamp: false,
+    doBaseRerender: true,
+    baseImages: [
+      [],
+      [
+        { name: "normal-p1-o0" },
+        { name: "normal-p1-o1" },
+        { name: "normal-p1-o2" },
+      ],
+    ],
+    destroyedBaseImages: [
+      [],
+      [
+        { name: "destroyed-p1-o0" },
+        { name: "destroyed-p1-o1" },
+        { name: "destroyed-p1-o2" },
+      ],
+    ],
+    ...overrides,
+  };
+}
 
 describe("vehicle factory entity", () => {
   it("ports BVehicle Process without advancing animation before the interval", () => {
@@ -162,5 +199,86 @@ describe("vehicle factory entity", () => {
       x: 127,
       y: 160,
     });
+  });
+
+  it("replaces BVehicle DoRender by stamping the selected base image", () => {
+    const state = createVehicleFactoryRenderState();
+    const stampCalls: Array<{ x: number; y: number; surface: VehicleFactoryImage }> =
+      [];
+    const map: VehicleFactoryRenderMap<VehicleFactoryImage> = {
+      permStamp(x, y, surface) {
+        stampCalls.push({ x, y, surface });
+        return true;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderVehicleFactoryBase(state, map)).toBeNull();
+
+    expect(stampCalls).toEqual([
+      { x: 112, y: 160, surface: { name: "normal-p1-o2" } },
+    ]);
+    expect(state.doBaseRerender).toBe(false);
+  });
+
+  it("keeps BVehicle DoRender base rerender pending when permanent stamping fails", () => {
+    const state = createVehicleFactoryRenderState();
+    const map: VehicleFactoryRenderMap<VehicleFactoryImage> = {
+      permStamp() {
+        return false;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderVehicleFactoryBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BVehicle DoRender by rendering destroyed bases when stamping is disabled", () => {
+    const state = createVehicleFactoryRenderState({
+      destroyed: true,
+      dontStamp: true,
+    });
+    const map: VehicleFactoryRenderMap<VehicleFactoryImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderVehicleFactoryBase(state, map)).toEqual({
+      surface: { name: "destroyed-p1-o2" },
+      x: 112,
+      y: 160,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BVehicle DoRender as no command when the selected base image is missing", () => {
+    const state = createVehicleFactoryRenderState({
+      baseImages: [],
+      doBaseRerender: true,
+    });
+    const map: VehicleFactoryRenderMap<VehicleFactoryImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderVehicleFactoryBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
   });
 });

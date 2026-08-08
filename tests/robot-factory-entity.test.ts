@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { RobotFactoryEntity } from "../src/simulation/entities/RobotFactoryEntity";
+import {
+  renderRobotFactoryBase,
+  type RobotFactoryRenderMap,
+  type RobotFactoryRenderState,
+  RobotFactoryEntity,
+} from "../src/simulation/entities/RobotFactoryEntity";
 import type { GameMap } from "../src/world/GameMap";
 import { BuildingState } from "../src/simulation/entities/BuildingTypes";
 
@@ -9,6 +14,38 @@ type ImpassableCall = {
   impassable?: boolean;
   destroyable?: boolean;
 };
+
+type RobotFactoryImage = { name: string };
+
+function createRobotFactoryRenderState(
+  overrides: Partial<RobotFactoryRenderState<RobotFactoryImage>> = {},
+): RobotFactoryRenderState<RobotFactoryImage> {
+  return {
+    position: { x: 96, y: 144 },
+    palette: 1,
+    owner: 2,
+    destroyed: false,
+    dontStamp: false,
+    doBaseRerender: true,
+    baseImages: [
+      [],
+      [
+        { name: "normal-p1-o0" },
+        { name: "normal-p1-o1" },
+        { name: "normal-p1-o2" },
+      ],
+    ],
+    destroyedBaseImages: [
+      [],
+      [
+        { name: "destroyed-p1-o0" },
+        { name: "destroyed-p1-o1" },
+        { name: "destroyed-p1-o2" },
+      ],
+    ],
+    ...overrides,
+  };
+}
 
 describe("robot factory entity", () => {
   it("ports BRobot Process without advancing animation before the interval", () => {
@@ -171,5 +208,85 @@ describe("robot factory entity", () => {
       x: 131,
       y: 160,
     });
+  });
+
+  it("replaces BRobot DoRender by stamping the selected base image", () => {
+    const state = createRobotFactoryRenderState();
+    const stampCalls: Array<{ x: number; y: number; surface: RobotFactoryImage }> = [];
+    const map: RobotFactoryRenderMap<RobotFactoryImage> = {
+      permStamp(x, y, surface) {
+        stampCalls.push({ x, y, surface });
+        return true;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderRobotFactoryBase(state, map)).toBeNull();
+
+    expect(stampCalls).toEqual([
+      { x: 96, y: 144, surface: { name: "normal-p1-o2" } },
+    ]);
+    expect(state.doBaseRerender).toBe(false);
+  });
+
+  it("keeps BRobot DoRender base rerender pending when permanent stamping fails", () => {
+    const state = createRobotFactoryRenderState();
+    const map: RobotFactoryRenderMap<RobotFactoryImage> = {
+      permStamp() {
+        return false;
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderRobotFactoryBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BRobot DoRender by rendering destroyed bases when stamping is disabled", () => {
+    const state = createRobotFactoryRenderState({
+      destroyed: true,
+      dontStamp: true,
+    });
+    const map: RobotFactoryRenderMap<RobotFactoryImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderRobotFactoryBase(state, map)).toEqual({
+      surface: { name: "destroyed-p1-o2" },
+      x: 96,
+      y: 144,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(state.doBaseRerender).toBe(true);
+  });
+
+  it("replaces BRobot DoRender as no command when the selected base image is missing", () => {
+    const state = createRobotFactoryRenderState({
+      baseImages: [],
+      doBaseRerender: true,
+    });
+    const map: RobotFactoryRenderMap<RobotFactoryImage> = {
+      permStamp() {
+        throw new Error("permStamp should not be called");
+      },
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderRobotFactoryBase(state, map)).toBeNull();
+
+    expect(state.doBaseRerender).toBe(true);
   });
 });

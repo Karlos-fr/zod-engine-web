@@ -3,11 +3,83 @@
  */
 
 import type { GameMap } from "../../world/GameMap";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 import {
   BuildingEntity,
   BuildingState,
   type BuildingShowTimeTextRenderer,
 } from "./BuildingTypes";
+
+export type VehicleFactoryBaseImages<TSurface> = ReadonlyArray<
+  ReadonlyArray<TSurface | null | undefined> | null | undefined
+>;
+
+export type VehicleFactoryRenderState<TSurface> = {
+  position: { x: number; y: number };
+  palette: number;
+  owner: number;
+  destroyed: boolean;
+  dontStamp: boolean;
+  doBaseRerender: boolean;
+  baseImages: VehicleFactoryBaseImages<TSurface>;
+  destroyedBaseImages: VehicleFactoryBaseImages<TSurface>;
+};
+
+export type VehicleFactoryRenderMap<TSurface> = {
+  permStamp(x: number, y: number, surface: TSurface): boolean;
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type VehicleFactoryRenderCommand<TSurface> =
+  | MapSurfaceRenderCommand<TSurface>
+  | null;
+
+/**
+ * Replacement for upstream `BVehicle::DoRender`.
+ * Role: Stamps or renders the vehicle factory base image selected by palette, owner, and destruction state.
+ * Upstream: bvehicle.cpp:174-214
+ */
+export function renderVehicleFactoryBase<TSurface>(
+  state: VehicleFactoryRenderState<TSurface>,
+  zmap: VehicleFactoryRenderMap<TSurface>,
+): VehicleFactoryRenderCommand<TSurface> {
+  if (!state.dontStamp) {
+    if (!state.doBaseRerender) return null;
+
+    const surface = getVehicleFactoryBaseSurface(state);
+    if (!surface) return null;
+
+    if (zmap.permStamp(state.position.x, state.position.y, surface)) {
+      state.doBaseRerender = false;
+    }
+
+    return null;
+  }
+
+  const surface = getVehicleFactoryBaseSurface(state);
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x,
+    state.position.y,
+    false,
+    false,
+  );
+}
+
+function getVehicleFactoryBaseSurface<TSurface>(
+  state: VehicleFactoryRenderState<TSurface>,
+): TSurface | null | undefined {
+  const images = state.destroyed ? state.destroyedBaseImages : state.baseImages;
+  return images[state.palette]?.[state.owner];
+}
 
 /**
  * Browser simulation entity containing the subset of `BVehicle` behavior already ported.

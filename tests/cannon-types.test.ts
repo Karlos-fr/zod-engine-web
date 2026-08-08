@@ -29,6 +29,9 @@ import {
   GUN_CANNON_UNIT_Y_PIXELS,
   initGatlingCannon,
   initGunCannon,
+  renderGunCannon,
+  type GunCannonRenderMap,
+  type GunCannonRenderState,
   type GunCannonProcessState,
   HowitzerCannonEntity,
   type HowitzerCannonProcessState,
@@ -59,6 +62,49 @@ import {
 import type { LightRocketEffectSpawn } from "../src/simulation/LightRocketEffect";
 import type { MissileCannonRocketsEffectSpawn } from "../src/simulation/MissileCannonRocketsEffect";
 import { SoundEngineSound } from "../src/audio/AudioService";
+
+type CannonRenderImage = { name: string };
+
+function createGunCannonRenderState(
+  overrides: Partial<GunCannonRenderState<CannonRenderImage>> = {},
+): GunCannonRenderState<CannonRenderImage> {
+  return {
+    position: { x: 320, y: 240 },
+    destroyed: false,
+    mode: ObjectMode.Rotating,
+    owner: TeamType.Blue,
+    direction: 3,
+    placeIndex: 0,
+    doHitEffect: true,
+    wastedImage: { name: "wasted" },
+    initPlaceImages: [
+      { name: "init-place-0" },
+      { name: "init-place-1" },
+      { name: "init-place-2" },
+    ],
+    placeImages: [
+      null,
+      [],
+      [
+        { name: "blue-place-0" },
+        { name: "blue-place-1" },
+        { name: "blue-place-2" },
+        { name: "blue-place-3" },
+      ],
+    ],
+    passiveImages: [
+      null,
+      [],
+      [
+        { name: "blue-passive-0" },
+        { name: "blue-passive-1" },
+        { name: "blue-passive-2" },
+        { name: "blue-passive-3" },
+      ],
+    ],
+    ...overrides,
+  };
+}
 
 describe("cannon types", () => {
   it("adapts the cgatling header guard to module boundaries", async () => {
@@ -113,6 +159,93 @@ describe("cannon types", () => {
 
   it("ports ZCannon CanSetWaypoints as enabled waypoint orders", () => {
     expect(canCannonSetWaypoints()).toBe(true);
+  });
+
+  it("replaces CGun DoRender with the passive image and clears hit effect", () => {
+    const state = createGunCannonRenderState();
+    const map: GunCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGunCannon(state, map)).toEqual({
+      surface: { name: "blue-passive-3" },
+      x: 320 + GUN_CANNON_UNIT_X_PIXELS,
+      y: 240 + GUN_CANNON_UNIT_Y_PIXELS,
+      renderHit: true,
+      aboutCenter: false,
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGun DoRender with the wasted image while destroyed", () => {
+    const state = createGunCannonRenderState({
+      destroyed: true,
+      doHitEffect: false,
+    });
+    const map: GunCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGunCannon(state, map)).toEqual({
+      surface: { name: "wasted" },
+      x: 320 + GUN_CANNON_UNIT_X_PIXELS,
+      y: 240 + GUN_CANNON_UNIT_Y_PIXELS,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces CGun DoRender with initial placement frames before team frames", () => {
+    const state = createGunCannonRenderState({
+      mode: ObjectMode.JustPlaced,
+      placeIndex: 2,
+    });
+    const map: GunCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGunCannon(state, map)?.surface).toEqual({
+      name: "init-place-2",
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGun DoRender with team placement frames after initial placement", () => {
+    const state = createGunCannonRenderState({
+      mode: ObjectMode.JustPlaced,
+      placeIndex: 5,
+    });
+    const map: GunCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGunCannon(state, map)?.surface).toEqual({
+      name: "blue-place-2",
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGun DoRender as no command when the selected image is missing", () => {
+    const state = createGunCannonRenderState({
+      passiveImages: [],
+      doHitEffect: true,
+    });
+    const map: GunCannonRenderMap<CannonRenderImage> = {
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderGunCannon(state, map)).toBeNull();
+    expect(state.doHitEffect).toBe(false);
   });
 
   it("ports ZCannon Init as cannon placement image loading", () => {

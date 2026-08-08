@@ -11,6 +11,7 @@ import {
 } from "../CannonDeathEffect";
 import type { LightRocketEffectSpawn } from "../LightRocketEffect";
 import type { MissileCannonRocketsEffectSpawn } from "../MissileCannonRocketsEffect";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
   MAX_ANGLE_TYPES,
@@ -83,6 +84,71 @@ export type GunCannonInitState<TSurface> = {
   place: readonly (readonly GunCannonImage<TSurface>[])[];
   loadImage(filename: string): TSurface | null;
 };
+
+export type GunCannonRenderState<TSurface> = {
+  position: { x: number; y: number };
+  destroyed: boolean;
+  mode: ObjectMode | number;
+  owner: TeamType | number;
+  direction: number;
+  placeIndex: number;
+  doHitEffect: boolean;
+  wastedImage: TSurface | null;
+  initPlaceImages: readonly (TSurface | null | undefined)[];
+  placeImages: readonly (readonly (TSurface | null | undefined)[] | null | undefined)[];
+  passiveImages: readonly (readonly (TSurface | null | undefined)[] | null | undefined)[];
+};
+
+export type GunCannonRenderMap<TSurface> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type GunCannonRenderCommand<TSurface> =
+  | MapSurfaceRenderCommand<TSurface>
+  | null;
+
+/**
+ * Replacement for upstream `CGun::DoRender`.
+ * Role: Builds the gun cannon render command and clears the hit-effect flag.
+ * Upstream: cgun.cpp:82-126
+ */
+export function renderGunCannon<TSurface>(
+  state: GunCannonRenderState<TSurface>,
+  zmap: GunCannonRenderMap<TSurface>,
+): GunCannonRenderCommand<TSurface> {
+  const surface = getGunCannonRenderSurface(state);
+  const renderHit = state.doHitEffect;
+  state.doHitEffect = false;
+
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x + GUN_CANNON_UNIT_X_PIXELS,
+    state.position.y + GUN_CANNON_UNIT_Y_PIXELS,
+    renderHit,
+    false,
+  );
+}
+
+function getGunCannonRenderSurface<TSurface>(
+  state: GunCannonRenderState<TSurface>,
+): TSurface | null | undefined {
+  if (state.destroyed) return state.wastedImage;
+
+  if (state.mode === ObjectMode.JustPlaced) {
+    if (state.placeIndex < 3) return state.initPlaceImages[state.placeIndex];
+    return state.placeImages[state.owner]?.[state.placeIndex - 3];
+  }
+
+  return state.passiveImages[state.owner]?.[state.direction];
+}
 
 /**
  * Port of upstream `CGun::Init`.

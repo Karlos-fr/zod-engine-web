@@ -3,11 +3,83 @@
  */
 
 import type { GameMap } from "../../world/GameMap";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 import {
   BuildingEntity,
   BuildingState,
   type BuildingShowTimeTextRenderer,
 } from "./BuildingTypes";
+
+export type RobotFactoryBaseImages<TSurface> = ReadonlyArray<
+  ReadonlyArray<TSurface | null | undefined> | null | undefined
+>;
+
+export type RobotFactoryRenderState<TSurface> = {
+  position: { x: number; y: number };
+  palette: number;
+  owner: number;
+  destroyed: boolean;
+  dontStamp: boolean;
+  doBaseRerender: boolean;
+  baseImages: RobotFactoryBaseImages<TSurface>;
+  destroyedBaseImages: RobotFactoryBaseImages<TSurface>;
+};
+
+export type RobotFactoryRenderMap<TSurface> = {
+  permStamp(x: number, y: number, surface: TSurface): boolean;
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type RobotFactoryRenderCommand<TSurface> =
+  | MapSurfaceRenderCommand<TSurface>
+  | null;
+
+/**
+ * Replacement for upstream `BRobot::DoRender`.
+ * Role: Stamps or renders the robot factory base image selected by palette, owner, and destruction state.
+ * Upstream: brobot.cpp:174-211
+ */
+export function renderRobotFactoryBase<TSurface>(
+  state: RobotFactoryRenderState<TSurface>,
+  zmap: RobotFactoryRenderMap<TSurface>,
+): RobotFactoryRenderCommand<TSurface> {
+  if (!state.dontStamp) {
+    if (!state.doBaseRerender) return null;
+
+    const surface = getRobotFactoryBaseSurface(state);
+    if (!surface) return null;
+
+    if (zmap.permStamp(state.position.x, state.position.y, surface)) {
+      state.doBaseRerender = false;
+    }
+
+    return null;
+  }
+
+  const surface = getRobotFactoryBaseSurface(state);
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x,
+    state.position.y,
+    false,
+    false,
+  );
+}
+
+function getRobotFactoryBaseSurface<TSurface>(
+  state: RobotFactoryRenderState<TSurface>,
+): TSurface | null | undefined {
+  const images = state.destroyed ? state.destroyedBaseImages : state.baseImages;
+  return images[state.palette]?.[state.owner];
+}
 
 /**
  * Browser simulation entity containing the subset of `BRobot` behavior already ported.

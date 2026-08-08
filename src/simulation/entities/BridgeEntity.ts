@@ -6,6 +6,7 @@ import { BuildingType, PlanetType, TeamType } from "../SimulationConstants";
 import type { BridgeTurrentEffectSpawn } from "../BridgeTurretEffect";
 import { pointsWithinArea } from "../Common";
 import { GameEntity } from "./GameEntity";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
 
 const BRIDGE_TURRENT_EFFECT_WIDTH = 140;
 const BRIDGE_TURRENT_EFFECT_HEIGHT = 140;
@@ -40,6 +41,33 @@ export type BridgeImpassableMap = {
   ): void;
 };
 
+export type BridgeRenderState<TSurface> = {
+  position: { x: number; y: number };
+  health: number;
+  maxHealth: number;
+  dontStamp: boolean;
+  doRerender: boolean;
+  doBaseRerender: boolean;
+  renderImage: TSurface | null;
+  renderDamagedImage: TSurface | null;
+  renderDestroyedImage: TSurface | null;
+};
+
+export type BridgeRenderMap<TSurface> = {
+  permStamp(x: number, y: number, surface: TSurface): boolean;
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type BridgeRenderCommand<TSurface> =
+  | MapSurfaceRenderCommand<TSurface>
+  | null;
+
 /**
  * Port of upstream `BBridge::Init`.
  * Role: Loads one bridge template image per planet palette.
@@ -53,6 +81,51 @@ export function initBridgePlanetTemplates(
       `assets/planets/bridge_${BRIDGE_PLANET_TYPE_ASSET_NAMES[i]}.png`,
     );
   }
+}
+
+/**
+ * Replacement for upstream `BBridge::DoRender`.
+ * Role: Stamps or renders the bridge cached image selected by damage state.
+ * Upstream: bbridge.cpp:72-117
+ */
+export function renderBridgeBase<TSurface>(
+  state: BridgeRenderState<TSurface>,
+  zmap: BridgeRenderMap<TSurface>,
+  reRenderImages: () => void = (): void => undefined,
+): BridgeRenderCommand<TSurface> {
+  if (state.doRerender) reRenderImages();
+
+  if (state.dontStamp) {
+    const surface = getBridgeRenderSurface(state);
+    if (!surface) return null;
+
+    return zmap.renderZSurface(
+      surface,
+      state.position.x,
+      state.position.y,
+      false,
+      false,
+    );
+  }
+
+  if (!state.doBaseRerender) return null;
+
+  const surface = getBridgeRenderSurface(state);
+  if (!surface) return null;
+
+  if (zmap.permStamp(state.position.x, state.position.y, surface)) {
+    state.doBaseRerender = false;
+  }
+
+  return null;
+}
+
+function getBridgeRenderSurface<TSurface>(
+  state: BridgeRenderState<TSurface>,
+): TSurface | null {
+  if (state.health >= state.maxHealth >> 1) return state.renderImage;
+  if (!(state.health <= 0 && state.maxHealth > 0)) return state.renderDamagedImage;
+  return state.renderDestroyedImage;
 }
 
 /**

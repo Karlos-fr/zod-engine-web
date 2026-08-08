@@ -4,6 +4,82 @@
 
 import { BuildingEntity } from "./BuildingTypes";
 import type { GameMap } from "../../world/GameMap";
+import type { MapSurfaceRenderCommand } from "../../world/GameMap";
+
+export type RadarBuildingBaseImages<TSurface> = ReadonlyArray<
+  ReadonlyArray<TSurface | null | undefined> | null | undefined
+>;
+
+export type RadarBuildingDestroyedBaseImages<TSurface> = ReadonlyArray<
+  TSurface | null | undefined
+>;
+
+export type RadarBuildingRenderState<TSurface> = {
+  position: { x: number; y: number };
+  palette: number;
+  owner: number;
+  destroyed: boolean;
+  dontStamp: boolean;
+  doBaseRerender: boolean;
+  baseImages: RadarBuildingBaseImages<TSurface>;
+  destroyedBaseImages: RadarBuildingDestroyedBaseImages<TSurface>;
+};
+
+export type RadarBuildingRenderMap<TSurface> = {
+  permStamp(x: number, y: number, surface: TSurface): boolean;
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): MapSurfaceRenderCommand<TSurface>;
+};
+
+export type RadarBuildingRenderCommand<TSurface> =
+  | MapSurfaceRenderCommand<TSurface>
+  | null;
+
+/**
+ * Replacement for upstream `BRadar::DoRender`.
+ * Role: Stamps or renders the radar building base image selected by palette, owner, and destruction state.
+ * Upstream: bradar.cpp:142-188
+ */
+export function renderRadarBuildingBase<TSurface>(
+  state: RadarBuildingRenderState<TSurface>,
+  zmap: RadarBuildingRenderMap<TSurface>,
+): RadarBuildingRenderCommand<TSurface> {
+  if (!state.dontStamp) {
+    if (!state.doBaseRerender) return null;
+
+    const surface = getRadarBuildingBaseSurface(state);
+    if (!surface) return null;
+
+    if (zmap.permStamp(state.position.x, state.position.y, surface)) {
+      state.doBaseRerender = false;
+    }
+
+    return null;
+  }
+
+  const surface = getRadarBuildingBaseSurface(state);
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x,
+    state.position.y,
+    false,
+    false,
+  );
+}
+
+function getRadarBuildingBaseSurface<TSurface>(
+  state: RadarBuildingRenderState<TSurface>,
+): TSurface | null | undefined {
+  if (state.destroyed) return state.destroyedBaseImages[state.palette];
+  return state.baseImages[state.palette]?.[state.owner];
+}
 
 /**
  * Browser simulation entity containing the subset of `BRadar` behavior already ported.
