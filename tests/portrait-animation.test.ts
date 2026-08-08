@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addPortraitAnimationFrame,
   clearPortraitRobotId,
+  getPortraitBlitInfo,
   getPortraitRefId,
   isPortraitDoingAnimation,
   PORTRAIT_BASE_HEIGHT_PIXELS,
@@ -202,6 +203,36 @@ describe("portrait animation", () => {
     expect(graphics.hand.every((surface) => surface === null)).toBe(true);
     expect(graphics.mouth.every((surface) => surface === null)).toBe(true);
     expect(graphics.shoulders).toBeNull();
+  });
+
+  it("ports ZPortrait GetBlitInfo as fixed portrait viewport clipping", () => {
+    expect(getPortraitBlitInfo(null, 4, 2)).toBeNull();
+    expect(getPortraitBlitInfo({ width: 8, height: 8 }, 90, 2)).toBeNull();
+    expect(getPortraitBlitInfo({ width: 8, height: 8 }, 4, 80)).toBeNull();
+    expect(getPortraitBlitInfo({ width: 12, height: 10 }, 4, 2)).toEqual({
+      sourceX: 0,
+      sourceY: 0,
+      width: 12,
+      height: 10,
+      destinationX: 4,
+      destinationY: 2,
+    });
+    expect(getPortraitBlitInfo({ width: 16, height: 12 }, -6, -3)).toEqual({
+      sourceX: 6,
+      sourceY: 3,
+      width: 10,
+      height: 9,
+      destinationX: 0,
+      destinationY: 0,
+    });
+    expect(getPortraitBlitInfo({ width: 20, height: 12 }, 80, 70)).toEqual({
+      sourceX: 0,
+      sourceY: 0,
+      width: 6,
+      height: 4,
+      destinationX: 80,
+      destinationY: 70,
+    });
   });
 
   it("ports SetRefID as active portrait reference assignment", () => {

@@ -7,6 +7,7 @@ import {
   type PermanentRenderableStampBlitCommand,
   type MapSurfaceRenderCommand,
   type MapViewportRenderCommand,
+  replaceUnusableTiles,
   updateMapPalettesTileFormat,
   writeMapPaletteTileInfo,
 } from "../src/world/GameMap";
@@ -199,6 +200,69 @@ describe("GameMap", () => {
       takesTankTracks: false,
       craterType: -1,
     });
+  });
+
+  it("ports ZMap::ReplaceUnusableTiles as starter tile substitution", () => {
+    const planetTileInfo = Array.from({ length: PlanetType.Max }, () =>
+      Array.from({ length: MAX_PLANET_TILES }, () => ({
+        ...paletteTileInfo,
+        isUsable: false,
+        isStarterTile: false,
+      })),
+    );
+    planetTileInfo[PlanetType.Jungle]![3] = {
+      ...paletteTileInfo,
+      isUsable: true,
+    };
+    planetTileInfo[PlanetType.Jungle]![8] = {
+      ...paletteTileInfo,
+      isUsable: false,
+      isStarterTile: true,
+    };
+    planetTileInfo[PlanetType.Jungle]![13] = {
+      ...paletteTileInfo,
+      isUsable: false,
+      isStarterTile: true,
+    };
+    const mapTiles = [
+      { tile: 3 },
+      { tile: 4 },
+      { tile: 999 },
+      { tile: 5 },
+      { tile: 6 },
+    ];
+
+    replaceUnusableTiles(
+      2,
+      2,
+      PlanetType.Jungle,
+      mapTiles,
+      planetTileInfo,
+      () => 1,
+    );
+
+    expect(mapTiles).toEqual([
+      { tile: 3 },
+      { tile: 13 },
+      { tile: 13 },
+      { tile: 13 },
+      { tile: 6 },
+    ]);
+  });
+
+  it("ports ZMap::ReplaceUnusableTiles fallback when no starter tile exists", () => {
+    const planetTileInfo = Array.from({ length: PlanetType.Max }, () =>
+      Array.from({ length: MAX_PLANET_TILES }, () => ({
+        ...paletteTileInfo,
+        isUsable: false,
+        isStarterTile: false,
+      })),
+    );
+    const mapTiles = [{ tile: 4 }, { tile: 5 }, { tile: 6 }];
+
+    replaceUnusableTiles(2, 2, PlanetType.Desert, mapTiles, planetTileInfo);
+
+    expect(mapTiles).toEqual([{ tile: 0 }, { tile: 0 }, { tile: 0 }]);
   });
 
   it("ports ZMap::RebuildRegions as a pathfinding-region rebuild delegate", () => {
@@ -575,6 +639,54 @@ describe("GameMap", () => {
       y: 13,
       renderHit: true,
       aboutCenter: false,
+    });
+  });
+
+  it("ports ZMap::GetBlitInfo as map viewport clipping", () => {
+    const map = new GameMap({
+      width: 10,
+      height: 8,
+      tiles: Array.from({ length: 80 }, () => ({ terrain: "plain" })),
+      shiftX: 100,
+      shiftY: 50,
+      viewWidth: 320,
+      viewHeight: 200,
+    });
+
+    expect(map.getBlitInfo(null, 120, 70)).toBeNull();
+    expect(map.getBlitInfo({ width: 16, height: 16 }, 500, 70)).toBeNull();
+    expect(map.getBlitInfo({ width: 16, height: 16 }, 120, 300)).toBeNull();
+    expect(map.getBlitInfo({ width: 16, height: 16 }, 120, 70)).toEqual({
+      sourceX: 0,
+      sourceY: 0,
+      width: 16,
+      height: 16,
+      destinationX: 20,
+      destinationY: 20,
+    });
+    expect(map.getBlitInfo({ width: 80, height: 70 }, 60, 20)).toEqual({
+      sourceX: 40,
+      sourceY: 30,
+      width: 40,
+      height: 40,
+      destinationX: 0,
+      destinationY: 0,
+    });
+    expect(map.getBlitInfo({ width: 80, height: 70 }, 380, 220)).toEqual({
+      sourceX: 0,
+      sourceY: 0,
+      width: 40,
+      height: 30,
+      destinationX: 280,
+      destinationY: 170,
+    });
+    expect(map.getBlitInfoFromDimensions(60, 220, 80, 70)).toEqual({
+      sourceX: 40,
+      sourceY: 0,
+      width: 40,
+      height: 30,
+      destinationX: 0,
+      destinationY: 170,
     });
   });
 

@@ -221,6 +221,43 @@ export function updateMapPalettesTileFormat(
 }
 
 /**
+ * Port of upstream `ZMap::ReplaceUnusableTiles`.
+ * Role: Replaces unusable map cells with starter palette tiles for the terrain.
+ * Upstream: zmap.cpp:416-451
+ */
+export function replaceUnusableTiles(
+  width: number,
+  height: number,
+  terrainType: number,
+  mapTiles: MapTile[],
+  planetTileInfo: readonly (readonly PaletteTileInfo[])[],
+  randomInt: () => number = () => Math.floor(Math.random() * 2147483647),
+): void {
+  const paletteTiles = planetTileInfo[terrainType] ?? [];
+  const starterTiles: number[] = [];
+
+  for (let index = 0; index < MAX_PLANET_TILES; index += 1) {
+    if (paletteTiles[index]?.isStarterTile) starterTiles.push(index);
+  }
+
+  const tileCount = width * height;
+  for (let index = 0; index < tileCount; index += 1) {
+    const mapTile = mapTiles[index];
+    if (!mapTile) continue;
+
+    const tileInfo = paletteTiles[mapTile.tile];
+    if (tileInfo?.isUsable) continue;
+
+    if (starterTiles.length > 0) {
+      mapTile.tile =
+        starterTiles[Math.trunc(randomInt()) % starterTiles.length] ?? 0;
+    } else {
+      mapTile.tile = 0;
+    }
+  }
+}
+
+/**
  * Port of upstream `path_finder`.
  * Role: Provides delegated pathfinding operations owned by the map.
  * Upstream: zmap.h:255-261
@@ -542,6 +579,80 @@ export class GameMap {
       y: y - this.shiftY,
       renderHit,
       aboutCenter,
+    };
+  }
+
+  /**
+   * Port of upstream `ZMap::GetBlitInfo`.
+   * Role: Calculates source clipping and viewport destination for map-space blits.
+   * Upstream: zmap.cpp:1555-1595
+   */
+  getBlitInfo(
+    source: { width: number; height: number } | null,
+    x: number,
+    y: number,
+  ): SurfaceBlitRegion | null {
+    if (!source) return null;
+
+    return this.getBlitInfoFromDimensions(x, y, source.width, source.height);
+  }
+
+  /**
+   * Port of upstream `ZMap::GetBlitInfo`.
+   * Role: Calculates source clipping for a map-space rectangle with explicit dimensions.
+   * Upstream: zmap.cpp:1467-1553
+   */
+  getBlitInfoFromDimensions(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): SurfaceBlitRegion | null {
+    if (x > this.shiftX + this.viewWidth) return null;
+    if (y > this.shiftY + this.viewHeight) return null;
+    if (x + width < this.shiftX) return null;
+    if (y + height < this.shiftY) return null;
+
+    let destinationX = x - this.shiftX;
+    let destinationY = y - this.shiftY;
+    let sourceX: number;
+    let sourceY: number;
+    let clippedWidth: number;
+    let clippedHeight: number;
+
+    if (destinationX < 0) {
+      sourceX = -destinationX;
+      clippedWidth = width + destinationX;
+      destinationX += sourceX;
+      if (clippedWidth > this.viewWidth) clippedWidth = this.viewWidth;
+    } else if (destinationX + width > this.viewWidth) {
+      sourceX = 0;
+      clippedWidth = this.viewWidth - destinationX;
+    } else {
+      sourceX = 0;
+      clippedWidth = width;
+    }
+
+    if (destinationY < 0) {
+      sourceY = -destinationY;
+      clippedHeight = height + destinationY;
+      destinationY += sourceY;
+      if (clippedHeight > this.viewHeight) clippedHeight = this.viewHeight;
+    } else if (destinationY + height > this.viewHeight) {
+      sourceY = 0;
+      clippedHeight = this.viewHeight - destinationY;
+    } else {
+      sourceY = 0;
+      clippedHeight = height;
+    }
+
+    return {
+      sourceX,
+      sourceY,
+      width: clippedWidth,
+      height: clippedHeight,
+      destinationX,
+      destinationY,
     };
   }
 

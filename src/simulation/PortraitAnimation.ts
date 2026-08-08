@@ -36,6 +36,20 @@ export const PORTRAIT_BASE_WIDTH_PIXELS = 86;
 export const PORTRAIT_BASE_HEIGHT_PIXELS = 74;
 
 /**
+ * Browser-side replacement for the SDL source/destination rectangle pair.
+ * Role: Carries the copied portrait region dimensions and destination position.
+ * Upstream: zportrait.cpp:10945-10987
+ */
+export type PortraitBlitInfo = {
+  sourceX: number;
+  sourceY: number;
+  width: number;
+  height: number;
+  destinationX: number;
+  destinationY: number;
+};
+
+/**
  * Port of upstream `MAX_EYES`.
  * Role: Defines the number of eye sprite variants.
  * Upstream: zportrait.h:19
@@ -242,6 +256,68 @@ export class PortraitUnitGraphics<TSurface = unknown> {
     this.hand = Array.from({ length: PORTRAIT_MAX_HANDS }, () => null);
     this.mouth = Array.from({ length: PORTRAIT_MAX_MOUTHS }, () => null);
   }
+}
+
+/**
+ * Port of upstream `ZPortrait::GetBlitInfo`.
+ * Role: Calculates source clipping and portrait destination for sprite blits.
+ * Upstream: zportrait.cpp:10945-10987
+ */
+export function getPortraitBlitInfo(
+  source: { width: number; height: number } | null,
+  x: number,
+  y: number,
+): PortraitBlitInfo | null {
+  if (!source) return null;
+
+  if (x > PORTRAIT_BASE_WIDTH_PIXELS) return null;
+  if (y > PORTRAIT_BASE_HEIGHT_PIXELS) return null;
+  if (x + source.width < 0) return null;
+  if (y + source.height < 0) return null;
+
+  let destinationX = x;
+  let destinationY = y;
+  let sourceX: number;
+  let sourceY: number;
+  let width: number;
+  let height: number;
+
+  if (destinationX < 0) {
+    sourceX = -destinationX;
+    width = source.width + destinationX;
+    destinationX += sourceX;
+    if (width > PORTRAIT_BASE_WIDTH_PIXELS) width = PORTRAIT_BASE_WIDTH_PIXELS;
+  } else if (destinationX + source.width > PORTRAIT_BASE_WIDTH_PIXELS) {
+    sourceX = 0;
+    width = PORTRAIT_BASE_WIDTH_PIXELS - destinationX;
+  } else {
+    sourceX = 0;
+    width = source.width;
+  }
+
+  if (destinationY < 0) {
+    sourceY = -destinationY;
+    height = source.height + destinationY;
+    destinationY += sourceY;
+    if (height > PORTRAIT_BASE_HEIGHT_PIXELS) {
+      height = PORTRAIT_BASE_HEIGHT_PIXELS;
+    }
+  } else if (destinationY + source.height > PORTRAIT_BASE_HEIGHT_PIXELS) {
+    sourceY = 0;
+    height = PORTRAIT_BASE_HEIGHT_PIXELS - destinationY;
+  } else {
+    sourceY = 0;
+    height = source.height;
+  }
+
+  return {
+    sourceX,
+    sourceY,
+    width,
+    height,
+    destinationX,
+    destinationY,
+  };
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   FLAME_BULLET_FRAME_COUNT,
   initFlameEffect,
   processFlameEffect,
+  renderFlameEffect,
   type FlameInitState,
   type FlameProcessState,
 } from "../src/simulation/FlameEffect";
@@ -104,5 +105,71 @@ describe("flame effect", () => {
     const noEffectListState = { ...state, killMe: false };
     processFlameEffect(noEffectListState, 13, null);
     expect(noEffectListState.killMe).toBe(true);
+  });
+
+  it("replaces EFlame DoRender with a map-relative frame command and random frame advance", () => {
+    const bulletImages = [
+      { id: "flame-0" },
+      { id: "flame-1" },
+      { id: "flame-2" },
+      { id: "flame-3" },
+    ];
+    const state = {
+      killMe: false,
+      x: 42,
+      y: 31,
+      bulletIndex: 1,
+      bulletImages,
+    };
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof bulletImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 10,
+          y: y - 20,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(renderFlameEffect(state, zmap, () => 3)).toEqual({
+      surface: bulletImages[1],
+      x: 32,
+      y: 11,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(state.bulletIndex).toBe(3);
+    expect(calls).toEqual([bulletImages[1], 42, 31, false, false]);
+  });
+
+  it("replaces EFlame DoRender as no command for killed or missing frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden flames should not render");
+      },
+    };
+
+    expect(
+      renderFlameEffect(
+        { killMe: true, x: 42, y: 31, bulletIndex: 0, bulletImages: [{}] },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderFlameEffect(
+        { killMe: false, x: 42, y: 31, bulletIndex: 7, bulletImages: [] },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

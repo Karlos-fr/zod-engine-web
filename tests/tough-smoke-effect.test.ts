@@ -3,6 +3,7 @@ import {
   ETOUGH_SMOKE_HEADER_GUARD_PORTED,
   initToughSmokeEffect,
   processToughSmokeEffect,
+  renderToughSmokeEffect,
   TOUGH_SMOKE_FRAME_COUNT,
   TOUGH_SMOKE_PROCESS_INTERVAL_SECONDS,
   type ToughSmokeInitState,
@@ -91,5 +92,67 @@ describe("tough smoke effect", () => {
 
     expect(state.renderIndex).toBe(TOUGH_SMOKE_FRAME_COUNT);
     expect(state.killMe).toBe(true);
+  });
+
+  it("replaces EToughSmoke DoRender with a centered map-relative smoke frame command", () => {
+    const renderImages = [
+      { id: "smoke-0" },
+      { id: "smoke-1" },
+      { id: "smoke-2" },
+    ];
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof renderImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 2,
+          y: y - 3,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderToughSmokeEffect(
+        { killMe: false, x: 24, y: 18, renderIndex: 2, renderImages },
+        zmap,
+      ),
+    ).toEqual({
+      surface: renderImages[2],
+      x: 22,
+      y: 15,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(calls).toEqual([renderImages[2], 24, 18, false, true]);
+  });
+
+  it("replaces EToughSmoke DoRender as no command for killed or missing frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden tough smoke should not render");
+      },
+    };
+
+    expect(
+      renderToughSmokeEffect(
+        { killMe: true, x: 24, y: 18, renderIndex: 0, renderImages: [{}] },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderToughSmokeEffect(
+        { killMe: false, x: 24, y: 18, renderIndex: 9, renderImages: [] },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

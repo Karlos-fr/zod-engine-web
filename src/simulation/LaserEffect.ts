@@ -37,6 +37,33 @@ export type LaserProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for the laser projectile surface.
+ * Upstream: elaser.cpp:84
+ */
+export type LaserRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `ELaser::DoRender`.
+ * Role: Holds the laser projectile surface and visibility state.
+ * Upstream: elaser.cpp:78-87
+ */
+export type LaserRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  bulletImage: TSurface;
+};
+
+/**
  * Port of upstream `ELaser::Init`.
  * Role: Initializes laser bullet frame asset paths.
  * Upstream: elaser.cpp:50-62
@@ -66,4 +93,18 @@ export function processLaserEffect(
 
   state.x = state.sx + state.dx * (currentTime - state.initTime);
   state.y = state.sy + state.dy * (currentTime - state.initTime);
+}
+
+/**
+ * Replacement for upstream `ELaser::DoRender`.
+ * Role: Builds the map-relative laser projectile render command.
+ * Upstream: elaser.cpp:78-87
+ */
+export function renderLaserEffect<TSurface, TCommand>(
+  state: LaserRenderState<TSurface>,
+  zmap: LaserRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  return zmap.renderZSurface(state.bulletImage, state.x, state.y, false, false);
 }

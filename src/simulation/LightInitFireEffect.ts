@@ -44,6 +44,34 @@ export type LightInitFireProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for the muzzle-flash frame.
+ * Upstream: elightinitfire.cpp:58
+ */
+export type LightInitFireRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `ELightInitFire::DoRender`.
+ * Role: Holds the muzzle-flash frame selection and visibility state.
+ * Upstream: elightinitfire.cpp:52-61
+ */
+export type LightInitFireRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  renderIndex: number;
+  renderImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `ELightInitFire::Init`.
  * Role: Initializes light-tank muzzle-flash frame asset paths.
  * Upstream: elightinitfire.cpp:24-36
@@ -73,4 +101,21 @@ export function processLightInitFireEffect(
       currentTime + LIGHT_INIT_FIRE_PROCESS_INTERVAL_SECONDS;
     state.killMe = true;
   }
+}
+
+/**
+ * Replacement for upstream `ELightInitFire::DoRender`.
+ * Role: Builds the map-relative light-tank muzzle-flash render command.
+ * Upstream: elightinitfire.cpp:52-61
+ */
+export function renderLightInitFireEffect<TSurface, TCommand>(
+  state: LightInitFireRenderState<TSurface>,
+  zmap: LightInitFireRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.renderImages[state.renderIndex];
+  if (!surface) return null;
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, false);
 }

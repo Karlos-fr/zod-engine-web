@@ -5,6 +5,7 @@ import {
   type LaserInitState,
   type LaserProcessState,
   processLaserEffect,
+  renderLaserEffect,
 } from "../src/simulation/LaserEffect";
 
 describe("laser effect", () => {
@@ -62,5 +63,57 @@ describe("laser effect", () => {
     expect(state.killMe).toBe(true);
     expect(state.x).toBe(3);
     expect(state.y).toBe(4);
+  });
+
+  it("replaces ELaser DoRender with a map-relative projectile command", () => {
+    const surface = { id: "laser-bullet" };
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        renderSurface: typeof surface,
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(renderSurface, x, y, renderHit, aboutCenter);
+        return {
+          surface: renderSurface,
+          x: x - 12,
+          y: y - 8,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderLaserEffect(
+        { killMe: false, x: 30, y: 20, bulletImage: surface },
+        zmap,
+      ),
+    ).toEqual({
+      surface,
+      x: 18,
+      y: 12,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(calls).toEqual([surface, 30, 20, false, false]);
+  });
+
+  it("replaces ELaser DoRender as no command after the effect is killed", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("killed lasers should not render");
+      },
+    };
+
+    expect(
+      renderLaserEffect(
+        { killMe: true, x: 30, y: 20, bulletImage: { id: "laser-bullet" } },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

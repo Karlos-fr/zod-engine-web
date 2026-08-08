@@ -5,6 +5,7 @@ import {
   calcToughRocketTimeD2,
   initToughRocketEffect,
   placeToughRocketSmoke,
+  renderToughRocketEffect,
   TOUGH_ROCKET_BULLET_FRAME_COUNT,
   type ToughRocketInitState,
   type ToughRocketSmokePlacementState,
@@ -84,5 +85,72 @@ describe("tough rocket effect", () => {
 
     expect(state.lastSmokeTime).toBe(2);
     expect(effects).toEqual([]);
+  });
+
+  it("replaces EToughRocket DoRender with a centered map-relative projectile command", () => {
+    const bulletImages = [{ id: "tough-rocket-0" }, { id: "tough-rocket-1" }];
+    const state = {
+      killMe: false,
+      x: 80,
+      y: 45,
+      bulletIndex: 1,
+      bulletImages,
+    };
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof bulletImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 16,
+          y: y - 11,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(renderToughRocketEffect(state, zmap)).toEqual({
+      surface: bulletImages[0],
+      x: 64,
+      y: 34,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(state.bulletIndex).toBe(0);
+    expect(calls).toEqual([bulletImages[0], 80, 45, false, true]);
+  });
+
+  it("replaces EToughRocket DoRender as no command for killed or missing projectile frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden tough rockets should not render");
+      },
+    };
+
+    expect(
+      renderToughRocketEffect(
+        {
+          killMe: true,
+          x: 80,
+          y: 45,
+          bulletIndex: 1,
+          bulletImages: [{ id: "tough-rocket-0" }],
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderToughRocketEffect(
+        { killMe: false, x: 80, y: 45, bulletIndex: 1, bulletImages: [] },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

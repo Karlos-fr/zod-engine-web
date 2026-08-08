@@ -56,6 +56,34 @@ export type ToughSmokeProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a centered map-relative render command for a tough-smoke frame.
+ * Upstream: etoughsmoke.cpp:69
+ */
+export type ToughSmokeRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EToughSmoke::DoRender`.
+ * Role: Holds the active tough-smoke frame and visibility state.
+ * Upstream: etoughsmoke.cpp:63-72
+ */
+export type ToughSmokeRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  renderIndex: number;
+  renderImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `EToughSmoke::Init`.
  * Role: Initializes tough-smoke frame asset paths.
  * Upstream: etoughsmoke.cpp:32-44
@@ -87,4 +115,21 @@ export function processToughSmokeEffect(
     state.renderIndex += 1;
     if (state.renderIndex >= TOUGH_SMOKE_FRAME_COUNT) state.killMe = true;
   }
+}
+
+/**
+ * Replacement for upstream `EToughSmoke::DoRender`.
+ * Role: Builds the centered map-relative tough-smoke frame render command.
+ * Upstream: etoughsmoke.cpp:63-72
+ */
+export function renderToughSmokeEffect<TSurface, TCommand>(
+  state: ToughSmokeRenderState<TSurface>,
+  zmap: ToughSmokeRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.renderImages[state.renderIndex];
+  if (!surface) return null;
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, true);
 }

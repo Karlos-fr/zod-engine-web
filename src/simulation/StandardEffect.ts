@@ -70,6 +70,34 @@ export type StandardEffectInitState = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a standard effect frame.
+ * Upstream: estandard.cpp:110
+ */
+export type StandardEffectRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EStandard::DoRender`.
+ * Role: Holds the active standard effect frame sequence and visibility state.
+ * Upstream: estandard.cpp:104-113
+ */
+export type StandardEffectRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  renderIndex: number;
+  renderImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `sort_estandards_func`.
  * Role: Orders standard effects by their bottom-y render coordinate.
  * Upstream: estandard.cpp:115-118
@@ -126,6 +154,23 @@ export function processStandardEffect(
     if (state.renderIndex >= state.maxRender) state.renderIndex = 0;
 
     state.nextProcessTime =
-      currentTime + STANDARD_EFFECT_PROCESS_INTERVAL_SECONDS;
+    currentTime + STANDARD_EFFECT_PROCESS_INTERVAL_SECONDS;
   }
+}
+
+/**
+ * Replacement for upstream `EStandard::DoRender`.
+ * Role: Builds the map-relative standard effect frame render command.
+ * Upstream: estandard.cpp:104-113
+ */
+export function renderStandardEffect<TSurface, TCommand>(
+  state: StandardEffectRenderState<TSurface>,
+  zmap: StandardEffectRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.renderImages[state.renderIndex];
+  if (!surface) return null;
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, false);
 }

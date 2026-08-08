@@ -8,6 +8,7 @@ import {
   initRobotDeathEffect,
   processRobotDeathEffect,
   ROBOT_DEATH_PROCESS_INTERVAL_SECONDS,
+  renderRobotDeathEffect,
   type RobotDeathProcessState,
 } from "../src/simulation/RobotDeathEffect";
 
@@ -178,5 +179,67 @@ describe("robot death effect", () => {
 
     expect(state.renderIndex).toBe(5);
     expect(state.killMe).toBe(true);
+  });
+
+  it("replaces ERobotDeath DoRender with a map-relative death frame command", () => {
+    const renderImages = [
+      { id: "robot-death-0" },
+      { id: "robot-death-1" },
+      { id: "robot-death-2" },
+    ];
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof renderImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 6,
+          y: y - 8,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderRobotDeathEffect(
+        { killMe: false, x: 72, y: 48, renderIndex: 1, renderImages },
+        zmap,
+      ),
+    ).toEqual({
+      surface: renderImages[1],
+      x: 66,
+      y: 40,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(calls).toEqual([renderImages[1], 72, 48, false, false]);
+  });
+
+  it("replaces ERobotDeath DoRender as no command for killed or missing frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden robot death should not render");
+      },
+    };
+
+    expect(
+      renderRobotDeathEffect(
+        { killMe: true, x: 72, y: 48, renderIndex: 0, renderImages: [{}] },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderRobotDeathEffect(
+        { killMe: false, x: 72, y: 48, renderIndex: 9, renderImages: [] },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

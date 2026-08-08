@@ -41,6 +41,34 @@ export type FlameProcessState<TTime = unknown> = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for the flame projectile frame.
+ * Upstream: eflame.cpp:97
+ */
+export type FlameRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EFlame::DoRender`.
+ * Role: Holds the flame projectile frame selection and visibility state.
+ * Upstream: eflame.cpp:91-103
+ */
+export type FlameRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  bulletIndex: number;
+  bulletImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `EFlame::Init`.
  * Role: Initializes pyro flame bullet frame asset paths.
  * Upstream: eflame.cpp:57-69
@@ -78,4 +106,25 @@ export function processFlameEffect<TTime>(
 
   state.x = state.startX + state.directionX * (currentTime - state.initTime);
   state.y = state.startY + state.directionY * (currentTime - state.initTime);
+}
+
+/**
+ * Replacement for upstream `EFlame::DoRender`.
+ * Role: Builds the map-relative flame projectile render command and advances its frame.
+ * Upstream: eflame.cpp:91-103
+ */
+export function renderFlameEffect<TSurface, TCommand>(
+  state: FlameRenderState<TSurface>,
+  zmap: FlameRenderMap<TSurface, TCommand>,
+  randomInt: () => number = () => Math.floor(Math.random() * 2147483647),
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.bulletImages[state.bulletIndex];
+  if (!surface) return null;
+
+  const command = zmap.renderZSurface(surface, state.x, state.y, false, false);
+  state.bulletIndex = Math.trunc(randomInt()) % FLAME_BULLET_FRAME_COUNT;
+
+  return command;
 }

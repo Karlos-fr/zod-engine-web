@@ -57,6 +57,35 @@ export type PyroFireProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a pyro-fire frame.
+ * Upstream: epyrofire.cpp:70
+ */
+export type PyroFireRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EPyroFire::DoRender`.
+ * Role: Holds the active pyro-fire frame and visibility state.
+ * Upstream: epyrofire.cpp:64-73
+ */
+export type PyroFireRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  fireIndex: number;
+  fireFrame: number;
+  fireImages: readonly (readonly TSurface[])[];
+};
+
+/**
  * Port of upstream `EPyroFire::Init`.
  * Role: Initializes pyro fire frame asset paths.
  * Upstream: epyrofire.cpp:32-45
@@ -93,4 +122,21 @@ export function processPyroFireEffect(
       state.killMe = true;
     }
   }
+}
+
+/**
+ * Replacement for upstream `EPyroFire::DoRender`.
+ * Role: Builds the map-relative pyro-fire frame render command.
+ * Upstream: epyrofire.cpp:64-73
+ */
+export function renderPyroFireEffect<TSurface, TCommand>(
+  state: PyroFireRenderState<TSurface>,
+  zmap: PyroFireRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.fireImages[state.fireIndex]?.[state.fireFrame];
+  if (!surface) return null;
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, false);
 }

@@ -43,6 +43,34 @@ export type ToughRocketSmokePlacementState<TTime = unknown> = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a centered map-relative render command for the tough rocket projectile.
+ * Upstream: etoughrocket.cpp:106
+ */
+export type ToughRocketRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EToughRocket::DoRender`.
+ * Role: Holds the tough rocket projectile frames and visibility state.
+ * Upstream: etoughrocket.cpp:100-113
+ */
+export type ToughRocketRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  bulletIndex: number;
+  bulletImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `EToughRocket::Init`.
  * Role: Initializes tough rocket bullet frame asset paths.
  * Upstream: etoughrocket.cpp:60-72
@@ -99,4 +127,24 @@ export function placeToughRocketSmoke<TTime>(
 
     state.lastSmokeTime += timeD2;
   }
+}
+
+/**
+ * Replacement for upstream `EToughRocket::DoRender`.
+ * Role: Builds the centered map-relative tough rocket projectile render command.
+ * Upstream: etoughrocket.cpp:100-113
+ */
+export function renderToughRocketEffect<TSurface, TCommand>(
+  state: ToughRocketRenderState<TSurface>,
+  zmap: ToughRocketRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.bulletImages[0];
+  if (!surface) return null;
+
+  const command = zmap.renderZSurface(surface, state.x, state.y, false, true);
+  state.bulletIndex = 0;
+
+  return command;
 }

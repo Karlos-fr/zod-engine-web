@@ -5,6 +5,7 @@ import {
   LIGHT_INIT_FIRE_FRAME_COUNT,
   LIGHT_INIT_FIRE_PROCESS_INTERVAL_SECONDS,
   processLightInitFireEffect,
+  renderLightInitFireEffect,
   type LightInitFireInitState,
   type LightInitFireProcessState,
 } from "../src/simulation/LightInitFireEffect";
@@ -69,5 +70,74 @@ describe("light init fire effect", () => {
       killMe: true,
       nextProcessTime: 12 + LIGHT_INIT_FIRE_PROCESS_INTERVAL_SECONDS,
     });
+  });
+
+  it("replaces ELightInitFire DoRender with a map-relative frame command", () => {
+    const renderImages = [
+      { id: "initfire-0" },
+      { id: "initfire-1" },
+      { id: "initfire-2" },
+      { id: "initfire-3" },
+    ];
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof renderImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 4,
+          y: y - 6,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderLightInitFireEffect(
+        { killMe: false, x: 40, y: 30, renderIndex: 2, renderImages },
+        zmap,
+      ),
+    ).toEqual({
+      surface: renderImages[2],
+      x: 36,
+      y: 24,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(calls).toEqual([renderImages[2], 40, 30, false, false]);
+  });
+
+  it("replaces ELightInitFire DoRender as no command for killed or missing frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden muzzle flashes should not render");
+      },
+    };
+
+    expect(
+      renderLightInitFireEffect(
+        {
+          killMe: true,
+          x: 40,
+          y: 30,
+          renderIndex: 0,
+          renderImages: [{ id: "initfire-0" }],
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderLightInitFireEffect(
+        { killMe: false, x: 40, y: 30, renderIndex: 9, renderImages: [] },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

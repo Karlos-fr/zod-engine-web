@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ELIGHT_ROCKET_HEADER_GUARD_PORTED,
   initLightRocketEffect,
+  renderLightRocketEffect,
   type LightRocketEffectSpawn,
   type LightRocketInitState,
 } from "../src/simulation/LightRocketEffect";
@@ -56,5 +57,63 @@ describe("light rocket effect", () => {
       extraLarge: 1,
       extraExtraLarge: 1,
     });
+  });
+
+  it("replaces ELightRocket DoRender with a map-relative projectile command", () => {
+    const bulletImage = { id: "light-rocket" };
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: typeof bulletImage,
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 14,
+          y: y - 9,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderLightRocketEffect(
+        { killMe: false, x: 64, y: 32, bulletImage },
+        zmap,
+      ),
+    ).toEqual({
+      surface: bulletImage,
+      x: 50,
+      y: 23,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(calls).toEqual([bulletImage, 64, 32, false, false]);
+  });
+
+  it("replaces ELightRocket DoRender as no command for killed or missing projectile image", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden light rockets should not render");
+      },
+    };
+
+    expect(
+      renderLightRocketEffect(
+        { killMe: true, x: 64, y: 32, bulletImage: { id: "light-rocket" } },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderLightRocketEffect(
+        { killMe: false, x: 64, y: 32, bulletImage: null },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

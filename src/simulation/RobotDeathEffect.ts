@@ -124,6 +124,34 @@ export type RobotDeathProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a robot-death frame.
+ * Upstream: erobotdeath.cpp:96
+ */
+export type RobotDeathRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `ERobotDeath::DoRender`.
+ * Role: Holds the active robot-death frame sequence and visibility state.
+ * Upstream: erobotdeath.cpp:90-99
+ */
+export type RobotDeathRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  renderIndex: number;
+  renderImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `ERobotDeath::Process`.
  * Role: Advances robot-death frames and expires after reaching the render limit.
  * Upstream: erobotdeath.cpp:73-88
@@ -141,4 +169,21 @@ export function processRobotDeathEffect(
     state.renderIndex += 1;
     if (state.renderIndex >= state.maxRenderIndex) state.killMe = true;
   }
+}
+
+/**
+ * Replacement for upstream `ERobotDeath::DoRender`.
+ * Role: Builds the map-relative robot-death frame render command.
+ * Upstream: erobotdeath.cpp:90-99
+ */
+export function renderRobotDeathEffect<TSurface, TCommand>(
+  state: RobotDeathRenderState<TSurface>,
+  zmap: RobotDeathRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.renderImages[state.renderIndex];
+  if (!surface) return null;
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, false);
 }

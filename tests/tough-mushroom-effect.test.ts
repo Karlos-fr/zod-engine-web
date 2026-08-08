@@ -3,6 +3,8 @@ import {
   ETOUGH_MUSHROOM_HEADER_GUARD_PORTED,
   initToughMushroomEffect,
   processToughMushroomEffect,
+  renderToughMushroomEffect,
+  TOUGH_MUSHROOM_FRAME_SHIFT_Y,
   TOUGH_MUSHROOM_FRAME_COUNT,
   TOUGH_MUSHROOM_PROCESS_INTERVAL_SECONDS,
   type ToughMushroomInitState,
@@ -95,5 +97,97 @@ describe("tough mushroom effect", () => {
 
     expect(state.renderIndex).toBe(TOUGH_MUSHROOM_FRAME_COUNT);
     expect(state.killMe).toBe(true);
+  });
+
+  it("replaces EToughMushroom DoRender with a scaled map-relative frame command", () => {
+    const sizes: number[] = [];
+    const baseImages = Array.from({ length: TOUGH_MUSHROOM_FRAME_COUNT }, (_, index) => ({
+      id: `mushroom-${index}`,
+      setSize(size: number) {
+        sizes.push(size);
+      },
+    }));
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof baseImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 12,
+          y: y - 6,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderToughMushroomEffect(
+        {
+          killMe: false,
+          x: 40,
+          y: 80,
+          zoomSize: 1.5,
+          renderIndex: 2,
+          baseImages,
+        },
+        zmap,
+      ),
+    ).toEqual({
+      surface: baseImages[2],
+      x: 28,
+      y: 77,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(sizes).toEqual([1.5]);
+    expect(calls).toEqual([
+      baseImages[2],
+      40,
+      80 + TOUGH_MUSHROOM_FRAME_SHIFT_Y[2] * 1.5,
+      false,
+      false,
+    ]);
+  });
+
+  it("replaces EToughMushroom DoRender as no command for killed or missing frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden tough mushrooms should not render");
+      },
+    };
+
+    expect(
+      renderToughMushroomEffect(
+        {
+          killMe: true,
+          x: 40,
+          y: 80,
+          zoomSize: 1.5,
+          renderIndex: 0,
+          baseImages: [{}],
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderToughMushroomEffect(
+        {
+          killMe: false,
+          x: 40,
+          y: 80,
+          zoomSize: 1.5,
+          renderIndex: 99,
+          baseImages: [],
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

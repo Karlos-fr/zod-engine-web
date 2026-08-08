@@ -4,6 +4,7 @@ import {
   initStandardEffect,
   isStandardEffectBefore,
   processStandardEffect,
+  renderStandardEffect,
   STANDARD_EFFECT_FRAME_COUNT,
   STANDARD_EFFECT_PROCESS_INTERVAL_SECONDS,
   StandardEffectObject,
@@ -139,5 +140,67 @@ describe("standard effect", () => {
     expect(state.nextProcessTime).toBe(
       10 + STANDARD_EFFECT_PROCESS_INTERVAL_SECONDS,
     );
+  });
+
+  it("replaces EStandard DoRender with a map-relative effect frame command", () => {
+    const renderImages = [
+      { id: "standard-0" },
+      { id: "standard-1" },
+      { id: "standard-2" },
+    ];
+    const calls: unknown[] = [];
+    const zmap = {
+      renderZSurface(
+        surface: (typeof renderImages)[number],
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ) {
+        calls.push(surface, x, y, renderHit, aboutCenter);
+        return {
+          surface,
+          x: x - 11,
+          y: y - 13,
+          renderHit,
+          aboutCenter,
+        };
+      },
+    };
+
+    expect(
+      renderStandardEffect(
+        { killMe: false, x: 90, y: 70, renderIndex: 2, renderImages },
+        zmap,
+      ),
+    ).toEqual({
+      surface: renderImages[2],
+      x: 79,
+      y: 57,
+      renderHit: false,
+      aboutCenter: false,
+    });
+    expect(calls).toEqual([renderImages[2], 90, 70, false, false]);
+  });
+
+  it("replaces EStandard DoRender as no command for killed or missing frames", () => {
+    const zmap = {
+      renderZSurface() {
+        throw new Error("hidden standard effects should not render");
+      },
+    };
+
+    expect(
+      renderStandardEffect(
+        { killMe: true, x: 90, y: 70, renderIndex: 0, renderImages: [{}] },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderStandardEffect(
+        { killMe: false, x: 90, y: 70, renderIndex: 9, renderImages: [] },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

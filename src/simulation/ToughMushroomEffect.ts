@@ -24,6 +24,26 @@ export const TOUGH_MUSHROOM_FRAME_COUNT = 12;
 export const TOUGH_MUSHROOM_PROCESS_INTERVAL_SECONDS = 0.08;
 
 /**
+ * Port of upstream `etoughmushroom_shift_y`.
+ * Role: Defines per-frame vertical offsets for scaled tough mushroom rendering.
+ * Upstream: etoughmushroom.cpp:5-18
+ */
+export const TOUGH_MUSHROOM_FRAME_SHIFT_Y = [
+  14,
+  9,
+  2,
+  0,
+  0,
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+] as const;
+
+/**
  * Port of upstream `EToughMushroom` image state.
  * Role: Stores tough mushroom base image asset paths and initialization status.
  * Upstream: etoughmushroom.cpp:47-60
@@ -42,6 +62,44 @@ export type ToughMushroomProcessState = {
   killMe: boolean;
   renderIndex: number;
   nextProcessTime: number;
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::SetSize` dependency.
+ * Role: Provides the scale update applied to the tough mushroom frame before rendering.
+ * Upstream: etoughmushroom.cpp:85
+ */
+export type ToughMushroomRenderSurface = {
+  setSize?(size: number): void;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a scaled tough mushroom frame.
+ * Upstream: etoughmushroom.cpp:87
+ */
+export type ToughMushroomRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EToughMushroom::DoRender`.
+ * Role: Holds the active tough mushroom frame, scale, and visibility state.
+ * Upstream: etoughmushroom.cpp:79-91
+ */
+export type ToughMushroomRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  zoomSize: number;
+  renderIndex: number;
+  baseImages: readonly TSurface[];
 };
 
 /**
@@ -78,4 +136,33 @@ export function processToughMushroomEffect(
     state.renderIndex += 1;
     if (state.renderIndex >= TOUGH_MUSHROOM_FRAME_COUNT) state.killMe = true;
   }
+}
+
+/**
+ * Replacement for upstream `EToughMushroom::DoRender`.
+ * Role: Builds the map-relative scaled tough mushroom frame render command.
+ * Upstream: etoughmushroom.cpp:79-91
+ */
+export function renderToughMushroomEffect<
+  TSurface extends ToughMushroomRenderSurface,
+  TCommand,
+>(
+  state: ToughMushroomRenderState<TSurface>,
+  zmap: ToughMushroomRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.baseImages[state.renderIndex];
+  if (!surface) return null;
+
+  surface.setSize?.(state.zoomSize);
+
+  return zmap.renderZSurface(
+    surface,
+    state.x,
+    state.y +
+      (TOUGH_MUSHROOM_FRAME_SHIFT_Y[state.renderIndex] ?? 0) * state.zoomSize,
+    false,
+    false,
+  );
 }
