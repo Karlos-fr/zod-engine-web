@@ -5,7 +5,10 @@ import {
   loadMapPaletteInfo,
   type PermanentStampBlitCommand,
   type PermanentRenderableStampBlitCommand,
+  type FullMapRenderSurfaceFactory,
   type MapSurfaceRenderCommand,
+  type MapSurfaceRepeatBlitCommand,
+  type MapTileRenderCommand,
   type MapViewportRenderCommand,
   replaceUnusableTiles,
   updateMapPalettesTileFormat,
@@ -584,6 +587,110 @@ describe("GameMap", () => {
     expect(GameMap.createFlat({ width: 1, height: 1 }).deRenderMap()).toBeUndefined();
   });
 
+  it("replaces ZMap::RenderMap as no commands while the map is not loaded", () => {
+    const map = GameMap.createFlat({ width: 1, height: 1 });
+
+    expect(
+      map.renderMap([{ getBaseSurface: () => ({}) }], () => {
+        throw new Error("createFullRenderSurface should not be called");
+      }),
+    ).toEqual([]);
+  });
+
+  it("replaces ZMap::RenderMap as full-render rebuild and tile blit commands", () => {
+    const oldSurface = { unload: vi.fn() };
+    const newSurface: FullMapRenderSurfaceState = { unload: vi.fn() };
+    const atlas = { getBaseSurface: () => ({ loaded: true }) };
+    const created: Array<[number, number]> = [];
+    const createFullRenderSurface: FullMapRenderSurfaceFactory<
+      FullMapRenderSurfaceState
+    > = (width, height) => {
+      created.push([width, height]);
+      return newSurface;
+    };
+    const map = new GameMap({
+      width: 2,
+      height: 2,
+      tiles: Array.from({ length: 4 }, () => ({ terrain: "plain" })),
+      mapTiles: [{ tile: 0 }, { tile: 1 }, { tile: 20 }, { tile: 21 }],
+      terrainType: PlanetType.Desert,
+      fullRenderSurface: oldSurface,
+      fileLoaded: true,
+    });
+
+    const commands = map.renderMap([atlas], createFullRenderSurface);
+
+    expect(oldSurface.unload).toHaveBeenCalledOnce();
+    expect(created).toEqual([[32, 32]]);
+    expect(map.fullRenderSurface).toBe(newSurface);
+    expect(commands).toEqual([
+      {
+        atlasSurface: atlas,
+        fullRenderSurface: newSurface,
+        source: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 16,
+          height: 16,
+          destinationX: 0,
+          destinationY: 0,
+        },
+      },
+      {
+        atlasSurface: atlas,
+        fullRenderSurface: newSurface,
+        source: {
+          sourceX: 16,
+          sourceY: 0,
+          width: 16,
+          height: 16,
+          destinationX: 16,
+          destinationY: 0,
+        },
+      },
+      {
+        atlasSurface: atlas,
+        fullRenderSurface: newSurface,
+        source: {
+          sourceX: 0,
+          sourceY: 16,
+          width: 16,
+          height: 16,
+          destinationX: 0,
+          destinationY: 16,
+        },
+      },
+      {
+        atlasSurface: atlas,
+        fullRenderSurface: newSurface,
+        source: {
+          sourceX: 16,
+          sourceY: 16,
+          width: 16,
+          height: 16,
+          destinationX: 16,
+          destinationY: 16,
+        },
+      },
+    ]);
+  });
+
+  it("replaces ZMap::RenderMap as creating the render surface before atlas guard", () => {
+    const newSurface: FullMapRenderSurfaceState = { unload: vi.fn() };
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      terrainType: PlanetType.Desert,
+      fileLoaded: true,
+    });
+
+    expect(
+      map.renderMap([{ getBaseSurface: () => null }], () => newSurface),
+    ).toEqual([]);
+    expect(map.fullRenderSurface).toBe(newSurface);
+  });
+
   it("ports ZMap::PlaceObject as an object-list append", () => {
     const map = GameMap.createFlat({ width: 1, height: 1 });
     const object: MapObject = {
@@ -640,6 +747,134 @@ describe("GameMap", () => {
       renderHit: true,
       aboutCenter: false,
     });
+  });
+
+  it("replaces ZMap::RenderZSurfaceHorzRepeat as clipped repeat blits", () => {
+    const surface = { baseSurface: { width: 16, height: 10 }, id: "road" };
+    const map = new GameMap({
+      width: 10,
+      height: 8,
+      tiles: Array.from({ length: 80 }, () => ({ terrain: "plain" })),
+      shiftX: 100,
+      shiftY: 50,
+      viewWidth: 48,
+      viewHeight: 32,
+    });
+
+    const commands: Array<MapSurfaceRepeatBlitCommand<typeof surface>> =
+      map.renderZSurfaceHorzRepeat(surface, 92, 55, 40, true);
+
+    expect(commands).toEqual([
+      {
+        surface,
+        region: {
+          sourceX: 8,
+          sourceY: 0,
+          width: 8,
+          height: 10,
+          destinationX: 0,
+          destinationY: 5,
+        },
+        renderHit: true,
+      },
+      {
+        surface,
+        region: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 16,
+          height: 10,
+          destinationX: 8,
+          destinationY: 5,
+        },
+        renderHit: true,
+      },
+      {
+        surface,
+        region: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 8,
+          height: 10,
+          destinationX: 24,
+          destinationY: 5,
+        },
+        renderHit: true,
+      },
+    ]);
+  });
+
+  it("replaces ZMap::RenderZSurfaceHorzRepeat as no commands without a base surface", () => {
+    const map = GameMap.createFlat({ width: 1, height: 1 });
+
+    expect(map.renderZSurfaceHorzRepeat(null, 0, 0, 16, false)).toEqual([]);
+    expect(
+      map.renderZSurfaceHorzRepeat({ baseSurface: null }, 0, 0, 16, false),
+    ).toEqual([]);
+  });
+
+  it("replaces ZMap::RenderZSurfaceVertRepeat as clipped repeat blits", () => {
+    const surface = { baseSurface: { width: 16, height: 10 }, id: "waterfall" };
+    const map = new GameMap({
+      width: 10,
+      height: 8,
+      tiles: Array.from({ length: 80 }, () => ({ terrain: "plain" })),
+      shiftX: 100,
+      shiftY: 50,
+      viewWidth: 48,
+      viewHeight: 32,
+    });
+
+    const commands: Array<MapSurfaceRepeatBlitCommand<typeof surface>> =
+      map.renderZSurfaceVertRepeat(surface, 104, 43, 26, false);
+
+    expect(commands).toEqual([
+      {
+        surface,
+        region: {
+          sourceX: 0,
+          sourceY: 7,
+          width: 16,
+          height: 3,
+          destinationX: 4,
+          destinationY: 0,
+        },
+        renderHit: false,
+      },
+      {
+        surface,
+        region: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 16,
+          height: 10,
+          destinationX: 4,
+          destinationY: 3,
+        },
+        renderHit: false,
+      },
+      {
+        surface,
+        region: {
+          sourceX: 0,
+          sourceY: 0,
+          width: 16,
+          height: 6,
+          destinationX: 4,
+          destinationY: 13,
+        },
+        renderHit: false,
+      },
+    ]);
+  });
+
+  it("replaces ZMap::RenderZSurfaceVertRepeat as no commands without a base surface", () => {
+    const map = GameMap.createFlat({ width: 1, height: 1 });
+
+    expect(map.renderZSurfaceVertRepeat(null, 0, 0, 16, false)).toEqual([]);
+    expect(
+      map.renderZSurfaceVertRepeat({ baseSurface: null }, 0, 0, 16, false),
+    ).toEqual([]);
   });
 
   it("ports ZMap::GetBlitInfo as map viewport clipping", () => {
@@ -1014,6 +1249,77 @@ describe("GameMap", () => {
       x: 0,
       y: 0,
     });
+  });
+
+  it("replaces ZMap::RenderTile as a full-map atlas tile blit command", () => {
+    const atlas = { id: "desert-atlas" };
+    const fullRenderSurface: FullMapRenderSurfaceState = { unload: vi.fn() };
+    const map = new GameMap({
+      width: 3,
+      height: 2,
+      tiles: Array.from({ length: 6 }, () => ({ terrain: "plain" })),
+      mapTiles: [
+        { tile: 0 },
+        { tile: 21 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+        { tile: 0 },
+      ],
+      terrainType: PlanetType.Desert,
+      fullRenderSurface,
+    });
+
+    const command: MapTileRenderCommand<typeof atlas, FullMapRenderSurfaceState> =
+      map.renderTile(1, [atlas])!;
+
+    expect(command).toEqual({
+      atlasSurface: atlas,
+      fullRenderSurface,
+      source: {
+        sourceX: 16,
+        sourceY: 16,
+        width: 16,
+        height: 16,
+        destinationX: 16,
+        destinationY: 0,
+      },
+    });
+  });
+
+  it("replaces ZMap::RenderTile as no command for invalid render inputs", () => {
+    const atlas = { id: "desert-atlas" };
+    const fullRenderSurface: FullMapRenderSurfaceState = { unload: vi.fn() };
+    const map = new GameMap({
+      width: 1,
+      height: 1,
+      tiles: [{ terrain: "plain" }],
+      mapTiles: [{ tile: 480 }],
+      terrainType: PlanetType.Desert,
+      fullRenderSurface,
+    });
+
+    expect(map.renderTile(0, [atlas])).toBeNull();
+    expect(map.renderTile(1, [atlas])).toBeNull();
+    expect(
+      new GameMap({
+        width: 1,
+        height: 1,
+        tiles: [{ terrain: "plain" }],
+        mapTiles: [{ tile: 0 }],
+        terrainType: PlanetType.Desert,
+      }).renderTile(0, [atlas]),
+    ).toBeNull();
+    expect(
+      new GameMap({
+        width: 1,
+        height: 1,
+        tiles: [{ terrain: "plain" }],
+        mapTiles: [{ tile: 0 }],
+        terrainType: PlanetType.Desert,
+        fullRenderSurface,
+      }).renderTile(0, []),
+    ).toBeNull();
   });
 
   it("ports ZMap::CoordIsRoad as palette road lookup at map pixels", () => {

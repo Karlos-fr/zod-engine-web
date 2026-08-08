@@ -71,6 +71,33 @@ export type DeathEffectProcessState<TTime = unknown> = {
   extraEffects: Array<{ process(): void }>;
 };
 
+export type DeathEffectRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+export type DeathEffectRenderChild<TMap, TCommand> = {
+  render(zmap: TMap): TCommand | null;
+};
+
+/**
+ * Replacement state for upstream `EDeath::DoRender`.
+ * Role: Tracks destroyed-vehicle sprite placement and child visual effects.
+ * Upstream: edeath.cpp:126-138
+ */
+export type DeathEffectRenderState<TSurface, TMap, TCommand> = {
+  killme: boolean;
+  x: number;
+  y: number;
+  wastedImage: TSurface | null;
+  extraEffects: readonly DeathEffectRenderChild<TMap, TCommand>[];
+};
+
 /**
  * Port of upstream `EDeath::Init`.
  * Role: Initializes vehicle destroyed-body image paths.
@@ -139,4 +166,32 @@ export function processDeathEffect<TTime>(
   for (const effect of state.extraEffects) {
     effect.process();
   }
+}
+
+/**
+ * Replacement for upstream `EDeath::DoRender`.
+ * Role: Builds destroyed-vehicle and child-effect render commands.
+ * Upstream: edeath.cpp:126-138
+ */
+export function renderDeathEffect<
+  TSurface,
+  TCommand,
+  TMap extends DeathEffectRenderMap<TSurface, TCommand>,
+>(state: DeathEffectRenderState<TSurface, TMap, TCommand>, zmap: TMap): TCommand[] {
+  if (state.killme) return [];
+
+  const commands: TCommand[] = [];
+
+  if (state.wastedImage) {
+    commands.push(
+      zmap.renderZSurface(state.wastedImage, state.x, state.y, false, false),
+    );
+  }
+
+  for (const effect of state.extraEffects) {
+    const command = effect.render(zmap);
+    if (command) commands.push(command);
+  }
+
+  return commands;
 }

@@ -40,6 +40,20 @@ export type HutObjectImpassableMap = {
   ): void;
 };
 
+export type HutExitPathFinder = {
+  tilePassable(tileX: number, tileY: number, includeOccupants: boolean): boolean;
+};
+
+export type HutExitMap = {
+  getPathFinder(): HutExitPathFinder;
+};
+
+export type HutExitTileResult = {
+  success: boolean;
+  x: number;
+  y: number;
+};
+
 /**
  * Minimal state consumed by ported `OHut::SetMaxHutAnimals`.
  * Role: Stores the configured animal count range and resulting hut animal cap.
@@ -220,6 +234,50 @@ export function unsetHutMapImpassables(
   const tileY = Math.trunc(state.y / 16);
 
   map.setImpassable(tileX, tileY, false, true);
+}
+
+/**
+ * Port of upstream `OHut::GetExitToTile`.
+ * Role: Finds a passable tile adjacent to the hut, preferring the tile below it.
+ * Upstream: ohut.cpp:161-201
+ */
+export function getHutExitToTile(
+  state: Pick<HutObjectState, "x" | "y">,
+  map: HutExitMap | null,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): HutExitTileResult {
+  const centerTileX = state.x >> 4;
+  const centerTileY = state.y >> 4;
+  const defaultExit = {
+    x: centerTileX,
+    y: centerTileY + 1,
+  };
+
+  if (!map) return { success: true, ...defaultExit };
+
+  const pathFinder = map.getPathFinder();
+  if (pathFinder.tilePassable(defaultExit.x, defaultExit.y, false)) {
+    return { success: true, ...defaultExit };
+  }
+
+  const possibleTiles: Array<{ x: number; y: number }> = [];
+
+  for (let tileX = centerTileX - 1; tileX <= centerTileX + 1; tileX += 1) {
+    for (let tileY = centerTileY - 1; tileY <= centerTileY + 1; tileY += 1) {
+      if (tileY === centerTileY && tileX === centerTileX) continue;
+      if (!pathFinder.tilePassable(tileX, tileY, false)) continue;
+
+      possibleTiles.push({ x: tileX, y: tileY });
+    }
+  }
+
+  if (possibleTiles.length > 0) {
+    const randomChoice = Math.trunc(randomInt(possibleTiles.length)) % possibleTiles.length;
+    return { success: true, ...possibleTiles[randomChoice] };
+  }
+
+  return { success: false, ...defaultExit };
 }
 
 /**

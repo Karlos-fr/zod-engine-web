@@ -5,8 +5,11 @@ import {
   clearRockRender,
   createRockMapEffects,
   deathRockMapEffects,
+  doRockDeathEffect,
   isRockDestroyableImpassable,
   OROCK_HEADER_GUARD_PORTED,
+  preRenderRockObject,
+  renderRockObject,
   rockCausesImpassAtCoord,
   processRockObject,
   setRockMapImpassables,
@@ -14,6 +17,7 @@ import {
   setRockOwner,
   unsetRockMapImpassables,
 } from "../src/simulation/RockObject";
+import { RockParticleType } from "../src/simulation/RockParticleEffect";
 
 describe("rock object", () => {
   it("adapts the orock.h include guard to an ES module marker", async () => {
@@ -88,6 +92,66 @@ describe("rock object", () => {
     expect(processRockObject()).toBe(1);
   });
 
+  it("ports ORock DoDeathEffect null effect list guard", () => {
+    expect(() =>
+      doRockDeathEffect(
+        { ztime: { now: 1 }, x: 20, y: 30, palette: PlanetType.Desert },
+        null,
+        true,
+        true,
+        () => {
+          throw new Error("randomInt should not be called");
+        },
+      ),
+    ).not.toThrow();
+  });
+
+  it("ports ORock DoDeathEffect as rock debris effect spawning", () => {
+    const ztime = { now: 1 };
+    const effects: Parameters<typeof doRockDeathEffect<typeof ztime>>[1] = [];
+    const randomValues = [5, 2, 1];
+
+    doRockDeathEffect(
+      { ztime, x: 20, y: 30, palette: PlanetType.Volcanic },
+      effects,
+      false,
+      false,
+      () => randomValues.shift() ?? 0,
+    );
+
+    expect(effects).toHaveLength(24);
+    expect(effects.slice(0, 17)).toEqual(
+      Array.from({ length: 17 }, () => ({
+        ztime,
+        x: 20,
+        y: 30,
+        palette: PlanetType.Volcanic,
+        particleType: RockParticleType.Small,
+        maxX: 80,
+        maxY: 60,
+      })),
+    );
+    expect(effects.slice(17, 23)).toEqual(
+      Array.from({ length: 6 }, () => ({
+        ztime,
+        x: 20,
+        y: 30,
+        palette: PlanetType.Volcanic,
+        particleType: RockParticleType.Mid,
+        maxX: 40,
+        maxY: 40,
+      })),
+    );
+    expect(effects[23]).toEqual({
+      ztime,
+      x: 20,
+      y: 30,
+      palette: PlanetType.Volcanic,
+      maxX: 140,
+      maxY: 140,
+    });
+  });
+
   it("replaces ORock ClearRender as clearing the 2 by 3 render cache", () => {
     const state = {
       renderImages: [
@@ -126,6 +190,204 @@ describe("rock object", () => {
       ["arctic-top", "arctic-mid", "arctic-bottom"],
       [null, null, null],
     ]);
+  });
+
+  it("replaces ORock DoPreRender with shifted clipped shadow blit commands", () => {
+    type BaseSurface = { width: number; height: number };
+    type Image = { id: string; getBaseSurface(): BaseSurface | null };
+
+    const shadow0: Image = {
+      id: "shadow-0",
+      getBaseSurface: () => ({ width: 16, height: 16 }),
+    };
+    const shadow1: Image = {
+      id: "shadow-1",
+      getBaseSurface: () => ({ width: 16, height: 16 }),
+    };
+    const calls: Array<[BaseSurface | null, number, number]> = [];
+    const state = {
+      x: 40,
+      y: 60,
+      renderImages: [
+        [],
+        [shadow0, null, shadow1],
+      ],
+    };
+
+    const commands = preRenderRockObject(
+      state,
+      {
+        getBlitInfo(surface, x, y) {
+          calls.push([surface, x, y]);
+          return {
+            sourceX: 1,
+            sourceY: 2,
+            width: 10,
+            height: 11,
+            destinationX: x - 30,
+            destinationY: y - 40,
+          };
+        },
+      },
+      7,
+      9,
+    );
+
+    expect(calls.map(([, x, y]) => [x, y])).toEqual([
+      [56, 60],
+      [56, 92],
+    ]);
+    expect(commands).toEqual([
+      {
+        renderImage: shadow0,
+        region: {
+          sourceX: 1,
+          sourceY: 2,
+          width: 10,
+          height: 11,
+          destinationX: 33,
+          destinationY: 29,
+        },
+      },
+      {
+        renderImage: shadow1,
+        region: {
+          sourceX: 1,
+          sourceY: 2,
+          width: 10,
+          height: 11,
+          destinationX: 33,
+          destinationY: 61,
+        },
+      },
+    ]);
+  });
+
+  it("replaces ORock DoPreRender by skipping missing or invisible shadows", () => {
+    const state = {
+      x: 40,
+      y: 60,
+      renderImages: [
+        [],
+        [
+          {
+            getBaseSurface: () => null,
+          },
+        ],
+      ],
+    };
+
+    expect(
+      preRenderRockObject(
+        state,
+        {
+          getBlitInfo() {
+            return null;
+          },
+        },
+        0,
+        0,
+      ),
+    ).toEqual([]);
+  });
+
+  it("replaces ORock DoRender with shifted clipped body blit commands", () => {
+    type BaseSurface = { width: number; height: number };
+    type Image = { id: string; getBaseSurface(): BaseSurface | null };
+
+    const body0: Image = {
+      id: "body-0",
+      getBaseSurface: () => ({ width: 16, height: 16 }),
+    };
+    const body1: Image = {
+      id: "body-1",
+      getBaseSurface: () => ({ width: 16, height: 16 }),
+    };
+    const calls: Array<[BaseSurface | null, number, number]> = [];
+    const state = {
+      x: 40,
+      y: 60,
+      renderImages: [
+        [body0, null, body1],
+        [],
+      ],
+    };
+
+    const commands = renderRockObject(
+      state,
+      {
+        getBlitInfo(surface, x, y) {
+          calls.push([surface, x, y]);
+          return {
+            sourceX: 2,
+            sourceY: 3,
+            width: 12,
+            height: 13,
+            destinationX: x - 25,
+            destinationY: y - 35,
+          };
+        },
+      },
+      5,
+      6,
+    );
+
+    expect(calls.map(([, x, y]) => [x, y])).toEqual([
+      [40, 60],
+      [40, 92],
+    ]);
+    expect(commands).toEqual([
+      {
+        renderImage: body0,
+        region: {
+          sourceX: 2,
+          sourceY: 3,
+          width: 12,
+          height: 13,
+          destinationX: 20,
+          destinationY: 31,
+        },
+      },
+      {
+        renderImage: body1,
+        region: {
+          sourceX: 2,
+          sourceY: 3,
+          width: 12,
+          height: 13,
+          destinationX: 20,
+          destinationY: 63,
+        },
+      },
+    ]);
+  });
+
+  it("replaces ORock DoRender by skipping missing or invisible body images", () => {
+    const state = {
+      x: 40,
+      y: 60,
+      renderImages: [
+        [
+          {
+            getBaseSurface: () => null,
+          },
+        ],
+        [],
+      ],
+    };
+
+    expect(
+      renderRockObject(
+        state,
+        {
+          getBlitInfo() {
+            return null;
+          },
+        },
+        0,
+        0,
+      ),
+    ).toEqual([]);
   });
 
   it("ports ORock CreationMapEffects as a map creation no-op hook", () => {

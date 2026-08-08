@@ -60,6 +60,47 @@ export type MapSurfaceRenderCommand<TSurface> = {
 };
 
 /**
+ * Replacement for upstream repeated `ZMap::RenderZSurface` blit requests.
+ * Role: Describes a clipped map-space hit-surface blit for one repeat segment.
+ * Upstream: zmap.cpp:1405-1465
+ */
+export type MapSurfaceRepeatBlitCommand<TSurface> = {
+  surface: TSurface;
+  region: SurfaceBlitRegion;
+  renderHit: boolean;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderTile`.
+ * Role: Describes a 16x16 planet-atlas tile blit onto the full-map render surface.
+ * Upstream: zmap.cpp:317-341
+ */
+export type MapTileRenderCommand<TAtlasSurface, TFullRenderSurface> = {
+  atlasSurface: TAtlasSurface;
+  fullRenderSurface: TFullRenderSurface;
+  source: SurfaceBlitRegion;
+};
+
+/**
+ * Replacement for upstream `full_render.LoadNewSurface`.
+ * Role: Creates the full-map render surface used by `ZMap::RenderMap`.
+ * Upstream: zmap.cpp:297
+ */
+export type FullMapRenderSurfaceFactory<TSurface extends FullMapRenderSurfaceState> = (
+  width: number,
+  height: number,
+) => TSurface;
+
+/**
+ * Port of upstream `ZSDL_Surface::GetBaseSurface` dependency for terrain atlases.
+ * Role: Reports whether the planet template image is loaded before tile rendering.
+ * Upstream: zmap.cpp:306
+ */
+export type TerrainAtlasRenderableSurface = {
+  getBaseSurface(): unknown | null;
+};
+
+/**
  * Replacement for upstream `ZMap::DoRender`.
  * Role: Describes blitting the shifted map viewport from the full-map render surface.
  * Upstream: zmap.cpp:269-284
@@ -501,6 +542,40 @@ export class GameMap {
   }
 
   /**
+   * Replacement for upstream `ZMap::RenderMap`.
+   * Role: Rebuilds the full-map render surface and emits one tile blit command per map tile.
+   * Upstream: zmap.cpp:286-315
+   */
+  renderMap<TAtlasSurface extends TerrainAtlasRenderableSurface>(
+    planetTemplates: readonly (TAtlasSurface | null | undefined)[],
+    createFullRenderSurface: FullMapRenderSurfaceFactory<FullMapRenderSurfaceState>,
+  ): Array<MapTileRenderCommand<TAtlasSurface, FullMapRenderSurfaceState>> {
+    if (!this.fileLoaded) return [];
+
+    if (this.fullRenderSurface) this.deRenderMap();
+
+    this.fullRenderSurface = createFullRenderSurface(
+      this.width * ZMAP_TILE_SIZE_PIXELS,
+      this.height * ZMAP_TILE_SIZE_PIXELS,
+    );
+
+    const terrainAtlas = planetTemplates[this.terrainType];
+    if (!terrainAtlas?.getBaseSurface()) return [];
+
+    const commands: Array<
+      MapTileRenderCommand<TAtlasSurface, FullMapRenderSurfaceState>
+    > = [];
+    const tileCount = this.width * this.height;
+
+    for (let index = 0; index < tileCount; index += 1) {
+      const command = this.renderTile(index, planetTemplates);
+      if (command) commands.push(command);
+    }
+
+    return commands;
+  }
+
+  /**
    * Port of upstream `ZMap::ClearMap`.
    * Role: Clears loaded map state, view offsets, cached helpers, render surface, and retained map data.
    * Upstream: zmap.cpp:635-658
@@ -580,6 +655,93 @@ export class GameMap {
       renderHit,
       aboutCenter,
     };
+  }
+
+  /**
+   * Replacement for upstream `ZMap::RenderZSurfaceHorzRepeat`.
+   * Role: Builds clipped horizontal repeat blit commands adjusted by the current map view.
+   * Upstream: zmap.cpp:1405-1434
+   */
+  renderZSurfaceHorzRepeat<
+    TSurface extends { baseSurface: { width: number; height: number } | null },
+  >(
+    surface: TSurface | null,
+    x: number,
+    y: number,
+    totalWidth: number,
+    renderHit: boolean,
+  ): Array<MapSurfaceRepeatBlitCommand<TSurface>> {
+    if (!surface?.baseSurface) return [];
+
+    const frameWidth = surface.baseSurface.width;
+    const frameHeight = surface.baseSurface.height;
+    const commands: Array<MapSurfaceRepeatBlitCommand<TSurface>> = [];
+
+    while (totalWidth > 0) {
+      const segmentWidth = totalWidth > frameWidth ? frameWidth : totalWidth;
+      const region = this.getBlitInfoFromDimensions(
+        x,
+        y,
+        segmentWidth,
+        frameHeight,
+      );
+      if (region) {
+        commands.push({
+          surface,
+          region,
+          renderHit,
+        });
+      }
+
+      totalWidth -= segmentWidth;
+      x += segmentWidth;
+    }
+
+    return commands;
+  }
+
+  /**
+   * Replacement for upstream `ZMap::RenderZSurfaceVertRepeat`.
+   * Role: Builds clipped vertical repeat blit commands adjusted by the current map view.
+   * Upstream: zmap.cpp:1436-1465
+   */
+  renderZSurfaceVertRepeat<
+    TSurface extends { baseSurface: { width: number; height: number } | null },
+  >(
+    surface: TSurface | null,
+    x: number,
+    y: number,
+    totalHeight: number,
+    renderHit: boolean,
+  ): Array<MapSurfaceRepeatBlitCommand<TSurface>> {
+    if (!surface?.baseSurface) return [];
+
+    const frameWidth = surface.baseSurface.width;
+    const frameHeight = surface.baseSurface.height;
+    const commands: Array<MapSurfaceRepeatBlitCommand<TSurface>> = [];
+
+    while (totalHeight > 0) {
+      const segmentHeight =
+        totalHeight > frameHeight ? frameHeight : totalHeight;
+      const region = this.getBlitInfoFromDimensions(
+        x,
+        y,
+        frameWidth,
+        segmentHeight,
+      );
+      if (region) {
+        commands.push({
+          surface,
+          region,
+          renderHit,
+        });
+      }
+
+      totalHeight -= segmentHeight;
+      y += segmentHeight;
+    }
+
+    return commands;
   }
 
   /**
@@ -974,6 +1136,40 @@ export class GameMap {
       success: true,
       x: (index % 20) * ZMAP_TILE_SIZE_PIXELS,
       y: Math.trunc(index / 20) * ZMAP_TILE_SIZE_PIXELS,
+    };
+  }
+
+  /**
+   * Replacement for upstream `ZMap::RenderTile`.
+   * Role: Builds a full-map tile blit command from the active planet atlas.
+   * Upstream: zmap.cpp:317-341
+   */
+  renderTile<TAtlasSurface>(
+    index: number,
+    planetTemplates: readonly (TAtlasSurface | null | undefined)[],
+  ): MapTileRenderCommand<TAtlasSurface, FullMapRenderSurfaceState> | null {
+    const mapTile = this.mapTiles[index];
+    if (!mapTile || mapTile.tile < 0) return null;
+
+    const source = this.getPaletteTileCoordinates(mapTile.tile);
+    if (!source.success) return null;
+
+    const atlasSurface = planetTemplates[this.terrainType];
+    if (!atlasSurface || !this.fullRenderSurface) return null;
+
+    const destination = this.getTile(index);
+
+    return {
+      atlasSurface,
+      fullRenderSurface: this.fullRenderSurface,
+      source: {
+        sourceX: source.x,
+        sourceY: source.y,
+        width: ZMAP_TILE_SIZE_PIXELS,
+        height: ZMAP_TILE_SIZE_PIXELS,
+        destinationX: destination.x,
+        destinationY: destination.y,
+      },
     };
   }
 

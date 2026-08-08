@@ -3,9 +3,11 @@ import {
   type DeathEffectInitState,
   DeathEffectObject,
   type DeathEffectProcessState,
+  type DeathEffectRenderState,
   EDEATH_HEADER_GUARD_PORTED,
   initDeathEffect,
   processDeathEffect,
+  renderDeathEffect,
   spawnDeathEffectSparks,
 } from "../src/simulation/DeathEffect";
 import type { DeathSparksEffectSpawn } from "../src/simulation/DeathSparksEffect";
@@ -155,5 +157,89 @@ describe("death effect", () => {
     expect(state.killme).toBe(false);
     expect(calls).toEqual(["first", "second"]);
     expect(effects).toEqual([]);
+  });
+
+  it("replaces EDeath DoRender with destroyed vehicle and child commands", () => {
+    type Command = {
+      kind: "main" | "child";
+      image?: string;
+      x?: number;
+      y?: number;
+      renderHit?: boolean;
+      aboutCenter?: boolean;
+    };
+    type Map = {
+      renderZSurface(
+        surface: string,
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ): Command;
+    };
+
+    const calls: Array<[string, number, number, boolean, boolean]> = [];
+    const zmap: Map = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        calls.push([surface, x, y, renderHit, aboutCenter]);
+        return { kind: "main", image: surface, x, y, renderHit, aboutCenter };
+      },
+    };
+    const state: DeathEffectRenderState<string, Map, Command> = {
+      killme: false,
+      x: 52,
+      y: 74,
+      wastedImage: "apc-wasted",
+      extraEffects: [
+        {
+          render(map) {
+            expect(map).toBe(zmap);
+            return { kind: "child", image: "smoke" };
+          },
+        },
+        {
+          render() {
+            return null;
+          },
+        },
+      ],
+    };
+
+    expect(renderDeathEffect(state, zmap)).toEqual([
+      {
+        kind: "main",
+        image: "apc-wasted",
+        x: 52,
+        y: 74,
+        renderHit: false,
+        aboutCenter: false,
+      },
+      { kind: "child", image: "smoke" },
+    ]);
+    expect(calls).toEqual([["apc-wasted", 52, 74, false, false]]);
+  });
+
+  it("replaces EDeath DoRender as no commands after kill", () => {
+    const state: DeathEffectRenderState<string, unknown, string> = {
+      killme: true,
+      x: 52,
+      y: 74,
+      wastedImage: "apc-wasted",
+      extraEffects: [
+        {
+          render() {
+            return "child";
+          },
+        },
+      ],
+    };
+
+    expect(
+      renderDeathEffect(state, {
+        renderZSurface() {
+          return "main";
+        },
+      }),
+    ).toEqual([]);
   });
 });

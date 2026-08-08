@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PlanetType, TeamType } from "../src/simulation/SimulationConstants";
 import {
   changeHutPalette,
+  getHutExitToTile,
   type HutMaxAnimalsState,
   hutCausesImpassAtCoord,
   initHutPlanetTemplates,
@@ -181,6 +182,89 @@ describe("hut object", () => {
     );
 
     expect(calls).toEqual([[2, 3, false, true]]);
+  });
+
+  it("ports OHut GetExitToTile as default lower tile without a map", () => {
+    expect(getHutExitToTile({ x: 48, y: 64 }, null)).toEqual({
+      success: true,
+      x: 3,
+      y: 5,
+    });
+  });
+
+  it("ports OHut GetExitToTile as default lower tile when passable", () => {
+    const checks: Array<[number, number, boolean]> = [];
+
+    expect(
+      getHutExitToTile(
+        { x: 48, y: 64 },
+        {
+          getPathFinder: () => ({
+            tilePassable(tileX, tileY, includeOccupants) {
+              checks.push([tileX, tileY, includeOccupants]);
+              return true;
+            },
+          }),
+        },
+      ),
+    ).toEqual({
+      success: true,
+      x: 3,
+      y: 5,
+    });
+    expect(checks).toEqual([[3, 5, false]]);
+  });
+
+  it("ports OHut GetExitToTile as random passable adjacent fallback", () => {
+    const passable = new Set(["2,3", "4,4"]);
+    const checks: Array<[number, number, boolean]> = [];
+
+    const result = getHutExitToTile(
+      { x: 48, y: 64 },
+      {
+        getPathFinder: () => ({
+          tilePassable(tileX, tileY, includeOccupants) {
+            checks.push([tileX, tileY, includeOccupants]);
+            return passable.has(`${tileX},${tileY}`);
+          },
+        }),
+      },
+      () => 1,
+    );
+
+    expect(result).toEqual({
+      success: true,
+      x: 4,
+      y: 4,
+    });
+    expect(checks).toEqual([
+      [3, 5, false],
+      [2, 3, false],
+      [2, 4, false],
+      [2, 5, false],
+      [3, 3, false],
+      [3, 5, false],
+      [4, 3, false],
+      [4, 4, false],
+      [4, 5, false],
+    ]);
+  });
+
+  it("ports OHut GetExitToTile as failure when every adjacent tile is blocked", () => {
+    expect(
+      getHutExitToTile(
+        { x: 48, y: 64 },
+        {
+          getPathFinder: () => ({
+            tilePassable: () => false,
+          }),
+        },
+      ),
+    ).toEqual({
+      success: false,
+      x: 3,
+      y: 5,
+    });
   });
 
   it("ports OHut SetMaxHutAnimals as min plus bounded random offset", () => {

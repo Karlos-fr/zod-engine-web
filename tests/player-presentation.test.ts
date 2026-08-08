@@ -72,6 +72,7 @@ import {
   refindPlayerFortRefId,
   playerRightClickEvent,
   playerTestEvent,
+  renderPlayerPlaceCannon,
   renderPlayerPreviousCursor,
   playerAButton,
   playerBButton,
@@ -528,6 +529,52 @@ describe("player presentation constants", () => {
 
     expect(state.placeCannonTileX).toBe(3);
     expect(state.placeCannonTileY).toBe(5);
+  });
+
+  it("replaces ZPlayer RenderPlaceCannon as no command when placement is inactive", () => {
+    expect(
+      renderPlayerPlaceCannon(
+        {
+          placeCannon: false,
+          placeCannonTileX: 3,
+          placeCannonTileY: 5,
+          placementImage: "ok-marker",
+        },
+        {
+          renderZSurface() {
+            throw new Error("renderZSurface should not be called");
+          },
+        },
+      ),
+    ).toBeNull();
+  });
+
+  it("replaces ZPlayer RenderPlaceCannon with the placement marker command", () => {
+    const calls: Array<[string, number, number, boolean, boolean]> = [];
+
+    const command = renderPlayerPlaceCannon(
+      {
+        placeCannon: true,
+        placeCannonTileX: 3,
+        placeCannonTileY: 5,
+        placementImage: "ok-marker",
+      },
+      {
+        renderZSurface(surface, x, y, renderHit, aboutCenter) {
+          calls.push([surface, x, y, renderHit, aboutCenter]);
+          return { surface, x, y, renderHit, aboutCenter };
+        },
+      },
+    );
+
+    expect(calls).toEqual([["ok-marker", 48, 80, false, false]]);
+    expect(command).toEqual({
+      surface: "ok-marker",
+      x: 48,
+      y: 80,
+      renderHit: false,
+      aboutCenter: false,
+    });
   });
 
   it("ports ZPlayer ShowPcursor as placement cursor position and lifetime", () => {

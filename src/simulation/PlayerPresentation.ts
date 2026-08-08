@@ -406,6 +406,28 @@ export type PlayerPlaceCannonState = {
   placeCannonTileY: number;
 };
 
+export type PlayerPlaceCannonRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `ZPlayer::RenderPlaceCannon`.
+ * Role: Tracks the active cannon placement marker image and target map tile.
+ * Upstream: zplayer.cpp:3550-3564
+ */
+export type PlayerPlaceCannonRenderState<TSurface> = Pick<
+  PlayerPlaceCannonState,
+  "placeCannon" | "placeCannonTileX" | "placeCannonTileY"
+> & {
+  placementImage: TSurface | null;
+};
+
 /**
  * Port of upstream `ZMap::GetMapCoords` call target.
  * Role: Converts player mouse coordinates into map coordinates.
@@ -1236,6 +1258,26 @@ export function setPlayerPlaceCannonCoords(
 
   state.placeCannonTileX = Math.trunc(mapX / 16);
   state.placeCannonTileY = Math.trunc(mapY / 16);
+}
+
+/**
+ * Replacement for upstream `ZPlayer::RenderPlaceCannon`.
+ * Role: Builds the map-relative cannon placement marker render command.
+ * Upstream: zplayer.cpp:3550-3564
+ */
+export function renderPlayerPlaceCannon<TSurface, TCommand>(
+  state: PlayerPlaceCannonRenderState<TSurface>,
+  zmap: PlayerPlaceCannonRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (!state.placeCannon || !state.placementImage) return null;
+
+  return zmap.renderZSurface(
+    state.placementImage,
+    state.placeCannonTileX * 16,
+    state.placeCannonTileY * 16,
+    false,
+    false,
+  );
 }
 
 /**

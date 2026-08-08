@@ -80,6 +80,33 @@ export type CannonDeathProcessState<TTime = unknown> = {
   extraEffects: Array<{ process(): void }>;
 };
 
+export type CannonDeathRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+export type CannonDeathRenderChild<TMap, TCommand> = {
+  render(zmap: TMap): TCommand | null;
+};
+
+/**
+ * Replacement state for upstream `ECannonDeath::DoRender`.
+ * Role: Tracks destroyed-cannon sprite placement and child visual effects.
+ * Upstream: ecannondeath.cpp:121-133
+ */
+export type CannonDeathRenderState<TSurface, TMap, TCommand> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  wastedImage: TSurface | null;
+  extraEffects: readonly CannonDeathRenderChild<TMap, TCommand>[];
+};
+
 /**
  * Port of upstream `ECannonDeath::Init`.
  * Role: Initializes cannon destroyed-body image paths.
@@ -161,6 +188,33 @@ export function processCannonDeathEffect<TTime>(
   for (const effect of state.extraEffects) {
     effect.process();
   }
+}
+
+/**
+ * Replacement for upstream `ECannonDeath::DoRender`.
+ * Role: Builds destroyed-cannon and child-effect render commands.
+ * Upstream: ecannondeath.cpp:121-133
+ */
+export function renderCannonDeathEffect<TSurface, TCommand, TMap extends CannonDeathRenderMap<TSurface, TCommand>>(
+  state: CannonDeathRenderState<TSurface, TMap, TCommand>,
+  zmap: TMap,
+): TCommand[] {
+  if (state.killMe) return [];
+
+  const commands: TCommand[] = [];
+
+  if (state.wastedImage) {
+    commands.push(
+      zmap.renderZSurface(state.wastedImage, state.x, state.y, false, false),
+    );
+  }
+
+  for (const effect of state.extraEffects) {
+    const command = effect.render(zmap);
+    if (command) commands.push(command);
+  }
+
+  return commands;
 }
 
 function cannonDeathObjectToTurretMissileType(

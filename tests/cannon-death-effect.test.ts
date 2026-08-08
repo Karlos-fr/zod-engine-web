@@ -4,9 +4,11 @@ import {
   CannonDeathObject,
   type CannonDeathInitState,
   type CannonDeathProcessState,
+  type CannonDeathRenderState,
   ECANNON_DEATH_HEADER_GUARD_PORTED,
   initCannonDeathEffect,
   processCannonDeathEffect,
+  renderCannonDeathEffect,
   spawnCannonDeathEffectSparks,
 } from "../src/simulation/CannonDeathEffect";
 import type { DeathSparksEffectSpawn } from "../src/simulation/DeathSparksEffect";
@@ -204,6 +206,90 @@ describe("cannon death effect", () => {
     expect(state.killMe).toBe(true);
     expect(sparkEffects).toHaveLength(20);
     expect(turretEffects).toEqual([]);
+  });
+
+  it("replaces ECannonDeath DoRender with destroyed cannon and child commands", () => {
+    type Command = {
+      kind: "main" | "child";
+      image?: string;
+      x?: number;
+      y?: number;
+      renderHit?: boolean;
+      aboutCenter?: boolean;
+    };
+    type Map = {
+      renderZSurface(
+        surface: string,
+        x: number,
+        y: number,
+        renderHit: boolean,
+        aboutCenter: boolean,
+      ): Command;
+    };
+
+    const calls: Array<[string, number, number, boolean, boolean]> = [];
+    const zmap: Map = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        calls.push([surface, x, y, renderHit, aboutCenter]);
+        return { kind: "main", image: surface, x, y, renderHit, aboutCenter };
+      },
+    };
+    const state: CannonDeathRenderState<string, Map, Command> = {
+      killMe: false,
+      x: 42,
+      y: 64,
+      wastedImage: "gun-wasted",
+      extraEffects: [
+        {
+          render(map) {
+            expect(map).toBe(zmap);
+            return { kind: "child", image: "spark" };
+          },
+        },
+        {
+          render() {
+            return null;
+          },
+        },
+      ],
+    };
+
+    expect(renderCannonDeathEffect(state, zmap)).toEqual([
+      {
+        kind: "main",
+        image: "gun-wasted",
+        x: 42,
+        y: 64,
+        renderHit: false,
+        aboutCenter: false,
+      },
+      { kind: "child", image: "spark" },
+    ]);
+    expect(calls).toEqual([["gun-wasted", 42, 64, false, false]]);
+  });
+
+  it("replaces ECannonDeath DoRender as no commands after kill", () => {
+    const state: CannonDeathRenderState<string, unknown, string> = {
+      killMe: true,
+      x: 42,
+      y: 64,
+      wastedImage: "gun-wasted",
+      extraEffects: [
+        {
+          render() {
+            return "child";
+          },
+        },
+      ],
+    };
+
+    expect(
+      renderCannonDeathEffect(state, {
+        renderZSurface() {
+          return "main";
+        },
+      }),
+    ).toEqual([]);
   });
 });
 
