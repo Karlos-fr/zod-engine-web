@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMAP_OBJECT_TURRENT_HEADER_GUARD_PORTED,
   initMapObjectTurrentEffect,
+  renderMapObjectTurrentEffect,
   type MapObjectTurrentEffectSpawn,
 } from "../src/world/MapObjectTurretEffect";
 import { MAP_ITEM_TYPE_COUNT } from "../src/world/WorldConstants";
@@ -57,5 +58,98 @@ describe("map object turret effect", () => {
       offsetTime: 0.5,
       objectIndex: 3,
     });
+  });
+
+  it("replaces EMapObjectTurrent DoRender with transformed centered object command", () => {
+    const transforms: Array<[string, number]> = [];
+    const objectImages = Array.from({ length: MAP_ITEM_TYPE_COUNT }, (_value, index) => ({
+      id: `map-object-${index}`,
+      setAngle: (angle: number) => transforms.push(["angle", angle]),
+      setSize: (size: number) => transforms.push(["size", size]),
+    }));
+    const calls: unknown[] = [];
+
+    const command = renderMapObjectTurrentEffect(
+      {
+        killMe: false,
+        x: 120,
+        y: 160,
+        objectIndex: 5,
+        angle: 42,
+        size: 1.25,
+        objectImages,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          calls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 20,
+            y: y - 28,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: objectImages[5],
+      x: 100,
+      y: 132,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(transforms).toEqual([
+      ["angle", 42],
+      ["size", 1.25],
+    ]);
+    expect(calls).toEqual([
+      {
+        surface: objectImages[5],
+        x: 120,
+        y: 160,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces EMapObjectTurrent DoRender as no command for killed or missing image", () => {
+    const objectImages = [{ setAngle: () => undefined, setSize: () => undefined }];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderMapObjectTurrentEffect(
+        {
+          killMe: true,
+          x: 0,
+          y: 0,
+          objectIndex: 0,
+          angle: 0,
+          size: 1,
+          objectImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderMapObjectTurrentEffect(
+        {
+          killMe: false,
+          x: 0,
+          y: 0,
+          objectIndex: 99,
+          angle: 0,
+          size: 1,
+          objectImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

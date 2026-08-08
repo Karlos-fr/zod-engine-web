@@ -12,6 +12,7 @@ import {
   initFlagObjectImages,
   OFLAG_HEADER_GUARD_PORTED,
   processFlagObject,
+  renderFlagObject,
   type FlagConnectedObject,
   type FlagProcessState,
 } from "../src/simulation/FlagObject";
@@ -70,6 +71,102 @@ describe("flag object", () => {
     ]);
     expect(made).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 4);
     expect(made[0]).toEqual([TeamType.Blue, baseSurfaces[0]]);
+  });
+
+  it("replaces OFlag DoRender with a team-frame shifted clipped blit command", () => {
+    const baseSurface = { width: 14, height: 18 };
+    const flagImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: 4 }, (_, frame) => ({
+        id: `flag-${team}-${frame}`,
+        getBaseSurface: () => baseSurface,
+        loadBaseImage: () => undefined,
+      })),
+    );
+    const calls: unknown[] = [];
+
+    const command = renderFlagObject(
+      {
+        x: 64,
+        y: 96,
+        owner: TeamType.Blue,
+        flagIndex: 2,
+        flagImages,
+      },
+      {
+        getBlitInfo: (surface, x, y) => {
+          calls.push({ surface, x, y });
+          return {
+            sourceX: 1,
+            sourceY: 2,
+            width: 10,
+            height: 12,
+            destinationX: 50,
+            destinationY: 70,
+          };
+        },
+      },
+      5,
+      -7,
+    );
+
+    expect(command).toEqual({
+      flagImage: flagImages[TeamType.Blue]?.[2],
+      region: {
+        sourceX: 1,
+        sourceY: 2,
+        width: 10,
+        height: 12,
+        destinationX: 55,
+        destinationY: 63,
+      },
+    });
+    expect(calls).toEqual([{ surface: baseSurface, x: 64, y: 96 }]);
+  });
+
+  it("replaces OFlag DoRender as no command without image or visible blit", () => {
+    expect(
+      renderFlagObject(
+        {
+          x: 0,
+          y: 0,
+          owner: TeamType.Blue,
+          flagIndex: 2,
+          flagImages: [],
+        },
+        {
+          getBlitInfo: () => {
+            throw new Error("getBlitInfo should not be called");
+          },
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
+    expect(
+      renderFlagObject(
+        {
+          x: 0,
+          y: 0,
+          owner: TeamType.Blue,
+          flagIndex: 0,
+          flagImages: [
+            [],
+            [],
+            [
+              {
+                getBaseSurface: () => null,
+                loadBaseImage: () => undefined,
+              },
+            ],
+          ],
+        },
+        {
+          getBlitInfo: () => null,
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
   });
 
   it("keeps the flag frame unchanged before the animation interval", () => {

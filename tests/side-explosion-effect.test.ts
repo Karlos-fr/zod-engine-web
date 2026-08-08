@@ -3,6 +3,7 @@ import {
   ESIDE_EXPLOSION_HEADER_GUARD_PORTED,
   initSideExplosionEffect,
   processSideExplosionEffect,
+  renderSideExplosionEffect,
   SIDE_EXPLOSION_NORMAL_FRAME_COUNT,
   type SideExplosionProcessState,
   SideExplosionType,
@@ -138,5 +139,75 @@ describe("side explosion effect", () => {
     expect(state.killme).toBe(true);
     expect(state.x).toBe(20);
     expect(state.y).toBe(30);
+  });
+
+  it("replaces ESideExplosion DoRender with a scaled map-relative frame command", () => {
+    const sizes: number[] = [];
+    const renderImages = Array.from({ length: 7 }, (_value, index) => ({
+      id: `side-explosion-${index}`,
+      setSize: (size: number) => sizes.push(size),
+    }));
+    const calls: unknown[] = [];
+
+    const command = renderSideExplosionEffect(
+      {
+        killme: false,
+        x: 52,
+        y: 91,
+        size: 1.75,
+        renderIndex: 3,
+        renderImages,
+      },
+      {
+        renderZSurface: (surface, x, y) => {
+          calls.push({ surface, x, y });
+          return { surface, x: x - 8, y: y - 12 };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: renderImages[3],
+      x: 44,
+      y: 79,
+    });
+    expect(sizes).toEqual([1.75]);
+    expect(calls).toEqual([{ surface: renderImages[3], x: 52, y: 91 }]);
+  });
+
+  it("replaces ESideExplosion DoRender as no command for killed or missing frames", () => {
+    const renderImages = [{ setSize: () => undefined }];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderSideExplosionEffect(
+        {
+          killme: true,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 0,
+          renderImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderSideExplosionEffect(
+        {
+          killme: false,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 9,
+          renderImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });

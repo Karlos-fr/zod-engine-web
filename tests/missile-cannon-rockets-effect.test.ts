@@ -3,6 +3,7 @@ import {
   EMISSILE_C_ROCKETS_HEADER_GUARD_PORTED,
   initMissileCannonRocketsEffect,
   placeMissileCannonRocketSmoke,
+  renderMissileCannonRocketsEffect,
   type MissileCannonRocketsInitState,
   type MissileCannonRocketSmokePlacementState,
 } from "../src/simulation/MissileCannonRocketsEffect";
@@ -106,5 +107,101 @@ describe("missile cannon rockets effect", () => {
     placeMissileCannonRocketSmoke(state, 1.03, 300, null);
 
     expect(state.lastSmokeTime).toBeCloseTo(1.0266666667);
+  });
+
+  it("replaces EMissileCRockets DoRender with paired centered rocket commands", () => {
+    const bulletImage = { id: "missile-cannon-rocket" };
+    const calls: unknown[] = [];
+
+    const commands = renderMissileCannonRocketsEffect(
+      {
+        killMe: false,
+        x: 40,
+        y: 70,
+        otherXShift: 8,
+        otherYShift: -6,
+        bulletImage,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          calls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 3,
+            y: y - 4,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(commands).toEqual([
+      {
+        surface: bulletImage,
+        x: 37,
+        y: 66,
+        renderHit: false,
+        aboutCenter: true,
+      },
+      {
+        surface: bulletImage,
+        x: 45,
+        y: 60,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+    expect(calls).toEqual([
+      {
+        surface: bulletImage,
+        x: 40,
+        y: 70,
+        renderHit: false,
+        aboutCenter: true,
+      },
+      {
+        surface: bulletImage,
+        x: 48,
+        y: 64,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces EMissileCRockets DoRender as no commands for killed or missing image", () => {
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderMissileCannonRocketsEffect(
+        {
+          killMe: true,
+          x: 0,
+          y: 0,
+          otherXShift: 1,
+          otherYShift: 1,
+          bulletImage: {},
+        },
+        zmap,
+      ),
+    ).toEqual([]);
+    expect(
+      renderMissileCannonRocketsEffect(
+        {
+          killMe: false,
+          x: 0,
+          y: 0,
+          otherXShift: 1,
+          otherYShift: 1,
+          bulletImage: null,
+        },
+        zmap,
+      ),
+    ).toEqual([]);
   });
 });

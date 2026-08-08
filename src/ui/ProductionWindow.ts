@@ -2,6 +2,7 @@ import { BuildingType } from "../simulation/SimulationConstants";
 import type { SimulationTime } from "../simulation/SimulationTime";
 import type { GameEntity } from "../simulation/entities/GameEntity";
 import { MapObjectType } from "../world/MapFormat";
+import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 import {
   loadRotozoomCacheBaseImage,
   type BaseImageFileLoadState,
@@ -498,6 +499,73 @@ export type ProductionUnitSelectorProcessState<
   downButton: ProductionUnitSelectorProcessButton;
   setDrawObject(): void;
   drawObject: TDrawObject | null;
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::GetBaseSurface` dependency.
+ * Role: Provides dimensions for clipping the yellow production percentage bar.
+ * Upstream: gwproduction_us.cpp:266-271
+ */
+export type ProductionUnitSelectorPercentageBarImage<TSurface> = {
+  getBaseSurface(): TSurface | null;
+};
+
+/**
+ * Replacement for upstream `ZMap` rendering dependencies in `GWPUnitSelector::DrawPercentageBar`.
+ * Role: Builds the background bar render command and clips the yellow progress overlay.
+ * Upstream: gwproduction_us.cpp:264, gwproduction_us.cpp:267
+ */
+export type ProductionUnitSelectorPercentageBarMap<
+  TBarImage,
+  TSurface,
+  TBackgroundCommand,
+> = {
+  renderZSurface(surface: TBarImage, x: number, y: number): TBackgroundCommand;
+  getBlitInfo(
+    surface: TSurface | null,
+    x: number,
+    y: number,
+  ): SurfaceBlitRegion | null;
+};
+
+/**
+ * Replacement state for upstream `GWPUnitSelector::DrawPercentageBar`.
+ * Role: Holds selector mode, production progress, and percentage bar images.
+ * Upstream: gwproduction_us.cpp:256-279
+ */
+export type ProductionUnitSelectorPercentageBarState<
+  TBarImage,
+  TYellowImage,
+> = {
+  buildingObject: unknown | null;
+  buildState: ProductionBuildingState | number;
+  isOnlySelector: boolean;
+  percentageProduced: number;
+  percentageBarImage: TBarImage;
+  yellowPercentageBarImage: TYellowImage;
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::BlitSurface`.
+ * Role: Describes the clipped yellow percentage bar overlay.
+ * Upstream: gwproduction_us.cpp:276
+ */
+export type ProductionUnitSelectorYellowPercentageBarCommand<TYellowImage> = {
+  yellowPercentageBarImage: TYellowImage;
+  region: SurfaceBlitRegion;
+};
+
+/**
+ * Replacement for upstream `GWPUnitSelector::DrawPercentageBar`.
+ * Role: Carries the production percentage bar background and optional yellow overlay commands.
+ * Upstream: gwproduction_us.cpp:256-279
+ */
+export type ProductionUnitSelectorPercentageBarCommand<
+  TBackgroundCommand,
+  TYellowImage,
+> = {
+  background: TBackgroundCommand;
+  yellow: ProductionUnitSelectorYellowPercentageBarCommand<TYellowImage> | null;
 };
 
 /**
@@ -1537,6 +1605,59 @@ export function processProductionUnitSelector<
 
   state.setDrawObject();
   state.drawObject?.process();
+}
+
+/**
+ * Replacement for upstream `GWPUnitSelector::DrawPercentageBar`.
+ * Role: Builds the map-relative percentage bar background and clipped yellow overlay commands.
+ * Upstream: gwproduction_us.cpp:256-279
+ */
+export function renderProductionUnitSelectorPercentageBar<
+  TBarImage,
+  TSurface extends { width: number; height: number },
+  TYellowImage extends ProductionUnitSelectorPercentageBarImage<TSurface>,
+  TBackgroundCommand,
+>(
+  state: ProductionUnitSelectorPercentageBarState<TBarImage, TYellowImage>,
+  map: ProductionUnitSelectorPercentageBarMap<
+    TBarImage,
+    TSurface,
+    TBackgroundCommand
+  >,
+  tx: number,
+  ty: number,
+): ProductionUnitSelectorPercentageBarCommand<
+  TBackgroundCommand,
+  TYellowImage
+> | null {
+  if (!state.buildingObject) return null;
+  if (state.buildState === ProductionBuildingState.Select) return null;
+  if (state.isOnlySelector) return null;
+
+  const x = tx + (53 - 3);
+  const y = ty + (21 - 19);
+  const background = map.renderZSurface(state.percentageBarImage, x, y);
+  const yellowSurface = state.yellowPercentageBarImage.getBaseSurface();
+  let yellow: ProductionUnitSelectorYellowPercentageBarCommand<TYellowImage> | null =
+    null;
+
+  if (yellowSurface) {
+    const region = map.getBlitInfo(yellowSurface, x, y);
+    if (region) {
+      const maxHeight = Math.trunc(
+        (1.0 - state.percentageProduced) * yellowSurface.height,
+      );
+      yellow = {
+        yellowPercentageBarImage: state.yellowPercentageBarImage,
+        region: {
+          ...region,
+          height: region.height > maxHeight ? maxHeight : region.height,
+        },
+      };
+    }
+  }
+
+  return { background, yellow };
 }
 
 /**

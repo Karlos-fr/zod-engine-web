@@ -79,6 +79,44 @@ export type RockParticleProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZSDL_Surface::SetSize` dependency.
+ * Role: Provides the scale update applied to rock debris before rendering.
+ * Upstream: erockparticle.cpp:140
+ */
+export type RockParticleRenderImage = {
+  setSize?(size: number): void;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a centered map-relative render command for rock debris.
+ * Upstream: erockparticle.cpp:144
+ */
+export type RockParticleRenderMap<TImage, TCommand> = {
+  renderZSurface(
+    surface: TImage,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `ERockParticle::DoRender`.
+ * Role: Holds the active rock debris frame, scale, and visibility state.
+ * Upstream: erockparticle.cpp:132-147
+ */
+export type RockParticleRenderState<TImage> = {
+  killme: boolean;
+  x: number;
+  y: number;
+  size: number;
+  renderIndex: number;
+  renderImages: readonly TImage[];
+};
+
+/**
  * Replacement for upstream `ZSDL_Surface::LoadBaseImage`.
  * Role: Loads one rock debris frame asset.
  * Upstream: erockparticle.cpp:82, erockparticle.cpp:85, erockparticle.cpp:91
@@ -159,4 +197,26 @@ export function processRockParticleEffect(
     state.rise * timeDifference;
   state.size += 1;
   state.y -= (state.size - 1) * 150;
+}
+
+/**
+ * Replacement for upstream `ERockParticle::DoRender`.
+ * Role: Builds the centered map-relative rock debris render command.
+ * Upstream: erockparticle.cpp:132-147
+ */
+export function renderRockParticleEffect<
+  TImage extends RockParticleRenderImage,
+  TCommand,
+>(
+  state: RockParticleRenderState<TImage>,
+  zmap: RockParticleRenderMap<TImage, TCommand>,
+): TCommand | null {
+  if (state.killme) return null;
+
+  const image = state.renderImages[state.renderIndex];
+  if (!image) return null;
+
+  image.setSize?.(state.size);
+
+  return zmap.renderZSurface(image, state.x, state.y, false, true);
 }

@@ -39,6 +39,7 @@ import {
   makeProductionQueueButtonList,
   processProductionSetExpanded,
   processProductionUnitSelector,
+  renderProductionUnitSelectorPercentageBar,
   type ProductionBuildingReference,
   type ProductionBaseImageTarget,
   type ProductionObjectReference,
@@ -1133,6 +1134,150 @@ describe("production window", () => {
       ["down", false],
       "set-draw-object",
     ]);
+  });
+
+  it("replaces GWPUnitSelector DrawPercentageBar with background and clipped yellow commands", () => {
+    const percentageBarImage = { id: "percentage-bar" };
+    const yellowSurface = { width: 8, height: 20 };
+    const yellowPercentageBarImage = {
+      id: "yellow-percentage-bar",
+      getBaseSurface: () => yellowSurface,
+    };
+    const calls: unknown[] = [];
+
+    const command = renderProductionUnitSelectorPercentageBar(
+      {
+        buildingObject: { id: "building" },
+        buildState: ProductionBuildingState.Building,
+        isOnlySelector: false,
+        percentageProduced: 0.35,
+        percentageBarImage,
+        yellowPercentageBarImage,
+      },
+      {
+        renderZSurface: (surface, x, y) => {
+          calls.push(["background", surface, x, y]);
+          return { surface, x: x - 100, y: y - 50 };
+        },
+        getBlitInfo: (surface, x, y) => {
+          calls.push(["yellow", surface, x, y]);
+          return {
+            sourceX: 0,
+            sourceY: 3,
+            width: 8,
+            height: 18,
+            destinationX: 40,
+            destinationY: 60,
+          };
+        },
+      },
+      12,
+      30,
+    );
+
+    expect(command).toEqual({
+      background: {
+        surface: percentageBarImage,
+        x: -38,
+        y: -18,
+      },
+      yellow: {
+        yellowPercentageBarImage,
+        region: {
+          sourceX: 0,
+          sourceY: 3,
+          width: 8,
+          height: 13,
+          destinationX: 40,
+          destinationY: 60,
+        },
+      },
+    });
+    expect(calls).toEqual([
+      ["background", percentageBarImage, 62, 32],
+      ["yellow", yellowSurface, 62, 32],
+    ]);
+  });
+
+  it("replaces GWPUnitSelector DrawPercentageBar as no command for selector modes", () => {
+    const baseState = {
+      buildingObject: { id: "building" },
+      buildState: ProductionBuildingState.Building,
+      isOnlySelector: false,
+      percentageProduced: 0,
+      percentageBarImage: {},
+      yellowPercentageBarImage: {
+        getBaseSurface: () => ({ width: 1, height: 1 }),
+      },
+    };
+    const map = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+      getBlitInfo: () => {
+        throw new Error("getBlitInfo should not be called");
+      },
+    };
+
+    expect(
+      renderProductionUnitSelectorPercentageBar(
+        { ...baseState, buildingObject: null },
+        map,
+        0,
+        0,
+      ),
+    ).toBeNull();
+    expect(
+      renderProductionUnitSelectorPercentageBar(
+        { ...baseState, buildState: ProductionBuildingState.Select },
+        map,
+        0,
+        0,
+      ),
+    ).toBeNull();
+    expect(
+      renderProductionUnitSelectorPercentageBar(
+        { ...baseState, isOnlySelector: true },
+        map,
+        0,
+        0,
+      ),
+    ).toBeNull();
+  });
+
+  it("replaces GWPUnitSelector DrawPercentageBar with no yellow command without a visible overlay", () => {
+    const percentageBarImage = { id: "percentage-bar" };
+    const yellowPercentageBarImage = {
+      getBaseSurface: () => null,
+    };
+
+    const command = renderProductionUnitSelectorPercentageBar(
+      {
+        buildingObject: { id: "building" },
+        buildState: ProductionBuildingState.Building,
+        isOnlySelector: false,
+        percentageProduced: 0,
+        percentageBarImage,
+        yellowPercentageBarImage,
+      },
+      {
+        renderZSurface: (surface, x, y) => ({ surface, x, y }),
+        getBlitInfo: () => {
+          throw new Error("getBlitInfo should not be called without a surface");
+        },
+      },
+      0,
+      0,
+    );
+
+    expect(command).toEqual({
+      background: {
+        surface: percentageBarImage,
+        x: 50,
+        y: 2,
+      },
+      yellow: null,
+    });
   });
 
   it("ports GWPUnitSelector DeleteDrawObject as transient draw object cleanup", () => {

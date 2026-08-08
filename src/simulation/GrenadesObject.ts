@@ -6,6 +6,7 @@ import {
   TurretMissileEffectType,
   type TurretMissileEffectSpawn,
 } from "./TurretMissileEffect";
+import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 
 /**
  * Port of upstream `_OGRENADES_H_`.
@@ -37,6 +38,51 @@ export const GRENADES_OBJECT_IMAGE_PATH = "assets/other/map_items/grenades.png";
  */
 export type GrenadesObjectRenderState<TImage> = {
   renderImage: TImage | null;
+};
+
+/**
+ * Port of upstream `ZSDL_Surface::GetBaseSurface` dependency.
+ * Role: Provides the loaded base surface used to clip grenade pickup rendering.
+ * Upstream: ogrenades.cpp:36
+ */
+export type GrenadesObjectRenderableImage<TBaseSurface> = {
+  getBaseSurface(): TBaseSurface | null;
+};
+
+/**
+ * Replacement for upstream `ZMap::GetBlitInfo` dependency.
+ * Role: Calculates visible source and destination rectangles for grenade pickup rendering.
+ * Upstream: ogrenades.cpp:36
+ */
+export type GrenadesObjectRenderMap<TBaseSurface> = {
+  getBlitInfo(
+    surface: TBaseSurface | null,
+    x: number,
+    y: number,
+  ): SurfaceBlitRegion | null;
+};
+
+/**
+ * Replacement state for upstream `OGrenades::DoRender`.
+ * Role: Holds the grenade pickup image and map-space location used for object rendering.
+ * Upstream: ogrenades.cpp:30-44
+ */
+export type GrenadesObjectDoRenderState<TImage> = {
+  renderImage: TImage | null;
+  position: {
+    x: number;
+    y: number;
+  };
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::BlitSurface`.
+ * Role: Describes the clipped grenade pickup blit requested by object rendering.
+ * Upstream: ogrenades.cpp:41
+ */
+export type GrenadesObjectBlitCommand<TImage> = {
+  renderImage: TImage;
+  region: SurfaceBlitRegion;
 };
 
 export type GrenadesObjectTurrentMissileState<TTime = unknown> = {
@@ -80,6 +126,40 @@ export function initGrenadesObjectImage<TImage>(
   loadImage: (path: string) => TImage,
 ): void {
   state.renderImage = loadImage(GRENADES_OBJECT_IMAGE_PATH);
+}
+
+/**
+ * Replacement for upstream `OGrenades::DoRender`.
+ * Role: Builds a shifted, clipped blit command for a grenade pickup object.
+ * Upstream: ogrenades.cpp:30-44
+ */
+export function renderGrenadesObject<
+  TBaseSurface extends { width: number; height: number },
+  TImage extends GrenadesObjectRenderableImage<TBaseSurface>,
+>(
+  state: GrenadesObjectDoRenderState<TImage>,
+  map: GrenadesObjectRenderMap<TBaseSurface>,
+  shiftX: number,
+  shiftY: number,
+): GrenadesObjectBlitCommand<TImage> | null {
+  const renderImage = state.renderImage;
+  if (!renderImage) return null;
+
+  const region = map.getBlitInfo(
+    renderImage.getBaseSurface(),
+    state.position.x,
+    state.position.y,
+  );
+  if (!region) return null;
+
+  return {
+    renderImage,
+    region: {
+      ...region,
+      destinationX: region.destinationX + shiftX,
+      destinationY: region.destinationY + shiftY,
+    },
+  };
 }
 
 /**

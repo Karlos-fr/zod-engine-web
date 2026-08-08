@@ -5,6 +5,7 @@ import {
   type MobileMissileRocketsEffectSpawn,
   type MobileMissileRocketsInitState,
   placeMobileMissileRocketSmoke,
+  renderMobileMissileRocketsEffect,
   type MobileMissileRocketSmokePlacementState,
 } from "../src/simulation/MobileMissileRocketsEffect";
 import { calcMobileMissileRocketTimeD2 } from "../src/simulation/ProjectileConstants";
@@ -51,6 +52,122 @@ describe("mobile missile rockets effect", () => {
       targetX: 120,
       targetY: 140,
     });
+  });
+
+  it("replaces EMoMissileRockets DoRender with triple centered rocket commands", () => {
+    const bulletImage = { id: "mobile-missile-rocket" };
+    const calls: unknown[] = [];
+
+    const commands = renderMobileMissileRocketsEffect(
+      {
+        killMe: false,
+        x: 80,
+        y: 120,
+        leftX: 74,
+        leftY: 126,
+        rightX: 88,
+        rightY: 112,
+        bulletImage,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          calls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 10,
+            y: y - 15,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(commands).toEqual([
+      {
+        surface: bulletImage,
+        x: 70,
+        y: 105,
+        renderHit: false,
+        aboutCenter: true,
+      },
+      {
+        surface: bulletImage,
+        x: 64,
+        y: 111,
+        renderHit: false,
+        aboutCenter: true,
+      },
+      {
+        surface: bulletImage,
+        x: 78,
+        y: 97,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+    expect(calls).toEqual([
+      {
+        surface: bulletImage,
+        x: 80,
+        y: 120,
+        renderHit: false,
+        aboutCenter: true,
+      },
+      {
+        surface: bulletImage,
+        x: 74,
+        y: 126,
+        renderHit: false,
+        aboutCenter: true,
+      },
+      {
+        surface: bulletImage,
+        x: 88,
+        y: 112,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces EMoMissileRockets DoRender as no commands for killed or missing image", () => {
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderMobileMissileRocketsEffect(
+        {
+          killMe: true,
+          x: 0,
+          y: 0,
+          leftX: 0,
+          leftY: 0,
+          rightX: 0,
+          rightY: 0,
+          bulletImage: {},
+        },
+        zmap,
+      ),
+    ).toEqual([]);
+    expect(
+      renderMobileMissileRocketsEffect(
+        {
+          killMe: false,
+          x: 0,
+          y: 0,
+          leftX: 0,
+          leftY: 0,
+          rightX: 0,
+          rightY: 0,
+          bulletImage: null,
+        },
+        zmap,
+      ),
+    ).toEqual([]);
   });
 
   it("ports EMoMissileRockets PlaceSmoke as triple tough-smoke spawning", () => {

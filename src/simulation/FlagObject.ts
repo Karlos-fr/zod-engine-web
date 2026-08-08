@@ -3,6 +3,7 @@
  */
 
 import { MapObjectType } from "../world/MapFormat";
+import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 import { BuildingType, ACTIVE_TEAM_TYPE_COUNT } from "./SimulationConstants";
 import {
   loadTeamZSurface,
@@ -31,6 +32,42 @@ export type FlagImage<TSurface> = {
 
 export type FlagImageInitState<TSurface> = {
   flagImages: readonly (readonly FlagImage<TSurface>[])[];
+};
+
+/**
+ * Replacement for upstream `ZMap::GetBlitInfo` dependency.
+ * Role: Calculates visible source and destination rectangles for flag rendering.
+ * Upstream: oflag.cpp:62
+ */
+export type FlagRenderMap<TSurface> = {
+  getBlitInfo(
+    surface: TSurface | null,
+    x: number,
+    y: number,
+  ): SurfaceBlitRegion | null;
+};
+
+/**
+ * Replacement state for upstream `OFlag::DoRender`.
+ * Role: Holds the active team flag frame and map-space location used for rendering.
+ * Upstream: oflag.cpp:52-70
+ */
+export type FlagRenderState<TImage> = {
+  x: number;
+  y: number;
+  owner: number;
+  flagIndex: number;
+  flagImages: readonly (readonly (TImage | null | undefined)[])[];
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::BlitSurface`.
+ * Role: Describes the clipped flag blit requested by object rendering.
+ * Upstream: oflag.cpp:67
+ */
+export type FlagBlitCommand<TImage> = {
+  flagImage: TImage;
+  region: SurfaceBlitRegion;
 };
 
 const FLAG_ANIMATION_FRAME_COUNT = 4;
@@ -70,6 +107,36 @@ export function initFlagObjectImages<TSurface>(
       );
     }
   }
+}
+
+/**
+ * Replacement for upstream `OFlag::DoRender`.
+ * Role: Builds a shifted, clipped blit command for a flag object.
+ * Upstream: oflag.cpp:52-70
+ */
+export function renderFlagObject<
+  TSurface extends { width: number; height: number },
+  TImage extends FlagImage<TSurface>,
+>(
+  state: FlagRenderState<TImage>,
+  map: FlagRenderMap<TSurface>,
+  shiftX: number,
+  shiftY: number,
+): FlagBlitCommand<TImage> | null {
+  const flagImage = state.flagImages[state.owner]?.[state.flagIndex];
+  if (!flagImage) return null;
+
+  const region = map.getBlitInfo(flagImage.getBaseSurface(), state.x, state.y);
+  if (!region) return null;
+
+  return {
+    flagImage,
+    region: {
+      ...region,
+      destinationX: region.destinationX + shiftX,
+      destinationY: region.destinationY + shiftY,
+    },
+  };
 }
 
 /**

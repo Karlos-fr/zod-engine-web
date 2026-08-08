@@ -3,6 +3,7 @@ import {
   endRockTurrentExplosion,
   EROCK_TURRET_HEADER_GUARD_PORTED,
   initRockTurretEffect,
+  renderRockTurrentEffect,
 } from "../src/simulation/RockTurretEffect";
 import {
   RockParticleType,
@@ -55,6 +56,111 @@ describe("rock turret effect", () => {
       "assets/planets/rock_effects/debri_large1_city_n00.png",
     );
     expect(state.finishedInit).toBe(true);
+  });
+
+  it("replaces ERockTurrent DoRender with transformed centered debris command", () => {
+    const transforms: Array<[string, number]> = [];
+    const debriLargeImages = Array.from({ length: 2 }, (_, variant) =>
+      Array.from({ length: PlanetType.Max }, (_, palette) =>
+        Array.from({ length: 12 }, (_, frame) => ({
+          id: `rock-${variant}-${palette}-${frame}`,
+          setAngle: (angle: number) => transforms.push(["angle", angle]),
+          setSize: (size: number) => transforms.push(["size", size]),
+        })),
+      ),
+    );
+    const calls: unknown[] = [];
+
+    const command = renderRockTurrentEffect(
+      {
+        killme: false,
+        x: 140,
+        y: 180,
+        largeIndex: 1,
+        palette: PlanetType.Volcanic,
+        renderIndex: 6,
+        angle: 75,
+        size: 1.8,
+        debriLargeImages,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          calls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 24,
+            y: y - 36,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: debriLargeImages[1]?.[PlanetType.Volcanic]?.[6],
+      x: 116,
+      y: 144,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(transforms).toEqual([
+      ["angle", 75],
+      ["size", 1.8],
+    ]);
+    expect(calls).toEqual([
+      {
+        surface: debriLargeImages[1]?.[PlanetType.Volcanic]?.[6],
+        x: 140,
+        y: 180,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces ERockTurrent DoRender as no command for killed or missing frames", () => {
+    const debriLargeImages = [
+      [[{ setAngle: () => undefined, setSize: () => undefined }]],
+    ];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderRockTurrentEffect(
+        {
+          killme: true,
+          x: 0,
+          y: 0,
+          largeIndex: 0,
+          palette: 0,
+          renderIndex: 0,
+          angle: 0,
+          size: 1,
+          debriLargeImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderRockTurrentEffect(
+        {
+          killme: false,
+          x: 0,
+          y: 0,
+          largeIndex: 1,
+          palette: PlanetType.City,
+          renderIndex: 20,
+          angle: 0,
+          size: 1,
+          debriLargeImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 
   it("ports ERockTurrent EndExplosion null effect list guard", () => {

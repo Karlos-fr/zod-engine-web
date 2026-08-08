@@ -57,6 +57,37 @@ export type MobileMissileRocketSmokePlacementState<TTime = unknown> = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds map-relative render commands for triple mobile-missile rocket frames.
+ * Upstream: emomissilerockets.cpp:137,141,145
+ */
+export type MobileMissileRocketsRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EMoMissileRockets::DoRender`.
+ * Role: Holds the shared rocket image, side positions, and visibility state.
+ * Upstream: emomissilerockets.cpp:131-148
+ */
+export type MobileMissileRocketsRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  leftX: number;
+  leftY: number;
+  rightX: number;
+  rightY: number;
+  bulletImage: TSurface | null;
+};
+
+/**
  * Port of upstream `EMoMissileRockets::Init`.
  * Role: Initializes the mobile-missile bullet image path.
  * Upstream: emomissilerockets.cpp:61-69
@@ -101,4 +132,34 @@ export function placeMobileMissileRocketSmoke<TTime>(
 
     state.lastSmokeTime += timeD2;
   }
+}
+
+/**
+ * Replacement for upstream `EMoMissileRockets::DoRender`.
+ * Role: Builds centered map-relative render commands for all three mobile-missile rockets.
+ * Upstream: emomissilerockets.cpp:131-148
+ */
+export function renderMobileMissileRocketsEffect<TSurface, TCommand>(
+  state: MobileMissileRocketsRenderState<TSurface>,
+  zmap: MobileMissileRocketsRenderMap<TSurface, TCommand>,
+): TCommand[] {
+  if (state.killMe || state.bulletImage === null) return [];
+
+  return [
+    zmap.renderZSurface(state.bulletImage, state.x, state.y, false, true),
+    zmap.renderZSurface(
+      state.bulletImage,
+      state.leftX,
+      state.leftY,
+      false,
+      true,
+    ),
+    zmap.renderZSurface(
+      state.bulletImage,
+      state.rightX,
+      state.rightY,
+      false,
+      true,
+    ),
+  ];
 }

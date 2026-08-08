@@ -3,6 +3,7 @@ import {
   EUNIT_PARTICLE_HEADER_GUARD_PORTED,
   initUnitParticleEffect,
   processUnitParticleEffect,
+  renderUnitParticleEffect,
   UNIT_PARTICLE_FRAME_COUNT,
   type UnitParticleInitState,
 } from "../src/simulation/UnitParticleEffect";
@@ -76,6 +77,76 @@ describe("unit particle effect", () => {
     expect(state.x).toBe(12);
     expect(state.size).toBe(1);
     expect(state.y).toBeCloseTo(-54.125);
+  });
+
+  it("replaces EUnitParticle DoRender with a scaled map-relative frame command", () => {
+    const sizes: number[] = [];
+    const baseImages = Array.from({ length: UNIT_PARTICLE_FRAME_COUNT }, (_value, frame) => ({
+      id: `unit-particle-${frame}`,
+      setSize: (size: number) => sizes.push(size),
+    }));
+    const calls: unknown[] = [];
+
+    const command = renderUnitParticleEffect(
+      {
+        killme: false,
+        x: 90,
+        y: 130,
+        size: 1.75,
+        renderIndex: 7,
+        baseImages,
+      },
+      {
+        renderZSurface: (surface, x, y) => {
+          calls.push({ surface, x, y });
+          return { surface, x: x - 12, y: y - 18 };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: baseImages[7],
+      x: 78,
+      y: 112,
+    });
+    expect(sizes).toEqual([1.75]);
+    expect(calls).toEqual([{ surface: baseImages[7], x: 90, y: 130 }]);
+  });
+
+  it("replaces EUnitParticle DoRender as no command for killed or missing frames", () => {
+    const baseImages = [{ setSize: () => undefined }];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderUnitParticleEffect(
+        {
+          killme: true,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 0,
+          baseImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderUnitParticleEffect(
+        {
+          killme: false,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 99,
+          baseImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });
 

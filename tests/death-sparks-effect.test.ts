@@ -7,6 +7,7 @@ import {
   EDEATH_SPARKS_HEADER_GUARD_PORTED,
   initDeathSparksEffect,
   processDeathSparksEffect,
+  renderDeathSparksEffect,
   type DeathSparksInitState,
   type DeathSparksProcessState,
 } from "../src/simulation/DeathSparksEffect";
@@ -99,6 +100,92 @@ describe("death sparks effect", () => {
     expect(state.x).toBe(106);
     expect(state.size).toBeCloseTo(5.333333333333334);
     expect(state.y).toBeCloseTo(36);
+  });
+
+  it("replaces EDeathSparks DoRender with a centered map-relative frame command", () => {
+    const sizes: number[] = [];
+    const baseImages = Array.from({ length: 6 }, (_value, index) => ({
+      id: `spark-${index}`,
+      setSize: (size: number) => sizes.push(size),
+    }));
+    const zmapCalls: unknown[] = [];
+
+    const command = renderDeathSparksEffect(
+      {
+        killMe: false,
+        x: 72,
+        y: 118,
+        size: 2.25,
+        renderIndex: 4,
+        baseImages,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          zmapCalls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 10,
+            y: y - 15,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: baseImages[4],
+      x: 62,
+      y: 103,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(sizes).toEqual([2.25]);
+    expect(zmapCalls).toEqual([
+      {
+        surface: baseImages[4],
+        x: 72,
+        y: 118,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces EDeathSparks DoRender as no command for killed or missing frames", () => {
+    const baseImages = [{ setSize: () => undefined }];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderDeathSparksEffect(
+        {
+          killMe: true,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 0,
+          baseImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderDeathSparksEffect(
+        {
+          killMe: false,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 9,
+          baseImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });
 

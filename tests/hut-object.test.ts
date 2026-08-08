@@ -7,6 +7,7 @@ import {
   initHutPlanetTemplates,
   isHutDestroyableImpassable,
   OHUT_HEADER_GUARD_PORTED,
+  renderHutObject,
   sendHutAnimalsHome,
   setHutMapImpassables,
   setMaxHutAnimals,
@@ -46,6 +47,94 @@ describe("hut object", () => {
       "assets/other/map_items/hut_jungle.png",
       "assets/other/map_items/hut_city.png",
     ]);
+  });
+
+  it("replaces OHut DoRender with a palette-selected shifted clipped blit command", () => {
+    const baseSurface = { width: 32, height: 24 };
+    const renderImages = [
+      undefined,
+      {
+        id: "volcanic-hut",
+        getBaseSurface: () => baseSurface,
+      },
+    ];
+    const calls: unknown[] = [];
+
+    const command = renderHutObject(
+      {
+        palette: PlanetType.Volcanic,
+        x: 96,
+        y: 128,
+        renderImages,
+      },
+      {
+        getBlitInfo: (surface, x, y) => {
+          calls.push({ surface, x, y });
+          return {
+            sourceX: 4,
+            sourceY: 5,
+            width: 20,
+            height: 18,
+            destinationX: 70,
+            destinationY: 90,
+          };
+        },
+      },
+      -6,
+      9,
+    );
+
+    expect(command).toEqual({
+      renderImage: renderImages[1],
+      region: {
+        sourceX: 4,
+        sourceY: 5,
+        width: 20,
+        height: 18,
+        destinationX: 64,
+        destinationY: 99,
+      },
+    });
+    expect(calls).toEqual([{ surface: baseSurface, x: 96, y: 128 }]);
+  });
+
+  it("replaces OHut DoRender as no command without image or visible blit", () => {
+    expect(
+      renderHutObject(
+        {
+          palette: PlanetType.Desert,
+          x: 0,
+          y: 0,
+          renderImages: [],
+        },
+        {
+          getBlitInfo: () => {
+            throw new Error("getBlitInfo should not be called");
+          },
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
+    expect(
+      renderHutObject(
+        {
+          palette: PlanetType.Desert,
+          x: 0,
+          y: 0,
+          renderImages: [
+            {
+              getBaseSurface: () => null,
+            },
+          ],
+        },
+        {
+          getBlitInfo: () => null,
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
   });
 
   it("ports OHut ChangePalette as palette assignment", () => {

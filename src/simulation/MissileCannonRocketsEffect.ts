@@ -55,6 +55,35 @@ export type MissileCannonRocketSmokePlacementState<TTime = unknown> = {
 };
 
 /**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds map-relative render commands for paired missile-cannon rocket frames.
+ * Upstream: emissilecrockets.cpp:132,136
+ */
+export type MissileCannonRocketsRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EMissileCRockets::DoRender`.
+ * Role: Holds the shared rocket image, paired offset, and visibility state.
+ * Upstream: emissilecrockets.cpp:126-139
+ */
+export type MissileCannonRocketsRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  otherXShift: number;
+  otherYShift: number;
+  bulletImage: TSurface | null;
+};
+
+/**
  * Port of upstream `EMissileCRockets::Init`.
  * Role: Initializes the missile-cannon bullet image path.
  * Upstream: emissilecrockets.cpp:61-69
@@ -94,4 +123,27 @@ export function placeMissileCannonRocketSmoke<TTime>(
 
     state.lastSmokeTime += timeD2;
   }
+}
+
+/**
+ * Replacement for upstream `EMissileCRockets::DoRender`.
+ * Role: Builds centered map-relative render commands for both missile-cannon rockets.
+ * Upstream: emissilecrockets.cpp:126-139
+ */
+export function renderMissileCannonRocketsEffect<TSurface, TCommand>(
+  state: MissileCannonRocketsRenderState<TSurface>,
+  zmap: MissileCannonRocketsRenderMap<TSurface, TCommand>,
+): TCommand[] {
+  if (state.killMe || state.bulletImage === null) return [];
+
+  return [
+    zmap.renderZSurface(state.bulletImage, state.x, state.y, false, true),
+    zmap.renderZSurface(
+      state.bulletImage,
+      state.x + state.otherXShift,
+      state.y + state.otherYShift,
+      false,
+      true,
+    ),
+  ];
 }

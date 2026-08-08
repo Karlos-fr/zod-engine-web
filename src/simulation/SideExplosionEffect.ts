@@ -54,6 +54,38 @@ export type SideExplosionProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZSDL_Surface::SetSize` dependency.
+ * Role: Provides the scale update applied to the side-explosion frame before rendering.
+ * Upstream: esideexplosion.cpp:104
+ */
+export type SideExplosionRenderSurface = {
+  setSize?(size: number): void;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a side-explosion frame.
+ * Upstream: esideexplosion.cpp:106
+ */
+export type SideExplosionRenderMap<TSurface, TCommand> = {
+  renderZSurface(surface: TSurface, x: number, y: number): TCommand;
+};
+
+/**
+ * Replacement state for upstream `ESideExplosion::DoRender`.
+ * Role: Holds the active side-explosion frame, scale, and visibility state.
+ * Upstream: esideexplosion.cpp:96-109
+ */
+export type SideExplosionRenderState<TSurface> = {
+  killme: boolean;
+  x: number;
+  y: number;
+  size: number;
+  renderIndex: number;
+  renderImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `ESideExplosion::Init`.
  * Role: Initializes side-explosion frame asset paths.
  * Upstream: esideexplosion.cpp:57-69
@@ -90,4 +122,26 @@ export function processSideExplosionEffect(
 
   state.x = state.startX + state.deltaX * (currentTime - state.initTime);
   state.y = state.startY + state.deltaY * (currentTime - state.initTime);
+}
+
+/**
+ * Replacement for upstream `ESideExplosion::DoRender`.
+ * Role: Builds the map-relative scaled side-explosion frame render command.
+ * Upstream: esideexplosion.cpp:96-109
+ */
+export function renderSideExplosionEffect<
+  TSurface extends SideExplosionRenderSurface,
+  TCommand,
+>(
+  state: SideExplosionRenderState<TSurface>,
+  zmap: SideExplosionRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killme) return null;
+
+  const surface = state.renderImages[state.renderIndex];
+  if (!surface) return null;
+
+  surface.setSize?.(state.size);
+
+  return zmap.renderZSurface(surface, state.x, state.y);
 }

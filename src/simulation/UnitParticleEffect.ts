@@ -48,6 +48,38 @@ export type UnitParticleProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZSDL_Surface::SetSize` dependency.
+ * Role: Provides the scale update applied to the unit-particle frame before rendering.
+ * Upstream: eunitparticle.cpp:98
+ */
+export type UnitParticleRenderImage = {
+  setSize?(size: number): void;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a unit-particle frame.
+ * Upstream: eunitparticle.cpp:102
+ */
+export type UnitParticleRenderMap<TImage, TCommand> = {
+  renderZSurface(surface: TImage, x: number, y: number): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EUnitParticle::DoRender`.
+ * Role: Holds the active unit-particle frame, scale, and visibility state.
+ * Upstream: eunitparticle.cpp:90-105
+ */
+export type UnitParticleRenderState<TImage> = {
+  killme: boolean;
+  x: number;
+  y: number;
+  size: number;
+  renderIndex: number;
+  baseImages: readonly TImage[];
+};
+
+/**
  * Port of upstream `EUnitParticle::Init`.
  * Role: Initializes unit-particle frame asset paths.
  * Upstream: eunitparticle.cpp:43-53
@@ -95,4 +127,26 @@ export function processUnitParticleEffect(
   state.size += 1;
   state.y -= (state.size - 1) * 65;
   state.size = 1;
+}
+
+/**
+ * Replacement for upstream `EUnitParticle::DoRender`.
+ * Role: Builds the map-relative scaled unit-particle frame render command.
+ * Upstream: eunitparticle.cpp:90-105
+ */
+export function renderUnitParticleEffect<
+  TImage extends UnitParticleRenderImage,
+  TCommand,
+>(
+  state: UnitParticleRenderState<TImage>,
+  zmap: UnitParticleRenderMap<TImage, TCommand>,
+): TCommand | null {
+  if (state.killme) return null;
+
+  const image = state.baseImages[state.renderIndex];
+  if (!image) return null;
+
+  image.setSize?.(state.size);
+
+  return zmap.renderZSurface(image, state.x, state.y);
 }

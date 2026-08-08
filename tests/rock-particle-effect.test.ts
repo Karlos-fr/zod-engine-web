@@ -3,6 +3,7 @@ import {
   EROCK_PARTICLE_HEADER_GUARD_PORTED,
   initRockParticleEffect,
   processRockParticleEffect,
+  renderRockParticleEffect,
   RockParticleType,
 } from "../src/simulation/RockParticleEffect";
 import { PlanetType } from "../src/simulation/SimulationConstants";
@@ -110,6 +111,92 @@ describe("rock particle effect", () => {
     expect(state.x).toBe(12);
     expect(state.size).toBeCloseTo(2.125);
     expect(state.y).toBeCloseTo(-149.75);
+  });
+
+  it("replaces ERockParticle DoRender with a scaled centered frame command", () => {
+    const sizes: number[] = [];
+    const renderImages = Array.from({ length: 6 }, (_value, frame) => ({
+      id: `rock-particle-${frame}`,
+      setSize: (size: number) => sizes.push(size),
+    }));
+    const calls: unknown[] = [];
+
+    const command = renderRockParticleEffect(
+      {
+        killme: false,
+        x: 80,
+        y: 116,
+        size: 2.25,
+        renderIndex: 4,
+        renderImages,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          calls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 18,
+            y: y - 22,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: renderImages[4],
+      x: 62,
+      y: 94,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(sizes).toEqual([2.25]);
+    expect(calls).toEqual([
+      {
+        surface: renderImages[4],
+        x: 80,
+        y: 116,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces ERockParticle DoRender as no command for killed or missing frames", () => {
+    const renderImages = [{ setSize: () => undefined }];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderRockParticleEffect(
+        {
+          killme: true,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 0,
+          renderImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderRockParticleEffect(
+        {
+          killme: false,
+          x: 0,
+          y: 0,
+          size: 1,
+          renderIndex: 9,
+          renderImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });
 

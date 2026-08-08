@@ -2,6 +2,7 @@
  * Upstream: ohut.h
  */
 import { PlanetType, TeamType } from "./SimulationConstants";
+import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 
 const HUT_PLANET_TYPE_ASSET_NAMES = [
   "desert",
@@ -55,6 +56,50 @@ export type HutPlanetTemplate = {
 };
 
 /**
+ * Port of upstream `ZSDL_Surface::GetBaseSurface` dependency.
+ * Role: Provides the loaded base surface used to clip hut rendering.
+ * Upstream: ohut.cpp:55
+ */
+export type HutRenderableImage<TBaseSurface> = {
+  getBaseSurface(): TBaseSurface | null;
+};
+
+/**
+ * Replacement for upstream `ZMap::GetBlitInfo` dependency.
+ * Role: Calculates visible source and destination rectangles for hut rendering.
+ * Upstream: ohut.cpp:55
+ */
+export type HutRenderMap<TBaseSurface> = {
+  getBlitInfo(
+    surface: TBaseSurface | null,
+    x: number,
+    y: number,
+  ): SurfaceBlitRegion | null;
+};
+
+/**
+ * Replacement state for upstream `OHut::DoRender`.
+ * Role: Holds hut palette, render images, and map-space location used for rendering.
+ * Upstream: ohut.cpp:49-63
+ */
+export type HutDoRenderState<TImage> = {
+  palette: number;
+  x: number;
+  y: number;
+  renderImages: readonly (TImage | null | undefined)[];
+};
+
+/**
+ * Replacement for upstream `ZSDL_Surface::BlitSurface`.
+ * Role: Describes the clipped hut blit requested by object rendering.
+ * Upstream: ohut.cpp:60
+ */
+export type HutBlitCommand<TImage> = {
+  renderImage: TImage;
+  region: SurfaceBlitRegion;
+};
+
+/**
  * Port of upstream `AHutAnimal` home-return surface.
  * Role: Reports and starts an animal's return-home state for hut coordination.
  * Upstream: ohut.cpp:142-154
@@ -86,6 +131,40 @@ export function initHutPlanetTemplates(
       `assets/other/map_items/hut_${HUT_PLANET_TYPE_ASSET_NAMES[i]}.png`,
     );
   }
+}
+
+/**
+ * Replacement for upstream `OHut::DoRender`.
+ * Role: Builds a shifted, clipped blit command for a hut object.
+ * Upstream: ohut.cpp:49-63
+ */
+export function renderHutObject<
+  TBaseSurface extends { width: number; height: number },
+  TImage extends HutRenderableImage<TBaseSurface>,
+>(
+  state: HutDoRenderState<TImage>,
+  map: HutRenderMap<TBaseSurface>,
+  shiftX: number,
+  shiftY: number,
+): HutBlitCommand<TImage> | null {
+  const renderImage = state.renderImages[state.palette];
+  if (!renderImage) return null;
+
+  const region = map.getBlitInfo(
+    renderImage.getBaseSurface(),
+    state.x,
+    state.y,
+  );
+  if (!region) return null;
+
+  return {
+    renderImage,
+    region: {
+      ...region,
+      destinationX: region.destinationX + shiftX,
+      destinationY: region.destinationY + shiftY,
+    },
+  };
 }
 
 /**

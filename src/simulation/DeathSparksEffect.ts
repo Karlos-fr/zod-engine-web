@@ -87,6 +87,44 @@ export type DeathSparksProcessState = {
 };
 
 /**
+ * Replacement for upstream `ZSDL_Surface::SetSize` dependency.
+ * Role: Provides the scale update applied to the death-spark frame before rendering.
+ * Upstream: edeathsparks.cpp:124
+ */
+export type DeathSparksRenderSurface = {
+  setSize?(size: number): void;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a map-relative render command for a centered death-spark frame.
+ * Upstream: edeathsparks.cpp:126
+ */
+export type DeathSparksRenderMap<TSurface, TCommand> = {
+  renderZSurface(
+    surface: TSurface,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EDeathSparks::DoRender`.
+ * Role: Holds the active death-spark frame, scale, and visibility state.
+ * Upstream: edeathsparks.cpp:116-129
+ */
+export type DeathSparksRenderState<TSurface> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  size: number;
+  renderIndex: number;
+  baseImages: readonly TSurface[];
+};
+
+/**
  * Port of upstream `EDeathSparks::Init`.
  * Role: Initializes death-spark frame asset paths.
  * Upstream: edeathsparks.cpp:53-65
@@ -132,4 +170,26 @@ export function processDeathSparksEffect(
       (timeDifference * timeDifference) +
     state.rise * timeDifference;
   state.y -= state.size * 30;
+}
+
+/**
+ * Replacement for upstream `EDeathSparks::DoRender`.
+ * Role: Builds the map-relative centered death-spark frame render command.
+ * Upstream: edeathsparks.cpp:116-129
+ */
+export function renderDeathSparksEffect<
+  TSurface extends DeathSparksRenderSurface,
+  TCommand,
+>(
+  state: DeathSparksRenderState<TSurface>,
+  zmap: DeathSparksRenderMap<TSurface, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const surface = state.baseImages[state.renderIndex];
+  if (!surface) return null;
+
+  surface.setSize?.(state.size);
+
+  return zmap.renderZSurface(surface, state.x, state.y, false, true);
 }

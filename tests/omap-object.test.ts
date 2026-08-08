@@ -6,6 +6,7 @@ import {
   fireObjectMapObjectTurrentMissile,
   ObjectMapObject,
   OMAP_OBJECT_HEADER_GUARD_PORTED,
+  renderObjectMapObject,
 } from "../src/world/OMapObject";
 
 describe("object map object", () => {
@@ -111,6 +112,113 @@ describe("object map object", () => {
     object.setOwner(TeamType.Red);
 
     expect(object.owner).toBe(TeamType.Null);
+  });
+
+  it("replaces OMapObject DoRender with a bottom-aligned shifted clipped blit command", () => {
+    const baseSurface = { width: 24, height: 32 };
+    const renderImages = [
+      undefined,
+      {
+        id: "map-object-1",
+        getBaseSurface: () => baseSurface,
+      },
+    ];
+    const calls: unknown[] = [];
+
+    const command = renderObjectMapObject(
+      {
+        x: 48,
+        y: 80,
+        objectIndex: 1,
+        renderImages,
+      },
+      {
+        getBlitInfo: (surface, x, y) => {
+          calls.push({ surface, x, y });
+          return {
+            sourceX: 3,
+            sourceY: 4,
+            width: 18,
+            height: 20,
+            destinationX: 40,
+            destinationY: 52,
+          };
+        },
+      },
+      6,
+      -8,
+    );
+
+    expect(command).toEqual({
+      renderImage: renderImages[1],
+      region: {
+        sourceX: 3,
+        sourceY: 4,
+        width: 18,
+        height: 20,
+        destinationX: 46,
+        destinationY: 44,
+      },
+    });
+    expect(calls).toEqual([
+      {
+        surface: baseSurface,
+        x: 48,
+        y: 64,
+      },
+    ]);
+  });
+
+  it("replaces OMapObject DoRender as no command without image, surface, or visible blit", () => {
+    expect(
+      renderObjectMapObject(
+        {
+          x: 0,
+          y: 0,
+          objectIndex: 2,
+          renderImages: [],
+        },
+        {
+          getBlitInfo: () => {
+            throw new Error("getBlitInfo should not be called");
+          },
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
+    expect(
+      renderObjectMapObject(
+        {
+          x: 0,
+          y: 0,
+          objectIndex: 0,
+          renderImages: [{ getBaseSurface: () => null }],
+        },
+        {
+          getBlitInfo: () => {
+            throw new Error("getBlitInfo should not be called");
+          },
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
+    expect(
+      renderObjectMapObject(
+        {
+          x: 0,
+          y: 0,
+          objectIndex: 0,
+          renderImages: [{ getBaseSurface: () => ({ width: 16, height: 16 }) }],
+        },
+        {
+          getBlitInfo: () => null,
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
   });
 
   it("ports OMapObject FireTurrentMissile as no effect without a base image", () => {

@@ -24,9 +24,49 @@ export type MapObjectTurrentBaseImage = {
   getBaseSurface(): unknown | null;
 };
 
+/**
+ * Replacement for upstream rotozoom image state used by `EMapObjectTurrent::DoRender`.
+ * Role: Applies the current angle and scale before map-relative rendering.
+ * Upstream: emapobjectturrent.cpp:134-135
+ */
+export type MapObjectTurrentRenderImage = {
+  setAngle?(angle: number): void;
+  setSize?(size: number): void;
+};
+
 export type MapObjectTurrentInitState = {
   objectImages: readonly MapObjectTurrentImage[];
   finishedInit: boolean;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a centered map-relative render command for map-object turret debris.
+ * Upstream: emapobjectturrent.cpp:139
+ */
+export type MapObjectTurrentRenderMap<TImage, TCommand> = {
+  renderZSurface(
+    surface: TImage,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EMapObjectTurrent::DoRender`.
+ * Role: Holds the active object image, transform, and visibility state.
+ * Upstream: emapobjectturrent.cpp:126-142
+ */
+export type MapObjectTurrentRenderState<TImage> = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  objectIndex: number;
+  angle: number;
+  size: number;
+  objectImages: readonly TImage[];
 };
 
 /**
@@ -59,4 +99,27 @@ export function initMapObjectTurrentEffect(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Replacement for upstream `EMapObjectTurrent::DoRender`.
+ * Role: Builds the centered map-relative map-object turret render command.
+ * Upstream: emapobjectturrent.cpp:126-142
+ */
+export function renderMapObjectTurrentEffect<
+  TImage extends MapObjectTurrentRenderImage,
+  TCommand,
+>(
+  state: MapObjectTurrentRenderState<TImage>,
+  zmap: MapObjectTurrentRenderMap<TImage, TCommand>,
+): TCommand | null {
+  if (state.killMe) return null;
+
+  const image = state.objectImages[state.objectIndex];
+  if (!image) return null;
+
+  image.setAngle?.(state.angle);
+  image.setSize?.(state.size);
+
+  return zmap.renderZSurface(image, state.x, state.y, false, true);
 }

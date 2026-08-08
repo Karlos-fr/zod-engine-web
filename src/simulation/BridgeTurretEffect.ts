@@ -32,9 +32,50 @@ export type BridgeTurrentDebriImage = {
   loadBaseImage(filename: string): void;
 };
 
+/**
+ * Replacement for upstream rotozoom image state used by `EBridgeTurrent::DoRender`.
+ * Role: Applies the current angle and scale before bridge debris rendering.
+ * Upstream: ebridgeturrent.cpp:148-149
+ */
+export type BridgeTurrentRenderImage = {
+  setAngle?(angle: number): void;
+  setSize?(size: number): void;
+};
+
 export type BridgeTurrentEffectImageState = {
   debriLargeImages: readonly (readonly BridgeTurrentDebriImage[])[];
   finishedInit: boolean;
+};
+
+/**
+ * Replacement for upstream `ZMap::RenderZSurface` dependency.
+ * Role: Builds a centered map-relative render command for bridge turret debris.
+ * Upstream: ebridgeturrent.cpp:153
+ */
+export type BridgeTurrentRenderMap<TImage, TCommand> = {
+  renderZSurface(
+    surface: TImage,
+    x: number,
+    y: number,
+    renderHit: boolean,
+    aboutCenter: boolean,
+  ): TCommand;
+};
+
+/**
+ * Replacement state for upstream `EBridgeTurrent::DoRender`.
+ * Role: Holds the active bridge debris frame, transform, and visibility state.
+ * Upstream: ebridgeturrent.cpp:140-156
+ */
+export type BridgeTurrentRenderState<TImage> = {
+  killme: boolean;
+  x: number;
+  y: number;
+  palette: number;
+  renderIndex: number;
+  angle: number;
+  size: number;
+  debriLargeImages: readonly (readonly TImage[])[];
 };
 
 const BRIDGE_TURRENT_DEBRI_LARGE_FRAME_COUNT = 12;
@@ -65,6 +106,29 @@ export function initBridgeTurrentEffect(
   }
 
   state.finishedInit = true;
+}
+
+/**
+ * Replacement for upstream `EBridgeTurrent::DoRender`.
+ * Role: Builds the centered map-relative bridge turret debris render command.
+ * Upstream: ebridgeturrent.cpp:140-156
+ */
+export function renderBridgeTurrentEffect<
+  TImage extends BridgeTurrentRenderImage,
+  TCommand,
+>(
+  state: BridgeTurrentRenderState<TImage>,
+  zmap: BridgeTurrentRenderMap<TImage, TCommand>,
+): TCommand | null {
+  if (state.killme) return null;
+
+  const image = state.debriLargeImages[state.palette]?.[state.renderIndex];
+  if (!image) return null;
+
+  image.setAngle?.(state.angle);
+  image.setSize?.(state.size);
+
+  return zmap.renderZSurface(image, state.x, state.y, false, true);
 }
 
 /**

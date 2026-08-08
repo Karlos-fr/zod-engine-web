@@ -12,6 +12,7 @@ import {
   initGrenadesObjectImage,
   OGRENADES_HEADER_GUARD_PORTED,
   processGrenadesObject,
+  renderGrenadesObject,
   setGrenadesObjectAmount,
   setGrenadesObjectOwner,
 } from "../src/simulation/GrenadesObject";
@@ -57,6 +58,86 @@ describe("grenades object", () => {
 
     expect(loadedPaths).toEqual([GRENADES_OBJECT_IMAGE_PATH]);
     expect(state.renderImage).toEqual({ id: GRENADES_OBJECT_IMAGE_PATH });
+  });
+
+  it("replaces OGrenades DoRender with a shifted clipped blit command", () => {
+    const baseSurface = { width: 16, height: 16 };
+    const renderImage = {
+      id: "grenades",
+      getBaseSurface: () => baseSurface,
+    };
+    const calls: unknown[] = [];
+
+    const command = renderGrenadesObject(
+      {
+        renderImage,
+        position: { x: 48, y: 72 },
+      },
+      {
+        getBlitInfo: (surface, x, y) => {
+          calls.push({ surface, x, y });
+          return {
+            sourceX: 2,
+            sourceY: 3,
+            width: 12,
+            height: 10,
+            destinationX: 30,
+            destinationY: 45,
+          };
+        },
+      },
+      7,
+      -4,
+    );
+
+    expect(command).toEqual({
+      renderImage,
+      region: {
+        sourceX: 2,
+        sourceY: 3,
+        width: 12,
+        height: 10,
+        destinationX: 37,
+        destinationY: 41,
+      },
+    });
+    expect(calls).toEqual([{ surface: baseSurface, x: 48, y: 72 }]);
+  });
+
+  it("replaces OGrenades DoRender as no command without image or visible blit", () => {
+    const map = {
+      getBlitInfo: () => {
+        throw new Error("getBlitInfo should not be called without an image");
+      },
+    };
+
+    expect(
+      renderGrenadesObject(
+        {
+          renderImage: null,
+          position: { x: 0, y: 0 },
+        },
+        map,
+        0,
+        0,
+      ),
+    ).toBeNull();
+
+    expect(
+      renderGrenadesObject(
+        {
+          renderImage: {
+            getBaseSurface: () => null,
+          },
+          position: { x: 0, y: 0 },
+        },
+        {
+          getBlitInfo: () => null,
+        },
+        0,
+        0,
+      ),
+    ).toBeNull();
   });
 
   it("ports OGrenades Process as a no-op result", () => {

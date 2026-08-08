@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EROBOT_TURRET_HEADER_GUARD_PORTED,
   initRobotTurretEffect,
+  renderRobotTurretEffect,
 } from "../src/simulation/RobotTurretEffect";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
@@ -62,5 +63,96 @@ describe("robot turret effect", () => {
     expect(made).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 33);
     expect(made[0]).toEqual([TeamType.Blue, baseSurfaces[0]]);
     expect(state.finishedInit).toBe(true);
+  });
+
+  it("replaces ERobotTurrent DoRender with a scaled centered team-frame command", () => {
+    const sizes: number[] = [];
+    const robotFlipImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+      Array.from({ length: 4 }, (_, frame) => ({
+        id: `team-${team}-frame-${frame}`,
+        setSize: (size: number) => sizes.push(size),
+      })),
+    );
+    const calls: unknown[] = [];
+
+    const command = renderRobotTurretEffect(
+      {
+        killMe: false,
+        x: 112,
+        y: 144,
+        size: 1.5,
+        owner: TeamType.Blue,
+        renderIndex: 2,
+        robotFlipImages,
+      },
+      {
+        renderZSurface: (surface, x, y, renderHit, aboutCenter) => {
+          calls.push({ surface, x, y, renderHit, aboutCenter });
+          return {
+            surface,
+            x: x - 16,
+            y: y - 24,
+            renderHit,
+            aboutCenter,
+          };
+        },
+      },
+    );
+
+    expect(command).toEqual({
+      surface: robotFlipImages[TeamType.Blue]?.[2],
+      x: 96,
+      y: 120,
+      renderHit: false,
+      aboutCenter: true,
+    });
+    expect(sizes).toEqual([1.5]);
+    expect(calls).toEqual([
+      {
+        surface: robotFlipImages[TeamType.Blue]?.[2],
+        x: 112,
+        y: 144,
+        renderHit: false,
+        aboutCenter: true,
+      },
+    ]);
+  });
+
+  it("replaces ERobotTurrent DoRender as no command for killed or missing frames", () => {
+    const robotFlipImages = [[{ setSize: () => undefined }]];
+    const zmap = {
+      renderZSurface: () => {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(
+      renderRobotTurretEffect(
+        {
+          killMe: true,
+          x: 0,
+          y: 0,
+          size: 1,
+          owner: 0,
+          renderIndex: 0,
+          robotFlipImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
+    expect(
+      renderRobotTurretEffect(
+        {
+          killMe: false,
+          x: 0,
+          y: 0,
+          size: 1,
+          owner: TeamType.Blue,
+          renderIndex: 9,
+          robotFlipImages,
+        },
+        zmap,
+      ),
+    ).toBeNull();
   });
 });
