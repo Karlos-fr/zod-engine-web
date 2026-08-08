@@ -113,6 +113,40 @@ export type GunCannonRenderCommand<TSurface> =
   | MapSurfaceRenderCommand<TSurface>
   | null;
 
+export type GatlingCannonRenderState<TSurface> =
+  GunCannonRenderState<TSurface> & {
+    renderFire: boolean;
+    fireImages: readonly (readonly (TSurface | null | undefined)[] | null | undefined)[];
+  };
+
+export type GatlingCannonRenderMap<TSurface> =
+  GunCannonRenderMap<TSurface>;
+
+export type GatlingCannonRenderCommand<TSurface> =
+  GunCannonRenderCommand<TSurface>;
+
+export type HowitzerCannonRenderState<TSurface> =
+  GatlingCannonRenderState<TSurface>;
+
+export type HowitzerCannonRenderMap<TSurface> =
+  GatlingCannonRenderMap<TSurface>;
+
+export type HowitzerCannonRenderCommand<TSurface> =
+  GatlingCannonRenderCommand<TSurface>;
+
+export type MissileCannonRenderState<TSurface> = Omit<
+  GatlingCannonRenderState<TSurface>,
+  "wastedImage"
+> & {
+  wastedImages: readonly (TSurface | null | undefined)[];
+};
+
+export type MissileCannonRenderMap<TSurface> =
+  GatlingCannonRenderMap<TSurface>;
+
+export type MissileCannonRenderCommand<TSurface> =
+  GatlingCannonRenderCommand<TSurface>;
+
 /**
  * Replacement for upstream `CGun::DoRender`.
  * Role: Builds the gun cannon render command and clears the hit-effect flag.
@@ -146,6 +180,118 @@ function getGunCannonRenderSurface<TSurface>(
     if (state.placeIndex < 3) return state.initPlaceImages[state.placeIndex];
     return state.placeImages[state.owner]?.[state.placeIndex - 3];
   }
+
+  return state.passiveImages[state.owner]?.[state.direction];
+}
+
+const GATLING_CANNON_BASE_X_BY_DIRECTION = [1, 0, 0, 0, -1, 0, 0, 0] as const;
+const HOWITZER_CANNON_BASE_X_BY_DIRECTION = [5, 2, 2, 2, 0, 2, 2, 2] as const;
+const HOWITZER_CANNON_BASE_Y_BY_DIRECTION = [0, 0, 0, 0, 0, 3, 3, 3] as const;
+
+/**
+ * Replacement for upstream `CGatling::DoRender`.
+ * Role: Builds the gatling cannon render command and clears the hit-effect flag.
+ * Upstream: cgatling.cpp:89-138
+ */
+export function renderGatlingCannon<TSurface>(
+  state: GatlingCannonRenderState<TSurface>,
+  zmap: GatlingCannonRenderMap<TSurface>,
+): GatlingCannonRenderCommand<TSurface> {
+  const surface = getGatlingCannonRenderSurface(state);
+  const renderHit = state.doHitEffect;
+  state.doHitEffect = false;
+
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x +
+      GATLING_CANNON_UNIT_X_PIXELS +
+      (GATLING_CANNON_BASE_X_BY_DIRECTION[state.direction] ?? 0),
+    state.position.y + GATLING_CANNON_UNIT_Y_PIXELS,
+    renderHit,
+    false,
+  );
+}
+
+function getGatlingCannonRenderSurface<TSurface>(
+  state: GatlingCannonRenderState<TSurface>,
+): TSurface | null | undefined {
+  if (state.destroyed) return state.wastedImage;
+
+  if (state.mode === ObjectMode.JustPlaced) {
+    if (state.placeIndex < 3) return state.initPlaceImages[state.placeIndex];
+    return state.placeImages[state.owner]?.[state.placeIndex - 3];
+  }
+
+  if (state.renderFire) return state.fireImages[state.owner]?.[state.direction];
+
+  return state.passiveImages[state.owner]?.[state.direction];
+}
+
+/**
+ * Replacement for upstream `CHowitzer::DoRender`.
+ * Role: Builds the howitzer cannon render command and clears the hit-effect flag.
+ * Upstream: chowitzer.cpp:88-137
+ */
+export function renderHowitzerCannon<TSurface>(
+  state: HowitzerCannonRenderState<TSurface>,
+  zmap: HowitzerCannonRenderMap<TSurface>,
+): HowitzerCannonRenderCommand<TSurface> {
+  const surface = getGatlingCannonRenderSurface(state);
+  const renderHit = state.doHitEffect;
+  state.doHitEffect = false;
+
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x +
+      HOWITZER_CANNON_UNIT_X_PIXELS +
+      (HOWITZER_CANNON_BASE_X_BY_DIRECTION[state.direction] ?? 0),
+    state.position.y +
+      HOWITZER_CANNON_UNIT_Y_PIXELS +
+      (HOWITZER_CANNON_BASE_Y_BY_DIRECTION[state.direction] ?? 0),
+    renderHit,
+    false,
+  );
+}
+
+/**
+ * Replacement for upstream `CMissileCannon::DoRender`.
+ * Role: Builds the missile cannon render command and clears the hit-effect flag.
+ * Upstream: cmissilecannon.cpp:96-143
+ */
+export function renderMissileCannon<TSurface>(
+  state: MissileCannonRenderState<TSurface>,
+  zmap: MissileCannonRenderMap<TSurface>,
+): MissileCannonRenderCommand<TSurface> {
+  const surface = getMissileCannonRenderSurface(state);
+  const renderHit = state.doHitEffect;
+  state.doHitEffect = false;
+
+  if (!surface) return null;
+
+  return zmap.renderZSurface(
+    surface,
+    state.position.x + MISSILE_CANNON_UNIT_X_PIXELS,
+    state.position.y + MISSILE_CANNON_UNIT_Y_PIXELS,
+    renderHit,
+    false,
+  );
+}
+
+function getMissileCannonRenderSurface<TSurface>(
+  state: MissileCannonRenderState<TSurface>,
+): TSurface | null | undefined {
+  if (state.destroyed) return state.wastedImages[state.owner];
+
+  if (state.mode === ObjectMode.JustPlaced) {
+    if (state.placeIndex < 3) return state.initPlaceImages[state.placeIndex];
+    return state.placeImages[state.owner]?.[state.placeIndex - 3];
+  }
+
+  if (state.renderFire) return state.fireImages[state.owner]?.[state.direction];
 
   return state.passiveImages[state.owner]?.[state.direction];
 }

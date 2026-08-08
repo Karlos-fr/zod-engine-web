@@ -34,15 +34,36 @@ import {
   processLightVehicle,
   processMediumVehicle,
   processMissileLauncherVehicle,
+  renderApcVehicle,
   renderCraneVehicle,
   renderCraneVehicleEntity,
+  renderHeavyVehicle,
+  renderJeepVehicle,
+  renderLightVehicle,
+  renderMediumVehicle,
+  renderMissileLauncherVehicle,
+  renderVehicleLid,
+  type ApcVehicleRenderMap,
+  type ApcVehicleRenderState,
   type ApcVehicleInitState,
   type CraneVehicleInitState,
   type HeavyVehicleInitState,
+  type HeavyVehicleRenderMap,
+  type HeavyVehicleRenderState,
   type JeepVehicleInitState,
+  type JeepVehicleRenderMap,
+  type JeepVehicleRenderState,
   type LightVehicleInitState,
+  type LightVehicleRenderMap,
+  type LightVehicleRenderState,
   type MediumVehicleInitState,
+  type MediumVehicleRenderMap,
+  type MediumVehicleRenderState,
   type MissileLauncherVehicleInitState,
+  type MissileLauncherVehicleRenderMap,
+  type MissileLauncherVehicleRenderState,
+  type VehicleLidRenderMap,
+  type VehicleLidRenderState,
   type VehicleRestrictedSoundCommand,
   VehicleEntity,
 } from "../src/simulation/entities/VehicleEntity";
@@ -1002,6 +1023,536 @@ describe("vehicle entity", () => {
     expect(state.doHitEffect).toBe(false);
   });
 
+  it("replaces VMissileLauncher DoRender as base then turret commands", () => {
+    const state = createMissileLauncherRenderState({
+      direction: 3,
+      turretDirection: 6,
+      moveIndex: 2,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderMissileLauncherVehicle(state, createVehicleRenderMap()),
+    ).toEqual([
+      {
+        surface: "missile-base-blue-3-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "missile-top-blue-6",
+        x: 108,
+        y: 206,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VMissileLauncher DoRender as wreck rendering when destroyed", () => {
+    const state = createMissileLauncherRenderState({
+      destroyed: true,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderMissileLauncherVehicle(state, createVehicleRenderMap()),
+    ).toEqual([
+      {
+        surface: "missile-wasted-blue",
+        x: 100,
+        y: 200,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(true);
+  });
+
+  it("replaces VMissileLauncher DoRender by skipping null-team turret", () => {
+    const state = createMissileLauncherRenderState({
+      owner: TeamType.Null,
+      direction: 4,
+      moveIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(
+      renderMissileLauncherVehicle(state, createVehicleRenderMap()),
+    ).toEqual([
+      {
+        surface: "missile-base-null-4-1",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VMissileLauncher DoRender by skipping missing surfaces", () => {
+    const state = createMissileLauncherRenderState({
+      baseImages: [],
+      topImages: [],
+      doHitEffect: true,
+    });
+
+    expect(
+      renderMissileLauncherVehicle(state, createVehicleRenderMap()),
+    ).toEqual([]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VAPC DoRender as base then turret commands", () => {
+    const state = createApcRenderState({
+      direction: 4,
+      turretDirection: 2,
+      moveIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(renderApcVehicle(state, createApcRenderMap())).toEqual([
+      {
+        surface: "apc-base-blue-4-1",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "apc-top-2",
+        x: 115,
+        y: 205,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VAPC DoRender as hit-marked wreck rendering when destroyed", () => {
+    const state = createApcRenderState({
+      destroyed: true,
+      doHitEffect: true,
+    });
+
+    expect(renderApcVehicle(state, createApcRenderMap())).toEqual([
+      {
+        surface: "apc-wasted-blue",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VAPC DoRender by skipping null-team turret", () => {
+    const state = createApcRenderState({
+      owner: TeamType.Null,
+      direction: 1,
+      moveIndex: 2,
+      doHitEffect: true,
+    });
+
+    expect(renderApcVehicle(state, createApcRenderMap())).toEqual([
+      {
+        surface: "apc-base-null-1-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VAPC DoRender by skipping missing surfaces", () => {
+    const state = createApcRenderState({
+      baseImages: [],
+      topImages: [],
+      doHitEffect: true,
+    });
+
+    expect(renderApcVehicle(state, createApcRenderMap())).toEqual([]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VHeavy DoRender as base, turret, lid, and robot commands", () => {
+    const state = createHeavyRenderState({
+      direction: 1,
+      turretDirection: 4,
+      moveIndex: 2,
+      lidIndex: 1,
+      robotIndex: 0,
+      showRobot: true,
+      doHitEffect: true,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderHeavyVehicle(state, createHeavyRenderMap())).toEqual([
+      {
+        surface: "heavy-base-blue-1-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "heavy-top-blue-4",
+        x: 98,
+        y: 197,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "lid-4-1",
+        x: 118,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "robot-blue-4-0",
+        x: 108,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+    expect(state.doDriverHitEffect).toBe(false);
+  });
+
+  it("replaces VHeavy DoRender with the damaged base when damaged", () => {
+    const state = createHeavyRenderState({
+      showDamaged: true,
+      owner: TeamType.Null,
+      direction: 2,
+      moveIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(renderHeavyVehicle(state, createHeavyRenderMap())).toEqual([
+      {
+        surface: "heavy-damaged-null-2-1",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VHeavy DoRender as destroyed damaged-base rendering", () => {
+    const state = createHeavyRenderState({
+      destroyed: true,
+      direction: 3,
+      moveIndex: 0,
+      doHitEffect: true,
+    });
+
+    expect(renderHeavyVehicle(state, createHeavyRenderMap())).toEqual([
+      {
+        surface: "heavy-damaged-blue-3-0",
+        x: 100,
+        y: 200,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(true);
+  });
+
+  it("replaces VMedium DoRender as offset base, turret, lid, and robot commands", () => {
+    const state = createMediumRenderState({
+      direction: 2,
+      turretDirection: 6,
+      moveIndex: 1,
+      lidIndex: 2,
+      robotIndex: 1,
+      showRobot: true,
+      doHitEffect: true,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderMediumVehicle(state, createMediumRenderMap())).toEqual([
+      {
+        surface: "medium-base-blue-2-1",
+        x: 100,
+        y: 205,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "medium-top-6",
+        x: 106,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "robot-blue-6-1",
+        x: 107,
+        y: 201,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "lid-6-2",
+        x: 111,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+    expect(state.doDriverHitEffect).toBe(false);
+  });
+
+  it("replaces VMedium DoRender with the damaged base when damaged", () => {
+    const state = createMediumRenderState({
+      showDamaged: true,
+      owner: TeamType.Null,
+      direction: 4,
+      moveIndex: 2,
+      doHitEffect: true,
+    });
+
+    expect(renderMediumVehicle(state, createMediumRenderMap())).toEqual([
+      {
+        surface: "medium-damaged-null-4-2",
+        x: 100,
+        y: 206,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VMedium DoRender as destroyed damaged-base rendering", () => {
+    const state = createMediumRenderState({
+      destroyed: true,
+      direction: 5,
+      moveIndex: 0,
+      doHitEffect: true,
+    });
+
+    expect(renderMediumVehicle(state, createMediumRenderMap())).toEqual([
+      {
+        surface: "medium-damaged-blue-5-0",
+        x: 100,
+        y: 200,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(true);
+  });
+
+  it("replaces VLight DoRender as base, turret, lid, and robot commands", () => {
+    const state = createLightRenderState({
+      direction: 0,
+      turretDirection: 7,
+      moveIndex: 2,
+      lidIndex: 1,
+      robotIndex: 0,
+      showRobot: true,
+      doHitEffect: true,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderLightVehicle(state, createLightRenderMap())).toEqual([
+      {
+        surface: "light-base-blue-0-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "light-top-7",
+        x: 103,
+        y: 198,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "lid-7-1",
+        x: 113,
+        y: 203,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "robot-blue-7-0",
+        x: 113,
+        y: 204,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+    expect(state.doDriverHitEffect).toBe(false);
+  });
+
+  it("replaces VLight DoRender with damaged image shift when damaged", () => {
+    const state = createLightRenderState({
+      showDamaged: true,
+      owner: TeamType.Null,
+      direction: 6,
+      moveIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(renderLightVehicle(state, createLightRenderMap())).toEqual([
+      {
+        surface: "light-damaged-null-6-1",
+        x: 101,
+        y: 203,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VLight DoRender as destroyed damaged-base rendering", () => {
+    const state = createLightRenderState({
+      destroyed: true,
+      direction: 1,
+      moveIndex: 0,
+      doHitEffect: true,
+    });
+
+    expect(renderLightVehicle(state, createLightRenderMap())).toEqual([
+      {
+        surface: "light-damaged-blue-1-0",
+        x: 100,
+        y: 200,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(true);
+  });
+
+  it("replaces VJeep DoRender as under, base, and turret commands", () => {
+    const state = createJeepRenderState({
+      direction: 1,
+      turretDirection: 5,
+      moveIndex: 2,
+      baseIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(renderJeepVehicle(state, createJeepRenderMap())).toEqual([
+      {
+        surface: "jeep-under-1-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "jeep-base-blue-1-1",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "jeep-turret-5",
+        x: 98,
+        y: 211,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VJeep DoRender as direct base command for side directions", () => {
+    const state = createJeepRenderState({
+      direction: 2,
+      turretDirection: 3,
+      baseIndex: 2,
+      renderFire: true,
+      doHitEffect: true,
+    });
+
+    expect(renderJeepVehicle(state, createJeepRenderMap())).toEqual([
+      {
+        surface: "jeep-base-blue-2-2",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "jeep-fire-3",
+        x: 104,
+        y: 202,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces VJeep DoRender as wreck rendering while destroyed", () => {
+    const state = createJeepRenderState({
+      destroyed: true,
+      doHitEffect: true,
+    });
+
+    expect(renderJeepVehicle(state, createJeepRenderMap())).toEqual([
+      {
+        surface: "jeep-wasted",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(true);
+  });
+
+  it("replaces VJeep DoRender by skipping null-team turret", () => {
+    const state = createJeepRenderState({
+      owner: TeamType.Null,
+      direction: 4,
+      moveIndex: 0,
+      baseIndex: 1,
+      doHitEffect: true,
+    });
+
+    expect(renderJeepVehicle(state, createJeepRenderMap())).toEqual([
+      {
+        surface: "jeep-under-4-0",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "jeep-base-null-4-1",
+        x: 100,
+        y: 200,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doHitEffect).toBe(false);
+  });
+
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {
     const entity = new VehicleEntity({
       id: "vehicle-1",
@@ -1614,6 +2165,97 @@ describe("vehicle entity", () => {
     entity.processLid(8.4);
     expect(entity.lidI).toBe(0);
     expect(entity.showRobot).toBe(false);
+  });
+
+  it("replaces ZVehicle RenderLid as lid-only render command", () => {
+    const state = createVehicleLidRenderState({
+      showRobot: false,
+      turretDirection: 2,
+      lidIndex: 1,
+      doHitEffect: true,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderVehicleLid(state, createVehicleLidRenderMap())).toEqual([
+      {
+        surface: "lid-2-1",
+        x: 50,
+        y: 70,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doDriverHitEffect).toBe(false);
+  });
+
+  it("replaces ZVehicle RenderLid as front-half lid before robot", () => {
+    const state = createVehicleLidRenderState({
+      turretDirection: 5,
+      lidIndex: 2,
+      robotIndex: 1,
+      showRobot: true,
+      doHitEffect: true,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderVehicleLid(state, createVehicleLidRenderMap())).toEqual([
+      {
+        surface: "lid-5-2",
+        x: 50,
+        y: 70,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "robot-blue-5-1",
+        x: 43,
+        y: 71,
+        renderHit: true,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doDriverHitEffect).toBe(false);
+  });
+
+  it("replaces ZVehicle RenderLid as rear-half robot before lid", () => {
+    const state = createVehicleLidRenderState({
+      turretDirection: 3,
+      lidIndex: 0,
+      robotIndex: 1,
+      showRobot: true,
+      doHitEffect: false,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderVehicleLid(state, createVehicleLidRenderMap())).toEqual([
+      {
+        surface: "robot-blue-3-1",
+        x: 43,
+        y: 66,
+        renderHit: true,
+        aboutCenter: false,
+      },
+      {
+        surface: "lid-3-0",
+        x: 50,
+        y: 70,
+        renderHit: false,
+        aboutCenter: false,
+      },
+    ]);
+    expect(state.doDriverHitEffect).toBe(false);
+  });
+
+  it("replaces ZVehicle RenderLid by skipping missing selected surfaces", () => {
+    const state = createVehicleLidRenderState({
+      lidImages: [],
+      tankRobotImages: [],
+      showRobot: true,
+      doDriverHitEffect: true,
+    });
+
+    expect(renderVehicleLid(state, createVehicleLidRenderMap())).toEqual([]);
+    expect(state.doDriverHitEffect).toBe(false);
   });
 
   it("ports VAPC DoDeathEffect as no effect without an effect list", () => {
@@ -2431,21 +3073,55 @@ describe("vehicle entity", () => {
   });
 });
 
-function createVehicleRenderMap<TSurface>(): {
-  renderZSurface(
-    surface: TSurface,
-    x: number,
-    y: number,
-    renderHit: boolean,
-    aboutCenter: boolean,
-  ): {
-    surface: TSurface;
-    x: number;
-    y: number;
-    renderHit: boolean;
-    aboutCenter: boolean;
+function createVehicleRenderMap<TSurface>(): MissileLauncherVehicleRenderMap<TSurface> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
   };
-} {
+}
+
+function createApcRenderMap<TSurface>(): ApcVehicleRenderMap<TSurface> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}
+
+function createHeavyRenderMap<TSurface>(): HeavyVehicleRenderMap<TSurface> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}
+
+function createMediumRenderMap<TSurface>(): MediumVehicleRenderMap<TSurface> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}
+
+function createLightRenderMap<TSurface>(): LightVehicleRenderMap<TSurface> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}
+
+function createJeepRenderMap<TSurface>(): JeepVehicleRenderMap<TSurface> {
+  return {
+    renderZSurface(surface, x, y, renderHit, aboutCenter) {
+      return { surface, x, y, renderHit, aboutCenter };
+    },
+  };
+}
+
+function createVehicleLidRenderMap<TSurface>(): VehicleLidRenderMap<TSurface> {
   return {
     renderZSurface(surface, x, y, renderHit, aboutCenter) {
       return { surface, x, y, renderHit, aboutCenter };
@@ -2528,6 +3204,248 @@ function createCraneRenderState(
       (_, index) => `crane-${index}`,
     ),
     hookImages: Array.from({ length: 16 }, (_, index) => `hook-${index}`),
+    wastedImages,
+    ...overrides,
+  };
+}
+
+function createTankVehicleRenderState(
+  prefix: string,
+): MediumVehicleRenderState<string> {
+  const lidState = createVehicleLidRenderState();
+
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    turretDirection: 0,
+    moveIndex: 0,
+    lidIndex: 0,
+    robotIndex: 0,
+    showRobot: false,
+    showDamaged: false,
+    doHitEffect: false,
+    doDriverHitEffect: false,
+    destroyed: false,
+    baseImages: createTeamVehicleFrames(`${prefix}-base`),
+    damagedBaseImages: createTeamVehicleFrames(`${prefix}-damaged`),
+    topImages: createTopImages(`${prefix}-top`, false) as string[],
+    lidImages: lidState.lidImages,
+    tankRobotImages: lidState.tankRobotImages,
+  };
+}
+
+function createTopImages(prefix: string, teamScoped: boolean): string[][] | string[] {
+  if (!teamScoped) {
+    return Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+      `${prefix}-${direction}`,
+    );
+  }
+
+  return Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) => {
+      const teamName =
+        team === TeamType.Null
+          ? "null"
+          : team === TeamType.Blue
+            ? "blue"
+            : `team-${team}`;
+      return `${prefix}-${teamName}-${direction}`;
+    }),
+  );
+}
+
+function createTeamVehicleFrames(prefix: string): string[][][] {
+  return Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+      Array.from({ length: 3 }, (_, moveIndex) => {
+        const teamName =
+          team === TeamType.Null
+            ? "null"
+            : team === TeamType.Blue
+              ? "blue"
+              : `team-${team}`;
+        return `${prefix}-${teamName}-${direction}-${moveIndex}`;
+      }),
+    ),
+  );
+}
+
+function createVehicleLidRenderState(
+  overrides: Partial<VehicleLidRenderState<string>> = {},
+): VehicleLidRenderState<string> {
+  const lidImages = Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+    Array.from({ length: 3 }, (_, lidIndex) => `lid-${direction}-${lidIndex}`),
+  );
+  const tankRobotImages = Array.from(
+    { length: ACTIVE_TEAM_TYPE_COUNT },
+    (_, team) =>
+      Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+        Array.from({ length: 2 }, (_, robotIndex) => {
+          const teamName =
+            team === TeamType.Blue ? "blue" : `team-${team}`;
+          return `robot-${teamName}-${direction}-${robotIndex}`;
+        }),
+      ),
+  );
+
+  return {
+    position: { x: 50, y: 70 },
+    owner: TeamType.Blue,
+    turretDirection: 0,
+    lidIndex: 0,
+    robotIndex: 0,
+    showRobot: false,
+    doHitEffect: false,
+    doDriverHitEffect: false,
+    lidImages,
+    tankRobotImages,
+    ...overrides,
+  };
+}
+
+function createHeavyRenderState(
+  overrides: Partial<HeavyVehicleRenderState<string>> = {},
+): HeavyVehicleRenderState<string> {
+  const lidState = createVehicleLidRenderState();
+
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    turretDirection: 0,
+    moveIndex: 0,
+    lidIndex: 0,
+    robotIndex: 0,
+    showRobot: false,
+    showDamaged: false,
+    doHitEffect: false,
+    doDriverHitEffect: false,
+    destroyed: false,
+    baseImages: createTeamVehicleFrames("heavy-base"),
+    damagedBaseImages: createTeamVehicleFrames("heavy-damaged"),
+    topImages: createTopImages("heavy-top", true) as string[][],
+    lidImages: lidState.lidImages,
+    tankRobotImages: lidState.tankRobotImages,
+    ...overrides,
+  };
+}
+
+function createMediumRenderState(
+  overrides: Partial<MediumVehicleRenderState<string>> = {},
+): MediumVehicleRenderState<string> {
+  return {
+    ...createTankVehicleRenderState("medium"),
+    ...overrides,
+  };
+}
+
+function createLightRenderState(
+  overrides: Partial<LightVehicleRenderState<string>> = {},
+): LightVehicleRenderState<string> {
+  return {
+    ...createTankVehicleRenderState("light"),
+    ...overrides,
+  };
+}
+
+function createJeepRenderState(
+  overrides: Partial<JeepVehicleRenderState<string>> = {},
+): JeepVehicleRenderState<string> {
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    turretDirection: 0,
+    moveIndex: 0,
+    baseIndex: 0,
+    renderFire: false,
+    doHitEffect: false,
+    destroyed: false,
+    wastedImage: "jeep-wasted",
+    baseImages: createTeamVehicleFrames("jeep-base"),
+    underImages: Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+      Array.from({ length: 3 }, (_, moveIndex) => `jeep-under-${direction}-${moveIndex}`),
+    ),
+    turretImages: Array.from(
+      { length: MAX_ANGLE_TYPES },
+      (_, direction) => `jeep-turret-${direction}`,
+    ),
+    fireImages: Array.from(
+      { length: MAX_ANGLE_TYPES },
+      (_, direction) => `jeep-fire-${direction}`,
+    ),
+    ...overrides,
+  };
+}
+
+function createApcRenderState(
+  overrides: Partial<ApcVehicleRenderState<string>> = {},
+): ApcVehicleRenderState<string> {
+  const baseImages = createTeamVehicleFrames("apc-base");
+  const wastedImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    team === TeamType.Blue ? "apc-wasted-blue" : `apc-wasted-${team}`,
+  );
+
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    turretDirection: 0,
+    moveIndex: 0,
+    doHitEffect: false,
+    destroyed: false,
+    baseImages,
+    topImages: Array.from(
+      { length: MAX_ANGLE_TYPES },
+      (_, direction) => `apc-top-${direction}`,
+    ),
+    wastedImages,
+    ...overrides,
+  };
+}
+
+function createMissileLauncherRenderState(
+  overrides: Partial<MissileLauncherVehicleRenderState<string>> = {},
+): MissileLauncherVehicleRenderState<string> {
+  const baseImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) =>
+      Array.from({ length: 3 }, (_, moveIndex) => {
+        const teamName =
+          team === TeamType.Null
+            ? "null"
+            : team === TeamType.Blue
+              ? "blue"
+              : `team-${team}`;
+        return `missile-base-${teamName}-${direction}-${moveIndex}`;
+      }),
+    ),
+  );
+  const topImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    Array.from({ length: MAX_ANGLE_TYPES }, (_, direction) => {
+      const teamName =
+        team === TeamType.Null
+          ? "null"
+          : team === TeamType.Blue
+            ? "blue"
+            : `team-${team}`;
+      return `missile-top-${teamName}-${direction}`;
+    }),
+  );
+  const wastedImages = Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, (_, team) =>
+    team === TeamType.Blue ? "missile-wasted-blue" : `missile-wasted-${team}`,
+  );
+
+  return {
+    position: { x: 100, y: 200 },
+    owner: TeamType.Blue,
+    direction: 0,
+    turretDirection: 0,
+    moveIndex: 0,
+    doHitEffect: false,
+    destroyed: false,
+    baseImages,
+    topImages,
     wastedImages,
     ...overrides,
   };

@@ -217,6 +217,146 @@ export type CraneVehicleEntityRenderState<TSurface> = {
   wastedImages: readonly (TSurface | null | undefined)[];
 };
 
+export type MissileLauncherVehicleRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  direction: number;
+  turretDirection: number;
+  moveIndex: number;
+  doHitEffect: boolean;
+  destroyed: boolean;
+  baseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  topImages: readonly (readonly (TSurface | null | undefined)[])[];
+  wastedImages: readonly (TSurface | null | undefined)[];
+};
+
+export type MissileLauncherVehicleRenderMap<TSurface> =
+  CraneVehicleRenderMap<TSurface>;
+
+export type MissileLauncherVehicleRenderCommand<TSurface> =
+  MapSurfaceRenderCommand<TSurface>;
+
+export type ApcVehicleRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  direction: number;
+  turretDirection: number;
+  moveIndex: number;
+  doHitEffect: boolean;
+  destroyed: boolean;
+  baseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  topImages: readonly (TSurface | null | undefined)[];
+  wastedImages: readonly (TSurface | null | undefined)[];
+};
+
+export type ApcVehicleRenderMap<TSurface> =
+  CraneVehicleRenderMap<TSurface>;
+
+export type ApcVehicleRenderCommand<TSurface> =
+  MapSurfaceRenderCommand<TSurface>;
+
+export type VehicleLidRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  turretDirection: number;
+  lidIndex: number;
+  robotIndex: number;
+  showRobot: boolean;
+  doHitEffect: boolean;
+  doDriverHitEffect: boolean;
+  lidImages: readonly (readonly (TSurface | null | undefined)[])[];
+  tankRobotImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+};
+
+export type VehicleLidRenderMap<TSurface> =
+  CraneVehicleRenderMap<TSurface>;
+
+export type VehicleLidRenderCommand<TSurface> =
+  MapSurfaceRenderCommand<TSurface>;
+
+export type HeavyVehicleRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  direction: number;
+  turretDirection: number;
+  moveIndex: number;
+  lidIndex: number;
+  robotIndex: number;
+  showRobot: boolean;
+  showDamaged: boolean;
+  doHitEffect: boolean;
+  doDriverHitEffect: boolean;
+  destroyed: boolean;
+  baseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  damagedBaseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  topImages: readonly (readonly (TSurface | null | undefined)[])[];
+  lidImages: readonly (readonly (TSurface | null | undefined)[])[];
+  tankRobotImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+};
+
+export type HeavyVehicleRenderMap<TSurface> =
+  CraneVehicleRenderMap<TSurface>;
+
+export type HeavyVehicleRenderCommand<TSurface> =
+  MapSurfaceRenderCommand<TSurface>;
+
+export type MediumVehicleRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  direction: number;
+  turretDirection: number;
+  moveIndex: number;
+  lidIndex: number;
+  robotIndex: number;
+  showRobot: boolean;
+  showDamaged: boolean;
+  doHitEffect: boolean;
+  doDriverHitEffect: boolean;
+  destroyed: boolean;
+  baseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  damagedBaseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  topImages: readonly (TSurface | null | undefined)[];
+  lidImages: readonly (readonly (TSurface | null | undefined)[])[];
+  tankRobotImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+};
+
+export type MediumVehicleRenderMap<TSurface> =
+  CraneVehicleRenderMap<TSurface>;
+
+export type MediumVehicleRenderCommand<TSurface> =
+  MapSurfaceRenderCommand<TSurface>;
+
+export type LightVehicleRenderState<TSurface> = MediumVehicleRenderState<TSurface>;
+
+export type LightVehicleRenderMap<TSurface> =
+  MediumVehicleRenderMap<TSurface>;
+
+export type LightVehicleRenderCommand<TSurface> =
+  MediumVehicleRenderCommand<TSurface>;
+
+export type JeepVehicleRenderState<TSurface> = {
+  position: { x: number; y: number };
+  owner: TeamType | number;
+  direction: number;
+  turretDirection: number;
+  moveIndex: number;
+  baseIndex: number;
+  renderFire: boolean;
+  doHitEffect: boolean;
+  destroyed: boolean;
+  wastedImage: TSurface | null | undefined;
+  baseImages: readonly (readonly (readonly (TSurface | null | undefined)[])[])[];
+  underImages: readonly (readonly (TSurface | null | undefined)[])[];
+  turretImages: readonly (TSurface | null | undefined)[];
+  fireImages: readonly (TSurface | null | undefined)[];
+};
+
+export type JeepVehicleRenderMap<TSurface> =
+  CraneVehicleRenderMap<TSurface>;
+
+export type JeepVehicleRenderCommand<TSurface> =
+  MapSurfaceRenderCommand<TSurface>;
+
 export type MissileLauncherVehicleProcessState = {
   moving: boolean;
   moveIndex: number;
@@ -248,6 +388,37 @@ const CRANE_VEHICLE_BOOM_OFFSET_X = [-6, -3, 0, 3, 6, 1, 0, -2] as const;
 const CRANE_VEHICLE_BOOM_OFFSET_Y = [-6, -4, -5, -4, -6, -8, -9, -8] as const;
 const CRANE_VEHICLE_HOOK_OFFSET_X = [0, 4, 14, 23, 25, 21, 14, 5] as const;
 const CRANE_VEHICLE_HOOK_OFFSET_Y = [14, 20, 23, 20, 14, 8, 5, 8] as const;
+const MISSILE_LAUNCHER_TURRET_OFFSET_X = [0, 2, 3, 8, 9, 7, 2, 0] as const;
+const MISSILE_LAUNCHER_TURRET_OFFSET_Y = [0, 3, 0, 4, 0, -2, -3, -3] as const;
+const MISSILE_LAUNCHER_TURRET_SHIFT_X = [2, 0, 0, 0, 0, -2, 0, 0] as const;
+const MISSILE_LAUNCHER_TURRET_SHIFT_Y = [0, 0, 0, -2, -2, 0, 2, -2] as const;
+const APC_VEHICLE_TURRET_OFFSET_X = [1, 5, 9, 13, 15, 11, 8, 5] as const;
+const APC_VEHICLE_TURRET_OFFSET_Y = [5, 8, 5, 8, 5, 3, 3, 4] as const;
+const VEHICLE_LID_ROBOT_OFFSET_X = [3, -1, -3, -7, -10, -7, -4, 0] as const;
+const VEHICLE_LID_ROBOT_OFFSET_Y = [0, -4, -6, -4, 0, 1, 1, 1] as const;
+const HEAVY_VEHICLE_TURRET_OFFSET_X = [4, 2, -1, -3, 4, 2, -1, -3] as const;
+const HEAVY_VEHICLE_TURRET_OFFSET_Y = [0, -3, -5, -4, 0, -3, -5, -4] as const;
+const HEAVY_VEHICLE_TURRET_SHIFT_X = [4, 0, 0, 0, -4, 0, 0, 0] as const;
+const HEAVY_VEHICLE_TURRET_SHIFT_Y = [0, -2, -2, -2, 0, 0, 0, 0] as const;
+const HEAVY_VEHICLE_LID_SHIFT_X = [8, 13, 16, 17, 16, 11, 7, 7] as const;
+const HEAVY_VEHICLE_LID_SHIFT_Y = [9, 9, 7, 4, 3, 2, 4, 7] as const;
+const MEDIUM_VEHICLE_UNIT_OFFSET_Y = [6, 0, 5, 0, 6, 0, 5, 0] as const;
+const MEDIUM_VEHICLE_TURRET_OFFSET_X = [0, 0, -1, -2, 0, 0, -1, -2] as const;
+const MEDIUM_VEHICLE_TURRET_OFFSET_Y = [0, 6, 0, 6, 0, 6, 0, 6] as const;
+const MEDIUM_VEHICLE_TURRET_SHIFT_X = [4, 5, 7, 5, 2, 6, 7, 5] as const;
+const MEDIUM_VEHICLE_TURRET_SHIFT_Y = [-5, -3, -4, -5, -5, -5, -5, -5] as const;
+const MEDIUM_VEHICLE_LID_SHIFT_X = 12;
+const MEDIUM_VEHICLE_LID_SHIFT_Y = -5;
+const LIGHT_VEHICLE_TURRET_OFFSET_X = [2, 0, -2, 0, 2, 0, -2, 0] as const;
+const LIGHT_VEHICLE_TURRET_OFFSET_Y = [0, 0, 0, 0, 0, 0, 0, 0] as const;
+const LIGHT_VEHICLE_TURRET_SHIFT_X = [0, 0, 0, -1, 0, 0, 0, 1] as const;
+const LIGHT_VEHICLE_TURRET_SHIFT_Y = [-2, -2, -1, 0, 0, 0, 1, -2] as const;
+const LIGHT_VEHICLE_LID_SHIFT_X = [11, 11, 12, 12, 12, 12, 12, 11] as const;
+const LIGHT_VEHICLE_LID_SHIFT_Y = [3, 4, 5, 4, 3, 3, 4, 3] as const;
+const JEEP_VEHICLE_TURRET_OFFSET_X = [0, 6, 12, 20, 25, 20, 15, 5] as const;
+const JEEP_VEHICLE_TURRET_OFFSET_Y = [2, 7, 4, 8, 2, -4, -3, -4] as const;
+const JEEP_VEHICLE_TURRET_SHIFT_X = [0, -2, -5, -8, -10, -8, -5, -2] as const;
+const JEEP_VEHICLE_TURRET_SHIFT_Y = [0, 0, 0, 0, 0, 5, 6, 5] as const;
 const VEHICLE_INVERTED_ROTATION_DEGREES = [
   180,
   225,
@@ -1158,6 +1329,522 @@ export function renderCraneVehicleEntity<TSurface>(
         zmap,
       ),
     );
+  }
+
+  state.doHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VMissileLauncher::DoRender`.
+ * Role: Builds render commands for a mobile missile launcher body, wreck, and turret.
+ * Upstream: vmissilelauncher.cpp:129-182
+ */
+export function renderMissileLauncherVehicle<TSurface>(
+  state: MissileLauncherVehicleRenderState<TSurface>,
+  zmap: MissileLauncherVehicleRenderMap<TSurface>,
+): Array<MissileLauncherVehicleRenderCommand<TSurface>> {
+  if (state.destroyed) {
+    const wastedSurface = state.wastedImages[state.owner];
+    return wastedSurface
+      ? [
+          zmap.renderZSurface(
+            wastedSurface,
+            state.position.x,
+            state.position.y,
+            false,
+            false,
+          ),
+        ]
+      : [];
+  }
+
+  const renderHit = state.doHitEffect;
+  const commands: Array<MissileLauncherVehicleRenderCommand<TSurface>> = [];
+  const baseSurface =
+    state.baseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x,
+        state.position.y,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.owner !== TeamType.Null) {
+    const topSurface = state.topImages[state.owner]?.[state.turretDirection];
+    if (topSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          topSurface,
+          state.position.x +
+            (MISSILE_LAUNCHER_TURRET_OFFSET_X[state.direction] ?? 0) +
+            (MISSILE_LAUNCHER_TURRET_SHIFT_X[state.turretDirection] ?? 0),
+          state.position.y +
+            (MISSILE_LAUNCHER_TURRET_OFFSET_Y[state.direction] ?? 0) +
+            (MISSILE_LAUNCHER_TURRET_SHIFT_Y[state.turretDirection] ?? 0),
+          renderHit,
+          false,
+        ),
+      );
+    }
+  }
+
+  state.doHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VAPC::DoRender`.
+ * Role: Builds render commands for an APC body, wreck, and turret.
+ * Upstream: vapc.cpp:169-209
+ */
+export function renderApcVehicle<TSurface>(
+  state: ApcVehicleRenderState<TSurface>,
+  zmap: ApcVehicleRenderMap<TSurface>,
+): Array<ApcVehicleRenderCommand<TSurface>> {
+  const renderHit = state.doHitEffect;
+  const commands: Array<ApcVehicleRenderCommand<TSurface>> = [];
+  const baseSurface = state.destroyed
+    ? state.wastedImages[state.owner]
+    : state.baseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x,
+        state.position.y,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.owner !== TeamType.Null && !state.destroyed) {
+    const topSurface = state.topImages[state.turretDirection];
+    if (topSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          topSurface,
+          state.position.x + (APC_VEHICLE_TURRET_OFFSET_X[state.direction] ?? 0),
+          state.position.y + (APC_VEHICLE_TURRET_OFFSET_Y[state.direction] ?? 0),
+          renderHit,
+          false,
+        ),
+      );
+    }
+  }
+
+  state.doHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `ZVehicle::RenderLid`.
+ * Role: Builds render commands for tank lids and visible tank robots.
+ * Upstream: zvehicle.cpp:268-342
+ */
+export function renderVehicleLid<TSurface>(
+  state: VehicleLidRenderState<TSurface>,
+  zmap: VehicleLidRenderMap<TSurface>,
+): Array<VehicleLidRenderCommand<TSurface>> {
+  const commands: Array<VehicleLidRenderCommand<TSurface>> = [];
+  const direction = state.turretDirection;
+  const lidSurface = state.lidImages[direction]?.[state.lidIndex];
+
+  const pushLid = (): void => {
+    if (!lidSurface) return;
+    commands.push(
+      zmap.renderZSurface(
+        lidSurface,
+        state.position.x,
+        state.position.y,
+        state.doHitEffect,
+        false,
+      ),
+    );
+  };
+
+  const pushRobot = (): void => {
+    const robotSurface =
+      state.tankRobotImages[state.owner]?.[direction]?.[state.robotIndex];
+    if (!robotSurface) return;
+    commands.push(
+      zmap.renderZSurface(
+        robotSurface,
+        state.position.x + (VEHICLE_LID_ROBOT_OFFSET_X[direction] ?? 0),
+        state.position.y + (VEHICLE_LID_ROBOT_OFFSET_Y[direction] ?? 0),
+        state.doDriverHitEffect,
+        false,
+      ),
+    );
+  };
+
+  if (state.showRobot) {
+    if (direction > 3 || direction === 0) {
+      pushLid();
+      pushRobot();
+    } else {
+      pushRobot();
+      pushLid();
+    }
+  } else {
+    pushLid();
+  }
+
+  state.doDriverHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VHeavy::DoRender`.
+ * Role: Builds render commands for a heavy tank body, turret, lid, and driver.
+ * Upstream: vheavy.cpp:140-203
+ */
+export function renderHeavyVehicle<TSurface>(
+  state: HeavyVehicleRenderState<TSurface>,
+  zmap: HeavyVehicleRenderMap<TSurface>,
+): Array<HeavyVehicleRenderCommand<TSurface>> {
+  if (state.destroyed) {
+    const damagedSurface =
+      state.damagedBaseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+    return damagedSurface
+      ? [
+          zmap.renderZSurface(
+            damagedSurface,
+            state.position.x,
+            state.position.y,
+            false,
+            false,
+          ),
+        ]
+      : [];
+  }
+
+  const renderHit = state.doHitEffect;
+  const commands: Array<HeavyVehicleRenderCommand<TSurface>> = [];
+  const baseSurface = state.showDamaged
+    ? state.damagedBaseImages[state.owner]?.[state.direction]?.[state.moveIndex]
+    : state.baseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x,
+        state.position.y,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.owner !== TeamType.Null) {
+    const topSurface = state.topImages[state.owner]?.[state.turretDirection];
+    const turretBaseX =
+      state.position.x + (HEAVY_VEHICLE_TURRET_OFFSET_X[state.direction] ?? 0);
+    const turretBaseY =
+      state.position.y + (HEAVY_VEHICLE_TURRET_OFFSET_Y[state.direction] ?? 0);
+
+    if (topSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          topSurface,
+          turretBaseX + (HEAVY_VEHICLE_TURRET_SHIFT_X[state.turretDirection] ?? 0),
+          turretBaseY + (HEAVY_VEHICLE_TURRET_SHIFT_Y[state.turretDirection] ?? 0),
+          renderHit,
+          false,
+        ),
+      );
+    }
+
+    const lidState: VehicleLidRenderState<TSurface> = {
+      position: {
+        x: turretBaseX + (HEAVY_VEHICLE_LID_SHIFT_X[state.turretDirection] ?? 0),
+        y: turretBaseY + (HEAVY_VEHICLE_LID_SHIFT_Y[state.turretDirection] ?? 0),
+      },
+      owner: state.owner,
+      turretDirection: state.turretDirection,
+      lidIndex: state.lidIndex,
+      robotIndex: state.robotIndex,
+      showRobot: state.showRobot,
+      doHitEffect: renderHit,
+      doDriverHitEffect: state.doDriverHitEffect,
+      lidImages: state.lidImages,
+      tankRobotImages: state.tankRobotImages,
+    };
+    commands.push(...renderVehicleLid(lidState, zmap));
+    state.doDriverHitEffect = lidState.doDriverHitEffect;
+  }
+
+  state.doHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VMedium::DoRender`.
+ * Role: Builds render commands for a medium tank body, turret, lid, and driver.
+ * Upstream: vmedium.cpp:146-214
+ */
+export function renderMediumVehicle<TSurface>(
+  state: MediumVehicleRenderState<TSurface>,
+  zmap: MediumVehicleRenderMap<TSurface>,
+): Array<MediumVehicleRenderCommand<TSurface>> {
+  if (state.destroyed) {
+    const damagedSurface =
+      state.damagedBaseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+    return damagedSurface
+      ? [
+          zmap.renderZSurface(
+            damagedSurface,
+            state.position.x,
+            state.position.y,
+            false,
+            false,
+          ),
+        ]
+      : [];
+  }
+
+  const renderHit = state.doHitEffect;
+  const commands: Array<MediumVehicleRenderCommand<TSurface>> = [];
+  const unitOffsetY = MEDIUM_VEHICLE_UNIT_OFFSET_Y[state.direction] ?? 0;
+  const baseSurface = state.showDamaged
+    ? state.damagedBaseImages[state.owner]?.[state.direction]?.[state.moveIndex]
+    : state.baseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x,
+        state.position.y + unitOffsetY,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.owner !== TeamType.Null) {
+    const topSurface = state.topImages[state.turretDirection];
+    const turretBaseX =
+      state.position.x + (MEDIUM_VEHICLE_TURRET_OFFSET_X[state.direction] ?? 0);
+    const turretBaseY =
+      state.position.y +
+      (MEDIUM_VEHICLE_TURRET_OFFSET_Y[state.direction] ?? 0) +
+      unitOffsetY;
+
+    if (topSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          topSurface,
+          turretBaseX + (MEDIUM_VEHICLE_TURRET_SHIFT_X[state.turretDirection] ?? 0),
+          turretBaseY + (MEDIUM_VEHICLE_TURRET_SHIFT_Y[state.turretDirection] ?? 0),
+          renderHit,
+          false,
+        ),
+      );
+    }
+
+    const lidState: VehicleLidRenderState<TSurface> = {
+      position: {
+        x: turretBaseX + MEDIUM_VEHICLE_LID_SHIFT_X,
+        y: turretBaseY + MEDIUM_VEHICLE_LID_SHIFT_Y,
+      },
+      owner: state.owner,
+      turretDirection: state.turretDirection,
+      lidIndex: state.lidIndex,
+      robotIndex: state.robotIndex,
+      showRobot: state.showRobot,
+      doHitEffect: renderHit,
+      doDriverHitEffect: state.doDriverHitEffect,
+      lidImages: state.lidImages,
+      tankRobotImages: state.tankRobotImages,
+    };
+    commands.push(...renderVehicleLid(lidState, zmap));
+    state.doDriverHitEffect = lidState.doDriverHitEffect;
+  }
+
+  state.doHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VLight::DoRender`.
+ * Role: Builds render commands for a light tank body, turret, lid, and driver.
+ * Upstream: vlight.cpp:139-220
+ */
+export function renderLightVehicle<TSurface>(
+  state: LightVehicleRenderState<TSurface>,
+  zmap: LightVehicleRenderMap<TSurface>,
+): Array<LightVehicleRenderCommand<TSurface>> {
+  if (state.destroyed) {
+    const damagedSurface =
+      state.damagedBaseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+    return damagedSurface
+      ? [
+          zmap.renderZSurface(
+            damagedSurface,
+            state.position.x,
+            state.position.y,
+            false,
+            false,
+          ),
+        ]
+      : [];
+  }
+
+  const renderHit = state.doHitEffect;
+  const commands: Array<LightVehicleRenderCommand<TSurface>> = [];
+  const damagedOffset =
+    state.showDamaged && (state.direction === 2 || state.direction === 6)
+      ? { x: 1, y: 3 }
+      : state.showDamaged && (state.direction === 1 || state.direction === 5)
+        ? { x: 2, y: 0 }
+        : { x: 0, y: 0 };
+  const baseSurface = state.showDamaged
+    ? state.damagedBaseImages[state.owner]?.[state.direction]?.[state.moveIndex]
+    : state.baseImages[state.owner]?.[state.direction]?.[state.moveIndex];
+
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x + damagedOffset.x,
+        state.position.y + damagedOffset.y,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.owner !== TeamType.Null) {
+    const topSurface = state.topImages[state.turretDirection];
+    const turretBaseX =
+      state.position.x + (LIGHT_VEHICLE_TURRET_OFFSET_X[state.direction] ?? 0);
+    const turretBaseY =
+      state.position.y + (LIGHT_VEHICLE_TURRET_OFFSET_Y[state.direction] ?? 0);
+
+    if (topSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          topSurface,
+          turretBaseX + (LIGHT_VEHICLE_TURRET_SHIFT_X[state.turretDirection] ?? 0),
+          turretBaseY + (LIGHT_VEHICLE_TURRET_SHIFT_Y[state.turretDirection] ?? 0),
+          renderHit,
+          false,
+        ),
+      );
+    }
+
+    const lidState: VehicleLidRenderState<TSurface> = {
+      position: {
+        x: turretBaseX + (LIGHT_VEHICLE_LID_SHIFT_X[state.turretDirection] ?? 0),
+        y: turretBaseY + (LIGHT_VEHICLE_LID_SHIFT_Y[state.turretDirection] ?? 0),
+      },
+      owner: state.owner,
+      turretDirection: state.turretDirection,
+      lidIndex: state.lidIndex,
+      robotIndex: state.robotIndex,
+      showRobot: state.showRobot,
+      doHitEffect: renderHit,
+      doDriverHitEffect: state.doDriverHitEffect,
+      lidImages: state.lidImages,
+      tankRobotImages: state.tankRobotImages,
+    };
+    commands.push(...renderVehicleLid(lidState, zmap));
+    state.doDriverHitEffect = lidState.doDriverHitEffect;
+  }
+
+  state.doHitEffect = false;
+  return commands;
+}
+
+/**
+ * Replacement for upstream `VJeep::DoRender`.
+ * Role: Builds render commands for jeep body layers, wreck, turret, and firing frame.
+ * Upstream: vjeep.cpp:124-196
+ */
+export function renderJeepVehicle<TSurface>(
+  state: JeepVehicleRenderState<TSurface>,
+  zmap: JeepVehicleRenderMap<TSurface>,
+): Array<JeepVehicleRenderCommand<TSurface>> {
+  const renderHit = state.doHitEffect;
+
+  if (state.destroyed) {
+    const commands = state.wastedImage
+      ? [
+          zmap.renderZSurface(
+            state.wastedImage,
+            state.position.x,
+            state.position.y,
+            renderHit,
+            false,
+          ),
+        ]
+      : [];
+    return commands;
+  }
+
+  const commands: Array<JeepVehicleRenderCommand<TSurface>> = [];
+  const baseSurface =
+    state.direction === 2 || state.direction === 6
+      ? state.baseImages[state.owner]?.[state.direction]?.[state.baseIndex]
+      : state.underImages[state.direction]?.[state.moveIndex];
+
+  if (baseSurface) {
+    commands.push(
+      zmap.renderZSurface(
+        baseSurface,
+        state.position.x,
+        state.position.y,
+        renderHit,
+        false,
+      ),
+    );
+  }
+
+  if (state.direction !== 2 && state.direction !== 6) {
+    const upperBaseSurface =
+      state.baseImages[state.owner]?.[state.direction]?.[state.baseIndex];
+    if (upperBaseSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          upperBaseSurface,
+          state.position.x,
+          state.position.y,
+          renderHit,
+          false,
+        ),
+      );
+    }
+  }
+
+  if (state.owner !== TeamType.Null) {
+    const turretSurface = state.renderFire
+      ? state.fireImages[state.turretDirection]
+      : state.turretImages[state.turretDirection];
+    if (turretSurface) {
+      commands.push(
+        zmap.renderZSurface(
+          turretSurface,
+          state.position.x +
+            (JEEP_VEHICLE_TURRET_OFFSET_X[state.direction] ?? 0) +
+            (JEEP_VEHICLE_TURRET_SHIFT_X[state.turretDirection] ?? 0),
+          state.position.y +
+            (JEEP_VEHICLE_TURRET_OFFSET_Y[state.direction] ?? 0) +
+            (JEEP_VEHICLE_TURRET_SHIFT_Y[state.turretDirection] ?? 0) -
+            state.baseIndex,
+          renderHit,
+          false,
+        ),
+      );
+    }
   }
 
   state.doHitEffect = false;

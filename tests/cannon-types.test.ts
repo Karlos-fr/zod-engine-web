@@ -18,6 +18,8 @@ import {
   doMissileCannonDeathEffect,
   fireGatlingCannonTurrentMissile,
   fireGunCannonMissile,
+  type GatlingCannonRenderMap,
+  type GatlingCannonRenderState,
   GATLING_CANNON_UNIT_X_PIXELS,
   GATLING_CANNON_UNIT_Y_PIXELS,
   fireHowitzerCannonMissile,
@@ -29,25 +31,32 @@ import {
   GUN_CANNON_UNIT_Y_PIXELS,
   initGatlingCannon,
   initGunCannon,
+  renderGatlingCannon,
   renderGunCannon,
   type GunCannonRenderMap,
   type GunCannonRenderState,
   type GunCannonProcessState,
   HowitzerCannonEntity,
+  type HowitzerCannonRenderMap,
+  type HowitzerCannonRenderState,
   type HowitzerCannonProcessState,
   HOWITZER_CANNON_UNIT_X_PIXELS,
   HOWITZER_CANNON_UNIT_Y_PIXELS,
   initCannonPlacementImages,
   initHowitzerCannon,
+  renderHowitzerCannon,
   fireMissileCannonTurrentMissile,
   initMissileCannon,
   MissileCannonEntity,
+  type MissileCannonRenderMap,
+  type MissileCannonRenderState,
   type MissileCannonProcessState,
   MISSILE_CANNON_UNIT_X_PIXELS,
   MISSILE_CANNON_UNIT_Y_PIXELS,
   processGunCannon,
   processHowitzerCannon,
   processMissileCannon,
+  renderMissileCannon,
   ZCANNON_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/CannonTypes";
 import { ObjectMode } from "../src/simulation/entities/EntityTypes";
@@ -101,6 +110,109 @@ function createGunCannonRenderState(
         { name: "blue-passive-2" },
         { name: "blue-passive-3" },
       ],
+    ],
+    ...overrides,
+  };
+}
+
+function createGatlingCannonRenderState(
+  overrides: Partial<GatlingCannonRenderState<CannonRenderImage>> = {},
+): GatlingCannonRenderState<CannonRenderImage> {
+  return {
+    ...createGunCannonRenderState({
+      direction: 0,
+      passiveImages: [
+        null,
+        [],
+        [
+          { name: "blue-passive-0" },
+          { name: "blue-passive-1" },
+          { name: "blue-passive-2" },
+          { name: "blue-passive-3" },
+          { name: "blue-passive-4" },
+        ],
+      ],
+    }),
+    renderFire: false,
+    fireImages: [
+      null,
+      [],
+      [
+        { name: "blue-fire-0" },
+        { name: "blue-fire-1" },
+        { name: "blue-fire-2" },
+        { name: "blue-fire-3" },
+        { name: "blue-fire-4" },
+      ],
+    ],
+    ...overrides,
+  };
+}
+
+function createHowitzerCannonRenderState(
+  overrides: Partial<HowitzerCannonRenderState<CannonRenderImage>> = {},
+): HowitzerCannonRenderState<CannonRenderImage> {
+  return {
+    ...createGatlingCannonRenderState({
+      direction: 5,
+      passiveImages: [
+        null,
+        [],
+        [
+          { name: "blue-howitzer-passive-0" },
+          { name: "blue-howitzer-passive-1" },
+          { name: "blue-howitzer-passive-2" },
+          { name: "blue-howitzer-passive-3" },
+          { name: "blue-howitzer-passive-4" },
+          { name: "blue-howitzer-passive-5" },
+        ],
+      ],
+      fireImages: [
+        null,
+        [],
+        [
+          { name: "blue-howitzer-fire-0" },
+          { name: "blue-howitzer-fire-1" },
+          { name: "blue-howitzer-fire-2" },
+          { name: "blue-howitzer-fire-3" },
+          { name: "blue-howitzer-fire-4" },
+          { name: "blue-howitzer-fire-5" },
+        ],
+      ],
+    }),
+    ...overrides,
+  };
+}
+
+function createMissileCannonRenderState(
+  overrides: Partial<MissileCannonRenderState<CannonRenderImage>> = {},
+): MissileCannonRenderState<CannonRenderImage> {
+  return {
+    ...createGatlingCannonRenderState({
+      direction: 2,
+      passiveImages: [
+        null,
+        [],
+        [
+          { name: "blue-missile-passive-0" },
+          { name: "blue-missile-passive-1" },
+          { name: "blue-missile-passive-2" },
+        ],
+      ],
+      fireImages: [
+        null,
+        [],
+        [
+          { name: "blue-missile-fire-0" },
+          { name: "blue-missile-fire-1" },
+          { name: "blue-missile-fire-2" },
+        ],
+      ],
+    }),
+    wastedImages: [
+      null,
+      { name: "red-missile-wasted" },
+      { name: "blue-missile-wasted" },
     ],
     ...overrides,
   };
@@ -245,6 +357,263 @@ describe("cannon types", () => {
     };
 
     expect(renderGunCannon(state, map)).toBeNull();
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGatling DoRender with the passive image and direction x offset", () => {
+    const state = createGatlingCannonRenderState();
+    const map: GatlingCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGatlingCannon(state, map)).toEqual({
+      surface: { name: "blue-passive-0" },
+      x: 320 + GATLING_CANNON_UNIT_X_PIXELS + 1,
+      y: 240 + GATLING_CANNON_UNIT_Y_PIXELS,
+      renderHit: true,
+      aboutCenter: false,
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGatling DoRender with the fire image while firing", () => {
+    const state = createGatlingCannonRenderState({
+      direction: 4,
+      renderFire: true,
+    });
+    const map: GatlingCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGatlingCannon(state, map)).toEqual({
+      surface: { name: "blue-fire-4" },
+      x: 320 + GATLING_CANNON_UNIT_X_PIXELS - 1,
+      y: 240 + GATLING_CANNON_UNIT_Y_PIXELS,
+      renderHit: true,
+      aboutCenter: false,
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGatling DoRender with the wasted image while destroyed", () => {
+    const state = createGatlingCannonRenderState({
+      destroyed: true,
+      renderFire: true,
+      doHitEffect: false,
+    });
+    const map: GatlingCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGatlingCannon(state, map)).toEqual({
+      surface: { name: "wasted" },
+      x: 320 + GATLING_CANNON_UNIT_X_PIXELS + 1,
+      y: 240 + GATLING_CANNON_UNIT_Y_PIXELS,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces CGatling DoRender with placement frames while just placed", () => {
+    const state = createGatlingCannonRenderState({
+      mode: ObjectMode.JustPlaced,
+      placeIndex: 5,
+      renderFire: true,
+    });
+    const map: GatlingCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderGatlingCannon(state, map)?.surface).toEqual({
+      name: "blue-place-2",
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CGatling DoRender as no command when the selected image is missing", () => {
+    const state = createGatlingCannonRenderState({
+      fireImages: [],
+      renderFire: true,
+      doHitEffect: true,
+    });
+    const map: GatlingCannonRenderMap<CannonRenderImage> = {
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderGatlingCannon(state, map)).toBeNull();
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CHowitzer DoRender with the passive image and direction offsets", () => {
+    const state = createHowitzerCannonRenderState();
+    const map: HowitzerCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderHowitzerCannon(state, map)).toEqual({
+      surface: { name: "blue-howitzer-passive-5" },
+      x: 320 + HOWITZER_CANNON_UNIT_X_PIXELS + 2,
+      y: 240 + HOWITZER_CANNON_UNIT_Y_PIXELS + 3,
+      renderHit: true,
+      aboutCenter: false,
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CHowitzer DoRender with the fire image while firing", () => {
+    const state = createHowitzerCannonRenderState({
+      direction: 0,
+      renderFire: true,
+    });
+    const map: HowitzerCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderHowitzerCannon(state, map)).toEqual({
+      surface: { name: "blue-howitzer-fire-0" },
+      x: 320 + HOWITZER_CANNON_UNIT_X_PIXELS + 5,
+      y: 240 + HOWITZER_CANNON_UNIT_Y_PIXELS,
+      renderHit: true,
+      aboutCenter: false,
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CHowitzer DoRender with the wasted image while destroyed", () => {
+    const state = createHowitzerCannonRenderState({
+      destroyed: true,
+      renderFire: true,
+      doHitEffect: false,
+    });
+    const map: HowitzerCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderHowitzerCannon(state, map)).toEqual({
+      surface: { name: "wasted" },
+      x: 320 + HOWITZER_CANNON_UNIT_X_PIXELS + 2,
+      y: 240 + HOWITZER_CANNON_UNIT_Y_PIXELS + 3,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces CHowitzer DoRender as no command when the selected image is missing", () => {
+    const state = createHowitzerCannonRenderState({
+      passiveImages: [],
+      doHitEffect: true,
+    });
+    const map: HowitzerCannonRenderMap<CannonRenderImage> = {
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderHowitzerCannon(state, map)).toBeNull();
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CMissileCannon DoRender with the passive image", () => {
+    const state = createMissileCannonRenderState();
+    const map: MissileCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderMissileCannon(state, map)).toEqual({
+      surface: { name: "blue-missile-passive-2" },
+      x: 320 + MISSILE_CANNON_UNIT_X_PIXELS,
+      y: 240 + MISSILE_CANNON_UNIT_Y_PIXELS,
+      renderHit: true,
+      aboutCenter: false,
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CMissileCannon DoRender with the fire image while firing", () => {
+    const state = createMissileCannonRenderState({ renderFire: true });
+    const map: MissileCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderMissileCannon(state, map)?.surface).toEqual({
+      name: "blue-missile-fire-2",
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CMissileCannon DoRender with the owner wasted image while destroyed", () => {
+    const state = createMissileCannonRenderState({
+      destroyed: true,
+      owner: TeamType.Red,
+      renderFire: true,
+      doHitEffect: false,
+    });
+    const map: MissileCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderMissileCannon(state, map)).toEqual({
+      surface: { name: "red-missile-wasted" },
+      x: 320 + MISSILE_CANNON_UNIT_X_PIXELS,
+      y: 240 + MISSILE_CANNON_UNIT_Y_PIXELS,
+      renderHit: false,
+      aboutCenter: false,
+    });
+  });
+
+  it("replaces CMissileCannon DoRender with placement frames while just placed", () => {
+    const state = createMissileCannonRenderState({
+      mode: ObjectMode.JustPlaced,
+      placeIndex: 1,
+      renderFire: true,
+    });
+    const map: MissileCannonRenderMap<CannonRenderImage> = {
+      renderZSurface(surface, x, y, renderHit, aboutCenter) {
+        return { surface, x, y, renderHit, aboutCenter };
+      },
+    };
+
+    expect(renderMissileCannon(state, map)?.surface).toEqual({
+      name: "init-place-1",
+    });
+    expect(state.doHitEffect).toBe(false);
+  });
+
+  it("replaces CMissileCannon DoRender as no command when the selected image is missing", () => {
+    const state = createMissileCannonRenderState({
+      wastedImages: [],
+      destroyed: true,
+      doHitEffect: true,
+    });
+    const map: MissileCannonRenderMap<CannonRenderImage> = {
+      renderZSurface() {
+        throw new Error("renderZSurface should not be called");
+      },
+    };
+
+    expect(renderMissileCannon(state, map)).toBeNull();
     expect(state.doHitEffect).toBe(false);
   });
 
