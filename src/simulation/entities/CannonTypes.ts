@@ -3,6 +3,7 @@
  */
 
 import { GameEntity } from "./GameEntity";
+import { ObjectMode } from "./EntityTypes";
 import type { ZSettings } from "../../data/ZSettingsData";
 import {
   CannonDeathObject,
@@ -10,9 +11,21 @@ import {
 } from "../CannonDeathEffect";
 import type { LightRocketEffectSpawn } from "../LightRocketEffect";
 import type { MissileCannonRocketsEffectSpawn } from "../MissileCannonRocketsEffect";
-import { MAX_UNIT_HEALTH, RobotType, TeamType } from "../SimulationConstants";
+import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  MAX_ANGLE_TYPES,
+  MAX_UNIT_HEALTH,
+  RobotType,
+  TeamType,
+} from "../SimulationConstants";
 import { SoundEngineSound } from "../../audio/AudioService";
 import type { VehicleRestrictedSoundCommand } from "./VehicleEntity";
+import {
+  loadTeamZSurface,
+  TEAM_RENDERING_BASE_TEAM,
+  TEAM_RENDERING_TEAM_NAMES,
+  type TeamSurfaceFactory,
+} from "../TeamRendering";
 
 /**
  * Port of upstream `_CGATLING_H_`.
@@ -52,6 +65,414 @@ export const ZCANNON_HEADER_GUARD_PORTED = true;
 export type CannonPlacementImage = {
   loadBaseImage(filename: string): void;
 };
+
+export type GunCannonImage<TSurface> = {
+  getBaseSurface(): TSurface | null;
+  loadBaseImage(source: string | TSurface | null): void;
+};
+
+/**
+ * Port of upstream `CGun::Init` mutable image fields.
+ * Role: Provides the shared gun cannon images and browser asset-loading hooks.
+ * Upstream: cgun.cpp:45-80
+ */
+export type GunCannonInitState<TSurface> = {
+  wasted: GunCannonImage<TSurface>;
+  passive: readonly (readonly GunCannonImage<TSurface>[])[];
+  fire: readonly (readonly GunCannonImage<TSurface>[])[];
+  place: readonly (readonly GunCannonImage<TSurface>[])[];
+  loadImage(filename: string): TSurface | null;
+};
+
+/**
+ * Port of upstream `CGun::Init`.
+ * Role: Loads gun cannon destroyed, empty, placement, passive, and fire images.
+ * Upstream: cgun.cpp:45-80
+ */
+export function initGunCannon<TSurface>(
+  state: GunCannonInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  state.wasted.loadBaseImage("assets/units/cannons/gun/wasted.png");
+
+  const emptySurface = state.loadImage("assets/units/cannons/gun/empty.png");
+  for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+    state.passive[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+    state.fire[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+  }
+
+  for (let frame = 0; frame < 4; frame += 1) {
+    state.place[TeamType.Null]?.[frame]?.loadBaseImage(
+      state.passive[TeamType.Null]?.[4]?.getBaseSurface() ?? emptySurface,
+    );
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+
+    for (let frame = 0; frame < 4; frame += 1) {
+      const baseImage = state.place[TEAM_RENDERING_BASE_TEAM]?.[frame];
+      const placeImage = state.place[team]?.[frame];
+      if (!baseImage || !placeImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        placeImage,
+        `assets/units/cannons/gun/place_${teamName}_n${frame
+          .toString()
+          .padStart(2, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+
+    for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+      const baseImage = state.passive[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const passiveImage = state.passive[team]?.[angle];
+      const fireImage = state.fire[team]?.[angle];
+      if (!baseImage || !passiveImage || !fireImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        passiveImage,
+        `assets/units/cannons/gun/equiped_${teamName}_r${(angle * 45)
+          .toString()
+          .padStart(3, "0")}.png`,
+        makeTeamSurface,
+      );
+      fireImage.loadBaseImage(passiveImage.getBaseSurface());
+    }
+  }
+}
+
+export type HowitzerCannonInitState<TSurface> = GunCannonInitState<TSurface>;
+
+export type GatlingCannonInitState<TSurface> = GunCannonInitState<TSurface>;
+
+/**
+ * Port of upstream `CGatling::Init`.
+ * Role: Loads gatling cannon destroyed, empty, placement, passive, and fire images.
+ * Upstream: cgatling.cpp:44-87
+ */
+export function initGatlingCannon<TSurface>(
+  state: GatlingCannonInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  state.wasted.loadBaseImage("assets/units/cannons/gatling/wasted.png");
+
+  for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+    const emptySurface = state.loadImage(
+      `assets/units/cannons/gatling/empty_r${(angle * 45)
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+    state.fire[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+    state.passive[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+  }
+
+  for (let frame = 0; frame < 4; frame += 1) {
+    state.place[TeamType.Null]?.[frame]?.loadBaseImage(
+      state.passive[TeamType.Null]?.[4]?.getBaseSurface() ?? null,
+    );
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+
+    for (let frame = 0; frame < 4; frame += 1) {
+      const baseImage = state.place[TEAM_RENDERING_BASE_TEAM]?.[frame];
+      const placeImage = state.place[team]?.[frame];
+      if (!baseImage || !placeImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        placeImage,
+        `assets/units/cannons/gatling/place_${teamName}_n${frame
+          .toString()
+          .padStart(2, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+
+    for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+      const basePassiveImage = state.passive[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const passiveImage = state.passive[team]?.[angle];
+      if (basePassiveImage && passiveImage) {
+        loadTeamZSurface(
+          team,
+          basePassiveImage,
+          passiveImage,
+          `assets/units/cannons/gatling/fire_${teamName}_r${(angle * 45)
+            .toString()
+            .padStart(3, "0")}_n00.png`,
+          makeTeamSurface,
+        );
+      }
+
+      const baseFireImage = state.fire[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const fireImage = state.fire[team]?.[angle];
+      if (!baseFireImage || !fireImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseFireImage,
+        fireImage,
+        `assets/units/cannons/gatling/fire_${teamName}_r${(angle * 45)
+          .toString()
+          .padStart(3, "0")}_n01.png`,
+        makeTeamSurface,
+      );
+    }
+  }
+}
+
+/**
+ * Port of upstream `CMissileCannon::Init` mutable image fields.
+ * Role: Adds missile-cannon empty images to the shared cannon image set.
+ * Upstream: cmissilecannon.cpp:47-94
+ */
+export type MissileCannonInitState<TSurface> = {
+  wasted: readonly GunCannonImage<TSurface>[];
+  passive: readonly (readonly GunCannonImage<TSurface>[])[];
+  fire: readonly (readonly GunCannonImage<TSurface>[])[];
+  place: readonly (readonly GunCannonImage<TSurface>[])[];
+  empty: readonly (readonly GunCannonImage<TSurface>[])[];
+  loadImage(filename: string): TSurface | null;
+};
+
+/**
+ * Port of upstream `CMissileCannon::Init`.
+ * Role: Loads missile-cannon destroyed, empty, placement, passive, and fire images.
+ * Upstream: cmissilecannon.cpp:47-94
+ */
+export function initMissileCannon<TSurface>(
+  state: MissileCannonInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+    const baseWastedImage = state.wasted[TEAM_RENDERING_BASE_TEAM];
+    const wastedImage = state.wasted[team];
+    if (!baseWastedImage || !wastedImage) continue;
+
+    loadTeamZSurface(
+      team,
+      baseWastedImage,
+      wastedImage,
+      `assets/units/cannons/missile_cannon/wasted_${teamName}.png`,
+      makeTeamSurface,
+    );
+  }
+
+  const emptySurface = state.loadImage(
+    "assets/units/cannons/missile_cannon/empty_null.png",
+  );
+  for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+    state.empty[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+    state.fire[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+    state.passive[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+  }
+
+  for (let frame = 0; frame < 4; frame += 1) {
+    state.place[TeamType.Null]?.[frame]?.loadBaseImage(
+      state.passive[TeamType.Null]?.[4]?.getBaseSurface() ?? emptySurface,
+    );
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+
+    for (let frame = 0; frame < 4; frame += 1) {
+      const baseImage = state.place[TEAM_RENDERING_BASE_TEAM]?.[frame];
+      const placeImage = state.place[team]?.[frame];
+      if (!baseImage || !placeImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        placeImage,
+        `assets/units/cannons/missile_cannon/place_${teamName}_n${frame
+          .toString()
+          .padStart(2, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+
+    for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+      const basePassiveImage = state.passive[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const passiveImage = state.passive[team]?.[angle];
+      const fireImage = state.fire[team]?.[angle];
+      if (basePassiveImage && passiveImage && fireImage) {
+        loadTeamZSurface(
+          team,
+          basePassiveImage,
+          passiveImage,
+          `assets/units/cannons/missile_cannon/equiped_${teamName}_r${(angle * 45)
+            .toString()
+            .padStart(3, "0")}.png`,
+          makeTeamSurface,
+        );
+        fireImage.loadBaseImage(passiveImage.getBaseSurface());
+      }
+
+      const baseEmptyImage = state.empty[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const emptyImage = state.empty[team]?.[angle];
+      if (!baseEmptyImage || !emptyImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseEmptyImage,
+        emptyImage,
+        `assets/units/cannons/missile_cannon/empty_${teamName}_r${(angle * 45)
+          .toString()
+          .padStart(3, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+  }
+}
+
+/**
+ * Port of upstream `CHowitzer::Init`.
+ * Role: Loads howitzer cannon destroyed, empty, placement, passive, and fire images.
+ * Upstream: chowitzer.cpp:46-86
+ */
+export function initHowitzerCannon<TSurface>(
+  state: HowitzerCannonInitState<TSurface>,
+  makeTeamSurface: TeamSurfaceFactory<TSurface>,
+): void {
+  state.wasted.loadBaseImage("assets/units/cannons/howitzer/wasted.png");
+
+  for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+    const emptySurface = state.loadImage(
+      `assets/units/cannons/howitzer/empty_r${(angle * 45)
+        .toString()
+        .padStart(3, "0")}.png`,
+    );
+    state.passive[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+    state.fire[TeamType.Null]?.[angle]?.loadBaseImage(emptySurface);
+  }
+
+  for (let frame = 0; frame < 4; frame += 1) {
+    state.place[TeamType.Null]?.[frame]?.loadBaseImage(
+      state.passive[TeamType.Null]?.[4]?.getBaseSurface() ?? null,
+    );
+  }
+
+  for (let team = 1; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const teamName = TEAM_RENDERING_TEAM_NAMES[team];
+
+    for (let frame = 0; frame < 4; frame += 1) {
+      const baseImage = state.place[TEAM_RENDERING_BASE_TEAM]?.[frame];
+      const placeImage = state.place[team]?.[frame];
+      if (!baseImage || !placeImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseImage,
+        placeImage,
+        `assets/units/cannons/howitzer/place_${teamName}_n${frame
+          .toString()
+          .padStart(2, "0")}.png`,
+        makeTeamSurface,
+      );
+    }
+
+    for (let angle = 0; angle < MAX_ANGLE_TYPES; angle += 1) {
+      const basePassiveImage = state.passive[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const passiveImage = state.passive[team]?.[angle];
+      if (basePassiveImage && passiveImage) {
+        loadTeamZSurface(
+          team,
+          basePassiveImage,
+          passiveImage,
+          `assets/units/cannons/howitzer/fire_${teamName}_r${(angle * 45)
+            .toString()
+            .padStart(3, "0")}_n00.png`,
+          makeTeamSurface,
+        );
+      }
+
+      const baseFireImage = state.fire[TEAM_RENDERING_BASE_TEAM]?.[angle];
+      const fireImage = state.fire[team]?.[angle];
+      if (!baseFireImage || !fireImage) continue;
+
+      loadTeamZSurface(
+        team,
+        baseFireImage,
+        fireImage,
+        `assets/units/cannons/howitzer/fire_${teamName}_r${(angle * 45)
+          .toString()
+          .padStart(3, "0")}_n01.png`,
+        makeTeamSurface,
+      );
+    }
+  }
+}
+
+export type GunCannonProcessTarget = Pick<GameEntity, "centerX" | "centerY">;
+
+/**
+ * Port of upstream `CGun::Process` mutable fields.
+ * Role: Carries gun placement animation and idle rotation state across ticks.
+ * Upstream: cgun.cpp:151-193
+ */
+export type GunCannonProcessState = {
+  mode: ObjectMode | number;
+  lastProcessTime: number;
+  placeIndex: number;
+  owner: TeamType | number;
+  attackObject: GunCannonProcessTarget | null;
+  position: {
+    x: number;
+    y: number;
+  };
+  direction: number;
+  directionFromLocation(deltaX: number, deltaY: number): number;
+};
+
+/**
+ * Port of upstream `CGun::Process`.
+ * Role: Advances the gun placement frames and periodic idle or target-facing rotation.
+ * Upstream: cgun.cpp:151-193
+ */
+export function processGunCannon(
+  state: GunCannonProcessState,
+  currentTime: number,
+): number {
+  switch (state.mode) {
+    case ObjectMode.JustPlaced:
+      if (currentTime - state.lastProcessTime < 0.1) break;
+      state.lastProcessTime = currentTime;
+      state.placeIndex += 1;
+
+      if (state.placeIndex >= 7) {
+        state.placeIndex = 0;
+        state.mode = ObjectMode.Rotating;
+      }
+      break;
+    case ObjectMode.Rotating:
+      if (currentTime - state.lastProcessTime < 1.0) break;
+      if (state.owner === TeamType.Null) break;
+      state.lastProcessTime = currentTime;
+
+      if (state.attackObject) {
+        const newDirection = state.directionFromLocation(
+          state.attackObject.centerX - state.position.x,
+          state.attackObject.centerY - state.position.y,
+        );
+        if (newDirection !== -1) state.direction = newDirection;
+      } else {
+        state.direction += 1;
+        if (state.direction >= MAX_ANGLE_TYPES) state.direction = 0;
+      }
+      break;
+  }
+
+  return 1;
+}
 
 /**
  * Port of upstream `ZCannon::Init`.
@@ -283,6 +704,58 @@ export type HowitzerCannonFireState<TTime = unknown> = MissileCannonFireState<TT
   renderFire: boolean;
   missileSpeed: number;
 };
+
+/**
+ * Port of upstream `CHowitzer::Process` mutable fields.
+ * Role: Adds howitzer fire-render timing to the shared cannon process state.
+ * Upstream: chowitzer.cpp:162-207
+ */
+export type HowitzerCannonProcessState = GunCannonProcessState & {
+  renderFire: boolean;
+  endRenderFireTime: number;
+};
+
+/**
+ * Port of upstream `CHowitzer::Process`.
+ * Role: Ends the howitzer muzzle-fire frame and advances placement or rotation state.
+ * Upstream: chowitzer.cpp:162-207
+ */
+export function processHowitzerCannon(
+  state: HowitzerCannonProcessState,
+  currentTime: number,
+): number {
+  if (state.renderFire && currentTime >= state.endRenderFireTime) {
+    state.renderFire = false;
+  }
+
+  return processGunCannon(state, currentTime);
+}
+
+/**
+ * Port of upstream `CMissileCannon::Process` mutable fields.
+ * Role: Adds missile-cannon fire-render timing to the shared cannon process state.
+ * Upstream: cmissilecannon.cpp:168-213
+ */
+export type MissileCannonProcessState = GunCannonProcessState & {
+  renderFire: boolean;
+  endRenderFireTime: number;
+};
+
+/**
+ * Port of upstream `CMissileCannon::Process`.
+ * Role: Ends the missile-cannon muzzle-fire frame and advances placement or rotation state.
+ * Upstream: cmissilecannon.cpp:168-213
+ */
+export function processMissileCannon(
+  state: MissileCannonProcessState,
+  currentTime: number,
+): number {
+  if (state.renderFire && currentTime >= state.endRenderFireTime) {
+    state.renderFire = false;
+  }
+
+  return processGunCannon(state, currentTime);
+}
 
 /**
  * Port of upstream `CGun::FireMissile`.

@@ -27,18 +27,31 @@ import {
   fireGunCannonTurrentMissile,
   GUN_CANNON_UNIT_X_PIXELS,
   GUN_CANNON_UNIT_Y_PIXELS,
+  initGatlingCannon,
+  initGunCannon,
+  type GunCannonProcessState,
   HowitzerCannonEntity,
+  type HowitzerCannonProcessState,
   HOWITZER_CANNON_UNIT_X_PIXELS,
   HOWITZER_CANNON_UNIT_Y_PIXELS,
   initCannonPlacementImages,
+  initHowitzerCannon,
   fireMissileCannonTurrentMissile,
+  initMissileCannon,
   MissileCannonEntity,
+  type MissileCannonProcessState,
   MISSILE_CANNON_UNIT_X_PIXELS,
   MISSILE_CANNON_UNIT_Y_PIXELS,
+  processGunCannon,
+  processHowitzerCannon,
+  processMissileCannon,
   ZCANNON_HEADER_GUARD_PORTED,
 } from "../src/simulation/entities/CannonTypes";
+import { ObjectMode } from "../src/simulation/entities/EntityTypes";
 import type { VehicleRestrictedSoundCommand } from "../src/simulation/entities/VehicleEntity";
 import {
+  ACTIVE_TEAM_TYPE_COUNT,
+  MAX_ANGLE_TYPES,
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
@@ -117,6 +130,552 @@ describe("cannon types", () => {
       "assets/units/cannons/init-place_n01.png",
       "assets/units/cannons/init-place_n02.png",
     ]);
+  });
+
+  it("ports CGun Init as gun cannon image loading and team recoloring", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      wasted: createImage(),
+      passive: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      fire: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      place: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: 4 }, createImage),
+      ),
+      loadImage(filename: string): Surface {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    };
+
+    initGunCannon(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(state.wasted.source).toBe("assets/units/cannons/gun/wasted.png");
+    expect(loadCalls).toEqual(["assets/units/cannons/gun/empty.png"]);
+    expect(state.passive[TeamType.Null]![0]!.source).toEqual({
+      id: "loaded:assets/units/cannons/gun/empty.png",
+    });
+    expect(state.fire[TeamType.Null]![7]!.source).toEqual({
+      id: "loaded:assets/units/cannons/gun/empty.png",
+    });
+    expect(state.place[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/gun/empty.png",
+    });
+    expect(state.place[TeamType.Red]![0]!.source).toBe(
+      "assets/units/cannons/gun/place_red_n00.png",
+    );
+    expect(state.place[TeamType.Blue]![0]!.source).toEqual({
+      id: "team-2-assets/units/cannons/gun/place_red_n00.png",
+    });
+    expect(state.passive[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/gun/equiped_red_r135.png",
+    );
+    expect(state.passive[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/gun/equiped_red_r135.png",
+    });
+    expect(state.fire[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/gun/equiped_red_r135.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 12);
+  });
+
+  it("ports CHowitzer Init as howitzer image loading and team recoloring", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      wasted: createImage(),
+      passive: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      fire: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      place: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: 4 }, createImage),
+      ),
+      loadImage(filename: string): Surface {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    };
+
+    initHowitzerCannon(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(state.wasted.source).toBe(
+      "assets/units/cannons/howitzer/wasted.png",
+    );
+    expect(loadCalls).toEqual([
+      "assets/units/cannons/howitzer/empty_r000.png",
+      "assets/units/cannons/howitzer/empty_r045.png",
+      "assets/units/cannons/howitzer/empty_r090.png",
+      "assets/units/cannons/howitzer/empty_r135.png",
+      "assets/units/cannons/howitzer/empty_r180.png",
+      "assets/units/cannons/howitzer/empty_r225.png",
+      "assets/units/cannons/howitzer/empty_r270.png",
+      "assets/units/cannons/howitzer/empty_r315.png",
+    ]);
+    expect(state.passive[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/howitzer/empty_r135.png",
+    });
+    expect(state.fire[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/howitzer/empty_r135.png",
+    });
+    expect(state.place[TeamType.Null]![0]!.source).toEqual({
+      id: "loaded:assets/units/cannons/howitzer/empty_r180.png",
+    });
+    expect(state.place[TeamType.Red]![2]!.source).toBe(
+      "assets/units/cannons/howitzer/place_red_n02.png",
+    );
+    expect(state.place[TeamType.Blue]![2]!.source).toEqual({
+      id: "team-2-assets/units/cannons/howitzer/place_red_n02.png",
+    });
+    expect(state.passive[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/howitzer/fire_red_r135_n00.png",
+    );
+    expect(state.fire[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/howitzer/fire_red_r135_n01.png",
+    );
+    expect(state.passive[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/howitzer/fire_red_r135_n00.png",
+    });
+    expect(state.fire[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/howitzer/fire_red_r135_n01.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 20);
+  });
+
+  it("ports CGatling Init as gatling image loading and team recoloring", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      wasted: createImage(),
+      passive: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      fire: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      place: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: 4 }, createImage),
+      ),
+      loadImage(filename: string): Surface {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    };
+
+    initGatlingCannon(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(state.wasted.source).toBe(
+      "assets/units/cannons/gatling/wasted.png",
+    );
+    expect(loadCalls).toEqual([
+      "assets/units/cannons/gatling/empty_r000.png",
+      "assets/units/cannons/gatling/empty_r045.png",
+      "assets/units/cannons/gatling/empty_r090.png",
+      "assets/units/cannons/gatling/empty_r135.png",
+      "assets/units/cannons/gatling/empty_r180.png",
+      "assets/units/cannons/gatling/empty_r225.png",
+      "assets/units/cannons/gatling/empty_r270.png",
+      "assets/units/cannons/gatling/empty_r315.png",
+    ]);
+    expect(state.fire[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/gatling/empty_r135.png",
+    });
+    expect(state.passive[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/gatling/empty_r135.png",
+    });
+    expect(state.place[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/gatling/empty_r180.png",
+    });
+    expect(state.place[TeamType.Red]![1]!.source).toBe(
+      "assets/units/cannons/gatling/place_red_n01.png",
+    );
+    expect(state.place[TeamType.Blue]![1]!.source).toEqual({
+      id: "team-2-assets/units/cannons/gatling/place_red_n01.png",
+    });
+    expect(state.passive[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/gatling/fire_red_r135_n00.png",
+    );
+    expect(state.fire[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/gatling/fire_red_r135_n01.png",
+    );
+    expect(state.passive[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/gatling/fire_red_r135_n00.png",
+    });
+    expect(state.fire[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/gatling/fire_red_r135_n01.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 20);
+  });
+
+  it("ports CMissileCannon Init as missile-cannon image loading and team recoloring", () => {
+    type Surface = { id: string };
+    type LoadedImage = {
+      source: string | Surface | null;
+      getBaseSurface(): Surface | null;
+      loadBaseImage(source: string | Surface | null): void;
+    };
+    const loadCalls: string[] = [];
+    const madeSurfaces: Array<[number, Surface | null]> = [];
+    const createImage = (): LoadedImage => ({
+      source: null,
+      getBaseSurface() {
+        if (typeof this.source === "string") return { id: this.source };
+        return this.source;
+      },
+      loadBaseImage(source) {
+        this.source = source;
+      },
+    });
+    const state = {
+      wasted: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, createImage),
+      passive: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      fire: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      place: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: 4 }, createImage),
+      ),
+      empty: Array.from({ length: ACTIVE_TEAM_TYPE_COUNT }, () =>
+        Array.from({ length: MAX_ANGLE_TYPES }, createImage),
+      ),
+      loadImage(filename: string): Surface {
+        loadCalls.push(filename);
+        return { id: `loaded:${filename}` };
+      },
+    };
+
+    initMissileCannon(state, (team, surface) => {
+      madeSurfaces.push([team, surface]);
+      return { id: `team-${team}-${surface?.id ?? "null"}` };
+    });
+
+    expect(state.wasted[TeamType.Null]!.source).toBeNull();
+    expect(state.wasted[TeamType.Red]!.source).toBe(
+      "assets/units/cannons/missile_cannon/wasted_red.png",
+    );
+    expect(state.wasted[TeamType.Blue]!.source).toEqual({
+      id: "team-2-assets/units/cannons/missile_cannon/wasted_red.png",
+    });
+    expect(loadCalls).toEqual([
+      "assets/units/cannons/missile_cannon/empty_null.png",
+    ]);
+    expect(state.empty[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/missile_cannon/empty_null.png",
+    });
+    expect(state.fire[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/missile_cannon/empty_null.png",
+    });
+    expect(state.passive[TeamType.Null]![3]!.source).toEqual({
+      id: "loaded:assets/units/cannons/missile_cannon/empty_null.png",
+    });
+    expect(state.place[TeamType.Null]![0]!.source).toEqual({
+      id: "loaded:assets/units/cannons/missile_cannon/empty_null.png",
+    });
+    expect(state.place[TeamType.Red]![1]!.source).toBe(
+      "assets/units/cannons/missile_cannon/place_red_n01.png",
+    );
+    expect(state.passive[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/missile_cannon/equiped_red_r135.png",
+    );
+    expect(state.fire[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/missile_cannon/equiped_red_r135.png",
+    });
+    expect(state.empty[TeamType.Red]![3]!.source).toBe(
+      "assets/units/cannons/missile_cannon/empty_red_r135.png",
+    );
+    expect(state.empty[TeamType.Blue]![3]!.source).toEqual({
+      id: "team-2-assets/units/cannons/missile_cannon/empty_red_r135.png",
+    });
+    expect(madeSurfaces).toHaveLength((ACTIVE_TEAM_TYPE_COUNT - 2) * 21);
+  });
+
+  it("ports CGun Process as throttled placement animation", () => {
+    const state: GunCannonProcessState = {
+      mode: ObjectMode.JustPlaced,
+      lastProcessTime: 10,
+      placeIndex: 5,
+      owner: TeamType.Blue,
+      attackObject: null,
+      position: { x: 10, y: 10 },
+      direction: 2,
+      directionFromLocation: () => {
+        throw new Error("placement does not calculate direction");
+      },
+    };
+
+    expect(processGunCannon(state, 10.05)).toBe(1);
+    expect(state).toMatchObject({
+      mode: ObjectMode.JustPlaced,
+      lastProcessTime: 10,
+      placeIndex: 5,
+      direction: 2,
+    });
+
+    expect(processGunCannon(state, 10.1)).toBe(1);
+    expect(state).toMatchObject({
+      mode: ObjectMode.JustPlaced,
+      lastProcessTime: 10.1,
+      placeIndex: 6,
+      direction: 2,
+    });
+
+    processGunCannon(state, 10.2);
+    expect(state).toMatchObject({
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10.2,
+      placeIndex: 0,
+      direction: 2,
+    });
+  });
+
+  it("ports CGun Process as neutral rotating cannon wait", () => {
+    const state: GunCannonProcessState = {
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10,
+      placeIndex: 0,
+      owner: TeamType.Null,
+      attackObject: null,
+      position: { x: 10, y: 10 },
+      direction: 7,
+      directionFromLocation: () => 0,
+    };
+
+    processGunCannon(state, 12);
+
+    expect(state).toMatchObject({
+      lastProcessTime: 10,
+      direction: 7,
+    });
+  });
+
+  it("ports CGun Process as periodic idle rotation", () => {
+    const state: GunCannonProcessState = {
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10,
+      placeIndex: 0,
+      owner: TeamType.Red,
+      attackObject: null,
+      position: { x: 10, y: 10 },
+      direction: 7,
+      directionFromLocation: () => {
+        throw new Error("idle rotation does not calculate direction");
+      },
+    };
+
+    processGunCannon(state, 10.5);
+    expect(state.direction).toBe(7);
+    expect(state.lastProcessTime).toBe(10);
+
+    processGunCannon(state, 11);
+    expect(state.direction).toBe(0);
+    expect(state.lastProcessTime).toBe(11);
+  });
+
+  it("ports CGun Process as target-facing rotation", () => {
+    const target = new GameEntity({
+      id: "gun-target",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    target.centerX = 10;
+    target.centerY = 30;
+    const state: GunCannonProcessState = {
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10,
+      placeIndex: 0,
+      owner: TeamType.Red,
+      attackObject: target,
+      position: { x: 10, y: 10 },
+      direction: 3,
+      directionFromLocation(deltaX: number, deltaY: number) {
+        expect([deltaX, deltaY]).toEqual([0, 20]);
+        return 6;
+      },
+    };
+
+    processGunCannon(state, 11);
+    expect(state.direction).toBe(6);
+    expect(state.lastProcessTime).toBe(11);
+
+    state.attackObject = { centerX: 10, centerY: 10 };
+    state.directionFromLocation = () => -1;
+    processGunCannon(state, 12);
+    expect(state.direction).toBe(6);
+  });
+
+  it("ports CHowitzer Process as fire-render timeout before shared processing", () => {
+    const state: HowitzerCannonProcessState = {
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10,
+      placeIndex: 0,
+      owner: TeamType.Red,
+      attackObject: null,
+      position: { x: 10, y: 10 },
+      direction: 7,
+      renderFire: true,
+      endRenderFireTime: 11,
+      directionFromLocation: () => {
+        throw new Error("idle rotation does not calculate direction");
+      },
+    };
+
+    expect(processHowitzerCannon(state, 10.5)).toBe(1);
+    expect(state.renderFire).toBe(true);
+    expect(state.direction).toBe(7);
+
+    processHowitzerCannon(state, 11);
+    expect(state.renderFire).toBe(false);
+    expect(state.direction).toBe(0);
+    expect(state.lastProcessTime).toBe(11);
+  });
+
+  it("ports CHowitzer Process as placement animation with active fire frame", () => {
+    const state: HowitzerCannonProcessState = {
+      mode: ObjectMode.JustPlaced,
+      lastProcessTime: 10,
+      placeIndex: 6,
+      owner: TeamType.Blue,
+      attackObject: null,
+      position: { x: 10, y: 10 },
+      direction: 2,
+      renderFire: true,
+      endRenderFireTime: 20,
+      directionFromLocation: () => {
+        throw new Error("placement does not calculate direction");
+      },
+    };
+
+    processHowitzerCannon(state, 10.1);
+
+    expect(state).toMatchObject({
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10.1,
+      placeIndex: 0,
+      direction: 2,
+      renderFire: true,
+    });
+  });
+
+  it("ports CMissileCannon Process as fire-render timeout before shared processing", () => {
+    const state: MissileCannonProcessState = {
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10,
+      placeIndex: 0,
+      owner: TeamType.Red,
+      attackObject: null,
+      position: { x: 10, y: 10 },
+      direction: 6,
+      renderFire: true,
+      endRenderFireTime: 11,
+      directionFromLocation: () => {
+        throw new Error("idle rotation does not calculate direction");
+      },
+    };
+
+    expect(processMissileCannon(state, 10.5)).toBe(1);
+    expect(state.renderFire).toBe(true);
+    expect(state.direction).toBe(6);
+
+    processMissileCannon(state, 11);
+    expect(state.renderFire).toBe(false);
+    expect(state.direction).toBe(7);
+    expect(state.lastProcessTime).toBe(11);
+  });
+
+  it("ports CMissileCannon Process as target-facing rotation", () => {
+    const target = new GameEntity({
+      id: "missile-cannon-target",
+      kind: "robot",
+      position: { x: 0, y: 0 },
+    });
+    target.centerX = 30;
+    target.centerY = 10;
+    const state: MissileCannonProcessState = {
+      mode: ObjectMode.Rotating,
+      lastProcessTime: 10,
+      placeIndex: 0,
+      owner: TeamType.Blue,
+      attackObject: target,
+      position: { x: 10, y: 10 },
+      direction: 3,
+      renderFire: true,
+      endRenderFireTime: 20,
+      directionFromLocation(deltaX: number, deltaY: number) {
+        expect([deltaX, deltaY]).toEqual([20, 0]);
+        return 0;
+      },
+    };
+
+    processMissileCannon(state, 11);
+
+    expect(state.renderFire).toBe(true);
+    expect(state.direction).toBe(0);
+    expect(state.lastProcessTime).toBe(11);
   });
 
   it("ports ZCannon SetEjectableCannon as cannon ejection state", () => {
