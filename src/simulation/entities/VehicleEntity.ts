@@ -16,12 +16,14 @@ import type { MobileMissileRocketsEffectSpawn } from "../MobileMissileRocketsEff
 import type { LightRocketEffectSpawn } from "../LightRocketEffect";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
+  BuildingType,
   MAX_ANGLE_TYPES,
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
   VEHICLE_MOVE_ANIMATION_SPEED,
 } from "../SimulationConstants";
+import { MapObjectType } from "../../world/MapFormat";
 import {
   HEAVY_TURRET_FRAME_INTERVAL_SECONDS,
   LIGHT_TURRET_FRAME_INTERVAL_SECONDS,
@@ -97,6 +99,66 @@ export type CraneVehicleInitState<TSurface> = {
   wastedImages: VehicleSharedImage<TSurface>[];
   loadImage(filename: string): TSurface | null;
 };
+
+export type CraneVehicleConstructionAnimation = {
+  beginDeath(x: number, y: number): void;
+  killMe(): boolean;
+  process(): void;
+};
+
+export type CraneVehicleAnimationRepairObject = {
+  getObjectId(): { objectType: number; objectId: number };
+  getCoordinates(): { x: number; y: number };
+  getDimensionsPixels(): { width: number; height: number };
+};
+
+export type CraneVehicleConstructionAnimationSpawn<TTime> = {
+  ztime: TTime | null;
+  team: TeamType | number;
+  craneX: number;
+  craneY: number;
+  buildingX: number;
+  buildingY: number;
+  buildingWidth: number;
+  buildingHeight: number;
+  isBridge: boolean;
+};
+
+export type CraneVehicleAnimationState<
+  TTime,
+  TAnimation extends CraneVehicleConstructionAnimation,
+> = {
+  ztime: TTime | null;
+  owner: TeamType | number;
+  position: { x: number; y: number };
+  nextHookTime: number;
+  hookIndex: number;
+  constructionAnimation: TAnimation | null;
+  animationOn: boolean;
+};
+
+export type CraneVehicleProcessState<
+  TAnimation extends CraneVehicleConstructionAnimation,
+> = {
+  moving: boolean;
+  moveIndex: number;
+  nextMoveTime: number;
+  speedOffsetPercentInv(): number;
+  nextTurretTime: number;
+  turretTimeInterval: number;
+  turretDirection: number;
+  animationOn: boolean;
+  nextHookTime: number;
+  hookIndex: number;
+  constructionAnimation: TAnimation | null;
+};
+
+export type CraneVehicleConstructionAnimationFactory<
+  TTime,
+  TAnimation extends CraneVehicleConstructionAnimation,
+> = (
+  spawn: CraneVehicleConstructionAnimationSpawn<TTime>,
+) => TAnimation;
 
 export type MissileLauncherVehicleProcessState = {
   moving: boolean;
@@ -832,6 +894,103 @@ export function initCraneVehicle<TSurface>(
       makeTeamSurface,
     );
   }
+}
+
+/**
+ * Port of upstream `VCrane::DoCraneAnim`.
+ * Role: Toggles crane construction animation and starts construction effect death on shutdown.
+ * Upstream: vcrane.cpp:245-291
+ */
+export function doCraneVehicleAnimation<
+  TTime,
+  TAnimation extends CraneVehicleConstructionAnimation,
+>(
+  state: CraneVehicleAnimationState<TTime, TAnimation>,
+  on: boolean,
+  repairObject: CraneVehicleAnimationRepairObject | null,
+  createConstructionAnimation: CraneVehicleConstructionAnimationFactory<
+    TTime,
+    TAnimation
+  >,
+): void {
+  if (on) {
+    state.nextHookTime = 0;
+
+    if (repairObject) {
+      state.constructionAnimation = null;
+
+      const { objectType, objectId } = repairObject.getObjectId();
+      if (objectType === MapObjectType.Building) {
+        const { x: buildingX, y: buildingY } = repairObject.getCoordinates();
+        const { width: buildingWidth, height: buildingHeight } =
+          repairObject.getDimensionsPixels();
+
+        state.constructionAnimation = createConstructionAnimation({
+          ztime: state.ztime,
+          team: state.owner,
+          craneX: state.position.x,
+          craneY: state.position.y,
+          buildingX,
+          buildingY,
+          buildingWidth,
+          buildingHeight,
+          isBridge:
+            objectId === BuildingType.BridgeVertical ||
+            objectId === BuildingType.BridgeHorizontal,
+        });
+      }
+    }
+  } else {
+    state.hookIndex = 0;
+    state.constructionAnimation?.beginDeath(
+      state.position.x,
+      state.position.y,
+    );
+  }
+
+  state.animationOn = on;
+}
+
+/**
+ * Port of upstream `VCrane::Process`.
+ * Role: Advances crane movement, boom rotation, hook animation, and construction effect lifetime.
+ * Upstream: vcrane.cpp:106-146
+ */
+export function processCraneVehicle<
+  TAnimation extends CraneVehicleConstructionAnimation,
+>(
+  state: CraneVehicleProcessState<TAnimation>,
+  currentTime: number,
+): number {
+  if (state.moving && currentTime >= state.nextMoveTime) {
+    state.moveIndex += 1;
+    if (state.moveIndex >= 3) state.moveIndex = 0;
+
+    state.nextMoveTime =
+      currentTime + VEHICLE_MOVE_ANIMATION_SPEED * state.speedOffsetPercentInv();
+  }
+
+  if (currentTime >= state.nextTurretTime) {
+    state.nextTurretTime = currentTime + state.turretTimeInterval;
+    state.turretDirection += 1;
+    if (state.turretDirection >= MAX_ANGLE_TYPES) state.turretDirection = 0;
+  }
+
+  if (state.animationOn && currentTime >= state.nextHookTime) {
+    state.nextHookTime = currentTime + 0.01;
+    state.hookIndex += 1;
+    if (state.hookIndex >= 16) state.hookIndex = 0;
+  }
+
+  if (state.constructionAnimation) {
+    if (state.constructionAnimation.killMe()) {
+      state.constructionAnimation = null;
+    } else {
+      state.constructionAnimation.process();
+    }
+  }
+
+  return 1;
 }
 
 /**

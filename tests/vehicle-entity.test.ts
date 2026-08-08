@@ -8,6 +8,7 @@ import { GameEntity } from "../src/simulation/entities/GameEntity";
 import {
   initApcVehicle,
   doApcVehicleDeathEffect,
+  doCraneVehicleAnimation,
   doCraneVehicleDeathEffect,
   doHeavyVehicleDeathEffect,
   doJeepVehicleDeathEffect,
@@ -28,6 +29,7 @@ import {
   initMissileLauncherVehicle,
   initLightVehicle,
   initMediumVehicle,
+  processCraneVehicle,
   processHeavyVehicle,
   processLightVehicle,
   processMediumVehicle,
@@ -44,11 +46,13 @@ import {
 } from "../src/simulation/entities/VehicleEntity";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
+  BuildingType,
   MAX_ANGLE_TYPES,
   MAX_UNIT_HEALTH,
   RobotType,
   TeamType,
 } from "../src/simulation/SimulationConstants";
+import { MapObjectType } from "../src/world/MapFormat";
 import {
   TurretMissileEffectType,
   type TurretMissileEffectSpawn,
@@ -656,6 +660,175 @@ describe("vehicle entity", () => {
     function createBaseFrames(): LoadedImage[] {
       return Array.from({ length: 3 }, createImage);
     }
+  });
+
+  it("ports VCrane DoCraneAnim as construction animation startup", () => {
+    type Animation = {
+      beginDeath(x: number, y: number): void;
+      killMe(): boolean;
+      process(): void;
+    };
+    const spawns: unknown[] = [];
+    const state = {
+      ztime: "time",
+      owner: TeamType.Blue,
+      position: { x: 40, y: 70 },
+      nextHookTime: 12,
+      hookIndex: 3,
+      constructionAnimation: createCraneAnimation() as Animation | null,
+      animationOn: false,
+    };
+
+    doCraneVehicleAnimation(
+      state,
+      true,
+      createCraneAnimationRepairObject(
+        MapObjectType.Building,
+        BuildingType.VehicleFactory,
+      ),
+      (spawn) => {
+        spawns.push(spawn);
+        return createCraneAnimation();
+      },
+    );
+
+    expect(state.nextHookTime).toBe(0);
+    expect(state.hookIndex).toBe(3);
+    expect(state.animationOn).toBe(true);
+    expect(spawns).toEqual([
+      {
+        ztime: "time",
+        team: TeamType.Blue,
+        craneX: 40,
+        craneY: 70,
+        buildingX: 100,
+        buildingY: 120,
+        buildingWidth: 64,
+        buildingHeight: 48,
+        isBridge: false,
+      },
+    ]);
+    expect(state.constructionAnimation).not.toBeNull();
+  });
+
+  it("ports VCrane DoCraneAnim bridge and non-building handling", () => {
+    const bridgeSpawns: unknown[] = [];
+    const nonBuildingSpawns: unknown[] = [];
+    const state = createCraneAnimationState();
+
+    doCraneVehicleAnimation(
+      state,
+      true,
+      createCraneAnimationRepairObject(
+        MapObjectType.Building,
+        BuildingType.BridgeHorizontal,
+      ),
+      (spawn) => {
+        bridgeSpawns.push(spawn);
+        return createCraneAnimation();
+      },
+    );
+
+    expect(bridgeSpawns).toHaveLength(1);
+    expect(bridgeSpawns[0]).toMatchObject({ isBridge: true });
+
+    doCraneVehicleAnimation(
+      state,
+      true,
+      createCraneAnimationRepairObject(MapObjectType.Vehicle, 0),
+      (spawn) => {
+        nonBuildingSpawns.push(spawn);
+        return createCraneAnimation();
+      },
+    );
+
+    expect(nonBuildingSpawns).toEqual([]);
+    expect(state.constructionAnimation).toBeNull();
+    expect(state.animationOn).toBe(true);
+  });
+
+  it("ports VCrane DoCraneAnim shutdown as hook reset and construction death", () => {
+    const deaths: Array<[number, number]> = [];
+    const state = createCraneAnimationState({
+      hookIndex: 5,
+      animationOn: true,
+      constructionAnimation: {
+        beginDeath: (x, y) => deaths.push([x, y]),
+        killMe: () => false,
+        process: () => undefined,
+      },
+    });
+
+    doCraneVehicleAnimation(
+      state,
+      false,
+      null,
+      createCraneAnimation,
+    );
+
+    expect(state.hookIndex).toBe(0);
+    expect(state.animationOn).toBe(false);
+    expect(deaths).toEqual([[40, 70]]);
+  });
+
+  it("ports VCrane Process as movement, boom, hook, and construction animation updates", () => {
+    const processed: string[] = [];
+    const state = {
+      moving: true,
+      moveIndex: 2,
+      nextMoveTime: 10,
+      speedOffsetPercentInv: () => 1.5,
+      nextTurretTime: 10,
+      turretTimeInterval: 0.25,
+      turretDirection: MAX_ANGLE_TYPES - 1,
+      animationOn: true,
+      nextHookTime: 10,
+      hookIndex: 15,
+      constructionAnimation: {
+        beginDeath: () => undefined,
+        killMe: () => false,
+        process: () => processed.push("process"),
+      },
+    };
+
+    expect(processCraneVehicle(state, 10)).toBe(1);
+
+    expect(state.moveIndex).toBe(0);
+    expect(state.nextMoveTime).toBe(10 + 0.15);
+    expect(state.turretDirection).toBe(0);
+    expect(state.nextTurretTime).toBe(10.25);
+    expect(state.hookIndex).toBe(0);
+    expect(state.nextHookTime).toBe(10.01);
+    expect(processed).toEqual(["process"]);
+  });
+
+  it("ports VCrane Process as construction animation cleanup", () => {
+    const state = {
+      moving: false,
+      moveIndex: 1,
+      nextMoveTime: 10,
+      speedOffsetPercentInv: () => 1,
+      nextTurretTime: 20,
+      turretTimeInterval: 0.25,
+      turretDirection: 3,
+      animationOn: false,
+      nextHookTime: 10,
+      hookIndex: 4,
+      constructionAnimation: {
+        beginDeath: () => undefined,
+        killMe: () => true,
+        process: () => {
+          throw new Error("should not process killed animation");
+        },
+      },
+    };
+
+    expect(processCraneVehicle(state, 10)).toBe(1);
+
+    expect(state.moveIndex).toBe(1);
+    expect(state.turretDirection).toBe(3);
+    expect(state.hookIndex).toBe(4);
+    expect(state.constructionAnimation).toBeNull();
   });
 
   it("ports ZVehicle CanSetWaypoints as enabled waypoint orders", () => {
@@ -2086,3 +2259,58 @@ describe("vehicle entity", () => {
     ]);
   });
 });
+
+function createCraneAnimationRepairObject(objectType: number, objectId: number): {
+  getObjectId(): { objectType: number; objectId: number };
+  getCoordinates(): { x: number; y: number };
+  getDimensionsPixels(): { width: number; height: number };
+} {
+  return {
+    getObjectId: () => ({ objectType, objectId }),
+    getCoordinates: () => ({ x: 100, y: 120 }),
+    getDimensionsPixels: () => ({ width: 64, height: 48 }),
+  };
+}
+
+function createCraneAnimationState(
+  overrides: Partial<{
+    ztime: string;
+    owner: TeamType;
+    position: { x: number; y: number };
+    nextHookTime: number;
+    hookIndex: number;
+    constructionAnimation: ReturnType<typeof createCraneAnimation> | null;
+    animationOn: boolean;
+  }> = {},
+): {
+  ztime: string;
+  owner: TeamType;
+  position: { x: number; y: number };
+  nextHookTime: number;
+  hookIndex: number;
+  constructionAnimation: ReturnType<typeof createCraneAnimation> | null;
+  animationOn: boolean;
+} {
+  return {
+    ztime: "time",
+    owner: TeamType.Blue,
+    position: { x: 40, y: 70 },
+    nextHookTime: 12,
+    hookIndex: 3,
+    constructionAnimation: createCraneAnimation(),
+    animationOn: false,
+    ...overrides,
+  };
+}
+
+function createCraneAnimation(): {
+  beginDeath(x: number, y: number): void;
+  killMe(): boolean;
+  process(): void;
+} {
+  return {
+    beginDeath: () => undefined,
+    killMe: () => false,
+    process: () => undefined,
+  };
+}
