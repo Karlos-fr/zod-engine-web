@@ -1,6 +1,7 @@
 /**
  * Upstream: gwcreateuser.h
  */
+import type { TexturedSurfaceRenderCommand } from "../rendering/SurfacePixels";
 import {
   loadRotozoomCacheBaseImage,
   type BaseImageFileLoadState,
@@ -165,6 +166,66 @@ export type CreateUserWindowInitState = {
   finishedInit: boolean;
 };
 
+/**
+ * Replacement for upstream `base_img.GetBaseSurface` used by `GWCreateUser::DoRender`.
+ * Role: Provides the loaded create-user menu texture and its dimensions.
+ * Upstream: gwcreateuser.cpp:60-69
+ */
+export type CreateUserWindowBaseImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
+
+/**
+ * Port of upstream `ZMap::GetViewShiftFull` dependency used by `GWCreateUser::DoRender`.
+ * Role: Provides viewport shift and dimensions for centering the create-user window.
+ * Upstream: gwcreateuser.cpp:66
+ */
+export type CreateUserWindowRenderViewport = {
+  shiftX: number;
+  shiftY: number;
+  viewWidth: number;
+  viewHeight: number;
+};
+
+/**
+ * Replacement dependency for upstream create-user widget `DoRender` methods.
+ * Role: Produces render commands for a child widget at the create-user window origin.
+ * Upstream: gwcreateuser.cpp:76-82
+ */
+export type CreateUserWindowWidgetRenderer<TCommand> = {
+  render(x: number, y: number): readonly TCommand[];
+};
+
+/**
+ * Replacement dependency for upstream create-user text-box `CreateRenderIfNeeded`.
+ * Role: Ensures a create-user text-box render cache is current before widget rendering.
+ * Upstream: gwcreateuser.cpp:55-58
+ */
+export type CreateUserWindowRenderableTextBox<TCommand> =
+  CreateUserWindowWidgetRenderer<TCommand> & {
+    createRenderIfNeeded(): void;
+  };
+
+/**
+ * Replacement state for upstream `GWCreateUser::DoRender`.
+ * Role: Holds the initialization flag, base image, and child widgets used to render the create-user window.
+ * Upstream: gwcreateuser.cpp:53-82
+ */
+export type CreateUserWindowRenderState<TTexture, TWidgetCommand> = {
+  finishedInit: boolean;
+  x: number;
+  y: number;
+  baseImage: CreateUserWindowBaseImage<TTexture> | null;
+  okButton: CreateUserWindowWidgetRenderer<TWidgetCommand>;
+  cancelButton: CreateUserWindowWidgetRenderer<TWidgetCommand>;
+  loginNameBox: CreateUserWindowRenderableTextBox<TWidgetCommand>;
+  loginPasswordBox: CreateUserWindowRenderableTextBox<TWidgetCommand>;
+  userNameBox: CreateUserWindowRenderableTextBox<TWidgetCommand>;
+  emailBox: CreateUserWindowRenderableTextBox<TWidgetCommand>;
+};
+
 export const CREATE_USER_MENU_BASE_IMAGE_PATH =
   "assets/other/menus/create_user_menu.png";
 
@@ -185,6 +246,63 @@ export function initCreateUserWindow<TSurface>(
     loadBaseImage,
   );
   state.finishedInit = true;
+}
+
+/**
+ * Replacement for upstream `GWCreateUser::DoRender`.
+ * Role: Builds the centered create-user base command and appends child widget commands.
+ * Upstream: gwcreateuser.cpp:51-84
+ */
+export function renderCreateUserWindow<TTexture, TWidgetCommand>(
+  state: CreateUserWindowRenderState<TTexture, TWidgetCommand>,
+  viewport: CreateUserWindowRenderViewport,
+): Array<TexturedSurfaceRenderCommand<TTexture> | TWidgetCommand> {
+  if (!state.finishedInit) return [];
+
+  state.loginNameBox.createRenderIfNeeded();
+  state.loginPasswordBox.createRenderIfNeeded();
+  state.userNameBox.createRenderIfNeeded();
+  state.emailBox.createRenderIfNeeded();
+
+  const baseImage = state.baseImage;
+  if (!baseImage) return [];
+
+  const x =
+    ((viewport.viewWidth - baseImage.width) >> 1) + viewport.shiftX;
+  const y =
+    ((viewport.viewHeight - baseImage.height) >> 1) + viewport.shiftY;
+
+  state.x = x;
+  state.y = y;
+
+  const baseCommand: TexturedSurfaceRenderCommand<TTexture> = {
+    texture: baseImage.texture,
+    destinationX: x,
+    destinationY: y,
+    width: baseImage.width,
+    height: baseImage.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: baseImage.width,
+    sourceHeight: baseImage.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
+
+  return [
+    baseCommand,
+    ...state.okButton.render(x, y),
+    ...state.cancelButton.render(x, y),
+    ...state.loginNameBox.render(x, y),
+    ...state.loginPasswordBox.render(x, y),
+    ...state.userNameBox.render(x, y),
+    ...state.emailBox.render(x, y),
+  ];
 }
 
 /**

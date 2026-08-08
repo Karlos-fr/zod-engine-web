@@ -18,6 +18,8 @@ import {
   PortraitLookDirection,
   PortraitUnitGraphics,
   type PortraitObjectReference,
+  processPortrait,
+  renderPortrait,
   setPortraitCoordinates,
   setPortraitDoRandomAnims,
   setPortraitInVehicle,
@@ -36,7 +38,9 @@ import type {
   PortraitCoordinateState,
   PortraitInVehicleState,
   PortraitOverMapState,
+  PortraitProcessState,
   PortraitRandomAnimationState,
+  PortraitRenderState,
   PortraitRobotClearState,
   PortraitRefState,
   PortraitRobotIdState,
@@ -536,6 +540,218 @@ describe("portrait animation", () => {
     expect(state.renderFrame).toBe(lookRightFrame);
     expect(state.animationStartTime).toBe(30);
     expect(startedSounds).toHaveLength(3);
+  });
+
+  it("ports ZPortrait Process as initialized guard", () => {
+    const stillFrame = new PortraitFrame();
+    const activeFrame = new PortraitFrame();
+    const state: PortraitProcessState = {
+      finishedInit: false,
+      animInfo: [],
+      currentAnimation: PortraitAnimationType.Blink,
+      renderFrame: activeFrame,
+      animationStartTime: 0,
+      stillFrame,
+      nextRandomAnimationTime: 0,
+      doRandomAnims: true,
+    };
+
+    expect(processPortrait(state, 10)).toBe(1);
+    expect(state.currentAnimation).toBe(PortraitAnimationType.Blink);
+    expect(state.renderFrame).toBe(activeFrame);
+  });
+
+  it("ports ZPortrait Process as active animation frame selection", () => {
+    const stillFrame = new PortraitFrame();
+    const firstFrame = new PortraitFrame();
+    firstFrame.duration = 0.4;
+    const secondFrame = new PortraitFrame();
+    secondFrame.duration = 0.6;
+    const thirdFrame = new PortraitFrame();
+    thirdFrame.duration = 0.8;
+    const state: PortraitProcessState = {
+      finishedInit: true,
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: PortraitAnimationType.Salute,
+      renderFrame: stillFrame,
+      animationStartTime: 5,
+      stillFrame,
+      nextRandomAnimationTime: 0,
+      doRandomAnims: true,
+    };
+    state.animInfo[PortraitAnimationType.Salute] = {
+      frameList: [firstFrame, secondFrame, thirdFrame],
+      totalDuration: 1.8,
+    };
+
+    expect(processPortrait(state, 5.5)).toBe(1);
+
+    expect(state.currentAnimation).toBe(PortraitAnimationType.Salute);
+    expect(state.renderFrame).toBe(secondFrame);
+  });
+
+  it("ports ZPortrait Process as animation completion and random timer scheduling", () => {
+    const stillFrame = new PortraitFrame();
+    const activeFrame = new PortraitFrame();
+    const state: PortraitProcessState = {
+      finishedInit: true,
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: PortraitAnimationType.Blink,
+      renderFrame: activeFrame,
+      animationStartTime: 10,
+      stillFrame,
+      nextRandomAnimationTime: 0,
+      doRandomAnims: true,
+    };
+    state.animInfo[PortraitAnimationType.Blink] = {
+      frameList: [activeFrame],
+      totalDuration: 1,
+    };
+
+    processPortrait(state, 11.25, undefined, () => 7);
+
+    expect(state.currentAnimation).toBe(-1);
+    expect(state.renderFrame).toBe(stillFrame);
+    expect(state.nextRandomAnimationTime).toBe(11.25 + 0.5 + 0.7);
+  });
+
+  it("ports ZPortrait Process as idle random animation trigger", () => {
+    const stillFrame = new PortraitFrame();
+    const blinkFrame = new PortraitFrame();
+    const state: PortraitProcessState = {
+      finishedInit: true,
+      animInfo: Array.from({ length: PortraitAnimationType.MaxPortraitAnims }, () => ({
+        frameList: [],
+        totalDuration: 0,
+      })),
+      currentAnimation: -1,
+      renderFrame: stillFrame,
+      animationStartTime: 0,
+      stillFrame,
+      nextRandomAnimationTime: 20,
+      doRandomAnims: true,
+    };
+    const sounds: string[] = [];
+    state.animInfo[PortraitAnimationType.Blink].frameList.push(blinkFrame);
+
+    processPortrait(state, 20, () => sounds.push("sound"), () => 0);
+
+    expect(state.currentAnimation).toBe(PortraitAnimationType.Blink);
+    expect(state.renderFrame).toBe(blinkFrame);
+    expect(state.animationStartTime).toBe(20);
+    expect(sounds).toEqual(["sound"]);
+  });
+
+  it("replaces ZPortrait DoRender with backdrop and face commands", () => {
+    const state: PortraitRenderState<string> = {
+      doRender: true,
+      inVehicle: false,
+      overMap: false,
+      x: 14,
+      y: 18,
+      terrain: PlanetType.Jungle,
+      backdropVehicle: { texture: "vehicle", width: 86, height: 74 },
+      backdrop: [
+        { texture: "desert", width: 86, height: 74 },
+        { texture: "volcanic", width: 86, height: 74 },
+        { texture: "arctic", width: 86, height: 74 },
+        { texture: "jungle", width: 86, height: 74 },
+      ],
+    };
+
+    const commands = renderPortrait(state, () => [{ kind: "face", layer: 1 }]);
+
+    expect(commands).toEqual([
+      {
+        texture: "jungle",
+        destinationX: 14,
+        destinationY: 18,
+        width: 86,
+        height: 74,
+        sourceX: 0,
+        sourceY: 0,
+        sourceWidth: 86,
+        sourceHeight: 74,
+        textureLeft: 0,
+        textureTop: 0,
+        textureRight: 1,
+        textureBottom: 1,
+        scale: 1,
+        angle: 0,
+        alpha: 1,
+      },
+      { kind: "face", layer: 1 },
+    ]);
+  });
+
+  it("replaces ZPortrait DoRender with vehicle backdrop when in a vehicle", () => {
+    const state: PortraitRenderState<string> = {
+      doRender: true,
+      inVehicle: true,
+      overMap: true,
+      x: 4,
+      y: 9,
+      terrain: PlanetType.Desert,
+      backdropVehicle: { texture: "vehicle", width: 86, height: 74 },
+      backdrop: [{ texture: "desert", width: 86, height: 74 }],
+    };
+
+    const commands = renderPortrait(state, () => []);
+
+    expect(commands[0]).toMatchObject({
+      texture: "vehicle",
+      destinationX: 4,
+      destinationY: 9,
+      width: 86,
+      height: 74,
+    });
+  });
+
+  it("replaces ZPortrait DoRender with black clear when not rendering off-map", () => {
+    const state: PortraitRenderState<string> = {
+      doRender: false,
+      inVehicle: false,
+      overMap: false,
+      x: 2,
+      y: 3,
+      terrain: PlanetType.Desert,
+      backdropVehicle: { texture: "vehicle", width: 86, height: 74 },
+      backdrop: [{ texture: "desert", width: 86, height: 74 }],
+    };
+
+    expect(renderPortrait(state, () => [{ kind: "face" }])).toEqual([
+      {
+        region: {
+          x: 2,
+          y: 3,
+          width: PORTRAIT_BASE_WIDTH_PIXELS,
+          height: PORTRAIT_BASE_HEIGHT_PIXELS,
+        },
+        color: { red: 0, green: 0, blue: 0, alpha: 255 },
+        clear: true,
+      },
+    ]);
+  });
+
+  it("replaces ZPortrait DoRender as no command for hidden over-map portrait", () => {
+    const state: PortraitRenderState<string> = {
+      doRender: false,
+      inVehicle: false,
+      overMap: true,
+      x: 2,
+      y: 3,
+      terrain: PlanetType.Desert,
+      backdropVehicle: { texture: "vehicle", width: 86, height: 74 },
+      backdrop: [{ texture: "desert", width: 86, height: 74 }],
+    };
+
+    expect(renderPortrait(state, () => [{ kind: "face" }])).toEqual([]);
   });
 
   it("ports ZPortrait ClearRobotID as robot portrait binding reset", () => {

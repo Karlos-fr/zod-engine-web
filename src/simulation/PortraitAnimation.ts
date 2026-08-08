@@ -3,6 +3,10 @@
  */
 
 import type { GameEntity } from "./entities/GameEntity";
+import type {
+  SurfaceFillRenderCommand,
+  TexturedSurfaceRenderCommand,
+} from "../rendering/SurfacePixels";
 import type { PlanetType, TeamType } from "./SimulationConstants";
 import {
   ACTIVE_TEAM_TYPE_COUNT,
@@ -528,6 +532,54 @@ export type PortraitStartRandomAnimationState =
   PortraitRandomAnimationState & PortraitStartAnimationState;
 
 /**
+ * Port of upstream `ZPortrait::Process` mutable fields.
+ * Role: Holds initialization, active animation, current frame, and ambient-animation timing state.
+ * Upstream: zportrait.cpp:230-288
+ */
+export type PortraitProcessState = PortraitStartRandomAnimationState & {
+  finishedInit: boolean;
+  stillFrame: PortraitFrame;
+  nextRandomAnimationTime: number;
+};
+
+/**
+ * Replacement for upstream portrait backdrop surface rendering.
+ * Role: Provides a renderable portrait backdrop texture and dimensions.
+ * Upstream: zportrait.cpp:296-312
+ */
+export type PortraitRenderImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
+
+/**
+ * Replacement state for upstream `ZPortrait::DoRender`.
+ * Role: Holds portrait render flags, position, and backdrop images.
+ * Upstream: zportrait.cpp:294-331
+ */
+export type PortraitRenderState<TTexture> = {
+  doRender: boolean;
+  inVehicle: boolean;
+  overMap: boolean;
+  x: number;
+  y: number;
+  terrain: PlanetType | number;
+  backdropVehicle: PortraitRenderImage<TTexture>;
+  backdrop: readonly (PortraitRenderImage<TTexture> | null | undefined)[];
+};
+
+/**
+ * Replacement command set for upstream `ZPortrait::DoRender`.
+ * Role: Carries backdrop texture, clear fill, and delegated face render commands.
+ * Upstream: zportrait.cpp:304-326
+ */
+export type PortraitRenderCommand<TTexture, TFaceCommand> =
+  | TexturedSurfaceRenderCommand<TTexture>
+  | SurfaceFillRenderCommand
+  | TFaceCommand;
+
+/**
  * Port of upstream `ZPortrait` robot binding fields reset by `ClearRobotID`.
  * Role: Captures the portrait subject, render frame, animation, and reference state.
  * Upstream: zportrait.h:167, zportrait.h:172, zportrait.h:177-181, zportrait.h:194
@@ -723,6 +775,121 @@ export function startPortraitRandomAnimation(
     currentTime,
     playAnimSound,
   );
+}
+
+/**
+ * Port of upstream `ZPortrait::Process`.
+ * Role: Advances portrait animation frames and schedules or starts ambient random animations.
+ * Upstream: zportrait.cpp:230-288
+ */
+export function processPortrait(
+  state: PortraitProcessState,
+  currentTime: number,
+  playAnimSound: () => void = (): void => undefined,
+  randomInt: (maxExclusive: number) => number = (maxExclusive) =>
+    Math.floor(Math.random() * maxExclusive),
+): number {
+  if (!state.finishedInit) return 1;
+
+  if (state.currentAnimation !== -1) {
+    const timeIn = currentTime - state.animationStartTime;
+    const animation = state.animInfo[state.currentAnimation];
+
+    if (animation && timeIn > animation.totalDuration) {
+      state.currentAnimation = -1;
+      state.renderFrame = state.stillFrame;
+      state.nextRandomAnimationTime =
+        currentTime + 0.5 + (Math.trunc(randomInt(50)) % 50) * 0.1;
+    } else if (animation) {
+      state.renderFrame = state.stillFrame;
+
+      let currentDuration = 0;
+      for (const frame of animation.frameList) {
+        if (currentDuration <= timeIn) {
+          state.renderFrame = frame;
+        } else {
+          break;
+        }
+
+        currentDuration += frame.duration;
+      }
+    }
+  } else if (currentTime >= state.nextRandomAnimationTime) {
+    startPortraitRandomAnimation(
+      state,
+      () => currentTime,
+      playAnimSound,
+      randomInt,
+    );
+  }
+
+  return 1;
+}
+
+function renderPortraitImage<TTexture>(
+  image: PortraitRenderImage<TTexture>,
+  x: number,
+  y: number,
+): TexturedSurfaceRenderCommand<TTexture> {
+  return {
+    texture: image.texture,
+    destinationX: x,
+    destinationY: y,
+    width: image.width,
+    height: image.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
+}
+
+/**
+ * Replacement for upstream `ZPortrait::DoRender`.
+ * Role: Builds portrait backdrop or clear commands and delegates face command generation.
+ * Upstream: zportrait.cpp:290-333
+ */
+export function renderPortrait<TTexture, TFaceCommand>(
+  state: PortraitRenderState<TTexture>,
+  renderFace: () => readonly TFaceCommand[],
+): Array<PortraitRenderCommand<TTexture, TFaceCommand>> {
+  if (state.doRender) {
+    const backdrop = state.inVehicle
+      ? state.backdropVehicle
+      : state.backdrop[state.terrain];
+
+    const commands: Array<PortraitRenderCommand<TTexture, TFaceCommand>> = [];
+    if (backdrop) {
+      commands.push(renderPortraitImage(backdrop, state.x, state.y));
+    }
+
+    commands.push(...renderFace());
+    return commands;
+  }
+
+  if (!state.overMap) {
+    return [
+      {
+        region: {
+          x: state.x,
+          y: state.y,
+          width: PORTRAIT_BASE_WIDTH_PIXELS,
+          height: PORTRAIT_BASE_HEIGHT_PIXELS,
+        },
+        color: { red: 0, green: 0, blue: 0, alpha: 255 },
+        clear: true,
+      },
+    ];
+  }
+
+  return [];
 }
 
 /**

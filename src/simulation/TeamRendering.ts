@@ -168,6 +168,9 @@ export const TEAM_RENDERING_TEAM_NAMES = [
 export const TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE =
   "ZTeam::SavePalette:You can not save the base palette (red)";
 
+export const TEAM_RENDERING_APPEND_BASE_PALETTE_MESSAGE =
+  "ZTeam::AppendPalette:You can not append to the base palette (red)";
+
 export function getTeamPaletteLoadFailureMessage(teamName: string, filename: string): string {
   return `ZTeam::Could not load palette for the ${teamName} team:'${filename}'`;
 }
@@ -186,6 +189,36 @@ export function initTeamRendering(
   }
 
   setupTeamColor();
+}
+
+/**
+ * Port of upstream `ZTeam::Setup_team_color`.
+ * Role: Initializes visible team colors and applies palette overrides for recolored teams.
+ * Upstream: zteam.cpp:206-257
+ */
+export function setupTeamColors(
+  teamColors: TeamPaletteColor[],
+  teamPalettes: readonly (TeamPaletteColorState | null | undefined)[],
+): void {
+  for (let team = 0; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    teamColors[team] = { red: 115, green: 115, blue: 115 };
+  }
+
+  teamColors[TeamType.Null] = { red: 115, green: 115, blue: 115 };
+  teamColors[TeamType.Red] = { red: 223, green: 0, blue: 0 };
+  teamColors[TeamType.Blue] = { red: 19, green: 55, blue: 251 };
+  teamColors[TeamType.Green] = { red: 23, green: 143, blue: 19 };
+  teamColors[TeamType.Yellow] = { red: 203, green: 99, blue: 47 };
+
+  for (let team = TeamType.Blue; team < ACTIVE_TEAM_TYPE_COUNT; team += 1) {
+    const palette = teamPalettes[team];
+    if (!palette) continue;
+
+    const replacement = getTeamPaletteReplacement(palette, 223, 0, 0);
+    if (replacement) {
+      teamColors[team] = { ...replacement };
+    }
+  }
 }
 
 /**
@@ -342,6 +375,68 @@ export function saveTeamPalette(
   if (!teamName || !palette) return;
 
   palette.saveSurfacePalette(`assets/teams/${teamName}_palette.bmp`);
+}
+
+/**
+ * Port of upstream `ZTeam_Palette::AddColor` dependency used by `ZTeam::AppendPalette`.
+ * Role: Appends one base/replacement RGB mapping to a team palette.
+ * Upstream: zteam.cpp:354
+ */
+export type TeamPaletteColorAppender = (
+  state: TeamPaletteColorState,
+  baseColor: TeamPaletteColor,
+  replaceColor: TeamPaletteColor,
+) => boolean;
+
+/**
+ * Port of upstream `ZTeam::AppendPalette`.
+ * Role: Scans two matching team surfaces and appends every RGB difference to a team's palette.
+ * Upstream: zteam.cpp:308-357
+ */
+export function appendTeamPalette(
+  team: TeamType | number,
+  teamPalettes: readonly (TeamPaletteColorState | null | undefined)[],
+  baseVersion: TeamPaletteSurface | null | undefined,
+  renderVersion: TeamPaletteSurface | null | undefined,
+  appendColor?: TeamPaletteColorAppender,
+  log: (message: string) => void = (): void => undefined,
+): void {
+  if (team === TEAM_RENDERING_BASE_TEAM) {
+    log(TEAM_RENDERING_APPEND_BASE_PALETTE_MESSAGE);
+    return;
+  }
+
+  if (!baseVersion || !renderVersion) return;
+  if (!baseVersion.width || !baseVersion.height) return;
+  if (!renderVersion.width || !renderVersion.height) return;
+  if (baseVersion.width !== renderVersion.width) return;
+  if (baseVersion.height !== renderVersion.height) return;
+
+  const palette = teamPalettes[team];
+  if (!palette) return;
+  const append =
+    appendColor ??
+    ((state: TeamPaletteColorState, baseColor: TeamPaletteColor, replaceColor: TeamPaletteColor) =>
+      addTeamPaletteColor(state, baseColor, replaceColor, log));
+
+  for (let x = 0; x < baseVersion.width; x += 1) {
+    for (let y = 0; y < baseVersion.height; y += 1) {
+      const baseColor = baseVersion.getPixelColor(x, y);
+      const replaceColor = renderVersion.getPixelColor(x, y);
+
+      if (
+        baseColor.red !== replaceColor.red ||
+        baseColor.green !== replaceColor.green ||
+        baseColor.blue !== replaceColor.blue
+      ) {
+        append(
+          palette,
+          { ...baseColor },
+          { ...replaceColor },
+        );
+      }
+    }
+  }
 }
 
 /**

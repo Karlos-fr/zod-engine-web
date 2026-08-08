@@ -4,6 +4,7 @@
 
 import type { SurfaceBlitRegion } from "../rendering/SurfacePixels";
 import type { Tile } from "./Tile";
+import type { MapBasics } from "./MapBasics";
 import {
   createMapZoneInfoTile,
   MAX_SHIFT_CLICK_PIXELS,
@@ -174,6 +175,74 @@ export type MapPaletteTileInfoWriter = (
 export type MapPaletteTileInfoReader = (
   filename: string,
 ) => readonly PaletteTileInfo[] | null;
+
+/**
+ * Port of upstream `ZMap::Write` state surface.
+ * Role: Holds the map header and serialized lists written to map storage.
+ * Upstream: zmap.cpp:1083-1110
+ */
+export type MapWriteState = {
+  basicInfo: MapBasics;
+  zoneList: readonly MapZone[];
+  objectList: readonly MapObject[];
+  tileList: readonly MapTile[];
+};
+
+/**
+ * Port of upstream `ZMap::Write` persisted record bundle.
+ * Role: Groups the map header, zones, objects, and tiles for a browser persistence adapter.
+ * Upstream: zmap.cpp:1088-1110
+ */
+export type MapWritePayload = {
+  basicInfo: MapBasics;
+  zoneList: readonly MapZone[];
+  objectList: readonly MapObject[];
+  tileList: readonly MapTile[];
+};
+
+/**
+ * Port of upstream `fopen`/`fwrite` dependency used by `ZMap::Write`.
+ * Role: Persists the structured map payload and reports write success.
+ * Upstream: zmap.cpp:1078-1110
+ */
+export type MapWriter = (filename: string, payload: MapWritePayload) => boolean;
+
+/**
+ * Port of upstream `ZMap::Write` tile-count warning.
+ * Role: Receives a warning when the header dimensions do not match the tile list.
+ * Upstream: zmap.cpp:1085-1086
+ */
+export type MapWriteWarningSink = (message: string) => void;
+
+/**
+ * Port of upstream `ZMap::Write`.
+ * Role: Writes map header, zones, objects, and tiles through a browser-supplied persistence adapter.
+ * Upstream: zmap.cpp:1069-1115
+ */
+export function writeMap(
+  state: MapWriteState,
+  filename: string | null | undefined,
+  writer: MapWriter,
+  warn: MapWriteWarningSink = () => undefined,
+): number {
+  if (!filename) return 0;
+
+  state.basicInfo.zoneCount = state.zoneList.length;
+  state.basicInfo.objectCount = state.objectList.length;
+
+  if (state.basicInfo.width * state.basicInfo.height !== state.tileList.length) {
+    warn("ZMap::Write::warning width * height != tile_list.size");
+  }
+
+  return writer(filename, {
+    basicInfo: { ...state.basicInfo },
+    zoneList: state.zoneList,
+    objectList: state.objectList,
+    tileList: state.tileList,
+  })
+    ? 1
+    : 0;
+}
 
 /**
  * Port of upstream `ZMap::WriteMapPaletteTileInfo`.

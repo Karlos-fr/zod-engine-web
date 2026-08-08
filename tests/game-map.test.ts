@@ -12,6 +12,7 @@ import {
   type MapViewportRenderCommand,
   replaceUnusableTiles,
   updateMapPalettesTileFormat,
+  writeMap,
   writeMapPaletteTileInfo,
 } from "../src/world/GameMap";
 import { MapObjectType, type MapObject } from "../src/world/MapFormat";
@@ -57,6 +58,126 @@ describe("GameMap", () => {
     expect(writes).toEqual([["assets/planets/volcanic.tileinfo", 480]]);
     expect(writeMapPaletteTileInfo(1, planetTileInfo, () => false)).toBe(0);
     expect(writeMapPaletteTileInfo(9, planetTileInfo, () => true)).toBe(0);
+  });
+
+  it("ports ZMap::Write through an injected map persistence adapter", () => {
+    const state = {
+      basicInfo: {
+        width: 2,
+        height: 2,
+        name: "river",
+        playerCount: 2,
+        objectCount: 99,
+        terrainType: PlanetType.Jungle,
+        zoneCount: 88,
+      },
+      zoneList: [{ x: 1, y: 2, width: 3, height: 4 }],
+      objectList: [
+        {
+          x: 5,
+          y: 6,
+          owner: TeamType.Blue,
+          objectType: MapObjectType.Robot,
+          objectId: 7,
+          buildingLevel: 0,
+          extraLinks: 1,
+          healthPercent: 92,
+        },
+        {
+          x: 8,
+          y: 9,
+          owner: TeamType.Red,
+          objectType: MapObjectType.Vehicle,
+          objectId: 2,
+          buildingLevel: 0,
+          extraLinks: 0,
+          healthPercent: 100,
+        },
+      ],
+      tileList: [{ tile: 10 }, { tile: 11 }, { tile: 12 }, { tile: 13 }],
+    };
+    const writes: Array<[string, number, number, number, number]> = [];
+
+    const result = writeMap(state, "maps/river.zmap", (filename, payload) => {
+      writes.push([
+        filename,
+        payload.basicInfo.zoneCount,
+        payload.basicInfo.objectCount,
+        payload.zoneList.length,
+        payload.tileList.length,
+      ]);
+      expect(payload.basicInfo).not.toBe(state.basicInfo);
+      return true;
+    });
+
+    expect(result).toBe(1);
+    expect(state.basicInfo.zoneCount).toBe(1);
+    expect(state.basicInfo.objectCount).toBe(2);
+    expect(writes).toEqual([["maps/river.zmap", 1, 2, 1, 4]]);
+  });
+
+  it("ports ZMap::Write as rejecting missing filenames before writing", () => {
+    const state = {
+      basicInfo: {
+        width: 1,
+        height: 1,
+        name: "",
+        playerCount: 0,
+        objectCount: 0,
+        terrainType: PlanetType.Desert,
+        zoneCount: 0,
+      },
+      zoneList: [],
+      objectList: [],
+      tileList: [{ tile: 0 }],
+    };
+    const writer = vi.fn(() => true);
+
+    expect(writeMap(state, null, writer)).toBe(0);
+    expect(writeMap(state, "", writer)).toBe(0);
+    expect(writer).not.toHaveBeenCalled();
+  });
+
+  it("ports ZMap::Write as returning zero when persistence fails", () => {
+    const state = {
+      basicInfo: {
+        width: 1,
+        height: 1,
+        name: "fail",
+        playerCount: 1,
+        objectCount: 0,
+        terrainType: PlanetType.Desert,
+        zoneCount: 0,
+      },
+      zoneList: [],
+      objectList: [],
+      tileList: [{ tile: 0 }],
+    };
+
+    expect(writeMap(state, "maps/fail.zmap", () => false)).toBe(0);
+  });
+
+  it("ports ZMap::Write as warning when dimensions do not match tile count", () => {
+    const state = {
+      basicInfo: {
+        width: 2,
+        height: 2,
+        name: "short",
+        playerCount: 1,
+        objectCount: 0,
+        terrainType: PlanetType.Desert,
+        zoneCount: 0,
+      },
+      zoneList: [],
+      objectList: [],
+      tileList: [{ tile: 0 }, { tile: 1 }, { tile: 2 }],
+    };
+    const warnings: string[] = [];
+
+    expect(writeMap(state, "maps/short.zmap", () => true, warnings.push.bind(warnings))).toBe(1);
+    expect(warnings).toEqual([
+      "ZMap::Write::warning width * height != tile_list.size",
+    ]);
   });
 
   it("ports ZMap::LoadPaletteInfo through an injected persistence adapter", () => {

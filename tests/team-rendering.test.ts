@@ -3,6 +3,7 @@ import { getRgbaSurfacePixel } from "../src/rendering/SurfacePixels";
 import { TeamType } from "../src/simulation/SimulationConstants";
 import {
   addTeamPaletteColor,
+  appendTeamPalette,
   createTeamPaletteColorState,
   getTeamPaletteReplacement,
   getTeamPaletteLoadFailureMessage,
@@ -13,10 +14,12 @@ import {
   saveAllTeamPalettes,
   saveTeamSurfacePalette,
   saveTeamPalette,
+  setupTeamColors,
   setupTeamSelectionImages,
   TEAM_RENDERING_COLORS,
   TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE,
   TEAM_PALETTE_LOAD_WIDTH_MESSAGE,
+  TEAM_RENDERING_APPEND_BASE_PALETTE_MESSAGE,
   TEAM_PALETTE_SAVE_REQUIRES_VECTOR_MESSAGE,
   TEAM_RENDERING_BASE_TEAM,
   TEAM_RENDERING_PALETTE_MAX,
@@ -82,6 +85,65 @@ describe("team rendering", () => {
     expect(TEAM_RENDERING_COLORS[TeamType.Blue]).toEqual({ red: 19, green: 55, blue: 251 });
     expect(TEAM_RENDERING_COLORS[TeamType.Green]).toEqual({ red: 23, green: 143, blue: 19 });
     expect(TEAM_RENDERING_COLORS[TeamType.Yellow]).toEqual({ red: 203, green: 99, blue: 47 });
+  });
+
+  it("ports ZTeam Setup_team_color as base visible color initialization", () => {
+    const teamColors = [
+      { red: 1, green: 1, blue: 1 },
+      { red: 2, green: 2, blue: 2 },
+    ];
+
+    setupTeamColors(teamColors, []);
+
+    expect(teamColors[TeamType.Null]).toEqual({ red: 115, green: 115, blue: 115 });
+    expect(teamColors[TeamType.Red]).toEqual({ red: 223, green: 0, blue: 0 });
+    expect(teamColors[TeamType.Blue]).toEqual({ red: 19, green: 55, blue: 251 });
+    expect(teamColors[TeamType.Green]).toEqual({ red: 23, green: 143, blue: 19 });
+    expect(teamColors[TeamType.Yellow]).toEqual({ red: 203, green: 99, blue: 47 });
+    expect(teamColors[TeamType.Purple]).toEqual({ red: 115, green: 115, blue: 115 });
+    expect(teamColors[TeamType.Black]).toEqual({ red: 115, green: 115, blue: 115 });
+  });
+
+  it("ports ZTeam Setup_team_color as palette replacement for teams after red", () => {
+    const teamColors: Array<{ red: number; green: number; blue: number }> = [];
+    const bluePalette = {
+      baseColor: [{ red: 223, green: 0, blue: 0 }],
+      replaceColor: [{ red: 10, green: 20, blue: 30 }],
+    };
+    const yellowPalette = {
+      baseColor: [{ red: 223, green: 0, blue: 0 }],
+      replaceColor: [{ red: 40, green: 50, blue: 60 }],
+    };
+
+    setupTeamColors(
+      teamColors,
+      Array.from({ length: 9 }, (_, team) => {
+        if (team === TeamType.Blue) return bluePalette;
+        if (team === TeamType.Yellow) return yellowPalette;
+        return null;
+      }),
+    );
+
+    expect(teamColors[TeamType.Red]).toEqual({ red: 223, green: 0, blue: 0 });
+    expect(teamColors[TeamType.Blue]).toEqual({ red: 10, green: 20, blue: 30 });
+    expect(teamColors[TeamType.Green]).toEqual({ red: 23, green: 143, blue: 19 });
+    expect(teamColors[TeamType.Yellow]).toEqual({ red: 40, green: 50, blue: 60 });
+  });
+
+  it("ports ZTeam Setup_team_color as keeping defaults without red palette match", () => {
+    const teamColors: Array<{ red: number; green: number; blue: number }> = [];
+
+    setupTeamColors(teamColors, [
+      null,
+      { baseColor: [{ red: 223, green: 0, blue: 0 }], replaceColor: [{ red: 1, green: 2, blue: 3 }] },
+      {
+        baseColor: [{ red: 222, green: 0, blue: 0 }],
+        replaceColor: [{ red: 10, green: 20, blue: 30 }],
+      },
+    ]);
+
+    expect(teamColors[TeamType.Red]).toEqual({ red: 223, green: 0, blue: 0 });
+    expect(teamColors[TeamType.Blue]).toEqual({ red: 19, green: 55, blue: 251 });
   });
 
   it("ports ZPlayer SetupSelectionImages as 4x4 tinted team surfaces", () => {
@@ -350,6 +412,135 @@ describe("team rendering", () => {
 
     expect(saved).toEqual([]);
     expect(messages).toEqual([TEAM_RENDERING_SAVE_BASE_PALETTE_MESSAGE]);
+  });
+
+  it("ports ZTeam AppendPalette as column-major RGB difference collection", () => {
+    const palette = createTeamPaletteColorState();
+    const appended: Array<[
+      typeof palette,
+      { red: number; green: number; blue: number },
+      { red: number; green: number; blue: number },
+    ]> = [];
+    const baseRows = [
+      [
+        { red: 1, green: 2, blue: 3 },
+        { red: 4, green: 5, blue: 6 },
+      ],
+      [
+        { red: 7, green: 8, blue: 9 },
+        { red: 10, green: 11, blue: 12 },
+      ],
+    ];
+    const renderRows = [
+      [
+        { red: 1, green: 2, blue: 3 },
+        { red: 14, green: 5, blue: 6 },
+      ],
+      [
+        { red: 7, green: 18, blue: 9 },
+        { red: 10, green: 11, blue: 22 },
+      ],
+    ];
+
+    appendTeamPalette(
+      TeamType.Blue,
+      Array.from({ length: 9 }, (_, team) => (team === TeamType.Blue ? palette : null)),
+      {
+        width: 2,
+        height: 2,
+        getPixelColor: (x, y) => baseRows[y]![x]!,
+      },
+      {
+        width: 2,
+        height: 2,
+        getPixelColor: (x, y) => renderRows[y]![x]!,
+      },
+      (state, baseColor, replaceColor) => {
+        appended.push([state, baseColor, replaceColor]);
+        return true;
+      },
+    );
+
+    expect(appended).toEqual([
+      [palette, { red: 7, green: 8, blue: 9 }, { red: 7, green: 18, blue: 9 }],
+      [palette, { red: 4, green: 5, blue: 6 }, { red: 14, green: 5, blue: 6 }],
+      [palette, { red: 10, green: 11, blue: 12 }, { red: 10, green: 11, blue: 22 }],
+    ]);
+  });
+
+  it("ports ZTeam AppendPalette guards for base team and invalid surfaces", () => {
+    const palette = createTeamPaletteColorState();
+    const messages: string[] = [];
+    const appended: string[] = [];
+    const validSurface = {
+      width: 1,
+      height: 1,
+      getPixelColor: () => ({ red: 1, green: 2, blue: 3 }),
+    };
+
+    appendTeamPalette(
+      TEAM_RENDERING_BASE_TEAM,
+      [null, palette],
+      validSurface,
+      validSurface,
+      () => {
+        appended.push("base");
+        return true;
+      },
+      (message) => messages.push(message),
+    );
+    appendTeamPalette(TeamType.Blue, [null, null, palette], null, validSurface, () => {
+      appended.push("missing-base");
+      return true;
+    });
+    appendTeamPalette(
+      TeamType.Blue,
+      [null, null, palette],
+      { ...validSurface, width: 0 },
+      validSurface,
+      () => {
+        appended.push("zero-width");
+        return true;
+      },
+    );
+    appendTeamPalette(
+      TeamType.Blue,
+      [null, null, palette],
+      { ...validSurface, width: 2 },
+      validSurface,
+      () => {
+        appended.push("mismatch");
+        return true;
+      },
+    );
+
+    expect(messages).toEqual([TEAM_RENDERING_APPEND_BASE_PALETTE_MESSAGE]);
+    expect(appended).toEqual([]);
+  });
+
+  it("ports ZTeam AppendPalette default AddColor delegation", () => {
+    const palette = createTeamPaletteColorState();
+    const messages: string[] = [];
+
+    appendTeamPalette(
+      TeamType.Blue,
+      [null, null, palette],
+      {
+        width: 1,
+        height: 1,
+        getPixelColor: () => ({ red: 1, green: 2, blue: 3 }),
+      },
+      {
+        width: 1,
+        height: 1,
+        getPixelColor: () => ({ red: 4, green: 5, blue: 6 }),
+      },
+      undefined,
+      (message) => messages.push(message),
+    );
+
+    expect(messages).toEqual([TEAM_PALETTE_ADD_COLOR_REQUIRES_VECTOR_MESSAGE]);
+    expect(palette).toEqual({ baseColor: [], replaceColor: [] });
   });
 
   it("ports ZTeam LoadPalette as base-team guard", () => {

@@ -88,7 +88,7 @@ export enum HudButtonState {
  * Upstream: zhud.h:53-68
  */
 export class HubButton {
-  type: HudButton;
+  type: HudButton | number;
   state: HudButtonState;
   name: string;
   x = 0;
@@ -96,7 +96,7 @@ export class HubButton {
   shiftX = 0;
   shiftY = 0;
 
-  constructor(type: HudButton = HudButton.A, state: HudButtonState = HudButtonState.Inactive) {
+  constructor(type: HudButton | number = HudButton.A, state: HudButtonState = HudButtonState.Inactive) {
     this.type = type;
     this.state = state;
     this.name = HUD_BUTTON_NAMES[type] ?? "unknown_button";
@@ -107,9 +107,72 @@ export class HubButton {
    * Role: Stores the HUD button command type and updates the asset-name stem.
    * Upstream: zhud.cpp:15-19
    */
-  setType(type: HudButton): void {
+  setType(type: HudButton | number): void {
     this.type = type;
     this.name = HUD_BUTTON_NAMES[type] ?? "unknown_button";
+  }
+
+  /**
+   * Port of upstream `HubButton::Init`.
+   * Role: Loads the HUD button state images and applies the button's fixed HUD placement.
+   * Upstream: zhud.cpp:50-107
+   */
+  init(buttonImages: readonly (HudButtonLoadImage | null | undefined)[]): void {
+    if (this.type === -1) return;
+
+    buttonImages[HudButtonState.Active]?.loadBaseImage(
+      `assets/other/hud/${this.name}_active.bmp`,
+    );
+    buttonImages[HudButtonState.Inactive]?.loadBaseImage(
+      `assets/other/hud/${this.name}_inactive.bmp`,
+    );
+    buttonImages[HudButtonState.Pressed]?.loadBaseImage(
+      `assets/other/hud/${this.name}_pressed.bmp`,
+    );
+
+    switch (this.type) {
+      case HudButton.A:
+        this.x = 556;
+        this.y = 8;
+        this.state = HudButtonState.Inactive;
+        break;
+      case HudButton.B:
+        this.x = 68;
+        this.y = 458;
+        this.state = HudButtonState.Inactive;
+        break;
+      case HudButton.D:
+        this.x = 586;
+        this.y = 264;
+        break;
+      case HudButton.G:
+        this.x = 98;
+        this.y = 458;
+        this.state = HudButtonState.Inactive;
+        break;
+      case HudButton.Menu:
+        this.x = 482;
+        this.y = 458;
+        break;
+      case HudButton.R:
+        this.x = 8;
+        this.y = 458;
+        this.state = HudButtonState.Inactive;
+        break;
+      case HudButton.T:
+        this.x = 556;
+        this.y = 264;
+        break;
+      case HudButton.V:
+        this.x = 38;
+        this.y = 458;
+        this.state = HudButtonState.Inactive;
+        break;
+      case HudButton.Z:
+        this.x = 616;
+        this.y = 264;
+        break;
+    }
   }
 
   /**
@@ -145,7 +208,7 @@ export class HubButton {
    * Role: Returns the HUD button command type.
    * Upstream: zhud.cpp:121-124
    */
-  getType(): HudButton {
+  getType(): HudButton | number {
     return this.type;
   }
 
@@ -213,6 +276,15 @@ export type HudButtonRenderImage<TTexture> = {
   texture: TTexture;
   width: number;
   height: number;
+};
+
+/**
+ * Port of upstream `HubButton::Init` image dependency.
+ * Role: Receives a HUD button state image filename.
+ * Upstream: zhud.cpp:56-61
+ */
+export type HudButtonLoadImage = {
+  loadBaseImage(filename: string): void;
 };
 
 /**

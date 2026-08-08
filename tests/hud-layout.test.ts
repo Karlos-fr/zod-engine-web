@@ -105,6 +105,70 @@ describe("HUD layout", () => {
     expect(button.name).toBe("g_button");
   });
 
+  it("ports HubButton Init as state image loading and fixed button placement", () => {
+    const loads: Array<[number, string]> = [];
+    const images = Array.from({ length: HudButtonState.MaxHudButtonStates }, (_, state) => ({
+      loadBaseImage(filename: string): void {
+        loads.push([state, filename]);
+      },
+    }));
+    const button = new HubButton(HudButton.A, HudButtonState.Active);
+
+    button.init(images);
+
+    expect(loads).toEqual([
+      [HudButtonState.Active, "assets/other/hud/a_button_active.bmp"],
+      [HudButtonState.Inactive, "assets/other/hud/a_button_inactive.bmp"],
+      [HudButtonState.Pressed, "assets/other/hud/a_button_pressed.bmp"],
+    ]);
+    expect(button.x).toBe(556);
+    expect(button.y).toBe(8);
+    expect(button.state).toBe(HudButtonState.Inactive);
+  });
+
+  it("ports HubButton Init coordinates and default state behavior for each button type", () => {
+    const cases: Array<[HudButton, number, number, HudButtonState]> = [
+      [HudButton.B, 68, 458, HudButtonState.Inactive],
+      [HudButton.D, 586, 264, HudButtonState.Active],
+      [HudButton.G, 98, 458, HudButtonState.Inactive],
+      [HudButton.Menu, 482, 458, HudButtonState.Active],
+      [HudButton.R, 8, 458, HudButtonState.Inactive],
+      [HudButton.T, 556, 264, HudButtonState.Active],
+      [HudButton.V, 38, 458, HudButtonState.Inactive],
+      [HudButton.Z, 616, 264, HudButtonState.Active],
+    ];
+
+    for (const [type, x, y, expectedState] of cases) {
+      const button = new HubButton(type, HudButtonState.Active);
+
+      button.init([]);
+
+      expect([button.x, button.y, button.state]).toEqual([
+        x,
+        y,
+        expectedState,
+      ]);
+    }
+  });
+
+  it("ports HubButton Init as no-op for unset button type", () => {
+    const loads: string[] = [];
+    const button = new HubButton(-1, HudButtonState.Pressed);
+    button.x = 10;
+    button.y = 20;
+
+    button.init([
+      { loadBaseImage: (filename) => loads.push(filename) },
+      { loadBaseImage: (filename) => loads.push(filename) },
+      { loadBaseImage: (filename) => loads.push(filename) },
+    ]);
+
+    expect(loads).toEqual([]);
+    expect(button.x).toBe(10);
+    expect(button.y).toBe(20);
+    expect(button.state).toBe(HudButtonState.Pressed);
+  });
+
   it("ports HubButton SetShift as render and hit-test offsets", () => {
     const button = new HubButton();
 

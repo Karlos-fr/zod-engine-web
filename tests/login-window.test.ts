@@ -6,6 +6,7 @@ import {
   initLoginWindow,
   keyPressLoginWindow,
   LOGIN_MENU_BASE_IMAGE_PATH,
+  renderLoginWindow,
   unclickLoginWindow,
   ZGW_LOGIN_HEADER_GUARD_PORTED,
 } from "../src/ui/LoginWindow";
@@ -330,5 +331,115 @@ describe("login window", () => {
     expect(loadedFilenames).toEqual([LOGIN_MENU_BASE_IMAGE_PATH]);
     expect(baseSurfaces).toEqual([`surface:${LOGIN_MENU_BASE_IMAGE_PATH}`]);
     expect(state.finishedInit).toBe(true);
+  });
+
+  it("replaces GWLogin DoRender with centered base and child widget commands", () => {
+    const calls: string[] = [];
+    const widget = (id: string) => ({
+      render(x: number, y: number) {
+        calls.push(`${id}:${x}:${y}`);
+        return [{ kind: id, x, y }];
+      },
+    });
+    const textBox = (id: string) => ({
+      createRenderIfNeeded() {
+        calls.push(`${id}:create-render`);
+      },
+      render(x: number, y: number) {
+        calls.push(`${id}:${x}:${y}`);
+        return [{ kind: id, x, y }];
+      },
+    });
+    const state = {
+      finishedInit: true,
+      x: 0,
+      y: 0,
+      baseImage: {
+        texture: { textureId: "login" },
+        width: 120,
+        height: 80,
+      },
+      loginButton: widget("login-button"),
+      createButton: widget("create-button"),
+      loginNameBox: textBox("login-name"),
+      loginPasswordBox: textBox("login-password"),
+    };
+
+    const commands = renderLoginWindow(state, {
+      shiftX: 5,
+      shiftY: 7,
+      viewWidth: 320,
+      viewHeight: 200,
+    });
+
+    expect(state.x).toBe(105);
+    expect(state.y).toBe(67);
+    expect(calls).toEqual([
+      "login-name:create-render",
+      "login-password:create-render",
+      "login-button:105:67",
+      "create-button:105:67",
+      "login-name:105:67",
+      "login-password:105:67",
+    ]);
+    expect(commands).toEqual([
+      {
+        texture: { textureId: "login" },
+        destinationX: 105,
+        destinationY: 67,
+        width: 120,
+        height: 80,
+        sourceX: 0,
+        sourceY: 0,
+        sourceWidth: 120,
+        sourceHeight: 80,
+        textureLeft: 0,
+        textureTop: 0,
+        textureRight: 1,
+        textureBottom: 1,
+        scale: 1,
+        angle: 0,
+        alpha: 1,
+      },
+      { kind: "login-button", x: 105, y: 67 },
+      { kind: "create-button", x: 105, y: 67 },
+      { kind: "login-name", x: 105, y: 67 },
+      { kind: "login-password", x: 105, y: 67 },
+    ]);
+  });
+
+  it("replaces GWLogin DoRender guard and missing-image cases", () => {
+    const calls: string[] = [];
+    const state = {
+      finishedInit: false,
+      x: 10,
+      y: 20,
+      baseImage: null,
+      loginButton: { render: () => [{ kind: "login" }] },
+      createButton: { render: () => [{ kind: "create" }] },
+      loginNameBox: {
+        createRenderIfNeeded: () => calls.push("name-create"),
+        render: () => [{ kind: "name" }],
+      },
+      loginPasswordBox: {
+        createRenderIfNeeded: () => calls.push("password-create"),
+        render: () => [{ kind: "password" }],
+      },
+    };
+    const viewport = {
+      shiftX: 0,
+      shiftY: 0,
+      viewWidth: 100,
+      viewHeight: 100,
+    };
+
+    expect(renderLoginWindow(state, viewport)).toEqual([]);
+    expect(calls).toEqual([]);
+
+    state.finishedInit = true;
+    expect(renderLoginWindow(state, viewport)).toEqual([]);
+    expect(calls).toEqual(["name-create", "password-create"]);
+    expect(state.x).toBe(10);
+    expect(state.y).toBe(20);
   });
 });

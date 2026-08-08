@@ -1,6 +1,7 @@
 /**
  * Upstream: gwlogin.h
  */
+import type { TexturedSurfaceRenderCommand } from "../rendering/SurfacePixels";
 import {
   loadRotozoomCacheBaseImage,
   type BaseImageFileLoadState,
@@ -128,6 +129,64 @@ export type LoginKeyPressState = {
   doLogin(): void;
 };
 
+/**
+ * Replacement for upstream `base_img.GetBaseSurface` used by `GWLogin::DoRender`.
+ * Role: Provides the loaded login menu texture and its dimensions.
+ * Upstream: gwlogin.cpp:51-60
+ */
+export type LoginWindowBaseImage<TTexture> = {
+  texture: TTexture;
+  width: number;
+  height: number;
+};
+
+/**
+ * Port of upstream `ZMap::GetViewShiftFull` dependency used by `GWLogin::DoRender`.
+ * Role: Provides viewport shift and dimensions for centering the login window.
+ * Upstream: gwlogin.cpp:57
+ */
+export type LoginWindowRenderViewport = {
+  shiftX: number;
+  shiftY: number;
+  viewWidth: number;
+  viewHeight: number;
+};
+
+/**
+ * Replacement dependency for upstream login widget `DoRender` methods.
+ * Role: Produces render commands for a login child widget at the login window origin.
+ * Upstream: gwlogin.cpp:67-71
+ */
+export type LoginWindowWidgetRenderer<TCommand> = {
+  render(x: number, y: number): readonly TCommand[];
+};
+
+/**
+ * Replacement dependency for upstream login text-box `CreateRenderIfNeeded`.
+ * Role: Ensures a login text-box render cache is current before widget rendering.
+ * Upstream: gwlogin.cpp:48-49
+ */
+export type LoginWindowRenderableTextBox<TCommand> =
+  LoginWindowWidgetRenderer<TCommand> & {
+    createRenderIfNeeded(): void;
+  };
+
+/**
+ * Replacement state for upstream `GWLogin::DoRender`.
+ * Role: Holds the initialization flag, base image, and child widgets used to render the login window.
+ * Upstream: gwlogin.cpp:46-71
+ */
+export type LoginWindowRenderState<TTexture, TWidgetCommand> = {
+  finishedInit: boolean;
+  x: number;
+  y: number;
+  baseImage: LoginWindowBaseImage<TTexture> | null;
+  loginButton: LoginWindowWidgetRenderer<TWidgetCommand>;
+  createButton: LoginWindowWidgetRenderer<TWidgetCommand>;
+  loginNameBox: LoginWindowRenderableTextBox<TWidgetCommand>;
+  loginPasswordBox: LoginWindowRenderableTextBox<TWidgetCommand>;
+};
+
 export const LOGIN_MENU_BASE_IMAGE_PATH = "assets/other/menus/login_menu.png";
 
 /**
@@ -147,6 +206,59 @@ export function initLoginWindow<TSurface>(
     loadBaseImage,
   );
   state.finishedInit = true;
+}
+
+/**
+ * Replacement for upstream `GWLogin::DoRender`.
+ * Role: Builds the centered login-window base command and appends child widget commands.
+ * Upstream: gwlogin.cpp:44-73
+ */
+export function renderLoginWindow<TTexture, TWidgetCommand>(
+  state: LoginWindowRenderState<TTexture, TWidgetCommand>,
+  viewport: LoginWindowRenderViewport,
+): Array<TexturedSurfaceRenderCommand<TTexture> | TWidgetCommand> {
+  if (!state.finishedInit) return [];
+
+  state.loginNameBox.createRenderIfNeeded();
+  state.loginPasswordBox.createRenderIfNeeded();
+
+  const baseImage = state.baseImage;
+  if (!baseImage) return [];
+
+  const x =
+    ((viewport.viewWidth - baseImage.width) >> 1) + viewport.shiftX;
+  const y =
+    ((viewport.viewHeight - baseImage.height) >> 1) + viewport.shiftY;
+
+  state.x = x;
+  state.y = y;
+
+  const baseCommand: TexturedSurfaceRenderCommand<TTexture> = {
+    texture: baseImage.texture,
+    destinationX: x,
+    destinationY: y,
+    width: baseImage.width,
+    height: baseImage.height,
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: baseImage.width,
+    sourceHeight: baseImage.height,
+    textureLeft: 0,
+    textureTop: 0,
+    textureRight: 1,
+    textureBottom: 1,
+    scale: 1,
+    angle: 0,
+    alpha: 1,
+  };
+
+  return [
+    baseCommand,
+    ...state.loginButton.render(x, y),
+    ...state.createButton.render(x, y),
+    ...state.loginNameBox.render(x, y),
+    ...state.loginPasswordBox.render(x, y),
+  ];
 }
 
 /**

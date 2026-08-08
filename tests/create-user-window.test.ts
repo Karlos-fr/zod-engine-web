@@ -7,6 +7,7 @@ import {
   initCreateUserWindow,
   keyPressCreateUserWindow,
   removeCreateUserSelections,
+  renderCreateUserWindow,
   unclickCreateUserWindow,
   ZGW_CREATE_USER_HEADER_GUARD_PORTED,
 } from "../src/ui/CreateUserWindow";
@@ -443,5 +444,136 @@ describe("create user window", () => {
       `surface:${CREATE_USER_MENU_BASE_IMAGE_PATH}`,
     ]);
     expect(state.finishedInit).toBe(true);
+  });
+
+  it("replaces GWCreateUser DoRender with centered base and child widget commands", () => {
+    const calls: string[] = [];
+    const widget = (id: string) => ({
+      render(x: number, y: number) {
+        calls.push(`${id}:${x}:${y}`);
+        return [{ kind: id, x, y }];
+      },
+    });
+    const textBox = (id: string) => ({
+      createRenderIfNeeded() {
+        calls.push(`${id}:create-render`);
+      },
+      render(x: number, y: number) {
+        calls.push(`${id}:${x}:${y}`);
+        return [{ kind: id, x, y }];
+      },
+    });
+    const state = {
+      finishedInit: true,
+      x: 0,
+      y: 0,
+      baseImage: {
+        texture: { textureId: "create-user" },
+        width: 160,
+        height: 90,
+      },
+      okButton: widget("ok-button"),
+      cancelButton: widget("cancel-button"),
+      loginNameBox: textBox("login-name"),
+      loginPasswordBox: textBox("login-password"),
+      userNameBox: textBox("user-name"),
+      emailBox: textBox("email"),
+    };
+
+    const commands = renderCreateUserWindow(state, {
+      shiftX: 3,
+      shiftY: 5,
+      viewWidth: 360,
+      viewHeight: 220,
+    });
+
+    expect(state.x).toBe(103);
+    expect(state.y).toBe(70);
+    expect(calls).toEqual([
+      "login-name:create-render",
+      "login-password:create-render",
+      "user-name:create-render",
+      "email:create-render",
+      "ok-button:103:70",
+      "cancel-button:103:70",
+      "login-name:103:70",
+      "login-password:103:70",
+      "user-name:103:70",
+      "email:103:70",
+    ]);
+    expect(commands).toEqual([
+      {
+        texture: { textureId: "create-user" },
+        destinationX: 103,
+        destinationY: 70,
+        width: 160,
+        height: 90,
+        sourceX: 0,
+        sourceY: 0,
+        sourceWidth: 160,
+        sourceHeight: 90,
+        textureLeft: 0,
+        textureTop: 0,
+        textureRight: 1,
+        textureBottom: 1,
+        scale: 1,
+        angle: 0,
+        alpha: 1,
+      },
+      { kind: "ok-button", x: 103, y: 70 },
+      { kind: "cancel-button", x: 103, y: 70 },
+      { kind: "login-name", x: 103, y: 70 },
+      { kind: "login-password", x: 103, y: 70 },
+      { kind: "user-name", x: 103, y: 70 },
+      { kind: "email", x: 103, y: 70 },
+    ]);
+  });
+
+  it("replaces GWCreateUser DoRender guard and missing-image cases", () => {
+    const calls: string[] = [];
+    const state = {
+      finishedInit: false,
+      x: 10,
+      y: 20,
+      baseImage: null,
+      okButton: { render: () => [{ kind: "ok" }] },
+      cancelButton: { render: () => [{ kind: "cancel" }] },
+      loginNameBox: {
+        createRenderIfNeeded: () => calls.push("login-create"),
+        render: () => [{ kind: "login" }],
+      },
+      loginPasswordBox: {
+        createRenderIfNeeded: () => calls.push("password-create"),
+        render: () => [{ kind: "password" }],
+      },
+      userNameBox: {
+        createRenderIfNeeded: () => calls.push("user-create"),
+        render: () => [{ kind: "user" }],
+      },
+      emailBox: {
+        createRenderIfNeeded: () => calls.push("email-create"),
+        render: () => [{ kind: "email" }],
+      },
+    };
+    const viewport = {
+      shiftX: 0,
+      shiftY: 0,
+      viewWidth: 100,
+      viewHeight: 100,
+    };
+
+    expect(renderCreateUserWindow(state, viewport)).toEqual([]);
+    expect(calls).toEqual([]);
+
+    state.finishedInit = true;
+    expect(renderCreateUserWindow(state, viewport)).toEqual([]);
+    expect(calls).toEqual([
+      "login-create",
+      "password-create",
+      "user-create",
+      "email-create",
+    ]);
+    expect(state.x).toBe(10);
+    expect(state.y).toBe(20);
   });
 });

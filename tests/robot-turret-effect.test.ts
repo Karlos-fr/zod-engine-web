@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EROBOT_TURRET_HEADER_GUARD_PORTED,
   initRobotTurretEffect,
+  processRobotTurretEffect,
   renderRobotTurretEffect,
 } from "../src/simulation/RobotTurretEffect";
 import {
@@ -154,5 +155,89 @@ describe("robot turret effect", () => {
         zmap,
       ),
     ).toBeNull();
+  });
+
+  it("ports ERobotTurrent Process as in-air animation and ballistic movement", () => {
+    const state = {
+      killMe: false,
+      x: 0,
+      y: 0,
+      startX: 100,
+      startY: 200,
+      deltaX: 10,
+      deltaY: -5,
+      rise: 2,
+      size: 1,
+      renderIndex: 7,
+      initTime: 10,
+      finalTime: 14,
+      nextRenderIndexTime: 11,
+    };
+
+    processRobotTurretEffect(state, 12);
+
+    expect(state.killMe).toBe(false);
+    expect(state.renderIndex).toBe(0);
+    expect(state.nextRenderIndexTime).toBe(12.05);
+    expect(state.size).toBe(3);
+    expect(state.x).toBe(120);
+    expect(state.y).toBe(130);
+  });
+
+  it("ports ERobotTurrent Process as late animation tail and size reset", () => {
+    const state = {
+      killMe: false,
+      x: 100,
+      y: 200,
+      startX: 100,
+      startY: 200,
+      deltaX: 10,
+      deltaY: -5,
+      rise: 2,
+      size: 3,
+      renderIndex: 2,
+      initTime: 10,
+      finalTime: 14,
+      nextRenderIndexTime: 14,
+    };
+
+    processRobotTurretEffect(state, 14.5);
+
+    expect(state.killMe).toBe(false);
+    expect(state.renderIndex).toBe(8);
+    expect(state.nextRenderIndexTime).toBe(14.65);
+    expect(state.size).toBe(1);
+    expect(state.x).toBe(100);
+    expect(state.y).toBe(200);
+  });
+
+  it("ports ERobotTurrent Process as kill after final frame and early kill guard", () => {
+    const killedState = {
+      killMe: false,
+      x: 1,
+      y: 2,
+      startX: 1,
+      startY: 2,
+      deltaX: 3,
+      deltaY: 4,
+      rise: 5,
+      size: 6,
+      renderIndex: 32,
+      initTime: 10,
+      finalTime: 11,
+      nextRenderIndexTime: 12,
+    };
+
+    processRobotTurretEffect(killedState, 12);
+
+    expect(killedState.killMe).toBe(true);
+    expect(killedState.renderIndex).toBe(33);
+    expect(killedState.x).toBe(1);
+    expect(killedState.y).toBe(2);
+    expect(killedState.size).toBe(6);
+
+    const alreadyKilled = { ...killedState, killMe: true, renderIndex: 1 };
+    processRobotTurretEffect(alreadyKilled, 99);
+    expect(alreadyKilled.renderIndex).toBe(1);
   });
 });

@@ -76,6 +76,27 @@ export type RobotTurretRenderState<TImage> = {
   robotFlipImages: readonly (readonly TImage[])[];
 };
 
+/**
+ * Port of upstream `ERobotTurrent::Process` mutable fields.
+ * Role: Holds robot turret debris timing, animation, movement, and size state.
+ * Upstream: erobotturrent.cpp:76-131
+ */
+export type RobotTurretProcessState = {
+  killMe: boolean;
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  deltaX: number;
+  deltaY: number;
+  rise: number;
+  size: number;
+  renderIndex: number;
+  initTime: number;
+  finalTime: number;
+  nextRenderIndexTime: number;
+};
+
 const ROBOT_TURRET_FLIP_FRAME_COUNT = 33;
 const ROBOT_TURRET_TEAM_TYPE_ASSET_NAMES = [
   "null",
@@ -139,4 +160,50 @@ export function renderRobotTurretEffect<
   image.setSize?.(state.size);
 
   return zmap.renderZSurface(image, state.x, state.y, false, true);
+}
+
+/**
+ * Port of upstream `ERobotTurrent::Process`.
+ * Role: Advances robot turret debris animation, ballistic movement, and kill state.
+ * Upstream: erobotturrent.cpp:76-131
+ */
+export function processRobotTurretEffect(
+  state: RobotTurretProcessState,
+  currentTime: number,
+): void {
+  if (state.killMe) return;
+
+  if (currentTime >= state.nextRenderIndexTime) {
+    state.renderIndex += 1;
+
+    if (currentTime < state.finalTime) {
+      state.nextRenderIndexTime = currentTime + 0.05;
+
+      if (state.renderIndex > 7) state.renderIndex = 0;
+    } else {
+      state.nextRenderIndexTime = currentTime + 0.15;
+
+      if (state.renderIndex < 8) state.renderIndex = 8;
+    }
+
+    if (state.renderIndex > 32) {
+      state.killMe = true;
+      return;
+    }
+  }
+
+  if (currentTime < state.finalTime) {
+    const timeDifference = currentTime - state.initTime;
+
+    state.x = state.startX + state.deltaX * timeDifference;
+    state.y = state.startY + state.deltaY * timeDifference;
+    state.size =
+      -(state.rise / (state.finalTime - state.initTime)) *
+        (timeDifference * timeDifference) +
+      state.rise * timeDifference;
+    state.size += 1;
+    state.y -= (state.size - 1) * 30;
+  } else {
+    state.size = 1;
+  }
 }
